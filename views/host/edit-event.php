@@ -45,13 +45,14 @@ Edit Event - <?= e($event->name) ?>
         <h2>Edit event details</h2>
         <div class="auth-message" aria-live="polite" style="display: none;"></div>
 
-        <?php if (isset($model) && $model->hasErrors()): ?>
+        <?php $errorModel = $model ?? $event ?? null; ?>
+        <?php if (isset($errorModel) && $errorModel->hasErrors()): ?>
             <div class="alert alert-danger" style="margin-bottom: 1.25rem; border-radius: 14px; padding: 1rem 1.25rem; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">
                 <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
                     <span>⚠️</span> Please correct the following errors:
                 </h4>
                 <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.88rem; line-height: 1.6;">
-                    <?php foreach ($model->getErrorMessages() as $errorMessage): ?>
+                    <?php foreach ($errorModel->getErrorMessages() as $errorMessage): ?>
                         <li><?= e($errorMessage) ?></li>
                     <?php endforeach; ?>
                 </ul>

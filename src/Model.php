@@ -349,6 +349,14 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         return !empty($this->errors[$attribute]);
     }
 
+    public function hasErrors(?string $attribute = null): bool
+    {
+        if ($attribute !== null) {
+            return !empty($this->errors[$attribute]);
+        }
+        return !empty($this->errors);
+    }
+
     public function getFirstError(string $attribute): string
     {
         return $this->errors[$attribute][0] ?? '';

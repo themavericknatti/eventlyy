@@ -121,9 +121,13 @@ class UploadService
 
             // Automatically optimize & reduce file size for raster images
             if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
-                $targetW = $maxWidth > 0 ? $maxWidth : 1920;
-                $targetH = $maxHeight > 0 ? $maxHeight : 1080;
-                $this->optimizeImage($destinationPath, $targetW, $targetH, $quality);
+                try {
+                    $targetW = $maxWidth > 0 ? $maxWidth : 1920;
+                    $targetH = $maxHeight > 0 ? $maxHeight : 1080;
+                    $this->optimizeImage($destinationPath, $targetW, $targetH, $quality);
+                } catch (\Throwable $e) {
+                    Logger::error("UploadService: Image optimization failed for {$uniqueName}: " . $e->getMessage());
+                }
             }
 
             return [
@@ -198,16 +202,16 @@ class UploadService
         // Load image base on MIME type
         switch ($imageType) {
             case IMAGETYPE_JPEG:
-                $sourceImage = imagecreatefromjpeg($sourcePath);
+                $sourceImage = @imagecreatefromjpeg($sourcePath);
                 break;
             case IMAGETYPE_PNG:
-                $sourceImage = imagecreatefrompng($sourcePath);
+                $sourceImage = @imagecreatefrompng($sourcePath);
                 break;
             case IMAGETYPE_GIF:
-                $sourceImage = imagecreatefromgif($sourcePath);
+                $sourceImage = @imagecreatefromgif($sourcePath);
                 break;
             case IMAGETYPE_WEBP:
-                $sourceImage = imagecreatefromwebp($sourcePath);
+                $sourceImage = @imagecreatefromwebp($sourcePath);
                 break;
             default:
                 return false; // Type not supported
@@ -238,23 +242,25 @@ class UploadService
             imagealphablending($resizedImage, false);
             imagesavealpha($resizedImage, true);
         } elseif ($imageType === IMAGETYPE_GIF) {
-            $transparentIndex = imagecolortransparent($sourceImage);
+            $transparentIndex = @imagecolortransparent($sourceImage);
             if ($transparentIndex >= 0) {
-                $transparentColor = imagecolorsforindex($sourceImage, $transparentIndex);
-                $transparency = imagecolorallocatealpha(
-                    $resizedImage,
-                    $transparentColor['red'],
-                    $transparentColor['green'],
-                    $transparentColor['blue'],
-                    127
-                );
-                imagefill($resizedImage, 0, 0, $transparency);
-                imagecolortransparent($resizedImage, $transparency);
+                $transparentColor = @imagecolorsforindex($sourceImage, $transparentIndex);
+                if ($transparentColor) {
+                    $transparency = imagecolorallocatealpha(
+                        $resizedImage,
+                        $transparentColor['red'],
+                        $transparentColor['green'],
+                        $transparentColor['blue'],
+                        127
+                    );
+                    imagefill($resizedImage, 0, 0, $transparency);
+                    imagecolortransparent($resizedImage, $transparency);
+                }
             }
         }
 
         // Resample copying original to destination size
-        imagecopyresampled(
+        @imagecopyresampled(
             $resizedImage,
             $sourceImage,
             0, 0, 0, 0,
@@ -270,16 +276,16 @@ class UploadService
         $result = false;
         switch ($imageType) {
             case IMAGETYPE_JPEG:
-                $result = imagejpeg($resizedImage, $destinationPath, 85);
+                $result = @imagejpeg($resizedImage, $destinationPath, 85);
                 break;
             case IMAGETYPE_PNG:
-                $result = imagepng($resizedImage, $destinationPath, 6);
+                $result = @imagepng($resizedImage, $destinationPath, 6);
                 break;
             case IMAGETYPE_GIF:
-                $result = imagegif($resizedImage, $destinationPath);
+                $result = @imagegif($resizedImage, $destinationPath);
                 break;
             case IMAGETYPE_WEBP:
-                $result = imagewebp($resizedImage, $destinationPath, 80);
+                $result = @imagewebp($resizedImage, $destinationPath, 80);
                 break;
         }
 
