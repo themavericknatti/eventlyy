@@ -1,0 +1,7 @@
+vendor/*
+scratch/*
+storage/*
+.env
+composer.lock
+todo.md
+public/uploads/*

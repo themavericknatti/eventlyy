@@ -1,0 +1,276 @@
+.success-page {
+    display: grid;
+    place-items: center;
+    min-height: 80vh;
+    padding: 2rem 1rem;
+    text-align: center
+}
+
+.success-card {
+    max-width: 520px;
+    width: 100%;
+    padding: 2.5rem 2rem;
+    border-radius: 28px;
+    background: rgb(var(--card));
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.10);
+    border: 1px solid rgba(var(--muted), 0.08);
+    animation: fade-up var(--duration-slow) var(--ease-out) both
+}
+
+/* Animated checkmark */
+.success-icon {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 1.75rem;
+    background: linear-gradient(135deg, rgba(58, 178, 116, 0.15), rgba(58, 178, 116, 0.05));
+    border: 2px solid rgba(58, 178, 116, 0.25);
+    animation: fade-up var(--duration-slow) var(--ease-out) 80ms both, success-pop 0.5s var(--ease-spring) 0.4s both
+}
+
+.success-icon svg {
+    width: 42px;
+    height: 42px;
+    color: rgb(58, 178, 116)
+}
+
+.success-icon .check-path {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: draw-check 0.6s ease 0.7s forwards
+}
+
+@keyframes success-pop {
+    from {
+        transform: scale(0.5);
+        opacity: 0
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1
+    }
+}
+
+@keyframes draw-check {
+    to {
+        stroke-dashoffset: 0
+    }
+}
+
+.success-card h1 {
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    margin: 0 0 .5rem;
+    letter-spacing: -0.02em;
+    animation: fade-up var(--duration-slow) var(--ease-out) 200ms both
+}
+
+.success-card .lede {
+    color: rgb(var(--muted));
+    margin: 0 0 1.75rem;
+    font-size: 1.05rem;
+    animation: fade-up var(--duration-slow) var(--ease-out) 280ms both
+}
+
+.receipt-details {
+    display: grid;
+    gap: .65rem;
+    padding: 1.25rem;
+    border-radius: 16px;
+    background: rgba(var(--muted), 0.04);
+    border: 1px solid rgba(var(--muted), 0.08);
+    margin-bottom: 1.75rem;
+    animation: fade-up var(--duration-slow) var(--ease-out) 360ms both
+}
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: .95rem
+}
+
+.receipt-row .receipt-label {
+    color: rgb(var(--muted));
+    font-weight: 500
+}
+
+.receipt-row .receipt-value {
+    font-weight: 600;
+    color: rgb(var(--text))
+}
+
+.receipt-row .receipt-value.provider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em
+}
+
+.receipt-value.provider-badge.stripe {
+    background: rgba(99, 91, 255, 0.1);
+    color: rgb(99, 91, 255)
+}
+
+.receipt-value.provider-badge.paystack {
+    background: rgba(35, 182, 107, 0.1);
+    color: rgb(35, 182, 107)
+}
+
+.receipt-value.provider-badge.flutterwave {
+    background: rgba(0, 163, 255, 0.1);
+    color: rgb(0, 163, 255)
+}
+
+.receipt-value.provider-badge.provider {
+    background: rgba(var(--muted), 0.08);
+    color: rgb(var(--muted))
+}
+
+.success-actions {
+    display: grid;
+    gap: .75rem;
+    animation: fade-up var(--duration-slow) var(--ease-out) 440ms both
+}
+
+.success-actions .checkout-btn {
+    margin-top: 0
+}
+
+.success-actions .checkout-btn.secondary {
+    background: transparent;
+    color: rgb(var(--text));
+    border: 1px solid rgba(var(--muted), 0.15)
+}
+
+.success-actions .checkout-btn.secondary:hover {
+    border-color: rgba(var(--brand), 0.3);
+    color: rgb(var(--brand))
+}
+
+/* Confetti burst (CSS only) */
+.confetti {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 50
+}
+
+.confetti span {
+    position: absolute;
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    top: -20px;
+    animation: confetti-fall 3s ease forwards
+}
+
+.confetti span:nth-child(1) {
+    left: 10%;
+    background: rgb(var(--brand));
+    animation-delay: 0s;
+    animation-duration: 2.8s
+}
+
+.confetti span:nth-child(2) {
+    left: 25%;
+    background: rgb(var(--accent));
+    animation-delay: 0.15s;
+    animation-duration: 3.2s;
+    width: 6px;
+    height: 10px
+}
+
+.confetti span:nth-child(3) {
+    left: 40%;
+    background: rgb(var(--success));
+    animation-delay: 0.3s;
+    animation-duration: 2.6s;
+    border-radius: 50%
+}
+
+.confetti span:nth-child(4) {
+    left: 55%;
+    background: rgb(var(--brand));
+    animation-delay: 0.1s;
+    animation-duration: 3s;
+    width: 10px;
+    height: 6px
+}
+
+.confetti span:nth-child(5) {
+    left: 70%;
+    background: rgb(var(--accent));
+    animation-delay: 0.25s;
+    animation-duration: 2.9s
+}
+
+.confetti span:nth-child(6) {
+    left: 85%;
+    background: rgb(var(--success));
+    animation-delay: 0.05s;
+    animation-duration: 3.1s;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%
+}
+
+.confetti span:nth-child(7) {
+    left: 15%;
+    background: rgb(var(--info));
+    animation-delay: 0.35s;
+    animation-duration: 2.7s
+}
+
+.confetti span:nth-child(8) {
+    left: 60%;
+    background: rgb(var(--info));
+    animation-delay: 0.2s;
+    animation-duration: 3.3s;
+    width: 5px;
+    height: 12px
+}
+
+.confetti span:nth-child(9) {
+    left: 35%;
+    background: rgb(var(--brand));
+    animation-delay: 0.4s;
+    animation-duration: 2.5s;
+    border-radius: 50%
+}
+
+.confetti span:nth-child(10) {
+    left: 80%;
+    background: rgb(var(--accent));
+    animation-delay: 0.12s;
+    animation-duration: 3.4s
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-20px) rotate(0deg) scale(1);
+        opacity: 1
+    }
+
+    50% {
+        opacity: 1
+    }
+
+    100% {
+        transform: translateY(100vh) rotate(720deg) scale(0.4);
+        opacity: 0
+    }
+}

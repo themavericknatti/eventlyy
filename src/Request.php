@@ -1,0 +1,260 @@
+<?php
+
+namespace Ace;
+
+class Request
+{
+    /**
+     * Get the relative request path, stripping base subdirectories and query params
+     */
+    public function getPath(): string
+    {
+        $path = $_SERVER['REQUEST_URI'] ?? '/';
+
+        // Remove query parameters
+        $position = strpos($path, '?');
+        if ($position !== false) {
+            $path = substr($path, 0, $position);
+        }
+
+        // Auto-detect and strip subdirectory path (e.g. /mvc/public/)
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? ''; // e.g., /mvc/public/index.php
+        $baseDir = dirname($scriptName);       // e.g., /mvc/public
+
+        // Normalize backslashes to forward slashes just in case
+        $baseDir = str_replace('\\', '/', $baseDir);
+
+        if ($baseDir !== '/' && !empty($baseDir)) {
+            if (strpos($path, $baseDir) === 0) {
+                $path = substr($path, strlen($baseDir));
+            }
+        }
+
+        // Strip index.php if present at the start of the path
+        if (str_starts_with($path, '/index.php')) {
+            $path = (string) substr($path, 10);
+        }
+
+        // Ensure path starts with a slash
+        if (!str_starts_with($path, '/')) {
+            $path = '/' . $path;
+        }
+
+        // Return '/' for root, otherwise strip trailing slash to match routes consistently
+        if ($path !== '/' && str_ends_with($path, '/')) {
+            $path = rtrim($path, '/');
+        }
+
+        return $path;
+    }
+
+    /**
+     * Get HTTP request method (e.g. 'get', 'post')
+     */
+    public function method(): string
+    {
+        return strtolower($_SERVER['REQUEST_METHOD'] ?? 'get');
+    }
+
+    public function isGet(): bool
+    {
+        return $this->method() === 'get';
+    }
+
+    public function isPost(): bool
+    {
+        return $this->method() === 'post';
+    }
+
+    /**
+     * Retrieve and sanitize request input parameters
+     */
+    public function getBody(): array
+    {
+        $body = [];
+
+        if ($this->isGet()) {
+            foreach ($_GET as $key => $value) {
+                $body[$key] = $this->sanitize($value);
+            }
+        }
+
+        if ($this->isPost()) {
+            // Check if request is JSON
+            $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+            if (str_contains($contentType, 'application/json')) {
+                $rawJson = file_get_contents('php://input');
+                $decoded = json_decode($rawJson, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $key => $value) {
+                        $body[$key] = $this->sanitize($value);
+                    }
+                }
+            } else {
+                foreach ($_POST as $key => $value) {
+                    $body[$key] = $this->sanitize($value);
+                }
+            }
+        }
+
+        return $body;
+    }
+
+    /**
+     * Retrieve raw, unsanitized request input parameters
+     */
+    public function getRawBody(): array
+    {
+        $body = [];
+
+        if ($this->isGet()) {
+            foreach ($_GET as $key => $value) {
+                $body[$key] = $value;
+            }
+        }
+
+        if ($this->isPost()) {
+            // Check if request is JSON
+            $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+            if (str_contains($contentType, 'application/json')) {
+                $rawJson = file_get_contents('php://input');
+                $decoded = json_decode($rawJson, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $key => $value) {
+                        $body[$key] = $value;
+                    }
+                }
+            } else {
+                foreach ($_POST as $key => $value) {
+                    $body[$key] = $value;
+                }
+            }
+        }
+
+        return $body;
+    }
+
+    /**
+     * Get a specific input parameter by key (sanitized)
+     */
+    public function get(string $key, mixed $default = null): mixed
+    {
+        $body = $this->getBody();
+        return $body[$key] ?? $default;
+    }
+
+    /**
+     * Check if a parameter exists in the request body
+     */
+    public function has(string $key): bool
+    {
+        $body = $this->getBody();
+        return isset($body[$key]) && $body[$key] !== '';
+    }
+
+    /**
+     * Get a parameter as a trimmed string
+     */
+    public function getString(string $key, string $default = ''): string
+    {
+        $val = $this->get($key, $default);
+        if (is_array($val)) {
+            return $default;
+        }
+        return trim((string)$val);
+    }
+
+    /**
+     * Get a parameter as an integer
+     */
+    public function getInt(string $key, int $default = 0): int
+    {
+        $val = $this->get($key, $default);
+        if (!is_numeric($val)) {
+            return $default;
+        }
+        return (int)$val;
+    }
+
+    /**
+     * Get a parameter as a boolean
+     */
+    public function getBool(string $key, bool $default = false): bool
+    {
+        $val = $this->get($key, $default);
+        return filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
+    }
+
+    /**
+     * Get a parameter as an array
+     */
+    public function getArray(string $key, array $default = []): array
+    {
+        $val = $this->get($key, $default);
+        return is_array($val) ? $val : $default;
+    }
+
+    /**
+     * Check if the current request path matches a pattern (supports wildcards e.g. 'admin/*')
+     */
+    // public function is(string $pattern): bool
+    // {
+    //     $path = trim($this->getPath(), '/');
+    //     $pattern = trim($pattern, '/');
+
+    //     // Convert '*' to regex wildcard match
+    //     $regex = str_replace('*', '.*', $pattern);
+    //     $regex = "@^" . $regex . "$@i";
+
+    //     return (bool)preg_match($regex, $path);
+    // }
+
+    public function is(string|array ...$patterns): bool
+    {
+        $path = trim($this->getPath(), '/');
+
+        $patterns = array_merge(
+            ...array_map(
+                fn($pattern) => is_array($pattern) ? $pattern : [$pattern],
+                $patterns
+            )
+        );
+
+        foreach ($patterns as $pattern) {
+            if (!is_string($pattern)) {
+                continue;
+            }
+            
+            $pattern = trim($pattern, '/');
+
+            $regex = preg_quote($pattern, '@');
+            $regex = str_replace('\*', '.*', $regex);
+
+            if (preg_match("@^{$regex}$@i", $path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the full absolute request URL
+     */
+    public function getFullUrl(): string
+    {
+        $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        return $scheme . '://' . $host . $uri;
+    }
+
+    /**
+     * Recursively sanitize values to prevent XSS
+     */
+    private function sanitize(mixed $value): mixed
+    {
+        return XssSanitizer::clean($value);
+    }
+}
+

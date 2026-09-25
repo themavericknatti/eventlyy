@@ -1,0 +1,24 @@
+RewriteEngine On
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect environment and Composer files
+<FilesMatch "^(\.env|\.env\..*|composer\.json|composer\.lock)$">
+    Require all denied
+</FilesMatch>
+
+# Serve public assets from the project root URL, for example
+# /eventlyy/assets/css/app.css -> /eventlyy/public/assets/css/app.css
+RewriteRule ^assets/(.*)$ public/assets/$1 [END]
+
+# Keep project files and uploaded files accessible without routing them through PHP.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [END]
+
+# Send application requests to the root bridge.
+RewriteRule ^ index.php [END,QSA]
+
+# Disable server signature
+ServerSignature Off
