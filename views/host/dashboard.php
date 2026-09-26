@@ -250,7 +250,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
             <p class="card-meta" style="font-size:0.78rem;">Gross sales: <?= format_price($totalRevenue ?? 0) ?></p>
             <p class="card-meta" style="font-size:0.75rem; color: #ef4444;">− <?= format_price($totalPlatformFees ?? 0) ?> platform fee (5%)</p>
         <?php else: ?>
-            <p class="card-meta">From all ticket sales</p>
+            <p class="card-meta">From online ticket sales</p>
         <?php endif; ?>
     </article>
 

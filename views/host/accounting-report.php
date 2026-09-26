@@ -85,25 +85,29 @@ Accounting Report - <?= e($event->name) ?>
          ════════════════════════════════════════════════════════════════ -->
     <div class="accounting-kpi-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
         
-        <!-- Gross Event Revenue -->
+        <!-- Gross Online Revenue -->
         <div class="form-card" style="padding:1.25rem; border-radius:16px; border-left:4px solid #10b981;">
-            <div style="font-size:0.8rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em;">Gross Event Revenue</div>
+            <div style="font-size:0.8rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em;">Platform Ticket Sales</div>
             <div style="font-size:1.6rem; font-weight:800; margin:0.35rem 0; color:#10b981;">
-                <?= $currency ?><?= number_format($totalGrossRevenue, 2) ?>
+                <?= $currency ?><?= number_format($onlineGross, 2) ?>
             </div>
             <div style="font-size:0.76rem; color:rgb(var(--muted));">
-                Online: <?= $currency ?><?= number_format($onlineGross, 2) ?> · Gate: <?= $currency ?><?= number_format($gateCashGross, 2) ?>
+                <?= count($onlineTickets) ?> Online Purchases · Gate/Comp: <?= $currency ?><?= number_format($gateCashGross + $compNominal, 2) ?>
             </div>
         </div>
 
         <!-- Net Host Balance -->
         <div class="form-card" style="padding:1.25rem; border-radius:16px; border-left:4px solid #0B7366;">
-            <div style="font-size:0.8rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em;">Net Host Earnings</div>
+            <div style="font-size:0.8rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em;">Host Net Earnings (Payout)</div>
             <div style="font-size:1.6rem; font-weight:800; margin:0.35rem 0; color:#0B7366;">
                 <?= $currency ?><?= number_format($netHostEarnings, 2) ?>
             </div>
             <div style="font-size:0.76rem; color:rgb(var(--muted));">
-                After <?= $platformFeePercent ?>% platform fee (<?= $currency ?><?= number_format($totalPlatformFee, 2) ?>)
+                <?php if ($totalPlatformFee > 0): ?>
+                    After <?= $platformFeePercent ?>% platform fee (<?= $currency ?><?= number_format($totalPlatformFee, 2) ?>)
+                <?php else: ?>
+                    100% of online ticket sales (Buyer covered fee)
+                <?php endif; ?>
             </div>
         </div>
 
@@ -426,25 +430,20 @@ Accounting Report - <?= e($event->name) ?>
                 </h4>
                 <div style="border:1px solid rgba(var(--muted), 0.15); border-radius:12px; overflow:hidden;">
                     <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem;">
-                        <span>Gross Online / Paystack Sales</span>
+                        <span>Gross Online / Paystack Purchases</span>
                         <strong><?= e($currency) ?><?= number_format($onlineGross, 2) ?></strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem;">
-                        <span>Gross On-site Gate Cash Sales</span>
-                        <strong><?= e($currency) ?><?= number_format($gateCashGross, 2) ?></strong>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.92rem; background:rgba(var(--muted), 0.04);">
-                        <strong>TOTAL GROSS EVENT RECEIPTS</strong>
-                        <strong style="color:#10b981; font-size:1.05rem;"><?= e($currency) ?><?= number_format($totalGrossRevenue, 2) ?></strong>
-                    </div>
+                    <?php if ($totalPlatformFee > 0): ?>
                     <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem; color:#ef4444;">
-                        <span>Platform Ticketing Fee (<?= $platformFeePercent ?>%)</span>
+                        <span>Platform Ticketing Fee (<?= $platformFeePercent ?>% absorbed by host)</span>
                         <strong>-<?= e($currency) ?><?= number_format($totalPlatformFee, 2) ?></strong>
                     </div>
+                    <?php else: ?>
                     <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem; color:rgb(var(--muted));">
-                        <span>Complimentary Ticket Valuation (Absorbed by Host)</span>
-                        <span><?= e($currency) ?><?= number_format($compNominal, 2) ?></span>
+                        <span>Platform Ticketing Fee</span>
+                        <span>Covered by ticket buyer (+5% fee paid at checkout)</span>
                     </div>
+                    <?php endif; ?>
                     <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem;">
                         <span>Host Settlement Status</span>
                         <strong style="text-transform:capitalize; color:#6366f1;"><?= !empty($payout) ? e($payout['status']) : 'Pending Settlement' ?></strong>
@@ -453,11 +452,26 @@ Accounting Report - <?= e($event->name) ?>
                     <!-- FINAL BALANCE ROW -->
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1rem; background:rgba(var(--brand), 0.08); border-top:2px solid rgb(var(--brand));">
                         <div>
-                            <div style="font-size:0.95rem; font-weight:800; color:rgb(var(--brand));">FINAL NET BALANCE DUE TO HOST</div>
-                            <div style="font-size:0.76rem; color:rgb(var(--muted));">Approved &amp; reconciled for host withdrawal</div>
+                            <div style="font-size:0.95rem; font-weight:800; color:rgb(var(--brand));">ORGANIZER PAYOUT ENTITLEMENT (PLATFORM SHARE)</div>
+                            <div style="font-size:0.76rem; color:rgb(var(--muted));">Online sales amount approved &amp; reconciled for host bank transfer</div>
                         </div>
                         <div style="font-size:1.5rem; font-weight:900; color:rgb(var(--brand));">
                             <?= e($currency) ?><?= number_format($netHostEarnings, 2) ?>
+                        </div>
+                    </div>
+
+                    <!-- OFFLINE RECEIPTS AUDIT (EXCLUDED FROM PLATFORM DISBURSEMENT) -->
+                    <div style="padding:0.85rem 1rem; background:rgba(var(--muted), 0.03); border-top:1px dashed rgba(var(--muted), 0.15); font-size:0.82rem;">
+                        <span style="font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; font-size:0.74rem; letter-spacing:0.04em; display:block; margin-bottom:0.4rem;">
+                            Direct Host / Gate Issuance (Retained Directly by Host — Excluded from Payout)
+                        </span>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
+                            <span style="color:rgb(var(--muted));">On-site Gate Cash Receipts (Host Pocket):</span>
+                            <strong><?= e($currency) ?><?= number_format($gateCashGross, 2) ?></strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:rgb(var(--muted));">Complimentary / Free Pass Valuation:</span>
+                            <span><?= e($currency) ?><?= number_format($compNominal, 2) ?></span>
                         </div>
                     </div>
                 </div>

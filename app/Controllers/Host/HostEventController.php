@@ -665,11 +665,14 @@ class HostEventController extends Controller
         }
         unset($t);
 
-        // Totals & balances
-        $totalGrossRevenue = $onlineGross + $gateCashGross;
+        // Totals & balances:
+        // Host Net Earnings (Organizer Payout Share) is funded strictly by online ticket purchases on the platform.
+        // Gate cash and direct issued tickets are retained/handled offline by the host and excluded from platform payout transfers.
         $platformFeePercent = (float)site_setting('platform_fee', 5);
-        $totalPlatformFee = round($totalGrossRevenue * ($platformFeePercent / 100), 2);
-        $netHostEarnings = $totalGrossRevenue - $totalPlatformFee;
+        $isPassFee = !empty($event->pass_fee);
+        $totalPlatformFee = $isPassFee ? 0.00 : round($onlineGross * ($platformFeePercent / 100), 2);
+        $netHostEarnings = $isPassFee ? $onlineGross : max(0.00, $onlineGross - $totalPlatformFee);
+        $totalGrossRevenue = $onlineGross;
 
         $totalCapacity = 0;
         foreach ($ticketTypes as $tt) {

@@ -108,8 +108,11 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
         </span>
         <div class="au-stat-body">
             <span class="au-stat-num"><?= number_format($tickets_sold) ?></span>
-            <span class="au-stat-lbl">Tickets Sold (<?= $salesPct ?>%)</span>
+            <span class="au-stat-lbl">Online Tickets Sold (<?= $salesPct ?>%)</span>
             <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:2px;">of <?= number_format($total_capacity) ?> total capacity</span>
+            <?php if (($tickets_issued ?? 0) > 0): ?>
+                <span style="font-size:0.72rem; color:#6366f1; display:block; margin-top:2px;">+<?= number_format($tickets_issued) ?> host-issued</span>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -122,8 +125,11 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
         </span>
         <div class="au-stat-body">
             <span class="au-stat-num"><?= format_price($gross_revenue) ?></span>
-            <span class="au-stat-lbl">Gross Sales Volume</span>
-            <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:2px;">Total paid by attendees</span>
+            <span class="au-stat-lbl">Online Gross Sales</span>
+            <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:2px;">Platform ticket purchases only</span>
+            <?php if (($issued_nominal ?? 0) > 0): ?>
+                <span style="font-size:0.72rem; color:#6366f1; display:block; margin-top:2px;">+<?= format_price($issued_nominal) ?> issued (offline)</span>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -135,8 +141,8 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
         </span>
         <div class="au-stat-body">
             <span class="au-stat-num" style="color:#10b981;"><?= format_price($host_earnings) ?></span>
-            <span class="au-stat-lbl">Host Net Earnings</span>
-            <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:2px;">Organizer payout share</span>
+            <span class="au-stat-lbl">Host Net Earnings (Payout)</span>
+            <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:2px;">Online sales payout share only</span>
         </div>
     </div>
 
@@ -202,9 +208,12 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
     <div class="event-item" style="padding: 1.25rem;">
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; background: rgba(var(--muted), 0.04); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(var(--border), 0.5);">
             <div>
-                <span style="font-size:0.78rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em;">Gross Sales Volume</span>
+                <span style="font-size:0.78rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em;">Online Gross Sales</span>
                 <div style="font-size:1.25rem; font-weight:800; color:var(--text); margin-top:0.25rem;"><?= format_price($gross_revenue) ?></div>
-                <span style="font-size:0.75rem; color:rgb(var(--muted));"><?= number_format($tickets_sold) ?> tickets paid</span>
+                <span style="font-size:0.75rem; color:rgb(var(--muted));"><?= number_format($tickets_sold) ?> online tickets</span>
+                <?php if (($tickets_issued ?? 0) > 0): ?>
+                    <span style="font-size:0.72rem; color:#6366f1; display:block; margin-top:2px;">+<?= number_format($tickets_issued) ?> issued offline</span>
+                <?php endif; ?>
             </div>
             <div>
                 <span style="font-size:0.78rem; font-weight:700; color:#8b5cf6; text-transform:uppercase; letter-spacing:0.04em;">Platform Fees (Profit)</span>
@@ -212,9 +221,9 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
                 <span style="font-size:0.75rem; color:rgb(var(--muted));"><?= e(!empty($event['pass_fee']) ? 'Buyer paid fee (+5% & extra charge)' : 'Host absorbed fee') ?></span>
             </div>
             <div>
-                <span style="font-size:0.78rem; font-weight:700; color:#10b981; text-transform:uppercase; letter-spacing:0.04em;">Net Host Earnings</span>
+                <span style="font-size:0.78rem; font-weight:700; color:#10b981; text-transform:uppercase; letter-spacing:0.04em;">Host Net Earnings (Payout)</span>
                 <div style="font-size:1.25rem; font-weight:800; color:#10b981; margin-top:0.25rem;"><?= format_price($host_earnings) ?></div>
-                <span style="font-size:0.75rem; color:rgb(var(--muted));">Total organizer entitlement</span>
+                <span style="font-size:0.75rem; color:rgb(var(--muted));">Online sales payout entitlement</span>
             </div>
             <div>
                 <span style="font-size:0.78rem; font-weight:700; color:#14b8a6; text-transform:uppercase; letter-spacing:0.04em;">Disbursed Payouts</span>

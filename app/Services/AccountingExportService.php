@@ -575,10 +575,10 @@ class AccountingExportService
             }
         }
 
-        $totalGrossRevenue = $onlineGross + $gateCashGross;
         $platformFeePercent = (float)site_setting('platform_fee', 5);
-        $totalPlatformFee = round($totalGrossRevenue * ($platformFeePercent / 100), 2);
-        $netHostEarnings = $totalGrossRevenue - $totalPlatformFee;
+        $isPassFee = !empty($event->pass_fee);
+        $totalPlatformFee = $isPassFee ? 0.00 : round($onlineGross * ($platformFeePercent / 100), 2);
+        $netHostEarnings = $isPassFee ? $onlineGross : max(0.00, $onlineGross - $totalPlatformFee);
 
         // Payout status
         $payoutStatus = 'Pending Event Conformance / Settlement';
@@ -587,12 +587,11 @@ class AccountingExportService
         }
 
         $financialRows = [
-            ['Gross Online / Paystack Sales', $onlineGross, true, 'Online ticket buyer payments'],
-            ['Gross Gate / Door Cash Sales', $gateCashGross, true, 'On-site terminal box office cash'],
-            ['Total Gross Event Revenue', $totalGrossRevenue, true, 'All organic & gate sales combined'],
-            ['Platform Ticketing Fee (' . $platformFeePercent . '%)', -$totalPlatformFee, true, 'Service & payment processing fee'],
-            ['Net Host Event Earnings', $netHostEarnings, true, 'Amount earned by event organizer'],
-            ['Complimentary / Free Ticket Nominal Value', $compNominal, true, 'Face value absorbed by organizer'],
+            ['Gross Online / Paystack Purchases', $onlineGross, true, 'Online ticket buyer payments on platform'],
+            ['Platform Ticketing Fee (' . ($isPassFee ? 'Buyer Paid Fee' : $platformFeePercent . '% Host Absorbed') . ')', -$totalPlatformFee, true, $isPassFee ? 'Attendee covered fee at checkout' : 'Deducted from online sales'],
+            ['Net Host Platform Earnings (Payout Share)', $netHostEarnings, true, 'Amount disbursed to host bank for online sales'],
+            ['Gross Gate / Door Cash Sales (Retained Offline)', $gateCashGross, true, 'On-site cash received directly by host'],
+            ['Complimentary / Free Ticket Nominal Value', $compNominal, true, 'Face value absorbed by organizer offline'],
             ['Settlement & Payout Status', $payoutStatus, false, 'Settlement processing state']
         ];
 
@@ -611,9 +610,9 @@ class AccountingExportService
 
         // FINAL BALANCE ROW
         $xml .= '    <row r="' . $r . '" height="26">';
-        $xml .= '<c r="B' . $r . '" s="5" t="inlineStr"><is><t>FINAL NET BALANCE DUE TO HOST</t></is></c>';
+        $xml .= '<c r="B' . $r . '" s="5" t="inlineStr"><is><t>ORGANIZER PAYOUT ENTITLEMENT (PLATFORM SHARE)</t></is></c>';
         $xml .= '<c r="C' . $r . '" s="4"><v>' . $netHostEarnings . '</v></c>';
-        $xml .= '<c r="D' . $r . '" s="5" t="inlineStr"><is><t>Reconciled &amp; Approved</t></is></c>';
+        $xml .= '<c r="D' . $r . '" s="5" t="inlineStr"><is><t>Reconciled &amp; Approved for Payout</t></is></c>';
         $xml .= '</row>' . "\n";
 
         $xml .= '  </sheetData>' . "\n";

@@ -60,6 +60,7 @@ class AdminService
                 SELECT COALESCE(SUM(price), 0) 
                 FROM tickets 
                 WHERE status IN ('Paid', 'Comped')
+                  AND (is_issued = 0 OR is_issued IS NULL)
             ")->fetchColumn();
         }
 
@@ -75,6 +76,7 @@ class AdminService
                 FROM tickets t
                 INNER JOIN events e ON t.event_id = e.id
                 WHERE t.status IN ('Paid', 'Comped')
+                  AND (t.is_issued = 0 OR t.is_issued IS NULL)
             ")->fetchColumn();
         }
 
@@ -85,6 +87,7 @@ class AdminService
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ")->fetchColumn();
 
         $disbursedPayouts = (float)$db->query("
@@ -102,6 +105,7 @@ class AdminService
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND e.status = 'published'
               AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
         ")->fetchColumn();
@@ -198,8 +202,8 @@ class AdminService
         // 6. Recent Published Events (enriched)
         $stmt = $db->prepare("
             SELECT e.*, u.name as organizer_name, u.email as organizer_email,
-                   (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped')) as sold,
-                   (SELECT COALESCE(SUM(t.price), 0) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped')) as total_sales,
+                   (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL)) as sold,
+                   (SELECT COALESCE(SUM(t.price), 0) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL)) as total_sales,
                    (SELECT SUM(capacity) FROM ticket_types tt WHERE tt.event_id = e.id) as capacity
             FROM events e
             INNER JOIN users u ON e.organizer_id = u.id
@@ -215,7 +219,7 @@ class AdminService
             SELECT u.*, hp.payout_bank, hp.payout_account, hp.rating,
                    (SELECT COUNT(*) FROM events ev WHERE ev.organizer_id = u.id) as total_events_count,
                    (SELECT COUNT(*) FROM events ev WHERE ev.organizer_id = u.id AND ev.status = 'published') as active_events_count,
-                   (SELECT COALESCE(SUM(tk.price), 0) FROM tickets tk INNER JOIN events ev ON tk.event_id = ev.id WHERE ev.organizer_id = u.id AND tk.status IN ('Paid', 'Comped')) as host_total_sales
+                   (SELECT COALESCE(SUM(tk.price), 0) FROM tickets tk INNER JOIN events ev ON tk.event_id = ev.id WHERE ev.organizer_id = u.id AND tk.status IN ('Paid', 'Comped') AND (tk.is_issued = 0 OR tk.is_issued IS NULL)) as host_total_sales
             FROM users u
             INNER JOIN user_roles ur ON u.id = ur.user_id
             INNER JOIN roles r ON ur.role_id = r.id

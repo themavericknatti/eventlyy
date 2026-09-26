@@ -192,9 +192,10 @@ class AdminUserService
             $evtCountStmt->execute(['id' => $userId]);
             $totalEvents = (int)$evtCountStmt->fetchColumn();
 
-            // Fetch tickets sold and total revenue
+            // Fetch tickets sold and total revenue (online platform purchases only)
             $ticketsRevenueStmt = $db->prepare("
-                SELECT COUNT(t.id) as sold_count, SUM(t.price) as revenue
+                SELECT COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as sold_count,
+                       SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END) as revenue
                 FROM tickets t
                 INNER JOIN events e ON t.event_id = e.id
                 WHERE e.organizer_id = :id AND t.status IN ('Paid', 'Comped')
@@ -230,7 +231,7 @@ class AdminUserService
             // Fetch events history
             $eventsHistoryStmt = $db->prepare("
                 SELECT e.id, e.name, e.date, e.status,
-                       (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped')) as tickets_sold
+                       (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL)) as tickets_sold
                 FROM events e
                 WHERE e.organizer_id = :id
                 ORDER BY e.date DESC

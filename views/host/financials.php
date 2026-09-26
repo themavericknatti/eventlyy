@@ -144,9 +144,9 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
         <p class="card-meta" style="font-size:0.75rem;">5% fee where host absorbed fee</p>
     </article>
     <article class="summary-card" style="min-height:auto; padding:1.1rem 1.25rem;">
-        <span class="card-label" style="font-size:0.82rem;">Total Tickets Sold</span>
+        <span class="card-label" style="font-size:0.82rem;">Online Tickets Sold</span>
         <h4 style="margin:0; font-size:1.25rem; font-weight:700; color:rgb(var(--text));"><?= number_format($totalTicketsSold ?? 0) ?></h4>
-        <p class="card-meta" style="font-size:0.75rem;">Paid attendees across events</p>
+        <p class="card-meta" style="font-size:0.75rem;">Online platform purchases</p>
     </article>
     <article class="summary-card" style="min-height:auto; padding:1.1rem 1.25rem;">
         <span class="card-label" style="font-size:0.82rem;">Events Hosted</span>
@@ -239,7 +239,10 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                 </td>
                                 <td>
                                     <strong style="color:rgb(var(--text));"><?= number_format($ev['ticket_count']) ?></strong>
-                                    <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block;">sold</span>
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block;">online sold</span>
+                                    <?php if (($ev['issued_count'] ?? 0) > 0): ?>
+                                        <span style="font-size:0.72rem; color:#6366f1; display:block;">+<?= number_format($ev['issued_count']) ?> issued</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <strong style="color:rgb(var(--text));"><?= format_price($ev['gross_sales']) ?></strong>

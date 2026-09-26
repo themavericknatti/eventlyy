@@ -18,23 +18,27 @@ class HostService
         $stmt->execute(['organizer_id' => $hostId]);
         $totalEventsCount = (int)$stmt->fetchColumn();
 
-        // 2. Total Gross Revenue (All time across all events - ticket face value)
+        // 2. Total Gross Revenue (All time across all events - ticket face value of online purchases)
         $stmt = $db->prepare("
             SELECT SUM(t.price) FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
-            WHERE e.organizer_id = :organizer_id AND t.status IN ('Paid', 'Comped')
+            WHERE e.organizer_id = :organizer_id 
+              AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ");
         $stmt->execute(['organizer_id' => $hostId]);
         $totalRevenue = (float)($stmt->fetchColumn() ?: 0.00);
 
-        // 2b. Total Net Revenue (What the host is actually entitled to, after platform fee deduction)
+        // 2b. Total Net Revenue (What the host is actually entitled to withdraw, after platform fee deduction)
         $stmt = $db->prepare("
             SELECT SUM(
                 CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END
             )
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
-            WHERE e.organizer_id = :organizer_id AND t.status IN ('Paid', 'Comped')
+            WHERE e.organizer_id = :organizer_id 
+              AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ");
         $stmt->execute(['organizer_id' => $hostId]);
         $totalNetRevenue = (float)($stmt->fetchColumn() ?: 0.00);
@@ -42,7 +46,7 @@ class HostService
         // 2c. Total platform fees deducted from this host's earnings
         $totalPlatformFees = max(0.00, $totalRevenue - $totalNetRevenue);
 
-        // 3. Completed Events Net Share Revenue (Events that have ended: e.date < NOW() or e.status IN ('completed', 'past'))
+        // 3. Completed Events Net Share Revenue (Online ticket purchases for ended events)
         $stmt = $db->prepare("
             SELECT SUM(
                 CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END
@@ -51,12 +55,13 @@ class HostService
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :organizer_id 
               AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . event_completion_hours() . " HOUR))
         ");
         $stmt->execute(['organizer_id' => $hostId]);
         $completedNetRevenue = (float)($stmt->fetchColumn() ?: 0.00);
 
-        // 4. Upcoming Live Events Net Share Revenue (Locked in escrow until event completes)
+        // 4. Upcoming Live Events Net Share Revenue (Online purchases locked in escrow until event completes)
         $stmt = $db->prepare("
             SELECT SUM(
                 CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END
@@ -65,19 +70,33 @@ class HostService
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :organizer_id 
               AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR AND e.status = 'published'
         ");
         $stmt->execute(['organizer_id' => $hostId]);
         $grossEscrowRevenue = (float)($stmt->fetchColumn() ?: 0.00);
 
-        // 5. Tickets Sold
+        // 5. Tickets Sold (Online purchases)
         $stmt = $db->prepare("
             SELECT COUNT(*) FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
-            WHERE e.organizer_id = :organizer_id AND t.status IN ('Paid', 'Comped')
+            WHERE e.organizer_id = :organizer_id 
+              AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ");
         $stmt->execute(['organizer_id' => $hostId]);
         $totalTicketsSold = (int)$stmt->fetchColumn();
+
+        // 5b. Host Issued Tickets (Manual/Gate/Comp)
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            WHERE e.organizer_id = :organizer_id 
+              AND t.status IN ('Paid', 'Comped')
+              AND t.is_issued = 1
+        ");
+        $stmt->execute(['organizer_id' => $hostId]);
+        $totalTicketsIssued = (int)$stmt->fetchColumn();
 
         // 6. Active Events Count
         $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE organizer_id = :organizer_id AND date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR AND status = 'published'");
@@ -115,6 +134,7 @@ class HostService
             'grossEscrowRevenue' => $grossEscrowRevenue,
             'escrowRevenue' => $remainingEscrowBalance,
             'totalTicketsSold' => $totalTicketsSold,
+            'totalTicketsIssued' => $totalTicketsIssued,
             'activeEventsCount' => $activeEventsCount,
             'disbursedPayouts' => $disbursedPayouts,
             'pendingPayouts' => $pendingPayouts,
@@ -160,9 +180,11 @@ class HostService
         $completionHours = event_completion_hours();
         $stmt = $db->prepare("
             SELECT e.id, e.name, e.date, e.status, e.pass_fee, e.location, e.image,
-                   COUNT(t.id) as ticket_count,
-                   COALESCE(SUM(t.price), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales
+                   COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as ticket_count,
+                   COUNT(CASE WHEN t.is_issued = 1 THEN t.id END) as issued_count,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
+                   COALESCE(SUM(CASE WHEN t.is_issued = 1 THEN t.price ELSE 0 END), 0) as issued_nominal
             FROM events e
             LEFT JOIN tickets t ON e.id = t.event_id AND t.status IN ('Paid', 'Comped')
             WHERE e.organizer_id = :host_id
@@ -219,6 +241,8 @@ class HostService
 
             $evt['gross_sales'] = (float)$evt['gross_sales'];
             $evt['net_sales'] = (float)$evt['net_sales'];
+            $evt['issued_count'] = (int)($evt['issued_count'] ?? 0);
+            $evt['issued_nominal'] = (float)($evt['issued_nominal'] ?? 0.00);
             $evt['platform_fees'] = max(0.00, $evt['gross_sales'] - $evt['net_sales']);
             $evt['escrow_disbursed'] = (float)($pData['escrow_disbursed'] ?? 0.00);
             $evt['completed_disbursed'] = (float)($pData['completed_disbursed'] ?? 0.00);
@@ -286,6 +310,7 @@ class HostService
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :host_id
               AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND COALESCE(t.purchase_date, NOW()) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
             GROUP BY DATE_FORMAT(COALESCE(t.purchase_date, NOW()), '%Y-%m')
         ");
@@ -320,6 +345,7 @@ class HostService
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             WHERE e.organizer_id = :host_id
               AND t.status IN ('Paid', 'Comped')
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
             GROUP BY COALESCE(tt.name, 'Standard')
             ORDER BY total_revenue DESC
             LIMIT 5
@@ -328,9 +354,6 @@ class HostService
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * Get recent ticket purchase stream.
-     */
     /**
      * Get recent ticket purchase stream.
      */
@@ -367,9 +390,10 @@ class HostService
 
         $stmt = $db->prepare("
             SELECT e.id, e.name, e.date, e.location, e.image, e.status, e.pass_fee,
-                   COUNT(t.id) as sold_count,
-                   COALESCE(SUM(t.price), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales,
+                   COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as sold_count,
+                   COUNT(CASE WHEN t.is_issued = 1 THEN t.id END) as issued_count,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
                    COALESCE(SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END), 0) as checked_in_count,
                    (SELECT COALESCE(SUM(capacity), 0) FROM ticket_types WHERE event_id = e.id) as total_capacity
             FROM events e
@@ -395,10 +419,11 @@ class HostService
         $event['is_live_now'] = ($now >= $eventDate && $now <= $liveWindowEnd);
         $event['timestamp'] = $eventDate;
         $event['sold_count'] = (int)$event['sold_count'];
+        $event['issued_count'] = (int)($event['issued_count'] ?? 0);
         $event['total_capacity'] = (int)$event['total_capacity'];
         $event['checked_in_count'] = (int)$event['checked_in_count'];
-        $event['capacity_pct'] = $event['total_capacity'] > 0 ? min(100, round(($event['sold_count'] / $event['total_capacity']) * 100, 1)) : 0;
-        $event['checkin_pct'] = $event['sold_count'] > 0 ? min(100, round(($event['checked_in_count'] / $event['sold_count']) * 100, 1)) : 0;
+        $event['capacity_pct'] = $event['total_capacity'] > 0 ? min(100, round((($event['sold_count'] + $event['issued_count']) / $event['total_capacity']) * 100, 1)) : 0;
+        $event['checkin_pct'] = ($event['sold_count'] + $event['issued_count']) > 0 ? min(100, round(($event['checked_in_count'] / ($event['sold_count'] + $event['issued_count'])) * 100, 1)) : 0;
 
         return $event;
     }
@@ -413,9 +438,10 @@ class HostService
 
         $stmt = $db->prepare("
             SELECT e.id, e.name, e.date, e.location, e.image, e.status, e.pass_fee,
-                   COUNT(t.id) as sold_count,
-                   COALESCE(SUM(t.price), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales,
+                   COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as sold_count,
+                   COUNT(CASE WHEN t.is_issued = 1 THEN t.id END) as issued_count,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
                    COALESCE(SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END), 0) as checked_in_count,
                    (SELECT COALESCE(SUM(capacity), 0) FROM ticket_types WHERE event_id = e.id) as total_capacity
             FROM events e

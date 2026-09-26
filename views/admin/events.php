@@ -221,6 +221,9 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                         <td>
                             <div style="width: 140px;">
                                 <span style="font-weight:600;font-size:0.85rem"><?= $sold ?> / <?= $capacity ?> sold</span>
+                                <?php if (($ev['issued'] ?? 0) > 0): ?>
+                                    <span style="font-size:0.72rem; color:#6366f1; display:block;">+<?= number_format($ev['issued']) ?> issued</span>
+                                <?php endif; ?>
                                 <div class="progress-bar-bg"
                                     style="height: 6px; background: rgba(var(--muted), 0.1); border-radius: 3px; margin-top: 4px; overflow: hidden;">
                                     <div class="progress-bar-fill"

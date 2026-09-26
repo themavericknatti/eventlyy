@@ -5,3 +5,5 @@ storage/*
 composer.lock
 todo.md
 public/uploads/*
+storage
+uploads
