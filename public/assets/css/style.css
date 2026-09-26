@@ -3110,30 +3110,200 @@ body {
   }
 }
 
-/* Guests */
-.guest-cards {
+/* Guests & Special Guests Section */
+.guest-cards,
+.guest-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
-  margin-top: 1rem
+  margin-top: 0.5rem;
 }
 
-.guest-card {
-  padding: 1rem;
-  border-radius: 12px;
-  background: rgb(var(--card));
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06)
+.guest-card,
+.guest-card-item {
+  padding: 1.1rem;
+  border-radius: 14px;
+  background: rgba(var(--card), 0.92);
+  border: 1px solid rgba(var(--muted), 0.12);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.guest-card:hover,
+.guest-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  border-color: rgba(var(--brand), 0.28);
+}
+
+.guest-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.guest-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.guest-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.guest-name {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  display: block;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guest-role {
+  font-size: 0.75rem;
+  color: rgb(var(--brand));
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 0.15rem;
+  line-height: 1.2;
 }
 
 .guest-card h3 {
-  margin: 0 0 .25rem
+  margin: 0 0 .25rem;
+  font-size: 1rem;
 }
 
 .guest-card .meta {
   color: rgb(var(--muted));
   margin: 0;
-  font-size: .95rem
+  font-size: .85rem;
 }
+
+/* Guest Social Badges & Buttons */
+.guest-social-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+}
+
+.guest-social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.32rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  line-height: 1;
+  max-width: 100%;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.guest-social-btn svg {
+  flex-shrink: 0;
+}
+
+.guest-social-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Instagram Pill */
+.guest-social-btn.guest-social-instagram {
+  background: linear-gradient(135deg, rgba(225, 48, 108, 0.12), rgba(253, 29, 29, 0.08), rgba(252, 176, 69, 0.12));
+  color: #e1306c;
+  border: 1px solid rgba(225, 48, 108, 0.32);
+}
+
+.guest-social-btn.guest-social-instagram:hover {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  color: #ffffff;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(225, 48, 108, 0.38);
+}
+
+/* Twitter / X Pill */
+.guest-social-btn.guest-social-twitter {
+  background: rgba(var(--text), 0.06);
+  color: rgb(var(--text));
+  border: 1px solid rgba(var(--text), 0.16);
+}
+
+.guest-social-btn.guest-social-twitter:hover {
+  background: rgb(var(--text));
+  color: rgb(var(--card));
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* TikTok Pill */
+.guest-social-btn.guest-social-tiktok {
+  background: rgba(var(--text), 0.06);
+  color: rgb(var(--text));
+  border: 1px solid rgba(0, 242, 234, 0.32);
+}
+
+.guest-social-btn.guest-social-tiktok:hover {
+  background: #000000;
+  color: #ffffff;
+  border-color: #fe2c55;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(254, 44, 85, 0.3);
+}
+
+/* YouTube Pill */
+.guest-social-btn.guest-social-youtube {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.guest-social-btn.guest-social-youtube:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+}
+
+/* Generic Website / Other Pill */
+.guest-social-btn.guest-social-website {
+  background: rgba(var(--brand), 0.08);
+  color: rgb(var(--brand));
+  border: 1px solid rgba(var(--brand), 0.22);
+}
+
+.guest-social-btn.guest-social-website:hover {
+  background: rgb(var(--brand));
+  color: #ffffff;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(var(--brand), 0.3);
+}
+
 
 /* Checkout intro mirrors detail page hero styles */
 .checkout-intro {

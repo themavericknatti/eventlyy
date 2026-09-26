@@ -265,27 +265,58 @@ $eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->sl
             <?= e($event->description) ?>
         </div>
 
-        <?php if (!empty($eventGuests)): ?>
-        <h3 style="font-size: 1.15rem; font-weight: 700; margin-top: 1.75rem; margin-bottom: 0.75rem;">Special Guests</h3>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
-            <?php foreach ($eventGuests as $guest): ?>
-                <div style="background: rgba(var(--muted), 0.05); border:1px solid rgba(var(--muted), 0.12); border-radius:12px; padding:1rem; display:flex; flex-direction:column; gap:0.25rem;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-                        <span class="au-avatar" style="--avatar-hue:<?= abs(crc32($guest['name'])) % 360 ?>; width:32px; height:32px; font-size:0.75rem;">
-                            <?= strtoupper(substr($guest['name'], 0, 2)) ?>
-                        </span>
-                        <div>
-                            <strong style="font-size:0.92rem; display:block; line-height:1.2;"><?= e($guest['name']) ?></strong>
-                            <?php if (!empty($guest['role'])): ?>
-                                <span style="font-size:0.75rem; color:var(--brand); font-weight:600;"><?= e($guest['role']) ?></span>
-                            <?php endif; ?>
+        <?php 
+        $validGuests = [];
+        if (!empty($eventGuests)) {
+            foreach ($eventGuests as $guest) {
+                $name = !empty($guest->name) ? $guest->name : ($guest['name'] ?? '');
+                if (!empty(trim((string)$name))) {
+                    $validGuests[] = $guest;
+                }
+            }
+        }
+        ?>
+        <?php if (!empty($validGuests)): ?>
+        <div class="special-guests-wrapper" style="margin-top: 1.75rem; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text);">
+                <span>✨</span> Special Guests
+            </h3>
+            <div class="guest-cards-grid">
+                <?php foreach ($validGuests as $guest): 
+                    $gName = !empty($guest->name) ? (string)$guest->name : (string)($guest['name'] ?? '');
+                    $gRole = !empty($guest->role) ? (string)$guest->role : (string)($guest['role'] ?? '');
+                    $gSocial = !empty($guest->social) ? (string)$guest->social : (string)($guest['social'] ?? '');
+                    $socialLinks = parse_guest_socials($gSocial);
+                ?>
+                    <div class="guest-card-item">
+                        <div class="guest-card-header">
+                            <span class="au-avatar guest-avatar" style="--avatar-hue:<?= abs(crc32($gName)) % 360 ?>;">
+                                <?= strtoupper(substr($gName, 0, 2)) ?>
+                            </span>
+                            <div class="guest-info">
+                                <strong class="guest-name"><?= e($gName) ?></strong>
+                                <?php if (!empty($gRole)): ?>
+                                    <span class="guest-role"><?= e($gRole) ?></span>
+                                <?php endif; ?>
+                            </div>
                         </div>
+                        <?php if (!empty($socialLinks)): ?>
+                            <div class="guest-social-list">
+                                <?php foreach ($socialLinks as $soc): ?>
+                                    <a href="<?= e($soc['url']) ?>" 
+                                       target="_blank" 
+                                       rel="noopener noreferrer" 
+                                       class="guest-social-btn guest-social-<?= e($soc['type']) ?>" 
+                                       title="<?= e($soc['title']) ?>">
+                                        <?= $soc['icon'] ?>
+                                        <span class="guest-social-label"><?= e($soc['label']) ?></span>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                    <?php if (!empty($guest['social'])): ?>
-                        <span style="font-size:0.78rem; color:var(--text-muted); word-break:break-all;"><?= e($guest['social']) ?></span>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
         </div>
         <?php endif; ?>
 
