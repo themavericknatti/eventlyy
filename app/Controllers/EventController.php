@@ -286,4 +286,64 @@ class EventController extends Controller
             'errors' => $success ? [] : $reviewModel->getErrors()
         ]);
     }
+
+    /**
+     * Download or open iCalendar (.ics) format file for Apple Calendar, Outlook, and mobile calendar apps.
+     */
+    public function calendarIcs(Request $request, int|string $id): void
+    {
+        $db = Application::$app->db->pdo;
+
+        if (is_numeric($id)) {
+            $stmt = $db->prepare("SELECT * FROM events WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => (int)$id]);
+        } else {
+            $stmt = $db->prepare("SELECT * FROM events WHERE slug = :slug OR custom_url = :custom_url LIMIT 1");
+            $stmt->execute(['slug' => $id, 'custom_url' => $id]);
+        }
+        $event = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$event) {
+            http_response_code(404);
+            echo "Event not found";
+            exit;
+        }
+
+        $times = event_calendar_times($event);
+        $siteTitle = site_setting('site_title', 'Eventlyy');
+        $eventUrl = event_url($event);
+        $cleanDesc = str_replace(["\r\n", "\n", "\r"], "\\n", addcslashes(strip_tags((string)$event['description']), ",;"));
+        $cleanSummary = addcslashes((string)$event['name'], ",;");
+        $cleanLocation = addcslashes((string)$event['location'], ",;");
+        $nowUtc = gmdate('Ymd\THis\Z');
+        $domain = parse_url($eventUrl, PHP_URL_HOST) ?: 'eventlyy.com';
+
+        $ics = "BEGIN:VCALENDAR\r\n"
+             . "VERSION:2.0\r\n"
+             . "PRODID:-//{$siteTitle}//Event Ticketing//EN\r\n"
+             . "CALSCALE:GREGORIAN\r\n"
+             . "METHOD:PUBLISH\r\n"
+             . "BEGIN:VEVENT\r\n"
+             . "UID:eventlyy-event-{$event['id']}@{$domain}\r\n"
+             . "DTSTAMP:{$nowUtc}\r\n"
+             . "DTSTART:{$times['start_utc']}\r\n"
+             . "DTEND:{$times['end_utc']}\r\n"
+             . "SUMMARY:{$cleanSummary}\r\n"
+             . "DESCRIPTION:{$cleanDesc}\\n\\nEvent Link: {$eventUrl}\r\n"
+             . "LOCATION:{$cleanLocation}\r\n"
+             . "URL:{$eventUrl}\r\n"
+             . "STATUS:CONFIRMED\r\n"
+             . "END:VEVENT\r\n"
+             . "END:VCALENDAR\r\n";
+
+        $filename = preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string)$event['name']) . '.ics';
+
+        header('Content-Type: text/calendar; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($ics));
+        header('Connection: close');
+
+        echo $ics;
+        exit;
+    }
 }

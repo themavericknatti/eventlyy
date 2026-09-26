@@ -120,6 +120,18 @@ Evently - Your Profile and Account Settings.
     </div>
 </section>
 
+<?php if ($flashSuccess = \Ace\Application::$app->session->getFlash('success')): ?>
+    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; padding: 0.9rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; animation: fadeIn 0.3s ease;">
+        <span style="font-size: 1.1rem;">✓</span> <?= e($flashSuccess) ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($flashError = \Ace\Application::$app->session->getFlash('error')): ?>
+    <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #dc2626; padding: 0.9rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; animation: fadeIn 0.3s ease;">
+        <span style="font-size: 1.1rem;">⚠️</span> <?= e($flashError) ?>
+    </div>
+<?php endif; ?>
+
 <!-- Profile Header Card -->
 <section class="profile-header-card">
     <div class="profile-header-inner">
@@ -546,7 +558,29 @@ Evently - Your Profile and Account Settings.
                             <div class="ticket-qr-code" style="font-family:monospace; font-weight:800; font-size:0.95rem; color:rgb(var(--brand)); margin-top:0.4rem;"><?= htmlspecialchars($tk['ticket_id']) ?></div>
                             <span class="ticket-qr-hint" style="font-size:0.72rem; color:rgb(var(--muted)); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Scan at Entry Gate</span>
                         </div>
-                        <div class="my-ticket-actions">
+                        <div class="my-ticket-actions" style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                            <?php if (!$tkIsPast && empty($tk['checked_in']) && in_array($tk['ticket_status'], ['Paid', 'Comped'])): ?>
+                                <button type="button" class="transfer-ticket-btn" onclick="openTransferModal('<?= htmlspecialchars($tk['ticket_id'], ENT_QUOTES) ?>', '<?= htmlspecialchars($tk['event_name'], ENT_QUOTES) ?>', '<?= htmlspecialchars($tk['ticket_type'], ENT_QUOTES) ?>')" title="Transfer this ticket to another attendee">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="17 1 21 5 17 9" />
+                                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                                        <polyline points="7 23 3 19 7 15" />
+                                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                                    </svg>
+                                    Transfer Pass
+                                </button>
+                            <?php elseif (!empty($tk['checked_in'])): ?>
+                                <span style="font-size:0.75rem; color:#10b981; font-weight:700; display:inline-flex; align-items:center; gap:0.25rem;">
+                                    ✓ Checked In at Gate
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if (!$tkIsPast): ?>
+                                <a href="<?= event_google_calendar_url(['name' => $tk['event_name'], 'date' => $tk['event_date'], 'location' => $tk['event_location'], 'description' => 'Admission Ticket #' . $tk['ticket_id'] . ' for ' . $tk['event_name'], 'id' => $tk['event_id']]) ?>" target="_blank" rel="noopener" class="admin-action-btn calendar-btn-profile" style="text-decoration:none; padding:0.48rem 0.85rem; font-size:0.82rem; border-radius:10px; font-weight:700; background:rgba(var(--muted),0.08); color:rgb(var(--text)); border:1px solid rgba(var(--muted),0.2); display:inline-flex; align-items:center; gap:0.35rem; min-height:38px;" title="Add event to your Calendar">
+                                    <span>📅 Calendar</span>
+                                </a>
+                            <?php endif; ?>
+
                             <button type="button" class="print-ticket-btn" onclick="printTicket(<?= $idx ?>)">
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="6 9 6 2 18 2 18 9" />
@@ -633,9 +667,78 @@ function switchProfileTab(tab) {
     }
 }
 
-if (window.location.search.includes('ticket_page')) {
+if (window.location.search.includes('ticket_page') || window.location.search.includes('tab=tickets')) {
     switchProfileTab('tickets');
 }
+
+function openTransferModal(ticketCode, eventName, ticketType) {
+    document.getElementById('transfer-input-ticket-id').value = ticketCode;
+    document.getElementById('transfer-ticket-code').textContent = ticketCode;
+    document.getElementById('transfer-event-name').textContent = eventName;
+    document.getElementById('transfer-ticket-type').textContent = ticketType + ' Pass';
+    document.getElementById('transfer-recipient-name').value = '';
+    document.getElementById('transfer-recipient-email').value = '';
+    document.getElementById('transfer-note').value = '';
+    document.getElementById('transfer-confirm-check').checked = false;
+    document.getElementById('transfer-error-alert').style.display = 'none';
+    document.getElementById('transfer-error-alert').textContent = '';
+
+    const modal = document.getElementById('transfer-ticket-modal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeTransferModal() {
+    const modal = document.getElementById('transfer-ticket-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Handle Form Submission with AJAX
+document.addEventListener('DOMContentLoaded', function() {
+    const transferForm = document.getElementById('transfer-ticket-form');
+    if (transferForm) {
+        transferForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const submitBtn = document.getElementById('transfer-submit-btn');
+            const btnText = document.getElementById('transfer-btn-text');
+            const errorAlert = document.getElementById('transfer-error-alert');
+
+            errorAlert.style.display = 'none';
+            submitBtn.disabled = true;
+            btnText.textContent = 'Processing Transfer...';
+
+            const formData = new FormData(form);
+
+            fetch('/profile/ticket/transfer', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to transfer ticket. Please check your inputs.');
+                }
+                return data;
+            })
+            .then(data => {
+                // Success! Redirect to reload the ticket list with flash message
+                window.location.href = '/profile?tab=tickets';
+            })
+            .catch(err => {
+                errorAlert.textContent = err.message;
+                errorAlert.style.display = 'block';
+                submitBtn.disabled = false;
+                btnText.textContent = 'Confirm & Transfer';
+            });
+        });
+    }
+});
 
 function printTicket(idx) {
     const card = document.getElementById('my-ticket-' + idx);
@@ -644,7 +747,7 @@ function printTicket(idx) {
     const printContainer = document.getElementById('print-ticket-container');
     printContainer.innerHTML = card.outerHTML;
 
-    // Remove the print button from the cloned content
+    // Remove the print button and transfer button from the cloned content
     const btn = printContainer.querySelector('.my-ticket-actions');
     if (btn) btn.remove();
 
@@ -660,6 +763,215 @@ function printTicket(idx) {
     });
 }
 </script>
+
+<style>
+/* Ticket Actions & Responsive Buttons */
+.my-ticket-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.transfer-ticket-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.48rem 0.95rem;
+    border-radius: 10px;
+    background: rgba(11, 115, 102, 0.08);
+    color: #0B7366;
+    border: 1px solid rgba(11, 115, 102, 0.25);
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 38px;
+    box-sizing: border-box;
+}
+
+.transfer-ticket-btn:hover {
+    background: #0B7366;
+    color: #ffffff;
+    border-color: #0B7366;
+    box-shadow: 0 4px 14px rgba(11, 115, 102, 0.25);
+}
+
+.transfer-ticket-btn:focus-visible {
+    outline: 2px solid #0B7366;
+    outline-offset: 2px;
+}
+
+/* Tablet & Mobile Responsiveness for Ticket Cards */
+@media (max-width: 640px) {
+    .my-ticket-actions {
+        flex-direction: column-reverse;
+        width: 100%;
+        gap: 0.6rem;
+    }
+    .my-ticket-actions .transfer-ticket-btn,
+    .my-ticket-actions .calendar-btn-profile,
+    .my-ticket-actions .print-ticket-btn {
+        width: 100% !important;
+        justify-content: center;
+        padding: 0.7rem 1rem !important;
+        font-size: 0.88rem !important;
+        min-height: 44px; /* Mobile touch target standard */
+    }
+}
+
+/* Responsive Modal Styling */
+.transfer-modal-card {
+    max-width: 500px;
+    width: 100%;
+    transition: all 0.25s ease;
+}
+
+.transfer-modal-input,
+.transfer-modal-textarea {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid rgba(var(--muted), 0.25);
+    background: rgb(var(--card));
+    color: rgb(var(--text));
+    font-size: 0.9rem;
+    min-height: 44px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.transfer-modal-textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+
+.transfer-modal-input:focus,
+.transfer-modal-textarea:focus {
+    outline: none;
+    border-color: #0B7366;
+    box-shadow: 0 0 0 3px rgba(11, 115, 102, 0.15);
+}
+
+.transfer-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.transfer-modal-actions .btn-cancel,
+.transfer-modal-actions .btn-submit {
+    min-height: 44px;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.88rem;
+    border-radius: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+    .transfer-modal-card {
+        padding: 1.25rem 1rem !important;
+        border-radius: 16px !important;
+    }
+    .transfer-modal-actions {
+        flex-direction: column-reverse;
+        width: 100%;
+        gap: 0.5rem;
+    }
+    .transfer-modal-actions .btn-cancel,
+    .transfer-modal-actions .btn-submit {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<!-- Ticket Transfer Modal -->
+<div class="modal-overlay hidden" id="transfer-ticket-modal" role="dialog" aria-modal="true" aria-labelledby="transfer-modal-title">
+    <div class="modal-card transfer-modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; gap: 0.75rem;">
+            <div>
+                <span style="display: inline-block; background: rgba(11, 115, 102, 0.12); color: #0B7366; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                    🔄 Ticket Re-assignment
+                </span>
+                <h3 id="transfer-modal-title" style="margin: 0; font-size: clamp(1.1rem, 2.5vw, 1.25rem); font-weight: 800; color: rgb(var(--text));">Transfer Admission Pass</h3>
+            </div>
+            <button type="button" class="admin-action-btn" onclick="closeTransferModal()" style="border: none; background: transparent; font-size: 1.25rem; cursor: pointer; color: rgb(var(--muted)); padding: 0.25rem 0.5rem; line-height: 1; min-height: 36px; min-width: 36px;" aria-label="Close modal">✕</button>
+        </div>
+
+        <!-- Summary of ticket being transferred -->
+        <div style="background: rgba(var(--muted), 0.06); border: 1px solid rgba(var(--muted), 0.15); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+            <div style="font-weight: 700; color: rgb(var(--text)); font-size: 0.95rem; word-break: break-word;" id="transfer-event-name">Event Name</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 4px; font-size: 0.8rem; color: rgb(var(--muted)); flex-wrap: wrap;">
+                <span id="transfer-ticket-type" style="font-weight: 600; color: #0B7366;">General Pass</span>
+                <span>•</span>
+                <span>Code: <strong style="font-family: monospace; color: rgb(var(--text));" id="transfer-ticket-code">TKT-XXXXXX</strong></span>
+            </div>
+        </div>
+
+        <!-- Security Notice Alert -->
+        <div style="background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+            <strong style="display: block; font-size: 0.8rem; color: #92400e; margin-bottom: 2px;">⚠️ Security Notice:</strong>
+            <p style="margin: 0; font-size: 0.78rem; color: #78350f; line-height: 1.45;">
+                Upon transfer, your current ticket pass and QR code will be <strong>permanently deactivated</strong> and cannot be used at the gate. A brand new QR pass will be emailed to the recipient.
+            </p>
+        </div>
+
+        <form id="transfer-ticket-form" method="POST" action="/profile/ticket/transfer">
+            <?= csrf_field() ?>
+            <input type="hidden" name="ticket_id" id="transfer-input-ticket-id" value="">
+            <input type="hidden" name="is_ajax" value="1">
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.35rem; color: rgb(var(--text));">
+                    Recipient Full Name <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" name="recipient_name" id="transfer-recipient-name" required placeholder="e.g. Jane Doe" class="transfer-modal-input" autocomplete="name">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.35rem; color: rgb(var(--text));">
+                    Recipient Email Address <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="email" name="recipient_email" id="transfer-recipient-email" required placeholder="e.g. jane@example.com" class="transfer-modal-input" autocomplete="email">
+                <span style="font-size: 0.72rem; color: rgb(var(--muted)); display: block; margin-top: 3px;">The digital ticket and entry QR code will be sent to this email.</span>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.35rem; color: rgb(var(--text));">
+                    Personal Note <span style="font-size: 0.75rem; font-weight: normal; color: rgb(var(--muted));">(Optional)</span>
+                </label>
+                <textarea name="transfer_note" id="transfer-note" rows="2" placeholder="e.g. Enjoy the event! See you there!" class="transfer-modal-textarea"></textarea>
+            </div>
+
+            <div style="margin-bottom: 1.25rem; display: flex; align-items: flex-start; gap: 0.6rem;">
+                <input type="checkbox" id="transfer-confirm-check" required style="margin-top: 3px; width: 18px; height: 18px; accent-color: #0B7366; cursor: pointer; flex-shrink: 0;">
+                <label for="transfer-confirm-check" style="font-size: 0.8rem; color: rgb(var(--muted)); line-height: 1.45; cursor: pointer;">
+                    I confirm that I want to transfer this admission pass to the person named above and relinquish ownership.
+                </label>
+            </div>
+
+            <!-- Error message placeholder -->
+            <div id="transfer-error-alert" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 0.82rem; padding: 0.65rem 0.85rem; border-radius: 8px; margin-bottom: 1rem;"></div>
+
+            <div class="transfer-modal-actions">
+                <button type="button" class="admin-action-btn btn-cancel" onclick="closeTransferModal()">
+                    Cancel
+                </button>
+                <button type="submit" id="transfer-submit-btn" class="admin-action-btn primary btn-submit" style="background: #0B7366; border-color: #0B7366; color: #fff;">
+                    <span id="transfer-btn-text">Confirm &amp; Transfer</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Delete Account Modal -->
 <div class="modal-overlay hidden" id="delete-account-modal" role="dialog" aria-modal="true">

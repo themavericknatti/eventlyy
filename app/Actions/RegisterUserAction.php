@@ -42,6 +42,13 @@ class RegisterUserAction
             try {
                 $db = \Ace\Application::$app->db->pdo;
                 
+                // Auto-link any existing guest or transferred tickets matching this email
+                $linkStmt = $db->prepare("UPDATE tickets SET user_id = :user_id WHERE LOWER(attendee_email) = :email AND user_id IS NULL");
+                $linkStmt->execute([
+                    'user_id' => $user->id,
+                    'email' => strtolower(trim($user->email))
+                ]);
+
                 // Clear existing verifications for this email
                 $delStmt = $db->prepare("DELETE FROM email_verifications WHERE email = :email");
                 $delStmt->execute(['email' => $user->email]);

@@ -91,6 +91,40 @@ Order Success - <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
         </div>
     </div>
 
+    <!-- Add to Calendar Bar (Hidden on Print) -->
+    <?php
+    $calendarEvent = [
+        'name' => $order['event_name'] ?? 'Event',
+        'date' => $order['event_date'] ?? date('Y-m-d H:i:s'),
+        'location' => $order['event_location'] ?? '',
+        'description' => 'Tickets confirmed via Eventlyy. Order #' . ($order['payment_reference'] ?? ''),
+        'id' => $order['event_id'] ?? 1,
+        'slug' => $order['event_slug'] ?? ($order['event_id'] ?? 1),
+    ];
+    ?>
+    <div class="no-print" style="background:rgba(var(--brand), 0.05); border:1px solid rgba(var(--brand), 0.2); border-radius:16px; padding:1.15rem 1.4rem; margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div style="display:flex; align-items:center; gap:0.85rem; min-width:240px; flex:1;">
+            <div style="width:42px; height:42px; border-radius:12px; background:rgba(var(--brand), 0.12); color:rgb(var(--brand)); display:flex; align-items:center; justify-content:center; font-size:1.35rem; flex-shrink:0;">
+                📅
+            </div>
+            <div>
+                <strong style="color:var(--text); font-size:0.95rem; display:block;">Add Event to Your Calendar</strong>
+                <span style="font-size:0.8rem; color:var(--text-muted); line-height:1.4; display:block;">Set automatic reminders on your phone or computer so you're ready on event day.</span>
+            </div>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <a href="<?= event_google_calendar_url($calendarEvent) ?>" target="_blank" rel="noopener" class="admin-action-btn" style="text-decoration:none; font-size:0.82rem; font-weight:700; background:var(--card-bg, #fff); border:1px solid rgba(var(--muted),0.25); display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.95rem; border-radius:10px; min-height:40px;">
+                <span>Google</span>
+            </a>
+            <a href="<?= event_ics_url($calendarEvent) ?>" download class="admin-action-btn" style="text-decoration:none; font-size:0.82rem; font-weight:700; background:var(--card-bg, #fff); border:1px solid rgba(var(--muted),0.25); display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.95rem; border-radius:10px; min-height:40px;">
+                <span>Apple iCal</span>
+            </a>
+            <a href="<?= event_outlook_calendar_url($calendarEvent) ?>" target="_blank" rel="noopener" class="admin-action-btn" style="text-decoration:none; font-size:0.82rem; font-weight:700; background:var(--card-bg, #fff); border:1px solid rgba(var(--muted),0.25); display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.95rem; border-radius:10px; min-height:40px;">
+                <span>Outlook</span>
+            </a>
+        </div>
+    </div>
+
     <!-- Ticket Pass Cards Loop -->
     <?php foreach ($order['tickets'] as $index => $t): 
         $tCode = $t['ticket_code'] ?? ($t['id'] ?? 'EV-' . ($index + 1));

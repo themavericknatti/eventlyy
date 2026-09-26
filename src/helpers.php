@@ -1139,3 +1139,86 @@ if (!function_exists('email_logo_src')) {
         return email_logo_url();
     }
 }
+
+if (!function_exists('event_calendar_times')) {
+    /**
+     * Compute UTC and ISO calendar timestamps for an event.
+     */
+    function event_calendar_times($event): array
+    {
+        $rawDate = is_array($event) ? ($event['date'] ?? '') : ($event->date ?? '');
+        $startTimestamp = !empty($rawDate) ? strtotime($rawDate) : time();
+        if (!$startTimestamp) $startTimestamp = time();
+        // Default duration: 3 hours if not specified
+        $endTimestamp = $startTimestamp + (3 * 3600);
+
+        return [
+            'start_utc' => gmdate('Ymd\THis\Z', $startTimestamp),
+            'end_utc'   => gmdate('Ymd\THis\Z', $endTimestamp),
+            'start_iso' => gmdate('Y-m-d\TH:i:s\Z', $startTimestamp),
+            'end_iso'   => gmdate('Y-m-d\TH:i:s\Z', $endTimestamp),
+            'timestamp' => $startTimestamp
+        ];
+    }
+}
+
+if (!function_exists('event_google_calendar_url')) {
+    /**
+     * Generate direct Google Calendar add event URL.
+     */
+    function event_google_calendar_url($event): string
+    {
+        $name = is_array($event) ? ($event['name'] ?? '') : ($event->name ?? '');
+        $location = is_array($event) ? ($event['location'] ?? '') : ($event->location ?? '');
+        $description = is_array($event) ? ($event['description'] ?? '') : ($event->description ?? '');
+        $times = event_calendar_times($event);
+
+        $params = [
+            'action' => 'TEMPLATE',
+            'text' => $name,
+            'dates' => $times['start_utc'] . '/' . $times['end_utc'],
+            'details' => strip_tags((string)$description),
+            'location' => $location
+        ];
+
+        return 'https://calendar.google.com/calendar/render?' . http_build_query($params);
+    }
+}
+
+if (!function_exists('event_outlook_calendar_url')) {
+    /**
+     * Generate direct Outlook Calendar add event URL.
+     */
+    function event_outlook_calendar_url($event): string
+    {
+        $name = is_array($event) ? ($event['name'] ?? '') : ($event->name ?? '');
+        $location = is_array($event) ? ($event['location'] ?? '') : ($event->location ?? '');
+        $description = is_array($event) ? ($event['description'] ?? '') : ($event->description ?? '');
+        $times = event_calendar_times($event);
+
+        $params = [
+            'path' => '/calendar/action/compose',
+            'rru' => 'addevent',
+            'subject' => $name,
+            'startdt' => $times['start_iso'],
+            'enddt' => $times['end_iso'],
+            'body' => strip_tags((string)$description),
+            'location' => $location
+        ];
+
+        return 'https://outlook.live.com/calendar/0/deeplink/compose?' . http_build_query($params);
+    }
+}
+
+if (!function_exists('event_ics_url')) {
+    /**
+     * Generate iCalendar (.ics) download URL for Apple Calendar & Outlook desktop.
+     */
+    function event_ics_url($event): string
+    {
+        $identifier = is_array($event) 
+            ? (!empty($event['custom_url']) ? $event['custom_url'] : ($event['slug'] ?? $event['id']))
+            : (!empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id));
+        return \url('/event/' . $identifier . '/calendar.ics');
+    }
+}

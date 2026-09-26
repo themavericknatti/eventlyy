@@ -39,6 +39,7 @@ $router->get('/profile', [ProfileController::class, 'profile']);
 $router->post('/profile', [ProfileController::class, 'updateProfile']);
 $router->post('/profile/password', [ProfileController::class, 'changePassword']);
 $router->post('/profile/delete-account', [ProfileController::class, 'deleteAccount']);
+$router->post('/profile/ticket/transfer', [ProfileController::class, 'transferTicket']);
 $router->get('/event/{id}', [EventController::class, 'event']);
 $router->get('/e/{slug}', [EventController::class, 'eventBySlug']);
 $router->get('/f/{id}', [EventController::class, 'flyerPage']);
@@ -49,6 +50,7 @@ $router->get('/flyer/{id}/checkout', [CheckoutController::class, 'flyerCheckout'
 $router->post('/flyer/{id}/checkout', [CheckoutController::class, 'processCheckout']);
 $router->get('/event/{id}/feedback', [EventController::class, 'feedbackForm']);
 $router->post('/event/{id}/feedback', [EventController::class, 'submitFeedback']);
+$router->get('/event/{id}/calendar.ics', [EventController::class, 'calendarIcs']);
 
 $router->get('/checkout/paystack/callback', [CheckoutController::class, 'paystackCallback']);
 $router->post('/checkout/validate-promo', [CheckoutController::class, 'validatePromo']);

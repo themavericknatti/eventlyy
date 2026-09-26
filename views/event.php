@@ -127,6 +127,22 @@ $isToday = !$isCompleted && ($eventDate && date('Y-m-d', $now) === date('Y-m-d',
                     </button>
                 </div>
             </div>
+
+            <!-- Add to Calendar Links -->
+            <div class="calendar-event-block" style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid rgba(var(--muted), 0.15);">
+                <span style="display:block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">📅 Add to Calendar</span>
+                <div class="calendar-btn-group" style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a href="<?= event_google_calendar_url($event) ?>" target="_blank" rel="noopener" class="calendar-btn" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.65rem; border-radius: 8px; background: rgba(var(--muted), 0.08); color: var(--text); border: 1px solid rgba(var(--muted), 0.2); font-size: 0.78rem; font-weight: 700; text-decoration: none; transition: all 0.2s;" title="Add to Google Calendar">
+                        <span>Google</span>
+                    </a>
+                    <a href="<?= event_ics_url($event) ?>" download class="calendar-btn" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.65rem; border-radius: 8px; background: rgba(var(--muted), 0.08); color: var(--text); border: 1px solid rgba(var(--muted), 0.2); font-size: 0.78rem; font-weight: 700; text-decoration: none; transition: all 0.2s;" title="Download iCal for Apple Calendar & Outlook">
+                        <span>Apple iCal</span>
+                    </a>
+                    <a href="<?= event_outlook_calendar_url($event) ?>" target="_blank" rel="noopener" class="calendar-btn" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.65rem; border-radius: 8px; background: rgba(var(--muted), 0.08); color: var(--text); border: 1px solid rgba(var(--muted), 0.2); font-size: 0.78rem; font-weight: 700; text-decoration: none; transition: all 0.2s;" title="Add to Outlook Calendar">
+                        <span>Outlook</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </aside>
 </section>

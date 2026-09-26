@@ -218,4 +218,44 @@ class ProfileController extends Controller
         Application::$app->session->setFlash('error', $error ?: 'Failed to delete account.');
         return Application::$app->response->redirect('/profile');
     }
+
+    /**
+     * Handle attendee ticket transfer to another person
+     */
+    public function transferTicket(Request $request)
+    {
+        $user = Application::$app->user;
+        $data = $request->getBody();
+
+        $action = new \App\Actions\TransferTicketAction();
+        $success = $action->execute($data, $user);
+
+        $isAjax = $request->isAjax() || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || !empty($data['is_ajax']);
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            if ($success) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Ticket successfully transferred to ' . htmlspecialchars($data['recipient_name'] ?? 'recipient') . '! A new digital QR pass has been emailed to them.'
+                ]);
+            } else {
+                http_response_code(422);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => $action->getError() ?: 'Failed to transfer ticket. Please check the details.'
+                ]);
+            }
+            exit;
+        }
+
+        if ($success) {
+            Application::$app->session->setFlash('success', 'Ticket successfully transferred to ' . htmlspecialchars($data['recipient_name'] ?? 'recipient') . '! A new digital QR pass has been emailed to them.');
+        } else {
+            $error = $action->getError();
+            Application::$app->session->setFlash('error', $error ?: 'Failed to transfer ticket. Please check your inputs.');
+        }
+
+        return Application::$app->response->redirect('/profile?tab=tickets');
+    }
 }
