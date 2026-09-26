@@ -140,7 +140,7 @@
 <!-- Featured Events Carousel (Shown on main landing view when featured events exist) -->
 <?php 
     $isFiltered = !empty($search) || !empty($location) || (!empty($category) && strtolower($category) !== 'all') || ($page ?? 1) > 1;
-    $hasFeatured = !empty($featuredEvents) && count($featuredEvents) > 0;
+    $hasFeatured = !empty($featuredEvents) && count($featuredEvents) > 1;
 ?>
 <?php if ($hasFeatured && !$isFiltered): ?>
 <section class="featured-events">
@@ -165,7 +165,7 @@
                         <img src="<?= e($feImg) ?>" alt="<?= e($fe['name']) ?>" class="image-full" />
                     </div>
                     <div class="meta">
-                        <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                        <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.35rem; overflow:hidden;">
                             <span style="font-size:0.75rem; background:var(--brand); color:#fff; padding:0.15rem 0.5rem; border-radius:10px; text-transform:uppercase; font-weight:700; display:inline-block;">
                                 <?= e($fe['category'] ?? 'Event') ?>
                             </span>
