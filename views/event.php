@@ -215,7 +215,15 @@ $eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->sl
                                             </span>
                                         <?php endif; ?>
                                     </div>
-                                    <p class="meta" style="margin-top:0.25rem;">Includes full access to <?= e($event->name) ?>.</p>
+                                    <?php if (!empty($tt['description'])): ?>
+                                        <p class="meta" style="margin-top:0.25rem;"><?= e($tt['description']) ?></p>
+                                    <?php else: ?>
+                                        <p class="meta" style="margin-top:0.25rem; font-size:0.8rem; color:var(--text-muted); margin-bottom:0;">
+                                            <a href="#about-event" class="ticket-desc-link" style="color:var(--text-muted); text-decoration:none; display:inline-flex; align-items:center; gap:4px;" title="See event description below for details &amp; perks">
+                                                <span>ℹ️</span> Read description for ticket details
+                                            </a>
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
 
                                 <div class="ticket-controls">
@@ -258,7 +266,7 @@ $eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->sl
 <?php endif; ?>
 
 <!-- Detailed Description & Event Information Section -->
-<section class="detail-copy">
+<section class="detail-copy" id="about-event">
     <div>
         <h2>About This Event</h2>
         <div style="font-size: 1.05rem; line-height: 1.8; color: var(--text); background: rgba(var(--muted), 0.03); border-left: 4px solid var(--brand); padding: 1.25rem 1.5rem; border-radius: 0 12px 12px 0; margin-bottom: 1.5rem; white-space: pre-line;">

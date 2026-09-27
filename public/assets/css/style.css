@@ -2589,6 +2589,15 @@ body {
   font-size: .92rem
 }
 
+.ticket-desc-link {
+  transition: color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+}
+
+.ticket-desc-link:hover {
+  color: rgb(var(--brand)) !important;
+  text-decoration: underline !important;
+}
+
 .ticket-controls {
   display: flex;
   align-items: center;
