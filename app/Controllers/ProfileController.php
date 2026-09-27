@@ -230,7 +230,10 @@ class ProfileController extends Controller
         $action = new \App\Actions\TransferTicketAction();
         $success = $action->execute($data, $user);
 
-        $isAjax = $request->isAjax() || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || !empty($data['is_ajax']);
+        $isAjax = (method_exists($request, 'isAjax') && $request->isAjax()) 
+            || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') 
+            || !empty($data['is_ajax']);
 
         if ($isAjax) {
             header('Content-Type: application/json');

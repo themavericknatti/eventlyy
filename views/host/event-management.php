@@ -170,6 +170,13 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <span>📊</span> Accounting Report
                     </a>
 
+                    <form method="POST" action="{{ route('host/event/duplicate/' . $event->id) }}" style="display:inline;" onsubmit="return confirm('Duplicate this event? A new draft copy will be created with all ticket tiers and guests.');">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="admin-action-btn" style="background:rgba(147,51,234,0.1); color:#9333ea; border-color:rgba(147,51,234,0.25);" title="Clone this event as a new draft">
+                            <span>📋</span> Duplicate
+                        </button>
+                    </form>
+
                     <?php if ($isCompleted): ?>
                         <form method="POST" action="{{ route('host/event/management/' . $event->id . '/send-feedback') }}" style="display:inline;" onsubmit="return confirm('Send review and rating request email to all verified attendees?');">
                             <?= csrf_field() ?>
@@ -939,6 +946,19 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <a href="{{ route('host/event/referrals/' . $event->id) }}" class="admin-action-btn" style="text-decoration:none;">
                             🔗 Promoters
                         </a>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem; background:rgba(var(--text), 0.02); border-radius:12px; border:1px solid rgba(var(--muted), 0.1);">
+                        <div>
+                            <strong style="font-size:0.88rem; display:block;">Duplicate / Clone Event</strong>
+                            <span style="font-size:0.75rem; color:rgb(var(--muted));">Create a new draft copy with all ticket tiers and guests</span>
+                        </div>
+                        <form method="POST" action="{{ route('host/event/duplicate/' . $event->id) }}" style="display:inline; margin:0;" onsubmit="return confirm('Duplicate this event? A new draft copy will be created with all ticket tiers and guests.');">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="admin-action-btn" style="background:rgba(147,51,234,0.1); color:#9333ea; border-color:rgba(147,51,234,0.25); font-weight:700;">
+                                📋 Clone Event
+                            </button>
+                        </form>
                     </div>
                 </div>
             </section>

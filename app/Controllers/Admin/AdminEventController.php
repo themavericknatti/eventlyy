@@ -121,4 +121,22 @@ class AdminEventController extends Controller
             'title' => 'Event Detail - ' . $details['event']['name']
         ], $details));
     }
+
+    /**
+     * Admin action to 1-Click Duplicate an event.
+     */
+    public function duplicateEvent(Request $request, int|string $id)
+    {
+        $duplicateAction = new \App\Actions\DuplicateEventAction();
+        // Admins have full access across all hosts
+        $clonedId = $duplicateAction->execute($id, null);
+
+        if ($clonedId) {
+            Application::$app->session->setFlash('success', 'Event successfully duplicated as a new draft!');
+            return redirect('/admin/events');
+        }
+
+        Application::$app->session->setFlash('error', $duplicateAction->getError() ?: 'Failed to duplicate event.');
+        return back();
+    }
 }

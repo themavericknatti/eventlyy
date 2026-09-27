@@ -464,7 +464,15 @@ Evently - Your Profile and Account Settings.
                             </div>
                             <div class="profile-event-actions">
                                 <span class="au-status-badge <?= $statusClass ?>"><?= $statusLabel ?></span>
-                                <a href="/host/event/management/<?= $ev['id'] ?>" class="admin-action-btn" style="font-size:0.78rem;padding:0.35rem 0.65rem;border-radius:8px;">Manage</a>
+                                <div style="display:inline-flex; gap:0.35rem; align-items:center;">
+                                    <a href="/host/event/management/<?= $ev['id'] ?>" class="admin-action-btn" style="font-size:0.78rem;padding:0.35rem 0.65rem;border-radius:8px;">Manage</a>
+                                    <form method="POST" action="<?= route('host/event/duplicate/' . $ev['id']) ?>" style="display:inline; margin:0;" onsubmit="return confirm('Duplicate this event? A new draft copy will be created.');">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="admin-action-btn" style="font-size:0.78rem;padding:0.35rem 0.65rem;border-radius:8px;background:rgba(147,51,234,0.08);color:#9333ea;border-color:rgba(147,51,234,0.2);" title="Clone this event as a new draft">
+                                            📋 Clone
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </article>
                         <?php endforeach; ?>

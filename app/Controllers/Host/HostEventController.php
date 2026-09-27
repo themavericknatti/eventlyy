@@ -1011,4 +1011,55 @@ class HostEventController extends Controller
 
         return back();
     }
+
+    /**
+     * 1-Click Duplicate / Clone an Event.
+     * Clones event settings, ticket tiers, and guest performers into a new draft event.
+     */
+    public function duplicateEvent(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) 
+                || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) 
+                || hasRole('admin') || hasRole('super-admin');
+
+        $duplicateAction = new \App\Actions\DuplicateEventAction();
+        $hostIdConstraint = $isAdmin ? null : $user->id;
+
+        $clonedId = $duplicateAction->execute($id, $hostIdConstraint);
+
+        $isAjax = (method_exists($request, 'isAjax') && $request->isAjax()) 
+            || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+
+        if ($clonedId) {
+            $message = 'Event successfully duplicated! You can now adjust the date, tickets, and publish when ready.';
+            Application::$app->session->setFlash('success', $message);
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => $message,
+                    'cloned_id' => $clonedId,
+                    'redirect_url' => '/host/event/edit/' . $clonedId
+                ]);
+                exit;
+            }
+
+            return Application::$app->response->redirect('/host/event/edit/' . $clonedId);
+        }
+
+        $errorMsg = $duplicateAction->getError() ?: 'Failed to duplicate event.';
+        Application::$app->session->setFlash('error', $errorMsg);
+
+        if ($isAjax) {
+            http_response_code(422);
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $errorMsg]);
+            exit;
+        }
+
+        return back();
+    }
 }

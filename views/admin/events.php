@@ -253,6 +253,12 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                                 <a href="{{ route('host/event/referrals/{id}', ['id' => $ev['id']]) }}" class="admin-action-btn" style="padding:0.35rem 0.6rem; font-size:0.78rem; border-radius:8px; background:rgba(16, 185, 129, 0.12); color:#059669; font-weight:600; text-decoration:none;" title="Referrals & Affiliates">
                                     🔗 Ref
                                 </a>
+                                <form method="POST" action="{{ route('admin/events/duplicate/' . $ev['id']) }}" style="display:inline; margin:0;" onsubmit="return confirm('Clone this event as a new draft?');">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="admin-action-btn" style="padding:0.35rem 0.6rem; font-size:0.78rem; border-radius:8px; background:rgba(147,51,234,0.1); color:#9333ea; border-color:rgba(147,51,234,0.25); font-weight:600;" title="Duplicate / Clone Event">
+                                        📋 Clone
+                                    </button>
+                                </form>
                                 <form method="POST" action="{{ route('admin/events/toggle-featured') }}" style="display:inline; margin:0;">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="event_id" value="<?= $ev['id'] ?>" />
@@ -337,6 +343,12 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                     <a href="{{ route('host/event/referrals/{id}', ['id' => $ev['id']]) }}" class="admin-action-btn" style="flex:1; text-align:center; text-decoration:none; background:rgba(16, 185, 129, 0.12); color:#059669; font-weight:600; padding:0.4rem 0.5rem; font-size:0.8rem; border-radius:8px;">
                         🔗 Ref
                     </a>
+                    <form method="POST" action="{{ route('admin/events/duplicate/' . $ev['id']) }}" style="display:inline; flex:1;" onsubmit="return confirm('Clone this event as a new draft?');">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="admin-action-btn" style="width:100%; text-align:center; background:rgba(147,51,234,0.1); color:#9333ea; border-color:rgba(147,51,234,0.25); font-weight:600; padding:0.4rem 0.5rem; font-size:0.8rem; border-radius:8px;" title="Duplicate / Clone Event">
+                            📋 Clone
+                        </button>
+                    </form>
                     <form method="POST" action="{{ route('admin/events/toggle-featured') }}" style="display:inline; flex:1; min-width:100%;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="event_id" value="<?= $ev['id'] ?>" />

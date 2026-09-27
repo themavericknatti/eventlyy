@@ -107,6 +107,7 @@ $router->post('/host/event/management/{id}/complete', [HostEventController::clas
 $router->post('/host/event/management/{id}/toggle-flyer', [HostEventController::class, 'toggleFlyerPage']);
 $router->post('/host/event/management/{id}/request-staff', [HostEventController::class, 'requestStaff']);
 $router->post('/host/event/management/{id}/toggle-staff-checkin', [HostEventController::class, 'toggleStaffCheckin']);
+$router->post('/host/event/duplicate/{id}', [HostEventController::class, 'duplicateEvent']);
 $router->post('/host/event/delete/{id}', [HostEventController::class, 'deleteEvent']);
 $router->post('/host/event/transaction/{ref}/verify', [HostEventController::class, 'reverifyPayment']);
 $router->get('/host/event/ticket/{id}', [HostTicketController::class, 'ticketDetail']);
@@ -134,6 +135,7 @@ $router->get('/admin/attendees', [AdminAttendeeController::class, 'index']);
 $router->get('/admin/attendees/export', [AdminAttendeeController::class, 'exportCsv']);
 $router->get('/admin/events', [AdminEventController::class, 'events']);
 $router->post('/admin/events', [AdminEventController::class, 'deleteEvent']);
+$router->post('/admin/events/duplicate/{id}', [AdminEventController::class, 'duplicateEvent']);
 $router->post('/admin/events/toggle-featured', [AdminEventController::class, 'toggleFeatured']);
 $router->get('/admin/events/{id}', [AdminEventController::class, 'eventDetail']);
 $router->get('/admin/teams', [AdminTeamController::class, 'teams']);

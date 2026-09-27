@@ -521,6 +521,12 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                             <a href="{{ route('host/event/management/' . $event['id']) }}" class="host-action-btn summary-btn">
                                 <span>📊</span> View Summary
                             </a>
+                            <form method="POST" action="{{ route('host/event/duplicate/' . $event['id']) }}" style="display:contents;" onsubmit="return confirm('Clone this event? A new draft with the same tickets and settings will be created for you.');">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="host-action-btn" style="background: rgba(99, 102, 241, 0.08); color: #6366f1; border-color: rgba(99, 102, 241, 0.25);" title="Duplicate / Clone this past event">
+                                    <span>📋</span> Clone
+                                </button>
+                            </form>
                         @else
                             <a href="{{ route('host/event/management/' . $event['id']) }}" class="host-action-btn manage-btn <?= $status === 'live' ? 'live-btn' : '' ?>">
                                 <span>⚙️</span> Manage
@@ -534,6 +540,12 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                             <a href="{{ route('host/event/edit/' . $event['id']) }}" class="host-action-btn edit-btn">
                                 <span>✏️</span> Edit
                             </a>
+                            <form method="POST" action="{{ route('host/event/duplicate/' . $event['id']) }}" style="display:contents;" onsubmit="return confirm('Clone this event? A new draft with the same tickets and settings will be created for you.');">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="host-action-btn" style="background: rgba(99, 102, 241, 0.08); color: #6366f1; border-color: rgba(99, 102, 241, 0.25);" title="Duplicate / Clone Event">
+                                    <span>📋</span> Clone
+                                </button>
+                            </form>
                             <?php if (($sold ?? 0) == 0 && ($event['status'] ?? '') !== 'completed'): ?>
                                 <form method="POST" action="{{ route('host/event/delete/' . $event['id']) }}" style="display:contents;" onsubmit="return confirm('Are you sure you want to delete this event? This action cannot be undone.');">
                                     <?= csrf_field() ?>

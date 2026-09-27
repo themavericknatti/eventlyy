@@ -67,6 +67,16 @@ class Request
     }
 
     /**
+     * Determine if the request was made via AJAX or expects JSON response
+     */
+    public function isAjax(): bool
+    {
+        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json');
+    }
+
+    /**
      * Retrieve and sanitize request input parameters
      */
     public function getBody(): array
