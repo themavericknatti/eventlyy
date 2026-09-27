@@ -3313,6 +3313,50 @@ body {
   box-shadow: 0 4px 14px rgba(var(--brand), 0.3);
 }
 
+/* Guest Cards Mobile Responsiveness */
+@media (max-width: 600px) {
+  .guest-cards,
+  .guest-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .guest-card,
+  .guest-card-item {
+    padding: 0.9rem;
+    gap: 0.5rem;
+  }
+
+  .guest-card-header {
+    gap: 0.55rem;
+  }
+
+  .guest-avatar {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    font-size: 0.78rem;
+  }
+
+  .guest-name {
+    font-size: 0.9rem;
+  }
+
+  .guest-social-list {
+    gap: 0.4rem;
+  }
+
+  .guest-social-btn {
+    padding: 0.38rem 0.7rem;
+    font-size: 0.75rem;
+    min-height: 32px;
+  }
+
+  .special-guests-wrapper h3 {
+    font-size: 1.05rem !important;
+  }
+}
+
 
 /* Checkout intro mirrors detail page hero styles */
 .checkout-intro {
