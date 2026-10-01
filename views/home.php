@@ -64,7 +64,7 @@
     <div class="hero-container-inner">
         <section class="hero">
             <div class="hero-inner">
-                <p class="hero-eyebrow">Your next night out starts here</p>
+                <p class="hero-eyebrow"><span class="eyebrow-spark">✨</span> Your next night out starts here</p>
                 <h1>Find live events, concerts &amp; experiences</h1>
                 <p class="lede">Search, compare and buy tickets — fast and secure.</p>
 
@@ -88,14 +88,14 @@
                         <input type="hidden" name="category" value="<?= e($category) ?>" />
                     <?php endif; ?>
 
-                    <button type="submit">Search</button>
+                    <button type="submit"><span>🔍</span> Search Events</button>
                 </form>
 
                 <!-- Hero Trust Metrics Bar -->
                 <div class="hero-trust-bar">
-                    <div class="trust-badge-item"><span>🎟️</span> 50k+ Gate Passes Issued</div>
+                    <div class="trust-badge-item"><span>🎟️</span> 50k+ Passes Issued</div>
                     <div class="trust-badge-item"><span>⚡</span> Instant QR Check-in</div>
-                    <div class="trust-badge-item"><span>🔒</span> Paystack Encrypted</div>
+                    <div class="trust-badge-item"><span>🔒</span> Paystack Secured</div>
                     <div class="trust-badge-item"><span>⭐</span> 4.9/5 Host Rating</div>
                 </div>
             </div>
