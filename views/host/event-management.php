@@ -41,6 +41,13 @@ $publicUrl = url('event/' . (!empty($event->custom_url) ? $event->custom_url : (
 $flyerUrl = event_flyer_url($event);
 $isFlyerEnabled = !empty($event->flyer_page_enabled);
 
+// Headless API & Custom Domain Embed URLs
+$eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id);
+$apiEventUrl = url('api/v1/events/' . $eventIdentifier);
+$apiCheckoutUrl = url('api/v1/events/' . $eventIdentifier . '/checkout');
+$embedUrl = url('embed/' . $eventIdentifier);
+$webCheckoutUrl = url('checkout/' . $eventIdentifier);
+
 // Event statistics
 $totalRevenue = $totalRevenue ?? 0;
 $ticketsSold = $ticketsSold ?? 0;
@@ -49,6 +56,12 @@ $totalCapacity = $totalCapacity ?? 0;
 $occupancyPercentage = $occupancyPercentage ?? 0;
 $avgPrice = $avgPrice ?? 0;
 $canDelete = ($ticketsSold == 0) && !$isCompleted && (($event->status ?? '') !== 'completed');
+$domainRequest = $domainRequest ?? null;
+$domainFee = (float)get_setting('custom_domain_fee', 10000.00);
+$isDomainActive = $domainRequest && ($domainRequest['status'] ?? '') === 'approved_active';
+$isDomainPending = $domainRequest && ($domainRequest['status'] ?? '') === 'pending';
+$isDomainRejected = $domainRequest && ($domainRequest['status'] ?? '') === 'rejected';
+$isDomainFeatureEnabled = (site_setting('custom_domain_enabled', '0') === '1');
 ?>
 
 @extends('layouts/host')
@@ -244,6 +257,9 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
          ════════════════════════════════════════════════════════════════ -->
     <?php 
         $currentTab = $activeTab ?? ($_GET['tab'] ?? (!empty($search) || $page > 1 ? 'attendees' : 'overview'));
+        if (!$isDomainFeatureEnabled && !$isAdmin && $currentTab === 'api-embed') {
+            $currentTab = 'overview';
+        }
     ?>
     <div class="mgmt-tab-nav" style="margin-bottom:1.5rem;">
         <button type="button" class="mgmt-tab-btn <?= $currentTab === 'overview' ? 'active' : '' ?>" data-tab="overview">
@@ -261,6 +277,14 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
         <button type="button" class="mgmt-tab-btn <?= $currentTab === 'settings' ? 'active' : '' ?>" data-tab="settings">
             <span>⚙️</span> Controls &amp; Danger Zone
         </button>
+        <?php if ($isDomainFeatureEnabled || $isAdmin): ?>
+        <button type="button" class="mgmt-tab-btn <?= $currentTab === 'api-embed' ? 'active' : '' ?>" data-tab="api-embed">
+            <span>🌐</span> Custom Domain &amp; API
+            <?php if (!$isDomainFeatureEnabled && $isAdmin): ?>
+                <span style="font-size:0.65rem; background:rgba(239,68,68,0.18); color:#ef4444; padding:0.15rem 0.4rem; border-radius:4px; margin-left:0.25rem; font-weight:800;">Admin Preview</span>
+            <?php endif; ?>
+        </button>
+        <?php endif; ?>
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════
@@ -341,13 +365,13 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <div class="mgmt-tier-item">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.4rem;">
                                 <div>
-                                    <strong style="font-size:0.95rem; color:var(--text-primary);"><?= e($tt['name']) ?></strong>
+                                    <strong style="font-size:0.95rem; color:rgb(var(--text));"><?= e($tt['name']) ?></strong>
                                     <span style="font-size:0.82rem; font-weight:700; color:<?= $tPrice > 0 ? '#10b981' : 'rgb(var(--muted))' ?>; margin-left:0.4rem;">
                                         <?= $tPrice > 0 ? format_price($tPrice) : 'Free' ?>
                                     </span>
                                 </div>
                                 <div style="text-align:right;">
-                                    <span style="font-size:0.88rem; font-weight:800; color:var(--text-primary);"><?= format_price($tRev) ?></span>
+                                    <span style="font-size:0.88rem; font-weight:800; color:rgb(var(--text));"><?= format_price($tRev) ?></span>
                                     <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block;"><?= number_format($tSold) ?> / <?= number_format($tCap) ?> sold</span>
                                 </div>
                             </div>
@@ -404,7 +428,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     </div>
                     <div style="display:flex; flex-direction:column; gap:0.5rem;">
                         <?php foreach ($pendingTransactions as $pTx): ?>
-                            <div class="mgmt-pending-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; background:var(--bg-card, #fff); padding:0.6rem 0.85rem; border-radius:10px; border:1px solid rgba(var(--muted), 0.12);">
+                            <div class="mgmt-pending-item" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; background:rgb(var(--card)); padding:0.6rem 0.85rem; border-radius:10px; border:1px solid rgba(var(--muted), 0.12);">
                                 <div class="mgmt-pending-info" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; min-width:0;">
                                     <strong style="font-size:0.86rem;"><?= e($pTx['payer_name'] ?: 'Guest') ?></strong>
                                     <span style="font-size:0.76rem; color:rgb(var(--muted));">(<?= e($pTx['payer_email']) ?>)</span>
@@ -481,7 +505,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                                 <?= strtoupper(substr($t['attendee_name'] ?: 'A', 0, 1)) ?>
                                             </div>
                                             <div>
-                                                <strong style="font-size:0.9rem; color:var(--text-primary); display:block;"><?= e($t['attendee_name']) ?></strong>
+                                                <strong style="font-size:0.9rem; color:rgb(var(--text)); display:block;"><?= e($t['attendee_name']) ?></strong>
                                                 <span style="font-size:0.75rem; color:rgb(var(--muted));"><?= e($t['attendee_email']) ?></span>
                                             </div>
                                         </div>
@@ -797,7 +821,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                         <?= strtoupper(substr($tm['staff_name'], 0, 1)) ?>
                                     </div>
                                     <div style="flex:1; min-width:0;">
-                                        <strong style="font-size:0.88rem; color:var(--text-primary); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($tm['staff_name']) ?></strong>
+                                        <strong style="font-size:0.88rem; color:rgb(var(--text)); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($tm['staff_name']) ?></strong>
                                         <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($tm['staff_email']) ?></span>
                                     </div>
                                 </div>
@@ -853,7 +877,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <div class="mgmt-review-card">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
                                 <div>
-                                    <strong style="font-size:0.92rem; color:var(--text-primary);"><?= e($rev['attendee_name']) ?></strong>
+                                    <strong style="font-size:0.92rem; color:rgb(var(--text));"><?= e($rev['attendee_name']) ?></strong>
                                     <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block;"><?= date('M d, Y', strtotime($rev['created_at'])) ?></span>
                                 </div>
                                 <div style="color:#f59e0b; font-size:0.95rem; letter-spacing:1px;">
@@ -861,7 +885,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                 </div>
                             </div>
                             <?php if (!empty($rev['comment'])): ?>
-                                <p style="margin:0; font-size:0.85rem; color:var(--text-primary); line-height:1.45; font-style:italic;">
+                                <p style="margin:0; font-size:0.85rem; color:rgb(var(--text)); line-height:1.45; font-style:italic;">
                                     "<?= e($rev['comment']) ?>"
                                 </p>
                             <?php endif; ?>
@@ -888,7 +912,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; margin-bottom:0.65rem; flex-wrap:wrap;">
                             <div>
                                 <div style="display:flex; align-items:center; gap:0.4rem;">
-                                    <strong style="font-size:0.92rem; color:var(--text-primary);">🎨 Dedicated Flyer Page</strong>
+                                    <strong style="font-size:0.92rem; color:rgb(var(--text));">🎨 Dedicated Flyer Page</strong>
                                     <span style="font-size:0.72rem; font-weight:800; padding:0.15rem 0.5rem; border-radius:10px; <?= $isFlyerEnabled ? 'background:rgba(16,185,129,0.15); color:#059669;' : 'background:rgba(var(--muted),0.15); color:rgb(var(--muted));' ?>">
                                         <?= $isFlyerEnabled ? '● Active &amp; Live' : '○ Disabled' ?>
                                     </span>
@@ -995,6 +1019,447 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
         </div>
     </div>
 
+    <?php if ($isDomainFeatureEnabled || $isAdmin): ?>
+    <!-- ════════════════════════════════════════════════════════════════
+         TAB 6: CUSTOM DOMAIN & API INTEGRATION (HEADLESS TICKETING)
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="mgmt-tab-panel <?= $currentTab === 'api-embed' ? 'active' : '' ?>" id="tab-api-embed">
+
+    <?php if (!$isDomainFeatureEnabled && $isAdmin): ?>
+        <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239,68,68,0.25); border-radius:14px; padding:0.95rem 1.25rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <span style="font-size:1.35rem;">🔒</span>
+                <div>
+                    <strong style="color:rgb(var(--text)); font-size:0.9rem; display:block;">Admin Preview Mode — Feature Currently Disabled for Hosts</strong>
+                    <span style="color:rgb(var(--muted)); font-size:0.82rem;">Regular event hosts cannot see this tab or submit domain connection requests until enabled in Admin Settings.</span>
+                </div>
+            </div>
+            <a href="{{ route('admin/settings') }}" class="admin-action-btn primary" style="background:#ef4444; border-color:#ef4444; text-decoration:none; padding:0.45rem 1rem; font-size:0.82rem; font-weight:700; border-radius:10px;">
+                Manage in Settings →
+            </a>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($isDomainActive): ?>
+        <!-- ═══════════════════════════════════════════════════════════
+             STATE A: ACTIVE & APPROVED INTEGRATION
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="form-card" style="margin-bottom:1.5rem; padding:1.5rem; border-left:4px solid #10b981; background:linear-gradient(135deg, rgba(16,185,129,0.03) 0%, rgba(var(--card),1) 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+                <div>
+                    <div style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(16,185,129,0.12); color:#059669; font-weight:800; font-size:0.75rem; padding:0.25rem 0.65rem; border-radius:999px; margin-bottom:0.5rem;">
+                        <span>●</span> ACTIVE &amp; VERIFIED
+                    </div>
+                    <h3 style="margin:0 0 0.4rem; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;">
+                        <span>🌐</span> Custom Domain &amp; API Integration Active
+                    </h3>
+                    <p style="margin:0; font-size:0.85rem; color:rgb(var(--muted)); max-width:680px; line-height:1.5;">
+                        Your integration is approved and live. Your custom domain <strong><?= e($domainRequest['requested_domain']) ?></strong> is active. You can use the drop-in embed widget or full headless REST API below.
+                    </p>
+                    <?php if (!empty($domainRequest['dns_cname_target'])): ?>
+                        <div style="margin-top:0.6rem; font-size:0.78rem; color:rgb(var(--muted));">
+                            DNS CNAME Target: <code style="background:rgba(var(--text),0.05); padding:0.15rem 0.4rem; border-radius:4px; font-weight:700;"><?= e($domainRequest['dns_cname_target']) ?></code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <a href="<?= e($embedUrl) ?>" target="_blank" class="admin-action-btn primary" style="font-weight:700; padding:0.6rem 1.1rem;">
+                    <span>↗️</span> Test Live Widget
+                </a>
+            </div>
+        </div>
+
+        <!-- 2-Column Integration Quick Setup -->
+        <div class="mgmt-grid-2col" style="margin-bottom:1.5rem;">
+            <!-- Option 1: Drop-In Embed Widget (Iframe) -->
+            <section class="form-card" style="margin-bottom:0; padding:1.5rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+                    <span style="font-size:1.25rem;">📦</span>
+                    <div>
+                        <h4 style="margin:0; font-size:1rem; font-weight:800;">Option 1: Drop-In Embed Widget</h4>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Zero coding required • WordPress, Webflow, Wix, Squarespace</span>
+                    </div>
+                </div>
+                <p style="font-size:0.82rem; color:rgb(var(--muted)); margin-bottom:1rem; line-height:1.45;">
+                    Paste this snippet into any page on your website to display the complete responsive ticket checkout widget.
+                </p>
+
+                <div style="position:relative; margin-bottom:1rem;">
+                    <pre style="background:rgba(var(--text),0.04); border:1px solid rgba(var(--muted),0.15); border-radius:10px; padding:0.85rem 1rem; font-size:0.78rem; overflow-x:auto; font-family:monospace; color:rgb(var(--text));"><code id="code-embed-iframe">&lt;iframe src="<?= e($embedUrl) ?>" width="100%" height="680" frameborder="0" style="border-radius:14px; max-width:520px; box-shadow:0 10px 30px rgba(0,0,0,0.08);" allow="payment"&gt;&lt;/iframe&gt;</code></pre>
+                    <button type="button" class="admin-action-btn" onclick="copySnippet('code-embed-iframe', this)" style="position:absolute; top:0.5rem; right:0.5rem; padding:0.35rem 0.65rem; font-size:0.75rem;">
+                        📋 Copy Code
+                    </button>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:rgb(var(--muted));">
+                    <span>Direct widget link:</span>
+                    <a href="<?= e($embedUrl) ?>" target="_blank" style="color:rgb(var(--brand)); font-weight:700; text-decoration:none;">
+                        <?= e($embedUrl) ?> ↗
+                    </a>
+                </div>
+            </section>
+
+            <!-- Option 2: Direct Purchase Link -->
+            <section class="form-card" style="margin-bottom:0; padding:1.5rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+                    <span style="font-size:1.25rem;">🔗</span>
+                    <div>
+                        <h4 style="margin:0; font-size:1rem; font-weight:800;">Option 2: Direct Purchase Link</h4>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Use for social bios, landing page CTA buttons, or newsletter emails</span>
+                    </div>
+                </div>
+                <p style="font-size:0.82rem; color:rgb(var(--muted)); margin-bottom:1rem; line-height:1.45;">
+                    Add this link directly to your "Buy Tickets" button on your external domain.
+                </p>
+
+                <div style="position:relative; margin-bottom:1rem;">
+                    <pre style="background:rgba(var(--text),0.04); border:1px solid rgba(var(--muted),0.15); border-radius:10px; padding:0.85rem 1rem; font-size:0.78rem; overflow-x:auto; font-family:monospace; color:rgb(var(--text));"><code id="code-direct-link"><?= e($webCheckoutUrl) ?></code></pre>
+                    <button type="button" class="admin-action-btn" onclick="copySnippet('code-direct-link', this)" style="position:absolute; top:0.5rem; right:0.5rem; padding:0.35rem 0.65rem; font-size:0.75rem;">
+                        📋 Copy Link
+                    </button>
+                </div>
+
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <a href="<?= e($webCheckoutUrl) ?>" target="_blank" class="admin-action-btn" style="font-size:0.8rem;">
+                        👁️ Preview Checkout Page
+                    </a>
+                    <a href="<?= e($flyerUrl) ?>" target="_blank" class="admin-action-btn" style="font-size:0.8rem;">
+                        🎨 Dedicated Flyer Page
+                    </a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Option 3: Full RESTful JSON API Reference -->
+        <section class="form-card" style="padding:1.5rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="font-size:1.25rem;">⚡</span>
+                    <div>
+                        <h4 style="margin:0; font-size:1rem; font-weight:800;">Option 3: Headless REST API (Custom Website Checkout)</h4>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Build your own custom checkout flow on your external domain • CORS Enabled</span>
+                    </div>
+                </div>
+                <span class="mgmt-status-pill mgmt-pill--live" style="font-size:0.75rem;">CORS Allowed: *</span>
+            </div>
+
+            <!-- API Endpoints Table -->
+            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+                <!-- 1. GET Event Details -->
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; background:rgba(var(--text),0.02); border:1px solid rgba(var(--muted),0.12); border-radius:10px; flex-wrap:wrap; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="background:#0284c7; color:#fff; font-size:0.68rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:6px;">GET</span>
+                        <code style="font-size:0.82rem; font-weight:700; color:rgb(var(--text));"><?= e($apiEventUrl) ?></code>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Fetch event info &amp; ticket tiers</span>
+                        <button type="button" class="admin-action-btn" onclick="navigator.clipboard.writeText('<?= addslashes($apiEventUrl) ?>'); alert('Copied GET endpoint URL!');" style="padding:0.25rem 0.55rem; font-size:0.72rem;">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. POST Checkout -->
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; background:rgba(var(--text),0.02); border:1px solid rgba(var(--muted),0.12); border-radius:10px; flex-wrap:wrap; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="background:#10b981; color:#fff; font-size:0.68rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:6px;">POST</span>
+                        <code style="font-size:0.82rem; font-weight:700; color:rgb(var(--text));"><?= e($apiCheckoutUrl) ?></code>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Initiate purchase (Free or Paystack)</span>
+                        <button type="button" class="admin-action-btn" onclick="navigator.clipboard.writeText('<?= addslashes($apiCheckoutUrl) ?>'); alert('Copied POST checkout endpoint URL!');" style="padding:0.25rem 0.55rem; font-size:0.72rem;">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. POST Validate Promo -->
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; background:rgba(var(--text),0.02); border:1px solid rgba(var(--muted),0.12); border-radius:10px; flex-wrap:wrap; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="background:#8b5cf6; color:#fff; font-size:0.68rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:6px;">POST</span>
+                        <code style="font-size:0.82rem; font-weight:700; color:rgb(var(--text));"><?= e(url('api/v1/checkout/validate-promo')) ?></code>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Validate discount coupon</span>
+                        <button type="button" class="admin-action-btn" onclick="navigator.clipboard.writeText('<?= addslashes(url('api/v1/checkout/validate-promo')) ?>'); alert('Copied promo endpoint URL!');" style="padding:0.25rem 0.55rem; font-size:0.72rem;">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. GET Verify Order -->
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; background:rgba(var(--text),0.02); border:1px solid rgba(var(--muted),0.12); border-radius:10px; flex-wrap:wrap; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="background:#f59e0b; color:#fff; font-size:0.68rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:6px;">GET</span>
+                        <code style="font-size:0.82rem; font-weight:700; color:rgb(var(--text));"><?= e(url('api/v1/checkout/verify/{reference}')) ?></code>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">Verify transaction &amp; retrieve ticket codes</span>
+                        <button type="button" class="admin-action-btn" onclick="navigator.clipboard.writeText('<?= addslashes(url('api/v1/checkout/verify/{reference}')) ?>'); alert('Copied verify endpoint URL!');" style="padding:0.25rem 0.55rem; font-size:0.72rem;">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ready-to-Paste JavaScript Snippet -->
+            <h5 style="margin:0 0 0.5rem; font-size:0.88rem; font-weight:800;">Copy-Paste JavaScript Snippet for Your External Website</h5>
+            <p style="font-size:0.78rem; color:rgb(var(--muted)); margin-bottom:0.75rem;">
+                Run this code in your external frontend to fetch available tickets and purchase with automatic redirect back to your domain:
+            </p>
+
+            <div style="position:relative;">
+                <pre style="background:#0f172a; color:#f8fafc; border-radius:12px; padding:1.25rem; font-size:0.75rem; overflow-x:auto; line-height:1.55; font-family:monospace;"><code id="code-js-example">// 1. Fetch available tickets from your external website
+const eventData = await fetch('<?= e($apiEventUrl) ?>').then(r =&gt; r.json());
+console.log('Available tiers:', eventData.tickets);
+
+// 2. Buy tickets from your website (e.g. 2 tickets of first tier)
+const tierId = eventData.tickets[0].id;
+const response = await fetch('<?= e($apiCheckoutUrl) ?>', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Attendee Name',
+    email: 'attendee@example.com',
+    tickets: { [tierId]: 2 },
+    // Where customer returns on YOUR domain after payment:
+    callback_url: window.location.origin + '/tickets/thank-you'
+  })
+});
+
+const result = await response.json();
+if (result.success &amp;&amp; result.authorization_url) {
+  // Redirect customer to secure payment:
+  window.location.href = result.authorization_url;
+} else if (result.success &amp;&amp; result.is_free) {
+  alert('Free tickets issued! Reference: ' + result.reference);
+}</code></pre>
+                <button type="button" class="admin-action-btn primary" onclick="copySnippet('code-js-example', this)" style="position:absolute; top:0.75rem; right:0.75rem; padding:0.4rem 0.8rem; font-size:0.75rem; font-weight:700;">
+                    📋 Copy JS Code
+                </button>
+            </div>
+        </section>
+
+    <?php elseif ($isDomainPending): ?>
+        <!-- ═══════════════════════════════════════════════════════════
+             STATE B: PENDING ADMIN APPROVAL & SETUP
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="form-card" style="margin-bottom:1.5rem; padding:2rem; text-align:center;">
+            <div style="width:64px; height:64px; background:rgba(245,158,11,0.12); color:#d97706; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:2rem; margin-bottom:1rem;">
+                ⏳
+            </div>
+            <h3 style="margin:0 0 0.5rem; font-size:1.25rem; font-weight:800;">
+                Custom Domain Request Under Review
+            </h3>
+            <p style="margin:0 auto 1.5rem; font-size:0.88rem; color:rgb(var(--muted)); max-width:560px; line-height:1.55;">
+                Your request to connect <strong><?= e($domainRequest['requested_domain']) ?></strong> has been received. Our engineering and administration team is verifying DNS availability and provisioning your integration.
+            </p>
+
+            <?php if ($domainRequest['payment_status'] !== 'paid'): ?>
+                <!-- Unpaid Fee Payment Action Card -->
+                <div style="max-width:540px; margin:0 auto 1.5rem; background:linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(var(--card),1) 100%); border:1.5px solid rgba(245,158,11,0.35); border-radius:14px; padding:1.5rem; text-align:center;">
+                    <div style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(245,158,11,0.15); color:#d97706; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:999px; margin-bottom:0.6rem;">
+                        💳 PAYMENT PENDING
+                    </div>
+                    <h4 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:800; color:rgb(var(--text));">
+                        Pay Activation Fee to Expedite Review
+                    </h4>
+                    <p style="margin:0 0 1.25rem; font-size:0.84rem; color:rgb(var(--muted)); line-height:1.45;">
+                        Complete the one-time activation fee of <strong><?= get_currency_symbol() . number_format((float)$domainRequest['fee_amount'], 2) ?></strong> via Paystack to speed up your DNS provisioning and approval.
+                    </p>
+                    <form method="POST" action="{{ route('host/event/domain-request/' . $domainRequest['id'] . '/pay') }}">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="admin-action-btn primary" style="padding:0.8rem 2rem; font-weight:800; font-size:1rem; border-radius:12px; box-shadow:0 6px 20px rgba(16,138,85,0.25); display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                            <span>🔒</span> Pay <?= get_currency_symbol() . number_format((float)$domainRequest['fee_amount'], 2) ?> with Paystack
+                        </button>
+                    </form>
+                </div>
+            <?php endif; ?>
+
+            <div style="max-width:540px; margin:0 auto 1.5rem; background:rgba(var(--text),0.02); border:1px solid rgba(var(--muted),0.14); border-radius:14px; padding:1.25rem; text-align:left;">
+                <div style="display:flex; justify-content:space-between; padding:0.4rem 0; font-size:0.84rem; border-bottom:1px solid rgba(var(--muted),0.08);">
+                    <span style="color:rgb(var(--muted));">Requested Domain:</span>
+                    <strong style="color:rgb(var(--text)); font-family:monospace;"><?= e($domainRequest['requested_domain']) ?></strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:0.4rem 0; font-size:0.84rem; border-bottom:1px solid rgba(var(--muted),0.08);">
+                    <span style="color:rgb(var(--muted));">Integration Mode:</span>
+                    <span style="text-transform:capitalize; font-weight:600;"><?= e(str_replace('_', ' ', $domainRequest['integration_type'])) ?></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:0.4rem 0; font-size:0.84rem; border-bottom:1px solid rgba(var(--muted),0.08);">
+                    <span style="color:rgb(var(--muted));">Setup Fee:</span>
+                    <strong><?= get_currency_symbol() . number_format((float)$domainRequest['fee_amount'], 2) ?></strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:0.4rem 0; font-size:0.84rem; border-bottom:1px solid rgba(var(--muted),0.08);">
+                    <span style="color:rgb(var(--muted));">Payment Status:</span>
+                    <span style="font-weight:700; color:<?= $domainRequest['payment_status'] === 'paid' ? '#10b981' : '#f59e0b' ?>;">
+                        <?= $domainRequest['payment_status'] === 'paid' ? '✓ Paid & Confirmed' : '⏳ Awaiting Payment' ?>
+                    </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:0.4rem 0; font-size:0.84rem;">
+                    <span style="color:rgb(var(--muted));">Submitted:</span>
+                    <span><?= date('M d, Y • g:i A', strtotime($domainRequest['created_at'])) ?></span>
+                </div>
+            </div>
+
+            <div style="max-width:540px; margin:0 auto; padding:1rem; background:rgba(2,132,199,0.06); border:1px solid rgba(2,132,199,0.2); border-radius:12px; font-size:0.82rem; color:rgb(var(--text)); text-align:left; line-height:1.5;">
+                💡 <strong>DNS Pointing Guide:</strong>
+                <ul style="margin:0.5rem 0 0 1.25rem; padding:0; font-size:0.8rem; color:rgb(var(--muted));">
+                    <li><strong>For Subdomain (e.g. <code>tickets.mainland.com</code>):</strong> Add a <code>CNAME</code> record in your DNS manager pointing <code>tickets</code> to <code>cname.eventlyy.com</code> (or <code><?= e($_SERVER['HTTP_HOST'] ?? 'eventlyy.test') ?></code>).</li>
+                    <li><strong>For Root/Apex Domain (e.g. <code>mainland.com</code> or <code>www.mainland.com</code>):</strong> Point an <code>A</code> record to our server IP or point <code>www</code> via <code>CNAME</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+    <?php else: ?>
+        <!-- ═══════════════════════════════════════════════════════════
+             STATE C: UPGRADE / REQUEST CUSTOM DOMAIN & API ACCESS
+             ═══════════════════════════════════════════════════════════ -->
+        <?php if ($isDomainRejected): ?>
+            <div style="padding:1rem 1.25rem; background:rgba(239,68,68,0.08); border:1.5px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:1.5rem; display:flex; align-items:flex-start; gap:0.75rem;">
+                <span style="font-size:1.4rem;">⚠️</span>
+                <div>
+                    <strong style="color:#ef4444; font-size:0.92rem; display:block; margin-bottom:0.2rem;">Previous Request Declined</strong>
+                    <p style="margin:0; font-size:0.82rem; color:rgb(var(--muted)); line-height:1.45;">
+                        Your previous request for <code><?= e($domainRequest['requested_domain'] ?? '') ?></code> was declined. 
+                        <?php if (!empty($domainRequest['admin_notes'])): ?>
+                            Reason: <em>"<?= e($domainRequest['admin_notes']) ?>"</em>.
+                        <?php endif; ?>
+                        You may review your details and submit a new request below.
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Feature Presentation Banner -->
+        <div class="form-card" style="margin-bottom:1.5rem; padding:2rem; border-left:4px solid rgb(var(--brand)); background:linear-gradient(135deg, rgba(var(--brand),0.03) 0%, rgba(var(--card),1) 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem;">
+                <div style="flex:1; min-width:280px;">
+                    <div style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--brand),0.12); color:rgb(var(--brand)); font-weight:800; font-size:0.75rem; padding:0.25rem 0.65rem; border-radius:999px; margin-bottom:0.6rem;">
+                        ⭐ PREMIUM HOST ADD-ON
+                    </div>
+                    <h3 style="margin:0 0 0.5rem; font-size:1.3rem; font-weight:800;">
+                        Sell Tickets Under Your Own Domain &amp; Headless API
+                    </h3>
+                    <p style="margin:0; font-size:0.88rem; color:rgb(var(--muted)); line-height:1.55; max-width:640px;">
+                        Connect your custom domain (e.g. <code>mainland.com</code>, <code>www.mainland.com</code>, or <code>tickets.mainland.com</code>) or external website (WordPress, Webflow, React, Vue, Next.js). Provide a 100% white-label ticket experience with automatic Paystack checkout and return redirects back to your domain.
+                    </p>
+                </div>
+                <div style="text-align:right; min-width:180px;">
+                    <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; text-transform:uppercase; font-weight:700;">One-Time Activation Fee</span>
+                    <div style="font-size:1.6rem; font-weight:900; color:rgb(var(--brand)); line-height:1.2;">
+                        <?= get_currency_symbol() . number_format($domainFee, 2) ?>
+                    </div>
+                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Per event domain setup</span>
+                </div>
+            </div>
+
+            <!-- Value Proposition Highlights -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid rgba(var(--muted),0.12);">
+                <div style="display:flex; gap:0.65rem; align-items:flex-start;">
+                    <span style="font-size:1.25rem;">🌐</span>
+                    <div>
+                        <strong style="font-size:0.86rem; display:block; color:rgb(var(--text));">Root Domain or Subdomain</strong>
+                        <span style="font-size:0.78rem; color:rgb(var(--muted));">Use <code>mainland.com</code>, <code>www.mainland.com</code>, or <code>tickets.mainland.com</code></span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.65rem; align-items:flex-start;">
+                    <span style="font-size:1.25rem;">📦</span>
+                    <div>
+                        <strong style="font-size:0.86rem; display:block; color:rgb(var(--text));">Drop-In Embed Widget</strong>
+                        <span style="font-size:0.78rem; color:rgb(var(--muted));">1-line iframe checkout for WordPress, Webflow, and Squarespace</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.65rem; align-items:flex-start;">
+                    <span style="font-size:1.25rem;">⚡</span>
+                    <div>
+                        <strong style="font-size:0.86rem; display:block; color:rgb(var(--text));">Headless REST API</strong>
+                        <span style="font-size:0.78rem; color:rgb(var(--muted));">Full JSON API endpoints with CORS enabled for custom apps</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.65rem; align-items:flex-start;">
+                    <span style="font-size:1.25rem;">🔄</span>
+                    <div>
+                        <strong style="font-size:0.86rem; display:block; color:rgb(var(--text));">White-Label Redirects</strong>
+                        <span style="font-size:0.78rem; color:rgb(var(--muted));">Buyers return to your own custom thank-you page after payment</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Submission Form -->
+        <section class="form-card" style="padding:1.75rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem;">
+                <span style="font-size:1.3rem;">📝</span>
+                <div>
+                    <h4 style="margin:0; font-size:1.05rem; font-weight:800;">Request Custom Domain &amp; API Activation</h4>
+                    <span style="font-size:0.78rem; color:rgb(var(--muted));">Submit your website details. Both root domains and subdomains are supported.</span>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('host/event/management/' . $event->id . '/request-domain') }}">
+                <?= csrf_field() ?>
+
+                <div class="mgmt-grid-2col" style="margin-bottom:1.25rem;">
+                    <div>
+                        <label for="req-domain" style="display:block; font-size:0.84rem; font-weight:700; margin-bottom:0.4rem; color:rgb(var(--text));">
+                            Your Website Domain or Subdomain *
+                        </label>
+                        <input type="text" id="req-domain" name="requested_domain" required placeholder="e.g. tickets.mainland.com or www.mainland.com or mainland.com" 
+                               style="width:100%; padding:0.75rem 1rem; border:1.5px solid rgba(var(--muted),0.25); border-radius:10px; font-size:0.9rem; background:rgb(var(--card)); color:rgb(var(--text)); outline:none;" />
+                        <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:0.35rem;">
+                            Supports both root domains (<code>mainland.com</code> / <code>www.mainland.com</code>) and subdomains (<code>tickets.mainland.com</code>).
+                        </span>
+                    </div>
+
+                    <div>
+                        <label for="req-type" style="display:block; font-size:0.84rem; font-weight:700; margin-bottom:0.4rem; color:rgb(var(--text));">
+                            Integration Mode
+                        </label>
+                        <select id="req-type" name="integration_type" 
+                                style="width:100%; padding:0.75rem 2.6rem 0.75rem 1rem; border:1.5px solid rgba(var(--muted),0.25); border-radius:10px; font-size:0.9rem; background-color:rgb(var(--card)); color:rgb(var(--text)); outline:none;">
+                            <option value="both">Both: Custom Domain + Headless REST API (Recommended)</option>
+                            <option value="custom_domain">Custom Domain / Embed Widget Only</option>
+                            <option value="api_access">Headless REST API Only</option>
+                        </select>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:0.35rem;">
+                            Select the tools you or your developer will use.
+                        </span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:1.25rem;">
+                    <label for="req-notes" style="display:block; font-size:0.84rem; font-weight:700; margin-bottom:0.4rem; color:rgb(var(--text));">
+                        Additional Notes or Developer Details (Optional)
+                    </label>
+                    <textarea id="req-notes" name="host_notes" rows="3" placeholder="e.g. We are building our frontend on Next.js / WordPress / Webflow. Host contact details..." 
+                              style="width:100%; padding:0.75rem 1rem; border:1.5px solid rgba(var(--muted),0.25); border-radius:10px; font-size:0.88rem; background:rgb(var(--card)); color:rgb(var(--text)); outline:none; resize:vertical; font-family:inherit;"></textarea>
+                </div>
+
+                <!-- Immediate Paystack Payment Option -->
+                <div style="margin-bottom:1.5rem; padding:1rem; background:rgba(var(--brand),0.05); border:1px solid rgba(var(--brand),0.2); border-radius:10px;">
+                    <label style="display:flex; align-items:center; gap:0.65rem; cursor:pointer; font-size:0.88rem; font-weight:700; color:rgb(var(--text)); margin:0;">
+                        <input type="checkbox" name="pay_now" value="1" checked style="width:18px; height:18px; accent-color:rgb(var(--brand)); cursor:pointer;" />
+                        <span>🔒 Pay <?= get_currency_symbol() . number_format($domainFee, 2) ?> activation fee now with Paystack</span>
+                    </label>
+                    <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-left:2rem; margin-top:0.25rem;">
+                        You will be securely redirected to Paystack. If unchecked, you can submit the request first and pay later.
+                    </span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding-top:1rem; border-top:1px solid rgba(var(--muted),0.12);">
+                    <div style="font-size:0.82rem; color:rgb(var(--muted));">
+                        <span>Setup Fee: <strong><?= get_currency_symbol() . number_format($domainFee, 2) ?></strong></span>
+                    </div>
+                    <button type="submit" class="admin-action-btn primary" style="padding:0.75rem 1.75rem; font-weight:800; font-size:0.95rem; border-radius:10px; box-shadow:0 4px 15px rgba(16,138,85,0.25);">
+                        🚀 Submit &amp; Continue
+                    </button>
+                </div>
+            </form>
+        </section>
+    <?php endif; ?>
+
+    </div>
+    <?php endif; ?>
+
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
@@ -1029,7 +1494,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
             <input type="email" name="attendee_email" required placeholder="attendee@example.com" autocomplete="email" style="width:100%; padding:0.55rem 0.75rem; border:1px solid rgba(var(--muted),0.2); border-radius:8px; margin-top:0.25rem; box-sizing:border-box;">
         </label>
         <label style="display:block; margin-bottom:0.75rem; font-size:0.85rem; font-weight:700;">Select Ticket Tier
-            <select name="ticket_type" required style="width:100%; padding:0.55rem 0.75rem; border:1px solid rgba(var(--muted),0.2); border-radius:8px; margin-top:0.25rem; box-sizing:border-box; background:var(--bg-card, #fff); color:var(--text-primary, #1e293b);">
+            <select name="ticket_type" required style="width:100%; padding:0.55rem 2.6rem 0.55rem 0.75rem; border:1px solid rgba(var(--muted),0.2); border-radius:8px; margin-top:0.25rem; box-sizing:border-box; background-color:rgb(var(--card)); color:rgb(var(--text));">
                 <option value="">Select tier…</option>
                 <?php foreach($ticketTypes as $tt): 
                     $optPrice = ((float)$tt['price'] > 0) ? format_price($tt['price']) : 'Free';
@@ -1039,7 +1504,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
             </select>
         </label>
         <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; font-weight:700;">Issuance Type
-            <select name="payment_status" style="width:100%; padding:0.55rem 0.75rem; border:1px solid rgba(var(--muted),0.2); border-radius:8px; margin-top:0.25rem; box-sizing:border-box; background:var(--bg-card, #fff); color:var(--text-primary, #1e293b);">
+            <select name="payment_status" style="width:100%; padding:0.55rem 2.6rem 0.55rem 0.75rem; border:1px solid rgba(var(--muted),0.2); border-radius:8px; margin-top:0.25rem; box-sizing:border-box; background-color:rgb(var(--card)); color:rgb(var(--text));">
                 <option value="Comped">Complimentary (Free Admission)</option>
                 <option value="Paid">Offline Cash Payment (Mark Paid)</option>
             </select>
@@ -1108,7 +1573,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
 /* ─── Hero Card Styling ─── */
 .mgmt-hero-card {
-    background: var(--bg-card, #ffffff);
+    background: rgb(var(--card));
     border: 1px solid rgba(var(--muted), 0.12);
     border-radius: 20px;
     padding: 1.5rem 1.75rem;
@@ -1275,7 +1740,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 }
 
 .mgmt-kpi-card {
-    background: var(--bg-card, #fff);
+    background: rgb(var(--card));
     border: 1px solid rgba(var(--muted), 0.12);
     border-radius: 16px;
     padding: 1.15rem 1.35rem;
@@ -1297,9 +1762,13 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 .mgmt-kpi-val {
     font-size: 1.45rem;
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     line-height: 1.2;
     word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .mgmt-kpi-sub {
@@ -1361,7 +1830,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 }
 
 .mgmt-tab-btn:hover {
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
 }
 
 .mgmt-tab-btn.active {
@@ -1438,7 +1907,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 }
 
 .attendee-card {
-    background: var(--bg-card, #ffffff);
+    background: rgb(var(--card));
     border: 1px solid rgba(var(--muted), 0.14);
     border-radius: 14px;
     padding: 1rem;
@@ -1480,7 +1949,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
 .attendee-user-name {
     font-size: 0.92rem;
-    color: var(--text-primary, #0f172a);
+    color: rgb(var(--text));
     display: block;
     white-space: nowrap;
     overflow: hidden;
@@ -1524,7 +1993,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
 .meta-value {
     font-size: 0.82rem;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     font-weight: 600;
     word-break: break-word;
 }
@@ -1576,8 +2045,8 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
     border: 1.5px solid rgba(var(--muted), 0.2);
     border-radius: 10px;
     font-size: 0.84rem;
-    background: var(--bg-card, #fff);
-    color: var(--text-primary, #1e293b);
+    background: rgb(var(--card));
+    color: rgb(var(--text));
     box-sizing: border-box;
 }
 
@@ -1628,7 +2097,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
     padding: 0.2rem 0.55rem;
     border-radius: 6px;
     background: rgba(var(--muted), 0.1);
-    color: var(--text-primary);
+    color: rgb(var(--text));
     white-space: nowrap;
 }
 
@@ -1666,8 +2135,8 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
     font-size: 0.85rem;
     resize: vertical;
     font-family: inherit;
-    background: var(--bg-card, #fff);
-    color: var(--text-primary, #1e293b);
+    background: rgb(var(--card));
+    color: rgb(var(--text));
     box-sizing: border-box;
 }
 
@@ -2381,6 +2850,34 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // ─── Snippet Copy Helper for API & Custom Domain Tab ───
+    window.copySnippet = function(elementId, btn) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const text = el.innerText || el.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✓ Copied!';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            }
+            triggerToast('Copied to clipboard!', 'success');
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✓ Copied!';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            }
+            triggerToast('Copied to clipboard!', 'success');
+        });
+    };
 
     // Initial binding
     bindAttendeeCheckins();

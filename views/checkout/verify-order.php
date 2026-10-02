@@ -7,14 +7,14 @@
  */
 ?>
 <div class="container" style="max-width: 680px; margin: 3.5rem auto; padding: 0 1.25rem;">
-    <div style="background: var(--bg-card, #ffffff); border: 1px solid rgba(var(--muted), 0.15); border-radius: 20px; padding: 2.5rem 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+    <div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.15); border-radius: 20px; padding: 2.5rem 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
         
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 2rem;">
             <div style="width: 64px; height: 64px; background: rgba(99, 102, 241, 0.12); color: #6366f1; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem;">
                 🔍
             </div>
-            <h1 style="font-size: 1.65rem; font-weight: 800; color: var(--text-primary, #0f172a); margin: 0 0 0.5rem;">
+            <h1 style="font-size: 1.65rem; font-weight: 800; color: rgb(var(--text)); margin: 0 0 0.5rem;">
                 Verify Payment & Retrieve Tickets
             </h1>
             <p style="font-size: 0.9rem; color: rgb(var(--muted)); margin: 0; line-height: 1.5;">
@@ -42,7 +42,7 @@
             <?= csrf_field() ?>
 
             <div>
-                <label for="reference" style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-primary, #0f172a); margin-bottom: 0.45rem;">
+                <label for="reference" style="display: block; font-size: 0.85rem; font-weight: 700; color: rgb(var(--text)); margin-bottom: 0.45rem;">
                     Paystack Payment Reference or Code
                 </label>
                 <input 
@@ -52,7 +52,7 @@
                     value="<?= e($reference ?? '') ?>" 
                     placeholder="e.g. PAY_66d5..., EV-..., or your bank transaction ref" 
                     required
-                    style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid rgba(var(--muted), 0.25); border-radius: 12px; font-size: 0.95rem; font-family: monospace; background: var(--bg-card, #fff); color: var(--text-primary, #0f172a); box-sizing: border-box;"
+                    style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid rgba(var(--muted), 0.25); border-radius: 12px; font-size: 0.95rem; font-family: monospace; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;"
                 >
                 <span style="display: block; font-size: 0.75rem; color: rgb(var(--muted)); margin-top: 0.35rem;">
                     You can find your transaction reference in your Paystack payment receipt or bank debit SMS/email.
@@ -71,11 +71,11 @@
         <!-- Information Accordion / Tips -->
         <div style="margin-top: 2.25rem; padding-top: 1.5rem; border-top: 1px solid rgba(var(--muted), 0.12); display: flex; flex-direction: column; gap: 0.75rem;">
             <div style="font-size: 0.82rem; color: rgb(var(--muted)); line-height: 1.5;">
-                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">💡 How does automatic protection work?</strong>
+                <strong style="color: rgb(var(--text)); display: block; margin-bottom: 0.2rem;">💡 How does automatic protection work?</strong>
                 Our platform connects directly to Paystack's real-time verification gateway. Once confirmed, your tickets are instantly generated and automatically delivered to your email with scannable QR passes.
             </div>
             <div style="font-size: 0.82rem; color: rgb(var(--muted)); line-height: 1.5;">
-                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">📩 Need assistance?</strong>
+                <strong style="color: rgb(var(--text)); display: block; margin-bottom: 0.2rem;">📩 Need assistance?</strong>
                 If your money was debited but cannot be verified, please email our support team with your receipt or transaction code for immediate assistance.
             </div>
         </div>

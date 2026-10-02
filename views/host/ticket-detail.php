@@ -235,7 +235,7 @@ Host Ticket Detail - View Your <?= e($siteName) ?> Tickets
     width: 100%;
     margin: 1.5rem auto;
     border-radius: 24px;
-    background: var(--bg-card, #ffffff);
+    background: rgb(var(--card));
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
     display: flex;
     overflow: hidden;
@@ -283,7 +283,7 @@ Host Ticket Detail - View Your <?= e($siteName) ?> Tickets
     margin: 0;
     font-weight: 800;
     letter-spacing: -0.02em;
-    color: var(--text-primary, #0f172a);
+    color: rgb(var(--text));
     word-break: break-all;
     line-height: 1.2;
 }
@@ -354,7 +354,7 @@ Host Ticket Detail - View Your <?= e($siteName) ?> Tickets
 .detail-value {
     font-size: 1.02rem;
     font-weight: 700;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     line-height: 1.35;
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -382,7 +382,7 @@ Host Ticket Detail - View Your <?= e($siteName) ?> Tickets
 }
 
 .detail-subtext a {
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     opacity: 0.85;
     text-decoration: none;
 }
@@ -570,7 +570,7 @@ Host Ticket Detail - View Your <?= e($siteName) ?> Tickets
 
 .btn-action-flag {
     background: rgba(var(--muted), 0.08) !important;
-    color: var(--text-primary, #1e293b) !important;
+    color: rgb(var(--text)) !important;
     border-color: rgba(var(--muted), 0.2) !important;
 }
 

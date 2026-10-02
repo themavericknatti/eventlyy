@@ -11,8 +11,24 @@ class SecurityHeadersMiddleware extends Middleware
      */
     protected function run(): void
     {
-        // 1. Prevent Clickjacking
-        header('X-Frame-Options: SAMEORIGIN');
+        $path = \Ace\Application::$app->request->getPath();
+        $isApi = str_starts_with($path, '/api/') || str_starts_with($path, 'api/');
+        $isEmbed = str_starts_with($path, '/embed/') || str_starts_with($path, 'embed/');
+
+        // API endpoints: Enable Cross-Origin Resource Sharing (CORS) for external domains
+        if ($isApi) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Evently-Key');
+            header('Access-Control-Max-Age: 86400');
+            header('X-Content-Type-Options: nosniff');
+            return;
+        }
+
+        // 1. Prevent Clickjacking (allow embedding only on /embed/ routes)
+        if (!$isEmbed) {
+            header('X-Frame-Options: SAMEORIGIN');
+        }
 
         // 2. Prevent MIME type sniffing
         header('X-Content-Type-Options: nosniff');
@@ -31,6 +47,7 @@ class SecurityHeadersMiddleware extends Middleware
         // 6. Content Security Policy (CSP)
         // Restricts where scripts, styles, fonts, and images can be loaded from.
         // We whitelist popular CDNs, payment gateways, and image hosts to avoid blocking legitimate resources.
+        $frameAncestors = $isEmbed ? "frame-ancestors *;" : "frame-ancestors 'none';";
         $cspHeader = "Content-Security-Policy: " .
             "default-src 'self'; " .
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://code.jquery.com https://js.paystack.co https://checkout.flutterwave.com https://js.stripe.com; " .
@@ -39,7 +56,7 @@ class SecurityHeadersMiddleware extends Middleware
             "img-src 'self' data: https: blob:; " .
             "connect-src 'self' https://api.paystack.co https://api.flutterwave.com https://api.stripe.com; " .
             "frame-src 'self' https://checkout.paystack.com https://checkout.flutterwave.com https://js.stripe.com; " .
-            "frame-ancestors 'none';";
+            $frameAncestors;
 
         header($cspHeader);
     }

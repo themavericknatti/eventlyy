@@ -173,7 +173,7 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
 
     <?php if (!empty($pending_staff_requests)): ?>
     <!-- Pending Event Staffing Assistance Requests from Hosts -->
-    <section class="form-card" style="margin-bottom: 2rem; border-left: 4px solid #6366f1; border-radius: 20px; padding: 1.4rem 1.6rem; background: var(--bg-card, #fff);">
+    <section class="form-card" style="margin-bottom: 2rem; border-left: 4px solid #6366f1; border-radius: 20px; padding: 1.4rem 1.6rem; background: rgb(var(--card));">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.25rem;">
             <div>
                 <h3 style="margin:0; font-size:1.12rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; color:#4f46e5;">
@@ -191,7 +191,7 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
                 <div style="border:1px solid rgba(99,102,241,0.18); background:rgba(99,102,241,0.02); border-radius:14px; padding:1.15rem; display:flex; flex-direction:column; justify-content:space-between; gap:0.85rem;">
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.4rem;">
-                            <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--text-primary);">
+                            <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:rgb(var(--text));">
                                 <?= e($req['event_name']) ?>
                             </h4>
                             <span style="font-size:0.72rem; font-weight:700; background:rgba(245,158,11,0.12); color:#d97706; padding:0.15rem 0.5rem; border-radius:6px; white-space:nowrap;">
@@ -211,7 +211,7 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
                         <!-- Requested Roles Badges -->
                         <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.6rem;">
                             <?php foreach ($req['roles_array'] as $r): ?>
-                                <span style="display:inline-flex; align-items:center; gap:0.3rem; background:var(--bg-card, #fff); border:1px solid rgba(var(--muted),0.15); border-radius:6px; padding:0.25rem 0.55rem; font-size:0.75rem; font-weight:600;">
+                                <span style="display:inline-flex; align-items:center; gap:0.3rem; background:rgb(var(--card)); border:1px solid rgba(var(--muted),0.15); border-radius:6px; padding:0.25rem 0.55rem; font-size:0.75rem; font-weight:600;">
                                     <span><?= $r['icon'] ?? '👤' ?></span>
                                     <span><?= e($r['name'] ?? $r['slug']) ?></span>
                                     <span style="background:rgba(99,102,241,0.12); color:#4f46e5; font-weight:800; padding:0.05rem 0.35rem; border-radius:4px;">×<?= (int)($r['quantity'] ?? 1) ?></span>
@@ -678,7 +678,7 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
     padding: 0.7rem 1rem;
     border-radius: 12px;
     border: 1px solid rgba(var(--muted), 0.2);
-    background: var(--bg);
+    background-color: rgb(var(--bg));
     box-sizing: border-box;
     font-size: 0.92rem;
     color: var(--text);
@@ -749,7 +749,7 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
     padding: 0.65rem 1rem;
     border-radius: 12px;
     border: 1px solid rgba(var(--muted), 0.2);
-    background: var(--bg);
+    background-color: rgb(var(--bg));
     font-size: 0.9rem;
     box-sizing: border-box;
     color: var(--text);

@@ -21,39 +21,92 @@ Admin Settings - Manage Site & System Configurations
 @endsection
 
 @section('content')
-<section class="page-hero">
+<?php
+$pendingDomainsCount = 0;
+try {
+    $pendingDomainsCount = (int)\Ace\Application::$app->db->pdo->query("SELECT COUNT(*) FROM event_domain_requests WHERE status = 'pending'")->fetchColumn();
+} catch (\Throwable $e) {}
+?>
+
+<section class="page-hero" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.25rem;">
     <div>
         <span class="panel-badge">Admin — Settings</span>
-        <h1>Admin Settings</h1>
-        <p class="lede">Configure site branding, logos, social links, payment gateways, timezone, and maintenance toggles.</p>
+        <h1 style="margin:0.25rem 0;">Admin Settings</h1>
+        <p class="lede" style="margin:0;">Configure site branding, logos, social links, payment gateways, timezone, and maintenance toggles.</p>
+    </div>
+    <div>
+        <a href="{{ route('admin/overview') }}" class="admin-action-btn" style="padding:0.6rem 1.15rem; font-size:0.88rem; border-radius:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.45rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
+            <span>←</span> Back to Dashboard
+        </a>
     </div>
 </section>
 
-<!-- Quick Action Shortcuts: Attendees & Communications -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.25rem; margin-bottom: 1.5rem;">
-    <!-- Attendee Contact Directory Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%); border: 1px solid rgba(16, 185, 129, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
+<!-- Quick Action Shortcuts: Events, Domains, Attendees & Communications -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom: 1.5rem;">
+    <!-- Published Events Hub Shortcut -->
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(2, 132, 199, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
         <div>
-            <span style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Customer Records</span>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.25rem;">📇 Attendee Contact Directory</h2>
-            <p class="section-note" style="margin:0; font-size:0.88rem;">View deduplicated contact records, purchase histories, and export CSV files for all registered and guest ticket buyers.</p>
+            <span style="background:rgba(2, 132, 199, 0.15); color:#0284c7; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Platform Events</span>
+            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">🎪 Published Events Hub</h2>
+            <p class="section-note" style="margin:0; font-size:0.86rem;">Inspect all organizer events, toggle featured status, monitor ticket capacities, and view audit reports.</p>
         </div>
         <div>
-            <a href="{{ route('admin/attendees') }}" class="admin-action-btn primary" style="background:#10b981; border-color:#10b981; text-decoration:none; padding:0.65rem 1.25rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.9rem;">
+            <a href="{{ route('admin/events') }}" class="admin-action-btn primary" style="background:#0284c7; border-color:#0284c7; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
+                Manage All Events →
+            </a>
+        </div>
+    </div>
+
+    <!-- Custom Domains & API Shortcut -->
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(245, 158, 11, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
+        <div>
+            <?php $isCustomDomainLive = !empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1'; ?>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <span style="background:rgba(245, 158, 11, 0.15); color:#d97706; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Integrations</span>
+                    <?php if ($isCustomDomainLive): ?>
+                        <span style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.55rem; border:1px solid rgba(16,185,129,0.3);">● Live for Hosts</span>
+                    <?php else: ?>
+                        <span style="background:rgba(239, 68, 68, 0.12); color:#ef4444; font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.55rem; border:1px solid rgba(239,68,68,0.25);">🔒 Disabled for Hosts</span>
+                    <?php endif; ?>
+                </div>
+                <?php if ($pendingDomainsCount > 0): ?>
+                    <span style="background:#f59e0b; color:#fff; font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.55rem;"><?= $pendingDomainsCount ?> Pending</span>
+                <?php endif; ?>
+            </div>
+            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">🌐 Custom Domains &amp; API</h2>
+            <p class="section-note" style="margin:0; font-size:0.86rem;">Review host domain connection requests, configure CNAME DNS routing, and activate headless ticketing.</p>
+        </div>
+        <div>
+            <a href="{{ route('admin/domain-requests') }}" class="admin-action-btn primary" style="background:#d97706; border-color:#d97706; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
+                Review Domain Requests →
+            </a>
+        </div>
+    </div>
+
+    <!-- Attendee Contact Directory Shortcut -->
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(16, 185, 129, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
+        <div>
+            <span style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Customer Records</span>
+            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">📇 Attendee Contact Directory</h2>
+            <p class="section-note" style="margin:0; font-size:0.86rem;">View deduplicated contact records, purchase histories, and export CSV files for all registered and guest ticket buyers.</p>
+        </div>
+        <div>
+            <a href="{{ route('admin/attendees') }}" class="admin-action-btn primary" style="background:#10b981; border-color:#10b981; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
                 Open Attendee Directory →
             </a>
         </div>
     </div>
 
     <!-- Email Communications Center Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%); border: 1px solid rgba(99, 102, 241, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(99, 102, 241, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
         <div>
             <span style="background:rgba(99, 102, 241, 0.15); color:#6366f1; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Broadcast Mailer</span>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.25rem;">📨 Communications Center</h2>
-            <p class="section-note" style="margin:0; font-size:0.88rem;">Compose and dispatch general broadcast emails or targeted messages to all hosts, individual hosts, or platform users.</p>
+            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">📨 Communications Center</h2>
+            <p class="section-note" style="margin:0; font-size:0.86rem;">Compose and dispatch general broadcast emails or targeted messages to all hosts, individual hosts, or platform users.</p>
         </div>
         <div>
-            <a href="{{ route('admin/communications') }}" class="admin-action-btn primary" style="background:#6366f1; border-color:#6366f1; text-decoration:none; padding:0.65rem 1.25rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.9rem;">
+            <a href="{{ route('admin/communications') }}" class="admin-action-btn primary" style="background:#6366f1; border-color:#6366f1; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
                 Open Communications Center →
             </a>
         </div>
@@ -380,6 +433,51 @@ Admin Settings - Manage Site & System Configurations
                 <label>Exchange Rate (1 USD to NGN)
                     <input type="number" name="exchange_rate" value="<?= e($settings['exchange_rate'] ?? '1500.00') ?>" min="1" step="0.01" required>
                 </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Domain & API Feature Availability -->
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
+            <div>
+                <h2 style="margin:0;">🌐 Custom Domain &amp; Headless API Integration</h2>
+                <p class="section-note" style="margin-top:0.25rem;">Control host access to custom branding domains, DNS routing, and headless REST API endpoints.</p>
+            </div>
+            <div>
+                <?php if ($isCustomDomainLive): ?>
+                    <span style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(16,185,129,0.12); color:#10b981; font-weight:800; font-size:0.78rem; padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(16,185,129,0.3);">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span> Enabled for Hosts
+                    </span>
+                <?php else: ?>
+                    <span style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(239,68,68,0.12); color:#ef4444; font-weight:800; font-size:0.78rem; padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(239,68,68,0.25);">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444;"></span> Currently Unavailable for Hosts
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div style="background:rgba(var(--brand), 0.05); border:1px solid rgba(var(--brand), 0.2); border-radius:14px; padding:1.25rem 1.35rem; margin-bottom:1.25rem;">
+            <label style="display:flex; align-items:center; gap:0.75rem; font-weight:700; cursor:pointer; font-size:0.95rem; margin-bottom:0.5rem;">
+                <input type="checkbox" name="custom_domain_enabled" value="1" <?= (!empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1') ? 'checked' : '' ?> style="width:1.25rem; height:1.25rem; cursor:pointer; accent-color:rgb(var(--brand));">
+                <span>Enable Custom Domain &amp; Headless API for Hosts</span>
+            </label>
+            <p style="font-size:0.84rem; color:var(--text-muted, #888); margin:0; line-height:1.5;">
+                When disabled, hosts will not see the "Custom Domain &amp; API" tab in their event management dashboard, and cannot submit new domain requests or initiate setup fee payments. Once you are ready, check this box and save configurations to make the feature live for all event hosts.
+            </p>
+        </div>
+
+        <div class="admin-grid-2">
+            <label>One-Time Domain Setup Fee (<?= e(get_currency_symbol()) ?>)
+                <input type="number" name="custom_domain_fee" value="<?= e($settings['custom_domain_fee'] ?? '10000.00') ?>" min="0" step="0.01" required>
+                <span style="font-size:0.78rem; color:var(--text-muted, #888); display:block; margin-top:0.35rem;">Fee charged to event organizers when submitting a custom domain integration request.</span>
+            </label>
+            <div style="display:flex; flex-direction:column; justify-content:center; padding-top:0.5rem;">
+                <span style="font-size:0.84rem; font-weight:700; color:rgb(var(--text)); margin-bottom:0.25rem;">Manage Existing Requests</span>
+                <p style="font-size:0.8rem; color:var(--text-muted, #888); margin:0 0 0.5rem 0;">Admins and Super Admins can always review and test requests regardless of whether the feature is currently live for hosts.</p>
+                <a href="{{ route('admin/domain-requests') }}" class="admin-action-btn" style="display:inline-flex; align-items:center; gap:0.4rem; width:fit-content; padding:0.5rem 1rem; font-size:0.84rem;">
+                    <span>🌐</span> View Domain Requests (<?= $pendingDomainsCount ?> Pending) →
+                </a>
             </div>
         </div>
     </div>

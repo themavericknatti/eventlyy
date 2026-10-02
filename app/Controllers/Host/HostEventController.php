@@ -329,6 +329,15 @@ class HostEventController extends Controller
         $pendingTxStmt->execute(['event_id' => $event->id]);
         $pendingTransactions = $pendingTxStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
+        // Fetch Custom Domain / API integration request for this event
+        $domainReqStmt = $db->prepare("
+            SELECT * FROM event_domain_requests 
+            WHERE event_id = :event_id AND host_id = :host_id 
+            ORDER BY created_at DESC LIMIT 1
+        ");
+        $domainReqStmt->execute(['event_id' => $event->id, 'host_id' => $event->organizer_id]);
+        $domainRequest = $domainReqStmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+
         return $this->render('host/event-management', [
             'title' => 'Manage Event - ' . $event->name,
             'event' => $event,
@@ -350,6 +359,7 @@ class HostEventController extends Controller
             'staffRequest' => $staffRequest,
             'assignedStaff' => $assignedStaff,
             'pendingTransactions' => $pendingTransactions,
+            'domainRequest' => $domainRequest,
             'isAdmin' => $isAdmin,
             'activeTab' => $activeTab,
             'organizerName' => $organizerName,
@@ -1061,5 +1071,253 @@ class HostEventController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * POST /host/event/request-domain/{id}
+     *
+     * Host submits a request for Custom Domain / API integration.
+     * Admin must review, approve, and activate before the host gets access.
+     */
+    public function requestCustomDomain(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+
+        if (!$event) {
+            throw new \Exception("Event not found or access denied.", 404);
+        }
+
+        $domainFeatureEnabled = (site_setting('custom_domain_enabled', '0') === '1');
+        if (!$domainFeatureEnabled && !$isAdmin) {
+            Application::$app->session->setFlash('error', 'Custom Domain & API integration is currently unavailable for event organizers.');
+            return redirect('/host/event/management/' . $event->id);
+        }
+
+        $db = Application::$app->db->pdo;
+        $body = $request->getBody();
+
+        // Check if there's already an active or pending request for this event
+        $existingStmt = $db->prepare("
+            SELECT id, status FROM event_domain_requests 
+            WHERE event_id = :event_id AND host_id = :host_id 
+            AND status IN ('pending', 'approved_active')
+            LIMIT 1
+        ");
+        $existingStmt->execute(['event_id' => $event->id, 'host_id' => $user->id]);
+        $existing = $existingStmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $msg = $existing['status'] === 'approved_active'
+                ? 'Your Custom Domain & API access is already active for this event.'
+                : 'You already have a pending request for this event. Please wait for admin approval.';
+            Application::$app->session->setFlash('warning', $msg);
+            return redirect('/host/event/management/' . $event->id . '?tab=api-embed#tab-api-embed');
+        }
+
+        $requestedDomain = trim($body['requested_domain'] ?? '');
+        $integrationType = trim($body['integration_type'] ?? 'both');
+        $hostNotes = trim($body['host_notes'] ?? '');
+
+        if (empty($requestedDomain)) {
+            Application::$app->session->setFlash('error', 'Please enter your website domain (e.g. tickets.yourbrand.com).');
+            return redirect('/host/event/management/' . $event->id . '?tab=api-embed#tab-api-embed');
+        }
+
+        if (!in_array($integrationType, ['both', 'custom_domain', 'api_access'])) {
+            $integrationType = 'both';
+        }
+
+        $fee = (float)get_setting('custom_domain_fee', 10000.00);
+
+        $insertStmt = $db->prepare("
+            INSERT INTO event_domain_requests 
+                (event_id, host_id, requested_domain, integration_type, fee_amount, payment_status, status, host_notes, created_at)
+            VALUES 
+                (:event_id, :host_id, :domain, :type, :fee, 'unpaid', 'pending', :notes, NOW())
+        ");
+        $insertStmt->execute([
+            'event_id' => $event->id,
+            'host_id' => $user->id,
+            'domain' => $requestedDomain,
+            'type' => $integrationType,
+            'fee' => $fee,
+            'notes' => $hostNotes
+        ]);
+
+        $requestId = (int)$db->lastInsertId();
+
+        // If host opted to pay setup fee immediately
+        if (!empty($body['pay_now']) && $fee > 0) {
+            return $this->initiateDomainPayment($requestId, (int)$event->id, $requestedDomain, $fee, $user);
+        }
+
+        Application::$app->session->setFlash('success', 'Your Custom Domain & API request has been submitted! You can pay the activation fee now or wait for admin review.');
+        return redirect('/host/event/management/' . $event->id . '?tab=api-embed#tab-api-embed');
+    }
+
+    /**
+     * POST /host/event/domain-request/{id}/pay
+     *
+     * Host initiates online payment for an existing custom domain request.
+     */
+    public function payCustomDomainFee(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $db = Application::$app->db->pdo;
+
+        $stmt = $db->prepare("SELECT * FROM event_domain_requests WHERE id = :id AND host_id = :host_id LIMIT 1");
+        $stmt->execute(['id' => $id, 'host_id' => $user->id]);
+        $domainReq = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$domainReq) {
+            Application::$app->session->setFlash('error', 'Custom domain request not found or access denied.');
+            return back();
+        }
+
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $domainFeatureEnabled = (site_setting('custom_domain_enabled', '0') === '1');
+        if (!$domainFeatureEnabled && !$isAdmin) {
+            Application::$app->session->setFlash('error', 'Custom Domain & API integration is currently unavailable for event organizers.');
+            return redirect('/host/event/management/' . ($domainReq['event_id'] ?? ''));
+        }
+
+        if ($domainReq['payment_status'] === 'paid') {
+            Application::$app->session->setFlash('info', 'This request has already been paid for.');
+            return redirect('/host/event/management/' . $domainReq['event_id'] . '?tab=api-embed#tab-api-embed');
+        }
+
+        $fee = (float)$domainReq['fee_amount'];
+        if ($fee <= 0) {
+            $upd = $db->prepare("UPDATE event_domain_requests SET payment_status = 'paid' WHERE id = :id");
+            $upd->execute(['id' => $domainReq['id']]);
+            Application::$app->session->setFlash('success', 'Fee waived / marked as paid.');
+            return redirect('/host/event/management/' . $domainReq['event_id'] . '?tab=api-embed#tab-api-embed');
+        }
+
+        return $this->initiateDomainPayment((int)$domainReq['id'], (int)$domainReq['event_id'], $domainReq['requested_domain'], $fee, $user);
+    }
+
+    /**
+     * Helper to initiate Paystack or active gateway transaction for domain setup fee.
+     */
+    private function initiateDomainPayment(int $requestId, int $eventId, string $domain, float $fee, $user)
+    {
+        $db = Application::$app->db->pdo;
+        $reference = 'DOM-' . $requestId . '-' . strtoupper(bin2hex(random_bytes(5)));
+        $callbackUrl = rtrim($_ENV['APP_URL'] ?? ('http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')), '/') . '/host/event/domain-request/callback';
+
+        // Update payment reference on the request
+        $upd = $db->prepare("UPDATE event_domain_requests SET payment_reference = :ref WHERE id = :id");
+        $upd->execute(['ref' => $reference, 'id' => $requestId]);
+
+        // Record pending transaction
+        $trxStmt = $db->prepare("
+            INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, type, payment_method, subtotal_amount, fee_amount, total_amount, status, created_at, updated_at)
+            VALUES (:ref, :event_id, :user_id, :name, :email, 'custom_domain_fee', 'paystack', :subtotal, 0, :total, 'pending', NOW(), NOW())
+            ON DUPLICATE KEY UPDATE status = 'pending', total_amount = VALUES(total_amount), updated_at = NOW()
+        ");
+        $trxStmt->execute([
+            'ref' => $reference,
+            'event_id' => $eventId,
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'subtotal' => $fee,
+            'total' => $fee
+        ]);
+
+        $defaultGateway = site_setting('default_gateway', 'paystack');
+
+        try {
+            if ($defaultGateway === 'flutterwave') {
+                $flw = new \Ace\FlutterwaveService();
+                $link = $flw->initializePayment($user->email, $fee, $callbackUrl, $reference);
+                return redirect($link);
+            } else {
+                $paystack = new \Ace\PaystackService();
+                $paystackData = $paystack->initializeTransaction(
+                    $user->email,
+                    $fee,
+                    $callbackUrl,
+                    $reference,
+                    [
+                        'type' => 'custom_domain_fee',
+                        'domain_request_id' => $requestId,
+                        'event_id' => $eventId,
+                        'domain' => $domain
+                    ]
+                );
+                return redirect($paystackData['authorization_url']);
+            }
+        } catch (\Exception $e) {
+            Application::$app->session->setFlash('error', 'Payment gateway error: ' . $e->getMessage());
+            return redirect('/host/event/management/' . $eventId . '?tab=api-embed#tab-api-embed');
+        }
+    }
+
+    /**
+     * GET /host/event/domain-request/callback
+     *
+     * Handles gateway redirect after paying domain setup fee.
+     */
+    public function domainPaymentCallback(Request $request)
+    {
+        $reference = $_GET['reference'] ?? ($_GET['trxref'] ?? ($_GET['tx_ref'] ?? ''));
+
+        if (empty($reference)) {
+            Application::$app->session->setFlash('error', 'No transaction reference found in callback.');
+            return redirect('/host/events');
+        }
+
+        $db = Application::$app->db->pdo;
+        $stmt = $db->prepare("SELECT * FROM event_domain_requests WHERE payment_reference = :ref LIMIT 1");
+        $stmt->execute(['ref' => $reference]);
+        $domainReq = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$domainReq) {
+            Application::$app->session->setFlash('error', 'Associated domain request not found for this transaction.');
+            return redirect('/host/events');
+        }
+
+        $eventId = (int)$domainReq['event_id'];
+
+        // If already verified
+        if ($domainReq['payment_status'] === 'paid') {
+            Application::$app->session->setFlash('success', 'Your payment is already confirmed and request is under review.');
+            return redirect('/host/event/management/' . $eventId . '?tab=api-embed#tab-api-embed');
+        }
+
+        // Verify with Paystack / Flutterwave
+        $isSuccessful = false;
+        try {
+            $paystack = new \Ace\PaystackService();
+            $verifyResult = $paystack->verifyTransaction($reference);
+            $payStatus = strtolower($verifyResult['status'] ?? ($verifyResult['data']['status'] ?? ''));
+            if ($payStatus === 'success') {
+                $isSuccessful = true;
+            }
+        } catch (\Throwable $e) {
+            error_log("Domain payment verification exception: " . $e->getMessage());
+            // Check Flutterwave fallback if applicable
+            if (isset($_GET['status']) && $_GET['status'] === 'successful') {
+                $isSuccessful = true;
+            }
+        }
+
+        if ($isSuccessful) {
+            $upd = $db->prepare("UPDATE event_domain_requests SET payment_status = 'paid' WHERE id = :id");
+            $upd->execute(['id' => $domainReq['id']]);
+
+            $txUpd = $db->prepare("UPDATE transactions SET status = 'completed', updated_at = NOW() WHERE reference = :ref");
+            $txUpd->execute(['ref' => $reference]);
+
+            Application::$app->session->setFlash('success', '🎉 Payment of ' . format_price((float)$domainReq['fee_amount']) . ' confirmed! Your Custom Domain request is marked as Paid and pending Admin review.');
+        } else {
+            Application::$app->session->setFlash('warning', 'Payment could not be verified automatically. You can retry anytime.');
+        }
+
+        return redirect('/host/event/management/' . $eventId . '?tab=api-embed#tab-api-embed');
     }
 }

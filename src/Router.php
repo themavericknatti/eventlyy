@@ -36,6 +36,15 @@ class Router
     }
 
     /**
+     * Register OPTIONS route
+     */
+    public function options(string $path, $callback): Route
+    {
+        $this->routes['options'][$path] = $callback;
+        return new Route($this, 'options', $path, $callback);
+    }
+
+    /**
      * Register an explicit name for a route path.
      */
     public function registerName(string $name, string $path): void
@@ -92,6 +101,18 @@ class Router
     {
         $path = $this->request->getPath();
         $method = $this->request->method();
+
+        // Handle CORS OPTIONS preflight automatically for external API callers
+        if ($method === 'options') {
+            if (!headers_sent()) {
+                header("Access-Control-Allow-Origin: *");
+                header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+                header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Evently-Key");
+                header("Access-Control-Max-Age: 86400");
+            }
+            http_response_code(204);
+            exit;
+        }
 
         // Exact match
         $callback = $this->routes[$method][$path] ?? false;

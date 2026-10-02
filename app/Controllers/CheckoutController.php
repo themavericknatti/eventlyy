@@ -603,6 +603,29 @@ class CheckoutController extends Controller
         $paymentService = new \App\Services\PaymentService();
         $result = $paymentService->finalizeSuccessfulPayment($reference);
 
+        // Check if transaction was initiated via API from an external host domain
+        $externalCallback = null;
+        if (!empty($result['transaction']['gateway_response'])) {
+            $parsedTrx = json_decode($result['transaction']['gateway_response'], true);
+            $externalCallback = $parsedTrx['order_data']['external_callback_url'] ?? ($parsedTrx['external_callback_url'] ?? null);
+        }
+        if (!$externalCallback && Application::$app->session) {
+            $pending = Application::$app->session->get('pending_order');
+            if (!empty($pending['external_callback_url'])) {
+                $externalCallback = $pending['external_callback_url'];
+            }
+        }
+        if (!$externalCallback) {
+            $db = Application::$app->db->pdo;
+            $txStmt = $db->prepare("SELECT gateway_response FROM transactions WHERE reference = :ref LIMIT 1");
+            $txStmt->execute(['ref' => $reference]);
+            $rawGw = $txStmt->fetchColumn();
+            if ($rawGw) {
+                $parsedGw = json_decode($rawGw, true);
+                $externalCallback = $parsedGw['order_data']['external_callback_url'] ?? ($parsedGw['external_callback_url'] ?? null);
+            }
+        }
+
         if ($result['success']) {
             $event = $result['event'] ?? [];
             $eventId = $event['id'] ?? 0;
@@ -620,7 +643,19 @@ class CheckoutController extends Controller
                 'tickets' => $result['tickets'] ?? []
             ]);
 
+            // Redirect to external host domain if callback URL was specified
+            if (!empty($externalCallback)) {
+                $sep = str_contains($externalCallback, '?') ? '&' : '?';
+                return redirect($externalCallback . $sep . 'reference=' . urlencode($reference) . '&status=success');
+            }
+
             return redirect('/success?ref=' . urlencode($reference));
+        }
+
+        // Redirect to external host domain on failure if callback was specified
+        if (!empty($externalCallback)) {
+            $sep = str_contains($externalCallback, '?') ? '&' : '?';
+            return redirect($externalCallback . $sep . 'reference=' . urlencode($reference) . '&status=error&message=' . urlencode($result['message'] ?? 'Payment verification failed.'));
         }
 
         Application::$app->session->setFlash('error', $result['message'] ?? 'Payment verification failed.');

@@ -11,6 +11,8 @@
     "default_gateway": "paystack",
     "platform_fee": "5",
     "extra_charge": "100.00",
+    "custom_domain_fee": "10000.00",
+    "custom_domain_enabled": "0",
     "currency": "NGN",
     "exchange_rate": "1500.00",
     "timezone": "Africa\/Lagos",

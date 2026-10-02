@@ -29,6 +29,9 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
         <p class="lede" style="margin:0;">Monitor event performance, ticket sales, platform profits, and organizer accounts.</p>
     </div>
     <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+        <a href="{{ route('admin/overview') }}" class="admin-action-btn" style="padding:0.6rem 1.1rem; font-size:0.88rem; border-radius:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.45rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
+            <span>←</span> Back to Dashboard
+        </a>
         <a href="{{ route('host/event/create') }}" class="admin-action-btn primary" style="padding:0.6rem 1.15rem; font-size:0.88rem; border-radius:12px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.45rem; box-shadow:0 4px 14px rgba(var(--brand),0.35);">
             <span style="font-size:1.05rem;">➕</span> Create Event
         </a>

@@ -980,6 +980,8 @@ if (!function_exists('site_setting')) {
                 'event_completion_hours' => '12',
 				'auto_payout_enabled' => '1',
                 'auto_payout_delay_minutes' => '15',
+                'custom_domain_fee' => '10000.00',
+                'custom_domain_enabled' => '0',
                 'social_twitter' => '',
                 'social_instagram' => '',
                 'social_facebook' => '',

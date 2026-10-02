@@ -139,4 +139,155 @@ class AdminEventController extends Controller
         Application::$app->session->setFlash('error', $duplicateAction->getError() ?: 'Failed to duplicate event.');
         return back();
     }
+
+    /**
+     * List all domain requests with joins to events and users tables.
+     */
+    public function domainRequests(Request $request)
+    {
+        $statusFilter = $request->getBody()['status'] ?? 'all';
+        $pdo = Application::$app->db->pdo;
+
+        // Fetch counts
+        $countsQuery = $pdo->query("SELECT status, COUNT(*) as count FROM event_domain_requests GROUP BY status");
+        $rawCounts = $countsQuery->fetchAll(\PDO::FETCH_ASSOC);
+        
+        $counts = ['all' => 0, 'pending' => 0, 'approved_active' => 0, 'rejected' => 0];
+        foreach ($rawCounts as $row) {
+            $counts[$row['status']] = (int) $row['count'];
+            $counts['all'] += (int) $row['count'];
+        }
+
+        // Fetch requests
+        $sql = "SELECT r.*, e.name as event_name, e.slug as event_slug, e.custom_url as event_custom_url,
+                       u.name as host_name, u.email as host_email 
+                FROM event_domain_requests r
+                LEFT JOIN events e ON r.event_id = e.id
+                LEFT JOIN users u ON r.host_id = u.id";
+        
+        $params = [];
+        if ($statusFilter !== 'all') {
+            $sql .= " WHERE r.status = :status";
+            $params['status'] = $statusFilter;
+        }
+        
+        $sql .= " ORDER BY r.created_at DESC";
+        
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue(":$k", $v);
+        }
+        $stmt->execute();
+        $requests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $this->render('admin/domain-requests', [
+            'title' => '🌐 Custom Domain & API Requests',
+            'requests' => $requests,
+            'statusFilter' => $statusFilter,
+            'counts' => $counts
+        ]);
+    }
+
+    /**
+     * Approve a domain request.
+     */
+    public function approveDomainRequest(Request $request, int|string $id)
+    {
+        $body = $request->getBody();
+        $adminNotes = $body['admin_notes'] ?? '';
+        $dnsTarget = trim($body['dns_cname_target'] ?? '');
+        $waiveFee = isset($body['waive_fee']) ? true : false;
+        
+        $pdo = Application::$app->db->pdo;
+        
+        $sql = "UPDATE event_domain_requests 
+                SET status = 'approved_active', 
+                    activated_at = NOW(), 
+                    admin_notes = :notes";
+        $params = ['notes' => $adminNotes, 'id' => $id];
+
+        if (!empty($dnsTarget)) {
+            $sql .= ", dns_cname_target = :dns";
+            $params['dns'] = $dnsTarget;
+        }
+
+        if ($waiveFee) {
+            $sql .= ", payment_status = 'waived'";
+        }
+        $sql .= " WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        Application::$app->session->setFlash('success', 'Domain request approved successfully.');
+        return back();
+    }
+
+    /**
+     * Reject a domain request.
+     */
+    public function rejectDomainRequest(Request $request, int|string $id)
+    {
+        $body = $request->getBody();
+        $adminNotes = $body['admin_notes'] ?? '';
+        
+        $pdo = Application::$app->db->pdo;
+        $stmt = $pdo->prepare("UPDATE event_domain_requests SET status = 'rejected', admin_notes = :notes WHERE id = :id");
+        $stmt->execute([
+            'notes' => $adminNotes,
+            'id' => $id
+        ]);
+        
+        Application::$app->session->setFlash('success', 'Domain request rejected.');
+        return back();
+    }
+
+    /**
+     * Admin action to manually mark a domain setup fee as paid.
+     */
+    public function markDomainRequestPaid(Request $request, int|string $id)
+    {
+        $pdo = Application::$app->db->pdo;
+        $stmt = $pdo->prepare("UPDATE event_domain_requests SET payment_status = 'paid' WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+
+        $pdo->prepare("UPDATE transactions SET status = 'completed', updated_at = NOW() WHERE reference = (SELECT payment_reference FROM event_domain_requests WHERE id = :id)")->execute(['id' => $id]);
+
+        Application::$app->session->setFlash('success', 'Domain setup fee marked as Paid successfully.');
+        return back();
+    }
+
+    /**
+     * Admin action to re-verify domain payment with Paystack gateway.
+     */
+    public function verifyDomainPayment(Request $request, int|string $id)
+    {
+        $pdo = Application::$app->db->pdo;
+        $stmt = $pdo->prepare("SELECT * FROM event_domain_requests WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        $req = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$req || empty($req['payment_reference'])) {
+            Application::$app->session->setFlash('error', 'No payment reference found for this request.');
+            return back();
+        }
+
+        try {
+            $paystack = new \Ace\PaystackService();
+            $result = $paystack->verifyTransaction($req['payment_reference']);
+            $status = strtolower($result['status'] ?? ($result['data']['status'] ?? ''));
+
+            if ($status === 'success') {
+                $pdo->prepare("UPDATE event_domain_requests SET payment_status = 'paid' WHERE id = :id")->execute(['id' => $id]);
+                $pdo->prepare("UPDATE transactions SET status = 'completed', updated_at = NOW() WHERE reference = :ref")->execute(['ref' => $req['payment_reference']]);
+                Application::$app->session->setFlash('success', 'Payment verified as Successful with Paystack! Status updated to Paid.');
+            } else {
+                Application::$app->session->setFlash('warning', 'Gateway returned status: ' . ($status ?: 'unknown'));
+            }
+        } catch (\Throwable $e) {
+            Application::$app->session->setFlash('error', 'Gateway verification failed: ' . $e->getMessage());
+        }
+
+        return back();
+    }
 }

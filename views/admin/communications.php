@@ -35,7 +35,7 @@ Communications Center - Admin
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
 
     <!-- Compose Form -->
-    <div style="background: var(--bg-card, #fff); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+    <div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
         <h2 style="margin: 0 0 1.25rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
             ✍️ Compose Message
         </h2>
@@ -45,7 +45,7 @@ Communications Center - Admin
             <!-- Audience Type -->
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Audience <span style="color: #ef4444;">*</span></label>
-                <select name="audience_type" id="audienceType" required style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); appearance: auto;">
+                <select name="audience_type" id="audienceType" required style="width: 100%; padding: 0.6rem 2.6rem 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background-color: rgb(var(--card)); color: rgb(var(--text));">
                     <option value="">— Select Audience —</option>
                     <option value="all_users">📢 All Users</option>
                     <option value="all_hosts">🎪 All Hosts / Organizers</option>
@@ -58,15 +58,15 @@ Communications Center - Admin
             <div id="recipientField" style="margin-bottom: 1rem; display: none;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Recipient Email <span style="color: #ef4444;">*</span></label>
                 <div style="position: relative;">
-                    <input type="email" name="recipient_email" id="recipientEmail" placeholder="Search by name or email..." autocomplete="off" style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); box-sizing: border-box;">
-                    <div id="recipientDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card, #fff); border: 1px solid rgba(var(--muted), 0.15); border-radius: 10px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.12);"></div>
+                    <input type="email" name="recipient_email" id="recipientEmail" placeholder="Search by name or email..." autocomplete="off" style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
+                    <div id="recipientDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.15); border-radius: 10px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.12);"></div>
                 </div>
             </div>
 
             <!-- Priority -->
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Priority</label>
-                <select name="priority" id="prioritySelect" style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); appearance: auto;">
+                <select name="priority" id="prioritySelect" style="width: 100%; padding: 0.6rem 2.6rem 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background-color: rgb(var(--card)); color: rgb(var(--text));">
                     <option value="normal">🟢 Normal</option>
                     <option value="urgent">🔴 Urgent</option>
                 </select>
@@ -75,24 +75,24 @@ Communications Center - Admin
             <!-- Subject -->
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Subject <span style="color: #ef4444;">*</span></label>
-                <input type="text" name="subject" id="subjectInput" required placeholder="Enter email subject..." style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); box-sizing: border-box;">
+                <input type="text" name="subject" id="subjectInput" required placeholder="Enter email subject..." style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
             </div>
 
             <!-- Message Body -->
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Message <span style="color: #ef4444;">*</span></label>
-                <textarea name="message" id="messageInput" rows="6" required placeholder="Write your message here..." style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; resize: vertical; font-family: inherit; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); box-sizing: border-box;"></textarea>
+                <textarea name="message" id="messageInput" rows="6" required placeholder="Write your message here..." style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; resize: vertical; font-family: inherit; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;"></textarea>
             </div>
 
             <!-- CTA (Optional) -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
                 <div>
                     <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.3rem;">CTA Button Text <span style="font-weight: 400; opacity: 0.6;">(optional)</span></label>
-                    <input type="text" name="cta_text" id="ctaTextInput" placeholder="e.g. Visit Dashboard" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.88rem; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); box-sizing: border-box;">
+                    <input type="text" name="cta_text" id="ctaTextInput" placeholder="e.g. Visit Dashboard" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.88rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
                 </div>
                 <div>
                     <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.3rem;">CTA Button URL <span style="font-weight: 400; opacity: 0.6;">(optional)</span></label>
-                    <input type="url" name="cta_url" id="ctaUrlInput" placeholder="https://..." style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.88rem; background: var(--bg-card, #fff); color: var(--text-primary, #1e293b); box-sizing: border-box;">
+                    <input type="url" name="cta_url" id="ctaUrlInput" placeholder="https://..." style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.88rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
                 </div>
             </div>
 
@@ -103,7 +103,7 @@ Communications Center - Admin
     </div>
 
     <!-- Live Email Preview -->
-    <div style="background: var(--bg-card, #fff); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); position: sticky; top: 1rem;">
+    <div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); position: sticky; top: 1rem;">
         <h2 style="margin: 0 0 1rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
             👁️ Email Preview
         </h2>
@@ -137,7 +137,7 @@ Communications Center - Admin
 </div>
 
 <!-- Broadcast History -->
-<div style="background: var(--bg-card, #fff); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+<div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
         <h2 style="margin: 0; font-size: 1.15rem;">📋 Broadcast History</h2>
         <?php if (!empty($historyItems)): ?>
@@ -148,7 +148,7 @@ Communications Center - Admin
     <?php if (empty($historyItems)): ?>
         <div style="text-align: center; padding: 3rem 1rem;">
             <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📭</div>
-            <p style="font-size: 1rem; font-weight: 600; color: var(--text-primary, #1e293b); margin: 0 0 0.3rem;">No broadcasts sent yet</p>
+            <p style="font-size: 1rem; font-weight: 600; color: rgb(var(--text)); margin: 0 0 0.3rem;">No broadcasts sent yet</p>
             <p style="font-size: 0.88rem; color: var(--text-muted, #64748b); margin: 0;">Compose your first message above to get started.</p>
         </div>
     <?php else: ?>
@@ -217,7 +217,7 @@ Communications Center - Admin
         <?php if ($totalPages > 1): ?>
             <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap;">
                 <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                    <a href="/admin/communications?page=<?= $p ?>" style="padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $p === $currentPage ? 'background: rgb(var(--brand)); color: #fff;' : 'background: rgba(var(--muted), 0.08); color: var(--text-primary, #1e293b);' ?>">
+                    <a href="/admin/communications?page=<?= $p ?>" style="padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $p === $currentPage ? 'background: rgb(var(--brand)); color: #fff;' : 'background: rgba(var(--muted), 0.08); color: rgb(var(--text));' ?>">
                         <?= $p ?>
                     </a>
                 <?php endfor; ?>

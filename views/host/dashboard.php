@@ -68,7 +68,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
             <?php endif; ?>
         </div>
 
-        <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+        <div class="host-hero-actions" style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
             <a href="{{ route('host/event/create') }}" class="checkout-btn" style="padding:0.55rem 1.15rem; font-size:0.88rem; height:auto; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; border-radius:10px;">
                 <span>➕</span> Create Event
             </a>
@@ -127,7 +127,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
 
 <!-- Next / Live Event Spotlight Card OR Most Recent Completed Event Spotlight -->
 <?php if (!empty($nextEvent)): ?>
-<section class="form-card" style="margin-bottom:1.75rem; padding:1.25rem 1.5rem; background:linear-gradient(135deg, rgba(var(--card), 1) 0%, rgba(var(--muted), 0.04) 100%); border:1px solid rgba(var(--muted), 0.18); border-radius:16px;">
+<section class="form-card host-spotlight-card" style="margin-bottom:1.75rem; padding:1.25rem 1.5rem; background:linear-gradient(135deg, rgba(var(--card), 1) 0%, rgba(var(--muted), 0.04) 100%); border:1px solid rgba(var(--muted), 0.18); border-radius:16px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem;">
         <div style="display:flex; gap:1.25rem; align-items:center; flex:1; min-width:280px; flex-wrap:wrap;">
             <?php $spotlightImg = !empty($nextEvent['image']) ? $nextEvent['image'] : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=60&auto=format&fit=crop'; ?>
@@ -160,7 +160,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
         </div>
 
         <!-- Live Metrics / Gauges -->
-        <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <div class="host-spotlight-metrics" style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
             <!-- Ticket Sales Meter -->
             <div style="background:rgba(var(--card), 1); border:1px solid rgba(var(--muted), 0.15); border-radius:12px; padding:0.65rem 0.95rem; min-width:140px;">
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); margin-bottom:0.25rem;">
@@ -186,7 +186,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
             </div>
 
             <!-- Actions -->
-            <div style="display:flex; flex-direction:column; gap:0.4rem;">
+            <div class="host-spotlight-actions" style="display:flex; flex-direction:column; gap:0.4rem;">
                 <a href="{{ route('host/event/ticket-verification/' . $nextEvent['id']) }}" class="admin-action-btn primary" style="padding:0.45rem 0.85rem; font-size:0.8rem; border-radius:8px; text-decoration:none; text-align:center;">
                     🎟️ Scan QR
                 </a>
@@ -199,7 +199,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
 </section>
 <?php elseif (!empty($lastCompletedEvent)): ?>
 <!-- Most Recent Completed Event Spotlight -->
-<section class="form-card" style="margin-bottom:1.75rem; padding:1.25rem 1.5rem; background:linear-gradient(135deg, rgba(var(--card), 1) 0%, rgba(16, 185, 129, 0.03) 100%); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px;">
+<section class="form-card host-spotlight-card host-spotlight-card--completed" style="margin-bottom:1.75rem; padding:1.25rem 1.5rem; background:linear-gradient(135deg, rgba(var(--card), 1) 0%, rgba(16, 185, 129, 0.03) 100%); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem;">
         <div style="display:flex; gap:1.25rem; align-items:center; flex:1; min-width:280px; flex-wrap:wrap;">
             <?php $spotlightImg = !empty($lastCompletedEvent['image']) ? $lastCompletedEvent['image'] : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=60&auto=format&fit=crop'; ?>
@@ -222,7 +222,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
             </div>
         </div>
 
-        <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <div class="host-spotlight-metrics" style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
             <div style="background:rgba(var(--card), 1); border:1px solid rgba(var(--muted), 0.15); border-radius:12px; padding:0.65rem 0.95rem; text-align:center;">
                 <div style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted));">Attendance</div>
                 <div style="font-size:1rem; font-weight:800; color:rgb(var(--text));"><?= number_format($lastCompletedEvent['sold_count']) ?> tickets</div>
@@ -326,7 +326,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
     </div>
 
     <!-- Legend -->
-    <div style="display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.78rem;">
+    <div class="host-cashflow-legend" style="display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.78rem;">
         <div style="display:flex; align-items:center; gap:0.35rem;">
             <span style="width:9px; height:9px; border-radius:50%; background:#0284c7;"></span>
             <span style="color:rgb(var(--muted));">Disbursed:</span>
@@ -354,7 +354,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
 <?php endif; ?>
 
 <!-- Visual Analytics Grid (2 Columns: Monthly Trends & Tier Breakdown) -->
-<section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap:1.25rem; margin-bottom:1.5rem;">
+<section class="host-analytics-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap:1.25rem; margin-bottom:1.5rem;">
     <!-- Column 1: 6-Month Sales Trend Chart -->
     <article class="form-card" style="padding:1.25rem 1.4rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
@@ -381,7 +381,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                     </div>
                 <?php endforeach; ?>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:rgb(var(--muted)); margin-top:0.6rem;">
+            <div class="host-chart-summary" style="display:flex; justify-content:space-between; font-size:0.75rem; color:rgb(var(--muted)); margin-top:0.6rem; flex-wrap:wrap; gap:0.4rem;">
                 <span>Total 6-Month Gross: <strong><?= format_price($monthlyGrossSum) ?></strong></span>
                 <span>Net: <strong><?= format_price($monthlyNetSum) ?></strong></span>
             </div>
@@ -404,8 +404,8 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                 <?php foreach ($tierBreakdown as $tb): ?>
                     <?php $tierPct = $maxTierRev > 0 ? round(($tb['total_revenue'] / $maxTierRev) * 100) : 0; ?>
                     <div>
-                        <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:600; margin-bottom:3px;">
-                            <span style="color:rgb(var(--text));"><?= e($tb['tier_name']) ?></span>
+                        <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:600; margin-bottom:3px; flex-wrap:wrap; gap:0.35rem;">
+                            <span class="host-tier-name" style="color:rgb(var(--text)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;"><?= e($tb['tier_name']) ?></span>
                             <span style="color:rgb(var(--muted));"><?= number_format($tb['tickets_sold']) ?> sold · <strong style="color:rgb(var(--text));"><?= format_price($tb['total_revenue']) ?></strong></span>
                         </div>
                         <div style="width:100%; height:6px; background:rgba(var(--muted), 0.12); border-radius:3px; overflow:hidden;">
@@ -421,7 +421,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
 </section>
 
 <!-- Financials & Transaction History Navigation Banner -->
-<section style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%); border: 1px solid rgba(16, 185, 129, 0.22); border-radius: 16px; padding: 1.1rem 1.4rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+<section class="host-financials-banner" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%); border: 1px solid rgba(16, 185, 129, 0.22); border-radius: 16px; padding: 1.1rem 1.4rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
     <div style="display:flex; align-items:center; gap:0.85rem;">
         <div style="width:42px; height:42px; border-radius:12px; background:rgba(16, 185, 129, 0.15); display:flex; align-items:center; justify-content:center; font-size:1.35rem; flex-shrink:0;">
             💳
@@ -755,7 +755,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                 </label>
 
                 <!-- Actions -->
-                <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                <div class="host-escrow-actions" style="display:flex; gap:0.75rem; justify-content:flex-end;">
                     <button type="button" id="escrow-modal-cancel" class="checkout-btn secondary" style="padding:0.6rem 1.25rem; font-size:0.88rem; height:auto;">
                         Cancel
                     </button>

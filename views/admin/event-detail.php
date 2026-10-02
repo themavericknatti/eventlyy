@@ -30,6 +30,12 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
         <p class="lede" style="margin:0;">Inspect event metrics, ticket status, and organizer payment readiness.</p>
     </div>
     <div style="display:flex; gap:0.65rem; align-items:center; flex-wrap:wrap;">
+        <a href="{{ route('admin/events') }}" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
+            <span>←</span> All Events
+        </a>
+        <a href="{{ route('admin/overview') }}" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
+            <span>🏛️</span> Dashboard
+        </a>
         <a href="{{ route('host/event/edit/{id}', ['id' => $event['id']]) }}" class="admin-action-btn primary" style="padding:0.55rem 1.05rem; font-size:0.85rem; border-radius:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
             <span>✏️</span> Edit Event
         </a>
@@ -193,7 +199,7 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
 </section>
 
 <!-- Financial Settlement & Host Balance Panel -->
-<section class="admin-panel" style="margin-bottom: 1.5rem; border: 1px solid rgba(var(--border), 0.7); background: var(--bg-card);">
+<section class="admin-panel" style="margin-bottom: 1.5rem; border: 1px solid rgba(var(--border), 0.7); background: rgb(var(--card));">
     <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
         <div>
             <h2 style="margin:0;">💰 Financial Earnings & Payout Settlement</h2>

@@ -107,7 +107,7 @@ Host Create Event - Create Your <?= e($siteName) ?> Event
 
             <div class="field-grid">
                 <label for="event-category">Event Category
-                    <select id="event-category" name="event_category" required style="width:100%; padding:0.75rem 1rem; border-radius:12px; border:1px solid rgba(var(--muted), 0.2); background:rgb(var(--card)); color:rgb(var(--text)); font-size:0.95rem;">
+                    <select id="event-category" name="event_category" required style="width:100%; padding:0.75rem 2.6rem 0.75rem 1rem; border-radius:12px; border:1px solid rgba(var(--muted), 0.2); background-color:rgb(var(--card)); color:rgb(var(--text)); font-size:0.95rem;">
                         <option value="" disabled <?= empty(old('event_category', $model->category ?? '')) ? 'selected' : '' ?>>Select category</option>
                         <?php foreach ($categories as $cat): ?>
                             <option value="<?= e($cat) ?>" <?= old('event_category', $model->category ?? '') === $cat ? 'selected' : '' ?>><?= e($cat) ?></option>

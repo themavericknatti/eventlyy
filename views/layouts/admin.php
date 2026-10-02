@@ -30,10 +30,10 @@
     <meta name="description" content="Overview of registered users, hosts, and payouts." />
 	<meta name="csrf-token" content="<?= e(csrf_token()) ?>" />
     <?php
-    $styleVer = file_exists(\Ace\Application::$ROOT_DIR . '/public//public/assets/css/style.css') ? filemtime(\Ace\Application::$ROOT_DIR . '/public//public/assets/css/style.css') : '1.0.0';
-    $scriptVer = file_exists(\Ace\Application::$ROOT_DIR . '/public//public/assets/js/app.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public//public/assets/js/app.js') : '1.0.0';
+    $styleVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') : '1.0.0';
+    $scriptVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') : '1.0.0';
     ?>
-    <link rel="stylesheet" href="{{ route('/public/assets/css/style.css') }}?v=<?= $styleVer ?>">
+    <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">
 </head>
 
 <body>

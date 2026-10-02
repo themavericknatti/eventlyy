@@ -29,13 +29,12 @@
     <button id="admin-mobile-menu" class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false" style="position:relative;">
         ☰
         <?php if ($pendingPayouts > 0): ?>
-            <span style="position:absolute; top:4px; right:4px; width:8px; height:8px; background:#ef4444; border-radius:50%; box-shadow:0 0 0 2px var(--bg-card, #fff);"></span>
+            <span style="position:absolute; top:4px; right:4px; width:8px; height:8px; background:#ef4444; border-radius:50%; box-shadow:0 0 0 2px rgb(var(--card));"></span>
         <?php endif; ?>
     </button>
     <nav class="nav-desktop" role="navigation" aria-label="Top navigation">
         <a href="{{ route('admin/overview') }}" class="nav-link{{ app()->request->is('admin/overview', 'admin', 'admin/dashboard') ? ' active' : '' }}">Overview</a>
         <a href="{{ route('admin/users') }}" class="nav-link{{ app()->request->is('admin/users') ? ' active' : '' }}">Users</a>
-        <a href="{{ route('admin/events') }}" class="nav-link{{ app()->request->is('admin/events') ? ' active' : '' }}">Events</a>
         <a href="{{ route('admin/payouts') }}" class="nav-link{{ app()->request->is('admin/payouts') ? ' active' : '' }}" style="display:inline-flex; align-items:center; gap:0.35rem;">
             Payouts
             <?php if ($pendingPayouts > 0): ?>

@@ -107,6 +107,9 @@ $router->post('/host/event/management/{id}/complete', [HostEventController::clas
 $router->post('/host/event/management/{id}/toggle-flyer', [HostEventController::class, 'toggleFlyerPage']);
 $router->post('/host/event/management/{id}/request-staff', [HostEventController::class, 'requestStaff']);
 $router->post('/host/event/management/{id}/toggle-staff-checkin', [HostEventController::class, 'toggleStaffCheckin']);
+$router->post('/host/event/management/{id}/request-domain', [HostEventController::class, 'requestCustomDomain']);
+$router->post('/host/event/domain-request/{id}/pay', [HostEventController::class, 'payCustomDomainFee']);
+$router->get('/host/event/domain-request/callback', [HostEventController::class, 'domainPaymentCallback']);
 $router->post('/host/event/duplicate/{id}', [HostEventController::class, 'duplicateEvent']);
 $router->post('/host/event/delete/{id}', [HostEventController::class, 'deleteEvent']);
 $router->post('/host/event/transaction/{ref}/verify', [HostEventController::class, 'reverifyPayment']);
@@ -138,6 +141,11 @@ $router->post('/admin/events', [AdminEventController::class, 'deleteEvent']);
 $router->post('/admin/events/duplicate/{id}', [AdminEventController::class, 'duplicateEvent']);
 $router->post('/admin/events/toggle-featured', [AdminEventController::class, 'toggleFeatured']);
 $router->get('/admin/events/{id}', [AdminEventController::class, 'eventDetail']);
+$router->get('/admin/domain-requests', [AdminEventController::class, 'domainRequests']);
+$router->post('/admin/domain-requests/{id}/approve', [AdminEventController::class, 'approveDomainRequest']);
+$router->post('/admin/domain-requests/{id}/reject', [AdminEventController::class, 'rejectDomainRequest']);
+$router->post('/admin/domain-requests/{id}/mark-paid', [AdminEventController::class, 'markDomainRequestPaid']);
+$router->post('/admin/domain-requests/{id}/verify-payment', [AdminEventController::class, 'verifyDomainPayment']);
 $router->get('/admin/teams', [AdminTeamController::class, 'teams']);
 $router->get('/admin/teams/export', [AdminTeamController::class, 'exportCsv']);
 $router->get('/admin/teams/detail', [AdminTeamController::class, 'staffDetail']);
@@ -175,6 +183,32 @@ $router->post('/teams/support-action', [TeamController::class, 'supportAction'])
 
 $router->get('/teams/tech-ops', [TeamController::class, 'techOps']);
 $router->get('/teams/finance-desk', [TeamController::class, 'financeDesk']);
+
+// ==================================================
+// EXTERNAL API ROUTES (v1) — Headless Ticketing & Checkout
+// ==================================================
+// These routes allow event hosts on custom domains to fetch event data,
+// validate promo codes, initiate checkouts, and verify orders via JSON API.
+// CORS is handled automatically by SecurityHeadersMiddleware and Router.
+// CSRF is exempted for /api/* paths in CsrfMiddleware.
+
+use App\Controllers\Api\EventApiController;
+
+// Event Data & Details
+$router->get('/api/v1/events/{id}', [EventApiController::class, 'getEvent']);
+
+// Checkout & Purchase
+$router->post('/api/v1/events/{id}/checkout', [EventApiController::class, 'checkout']);
+$router->post('/api/v1/checkout', [EventApiController::class, 'checkout']);
+
+// Promo Code Validation
+$router->post('/api/v1/checkout/validate-promo', [EventApiController::class, 'validatePromo']);
+
+// Order Verification & Ticket Retrieval
+$router->get('/api/v1/checkout/verify/{reference}', [EventApiController::class, 'verifyOrder']);
+
+// Embeddable Checkout Widget (iframe-friendly, relaxed X-Frame-Options)
+$router->get('/embed/{id}', [EventApiController::class, 'embedCheckout']);
 
 // Browser and crawler utilities (prevent 404 spam)
 $router->get('/favicon.ico', function () {

@@ -119,7 +119,7 @@ Edit Event - <?= e($event->name) ?>
 
             <div class="field-grid">
                 <label for="event-category">Event Category
-                    <select id="event-category" name="event_category" required style="width:100%; padding:0.75rem 1rem; border-radius:12px; border:1px solid rgba(var(--muted), 0.2); background:rgb(var(--card)); color:rgb(var(--text)); font-size:0.95rem;">
+                    <select id="event-category" name="event_category" required style="width:100%; padding:0.75rem 2.6rem 0.75rem 1rem; border-radius:12px; border:1px solid rgba(var(--muted), 0.2); background-color:rgb(var(--card)); color:rgb(var(--text)); font-size:0.95rem;">
                         <?php foreach (($categories ?? []) as $cat): ?>
                             <option value="<?= e($cat) ?>" <?= ($event->category ?? 'Concerts') === $cat ? 'selected' : '' ?>><?= e($cat) ?></option>
                         <?php endforeach; ?>

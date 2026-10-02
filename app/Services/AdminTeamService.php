@@ -279,12 +279,14 @@ class AdminTeamService
 
     /**
      * Fetch pending event staffing assistance requests from hosts.
+     * Automatically reconciles stale statuses by checking actual assignments.
      */
     public function getPendingStaffRequests(): array
     {
         $db = Application::$app->db->pdo;
         $completionHours = event_completion_hours();
 
+        // First, fetch all requests that claim to be pending or partially fulfilled
         $stmt = $db->query("
             SELECT 
                 esr.id,
@@ -308,13 +310,57 @@ class AdminTeamService
             ORDER BY esr.created_at DESC
         ");
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        // Reconcile: check each request against actual assignments
+        $filteredRows = [];
         foreach ($rows as &$row) {
             if (!empty($row['roles_requested'])) {
                 $row['roles_array'] = is_string($row['roles_requested']) ? json_decode($row['roles_requested'], true) : $row['roles_requested'];
             } else {
                 $row['roles_array'] = [];
             }
+
+            // Check actual fulfillment status
+            if (!empty($row['roles_array'])) {
+                $assignStmt = $db->prepare("
+                    SELECT r.slug, COUNT(*) as assigned_count
+                    FROM event_staff_assignments esa
+                    INNER JOIN roles r ON esa.role_id = r.id
+                    WHERE esa.event_id = :event_id
+                    GROUP BY r.slug
+                ");
+                $assignStmt->execute(['event_id' => $row['event_id']]);
+                $assignedCounts = [];
+                while ($aRow = $assignStmt->fetch(\PDO::FETCH_ASSOC)) {
+                    $assignedCounts[$aRow['slug']] = (int) $aRow['assigned_count'];
+                }
+
+                $totalRequested = 0;
+                $totalFulfilled = 0;
+                foreach ($row['roles_array'] as $roleReq) {
+                    $slug = $roleReq['slug'] ?? '';
+                    $qty = (int) ($roleReq['qty'] ?? $roleReq['quantity'] ?? 0);
+                    if ($slug && $qty > 0) {
+                        $totalRequested += $qty;
+                        $assigned = $assignedCounts[$slug] ?? 0;
+                        $totalFulfilled += min($assigned, $qty);
+                    }
+                }
+
+                // Auto-correct stale status in DB
+                if ($totalRequested > 0 && $totalFulfilled >= $totalRequested) {
+                    $updateStmt = $db->prepare("UPDATE event_staff_requests SET status = 'fulfilled' WHERE id = :id");
+                    $updateStmt->execute(['id' => $row['id']]);
+                    continue; // Skip — this request is fulfilled, don't show it
+                } elseif ($totalRequested > 0 && $totalFulfilled > 0 && $row['status'] === 'pending') {
+                    $updateStmt = $db->prepare("UPDATE event_staff_requests SET status = 'partially_fulfilled' WHERE id = :id");
+                    $updateStmt->execute(['id' => $row['id']]);
+                    $row['status'] = 'partially_fulfilled';
+                }
+            }
+
+            $filteredRows[] = $row;
         }
-        return $rows;
+        return $filteredRows;
     }
 }

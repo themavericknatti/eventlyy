@@ -18,6 +18,10 @@ $adminUser = $admin_user ?? app()->user;
 $userName = $adminUser ? ($adminUser->name ?? user_first_name()) : 'Admin';
 $currency = setting('currency', 'NGN');
 $currencySymbol = setting('currency_symbols.' . $currency, '₦');
+$pendingDomains = 0;
+try {
+    $pendingDomains = (int)\Ace\Application::$app->db->pdo->query("SELECT COUNT(*) FROM event_domain_requests WHERE status = 'pending'")->fetchColumn();
+} catch (\Throwable $e) {}
 ?>
 
 @extends('layouts/admin')
@@ -72,7 +76,18 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
     <!-- Quick Action Hub in Hero -->
     <div class="hero-actions-wrap">
-        <a href="{{ route('host/event/create') }}" class="admin-action-btn primary hero-action-btn">
+        <a href="{{ route('admin/events') }}" class="admin-action-btn primary hero-action-btn">
+            <span>🎪</span>
+            <span>All Events (<?= (int)($total_events ?? 0) ?>)</span>
+        </a>
+        <a href="{{ route('admin/domain-requests') }}" class="admin-action-btn hero-action-btn" style="background: rgba(var(--text), 0.04); border: 1px solid rgba(var(--muted), 0.25);">
+            <span>🌐</span>
+            <span>Domains &amp; API</span>
+            <?php if ($pendingDomains > 0): ?>
+                <span style="background:#f59e0b; color:#fff; font-size:0.7rem; font-weight:800; border-radius:999px; padding:0.1rem 0.45rem; line-height:1;"><?= $pendingDomains ?></span>
+            <?php endif; ?>
+        </a>
+        <a href="{{ route('host/event/create') }}" class="admin-action-btn hero-action-btn" style="background: rgba(var(--text), 0.04); border: 1px solid rgba(var(--muted), 0.25);">
             <span>➕</span>
             <span>Create Event</span>
         </a>
@@ -95,9 +110,9 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     <div class="command-bar-header">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span style="font-size: 1.15rem;">⚙️</span>
-            <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #a855f7;">Super Admin Master Diagnostics &amp; System Health</h3>
+            <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: rgb(var(--brand));">Super Admin Master Diagnostics &amp; System Health</h3>
         </div>
-        <span style="font-size: 0.78rem; font-weight: 700; background: rgba(168, 85, 247, 0.12); color: #a855f7; padding: 0.25rem 0.65rem; border-radius: 20px;">
+        <span style="font-size: 0.78rem; font-weight: 700; background: rgba(var(--brand), 0.12); color: rgb(var(--brand)); padding: 0.25rem 0.65rem; border-radius: 20px;">
             Active Sync
         </span>
     </div>
@@ -137,6 +152,12 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
     <!-- Super Admin Command Shortcuts -->
     <div class="super-command-actions">
+        <a href="{{ route('admin/events') }}" class="super-cmd-link">
+            <span>🎪 Manage Events (<?= (int)($total_events ?? 0) ?>)</span>
+        </a>
+        <a href="{{ route('admin/domain-requests') }}" class="super-cmd-link">
+            <span>🌐 Custom Domains &amp; API <?= $pendingDomains > 0 ? "($pendingDomains)" : '' ?></span>
+        </a>
         <a href="{{ route('admin/settings') }}" class="super-cmd-link">
             <span>⚙️ System Settings</span>
         </a>
@@ -230,6 +251,24 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
                 <div class="alert-title">Active Live Events</div>
                 <div class="alert-meta">
                     <?= (int)($checked_in_tickets ?? 0) ?> attendees checked in (<?= $check_in_rate ?? 0 ?>%) →
+                </div>
+            </div>
+        </a>
+
+        <!-- Alert 5: Custom Domain & API Requests -->
+        <a href="{{ route('admin/domain-requests') }}" class="alert-action-card <?= $pendingDomains > 0 ? 'alert-action-card--warning' : 'alert-action-card--ok' ?>">
+            <div class="alert-icon-box">
+                <span>🌐</span>
+            </div>
+            <div class="alert-details">
+                <div class="alert-count"><?= (int)$pendingDomains ?></div>
+                <div class="alert-title">Domain &amp; API Requests</div>
+                <div class="alert-meta">
+                    <?php if ($pendingDomains > 0): ?>
+                        <?= $pendingDomains ?> host domain<?= $pendingDomains === 1 ? '' : 's' ?> awaiting setup →
+                    <?php else: ?>
+                        All host domains provisioned ✓
+                    <?php endif; ?>
                 </div>
             </div>
         </a>
@@ -603,7 +642,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
                         $typeLabel = ucfirst(str_replace('_', ' ', $tx['type']));
                     ?>
                     <tr class="audit-row">
-                        <td style="font-family:monospace; font-size:0.82rem; font-weight:700; color:var(--text-primary);"><?= e(substr($tx['reference'], 0, 16)) ?></td>
+                        <td style="font-family:monospace; font-size:0.82rem; font-weight:700; color:rgb(var(--text));"><?= e(substr($tx['reference'], 0, 16)) ?></td>
                         <td>
                             <div style="font-size:0.88rem; font-weight:700;"><?= e($tx['payer_name'] ?: 'Customer') ?></div>
                             <div style="font-size:0.75rem; color:rgb(var(--muted));"><?= e($tx['payer_email']) ?></div>
@@ -830,17 +869,28 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     gap: 1.5rem;
     padding: 1.75rem 2rem;
     border-radius: 24px;
-    background: var(--bg-card, #fff);
-    border: 1px solid rgba(var(--muted), 0.12);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    background: rgb(var(--card));
+    border: 1px solid var(--border-card, rgba(var(--muted), 0.12));
+    box-shadow: var(--shadow-sm);
     position: relative;
     overflow: hidden;
+    transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .admin-dashboard-hero--super {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(236, 72, 153, 0.06) 50%, rgba(99, 102, 241, 0.08) 100%);
-    border: 1.5px solid rgba(168, 85, 247, 0.3);
-    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.08);
+    background: radial-gradient(ellipse at 80% -20%, rgba(var(--brand), 0.12), transparent 70%),
+                radial-gradient(ellipse at 20% 120%, rgba(16, 185, 129, 0.08), transparent 70%),
+                linear-gradient(135deg, rgba(var(--brand), 0.05) 0%, rgba(99, 102, 241, 0.04) 50%, rgb(var(--card)) 100%);
+    border: 1.5px solid rgba(var(--brand), 0.25);
+    box-shadow: 0 8px 30px rgba(var(--brand), 0.08);
+}
+
+:root[data-theme='dark'] .admin-dashboard-hero--super {
+    background: radial-gradient(ellipse at 80% -20%, rgba(var(--brand), 0.18), transparent 70%),
+                radial-gradient(ellipse at 20% 120%, rgba(16, 185, 129, 0.12), transparent 70%),
+                linear-gradient(135deg, rgba(var(--brand), 0.1) 0%, rgba(99, 102, 241, 0.06) 50%, rgb(var(--card)) 100%);
+    border-color: rgba(var(--brand), 0.35);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
 }
 
 .hero-content-wrap {
@@ -860,14 +910,14 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    background: linear-gradient(135deg, rgb(var(--brand)) 0%, #10b981 100%);
     color: #fff;
     font-size: 0.76rem;
     font-weight: 800;
     padding: 0.3rem 0.75rem;
     border-radius: 20px;
     letter-spacing: 0.02em;
-    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.35);
+    box-shadow: 0 2px 10px rgba(var(--brand), 0.35);
 }
 
 .crown-icon {
@@ -887,8 +937,8 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: rgba(16, 185, 129, 0.15);
-    color: #059669;
+    background: rgba(var(--brand), 0.12);
+    color: rgb(var(--brand));
     font-size: 0.76rem;
     font-weight: 800;
     padding: 0.3rem 0.75rem;
@@ -896,12 +946,13 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 }
 
 .hero-status-pill {
-    background: rgba(var(--muted), 0.1);
-    color: var(--text-primary, #1e293b);
+    background: rgba(var(--muted), 0.08);
+    color: rgb(var(--text));
     font-size: 0.72rem;
     font-weight: 700;
     padding: 0.25rem 0.6rem;
     border-radius: 20px;
+    border: 1px solid rgba(var(--muted), 0.12);
 }
 
 .hero-clock-pill {
@@ -913,9 +964,10 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 .hero-title {
     margin: 0.2rem 0 0.4rem;
-    font-size: 1.65rem;
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    color: rgb(var(--text));
 }
 
 .hero-subtitle {
@@ -927,10 +979,10 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 }
 
 .hero-actions-wrap {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 0.65rem;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .hero-action-btn {
@@ -941,18 +993,27 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     gap: 0.45rem;
     min-height: 42px;
     box-sizing: border-box;
+    transition: transform var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
 }
 
 /* ─── Super Admin Diagnostics Bar ─── */
 .super-admin-command-bar {
-    background: var(--bg-card, #fff);
-    border: 1.5px solid rgba(168, 85, 247, 0.22);
+    background: rgb(var(--card));
+    border: 1.5px solid rgba(var(--brand), 0.22);
     border-radius: 20px;
     padding: 1.35rem 1.6rem;
-    box-shadow: 0 2px 10px rgba(168, 85, 247, 0.04);
+    box-shadow: var(--shadow-sm);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+:root[data-theme='dark'] .super-admin-command-bar {
+    border-color: rgba(var(--brand), 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .command-bar-header {
@@ -962,6 +1023,13 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     margin-bottom: 1rem;
     flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+.command-bar-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: rgb(var(--text));
 }
 
 .super-diagnostics-grid {
@@ -974,13 +1042,18 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 }
 
 .diag-item {
-    background: rgba(var(--muted), 0.04);
-    border: 1px solid rgba(var(--muted), 0.1);
+    background: rgba(var(--muted), 0.05);
+    border: 1px solid var(--border-subtle, rgba(var(--muted), 0.1));
     border-radius: 10px;
     padding: 0.65rem 0.85rem;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+}
+
+:root[data-theme='dark'] .diag-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
 }
 
 .diag-label {
@@ -994,23 +1067,23 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 .diag-val {
     font-size: 0.85rem;
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
 }
 
 .super-command-actions {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 0.65rem;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .super-cmd-link {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: rgba(168, 85, 247, 0.08);
-    color: #a855f7;
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background: rgba(var(--brand), 0.08);
+    color: rgb(var(--brand));
+    border: 1px solid rgba(var(--brand), 0.22);
     border-radius: 10px;
     padding: 0.45rem 0.9rem;
     font-size: 0.82rem;
@@ -1020,11 +1093,12 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 }
 
 .super-cmd-link:hover {
-    background: rgba(168, 85, 247, 0.16);
+    background: rgba(var(--brand), 0.15);
     transform: translateY(-1px);
+    border-color: rgba(var(--brand), 0.4);
 }
 
-/* ─── Operational Alerts Grid ─── */
+/* ─── Operational Alerts Grid (Gentle, Soothing Tints) ─── */
 .section-title-wrap {
     margin-bottom: 0.85rem;
 }
@@ -1047,7 +1121,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 .alerts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 1rem;
 }
 
@@ -1056,41 +1130,63 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     align-items: center;
     gap: 1rem;
     padding: 1.15rem 1.35rem;
-    border-radius: 16px;
+    border-radius: 18px;
     text-decoration: none;
-    background: var(--bg-card, #fff);
-    border: 1px solid rgba(var(--muted), 0.12);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    transition: all 0.2s ease;
+    background: rgb(var(--card));
+    border: 1px solid var(--border-card, rgba(var(--muted), 0.12));
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .alert-action-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-md);
 }
 
 .alert-action-card--warning {
-    border-left: 4.5px solid #f59e0b;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, var(--bg-card, #fff) 100%);
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgb(var(--card)) 100%);
+    border-color: rgba(245, 158, 11, 0.22);
 }
 
 .alert-action-card--indigo {
-    border-left: 4.5px solid #6366f1;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, var(--bg-card, #fff) 100%);
+    border-left: 4px solid #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgb(var(--card)) 100%);
+    border-color: rgba(99, 102, 241, 0.22);
 }
 
 .alert-action-card--rose {
-    border-left: 4.5px solid #f43f5e;
-    background: linear-gradient(135deg, rgba(244, 63, 94, 0.04) 0%, var(--bg-card, #fff) 100%);
+    border-left: 4px solid #f43f5e;
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.06) 0%, rgb(var(--card)) 100%);
+    border-color: rgba(244, 63, 94, 0.22);
 }
 
 .alert-action-card--teal {
-    border-left: 4.5px solid #14b8a6;
-    background: linear-gradient(135deg, rgba(20, 184, 166, 0.04) 0%, var(--bg-card, #fff) 100%);
+    border-left: 4px solid #14b8a6;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.06) 0%, rgb(var(--card)) 100%);
+    border-color: rgba(20, 184, 166, 0.22);
 }
 
 .alert-action-card--ok {
-    border-left: 4.5px solid #10b981;
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgb(var(--card)) 100%);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+:root[data-theme='dark'] .alert-action-card--warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgb(var(--card)) 100%);
+}
+:root[data-theme='dark'] .alert-action-card--indigo {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgb(var(--card)) 100%);
+}
+:root[data-theme='dark'] .alert-action-card--rose {
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.1) 0%, rgb(var(--card)) 100%);
+}
+:root[data-theme='dark'] .alert-action-card--teal {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgb(var(--card)) 100%);
+}
+:root[data-theme='dark'] .alert-action-card--ok {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgb(var(--card)) 100%);
 }
 
 .alert-icon-box {
@@ -1113,14 +1209,14 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 .alert-count {
     font-size: 1.35rem;
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     line-height: 1.1;
 }
 
 .alert-title {
-    font-size: 0.85rem;
+    font-size: 0.86rem;
     font-weight: 700;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     margin-top: 0.15rem;
 }
 
@@ -1128,7 +1224,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     font-size: 0.76rem;
     color: rgb(var(--muted));
     margin-top: 0.2rem;
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 /* ─── Metric & Stats Cards ─── */
@@ -1155,17 +1251,17 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 .trend-up {
     background: rgba(16, 185, 129, 0.14);
-    color: #059669;
+    color: #10b981;
 }
 
 .trend-down {
     background: rgba(239, 68, 68, 0.14);
-    color: #dc2626;
+    color: #ef4444;
 }
 
 .trend-profit {
-    background: rgba(99, 102, 241, 0.12);
-    color: #6366f1;
+    background: rgba(var(--brand), 0.14);
+    color: rgb(var(--brand));
 }
 
 .stat-sub-info {
@@ -1178,14 +1274,21 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 /* ─── Audit Log Filter Box ─── */
 .audit-search-box {
-    padding: 0.45rem 0.85rem;
-    border: 1px solid rgba(var(--muted), 0.2);
-    border-radius: 10px;
-    font-size: 0.82rem;
-    background: var(--bg-card, #fff);
-    color: var(--text-primary, #1e293b);
+    padding: 0.5rem 0.95rem;
+    border: 1px solid var(--border-subtle, rgba(var(--muted), 0.2));
+    border-radius: 12px;
+    font-size: 0.85rem;
+    background: rgba(var(--muted), 0.05);
+    color: rgb(var(--text));
     min-width: 180px;
     box-sizing: border-box;
+    outline: none;
+    transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.audit-search-box:focus {
+    border-color: rgb(var(--brand));
+    box-shadow: 0 0 0 3px rgba(var(--brand), 0.2);
 }
 
 /* ─── Roster Sections (Events & Hosts) ─── */
@@ -1202,19 +1305,20 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 /* ─── Event Card ─── */
 .roster-event-card {
-    background: var(--bg-card, #fff);
-    border: 1px solid rgba(var(--muted), 0.12);
+    background: rgb(var(--card));
+    border: 1px solid var(--border-card, rgba(var(--muted), 0.12));
     border-radius: 18px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .roster-event-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(var(--brand), 0.25);
 }
 
 .roster-event-header {
@@ -1272,7 +1376,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     margin: 0;
     font-size: 1.02rem;
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     line-height: 1.35;
 }
 
@@ -1309,12 +1413,12 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 .roster-capacity-label {
     font-weight: 700;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
 }
 
 .roster-capacity-numbers {
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
 }
 
 .roster-progress-track {
@@ -1362,7 +1466,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 .roster-organizer-name {
     font-size: 0.82rem;
     font-weight: 700;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1399,20 +1503,21 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 /* ─── Host Card ─── */
 .roster-host-card {
-    background: var(--bg-card, #fff);
-    border: 1px solid rgba(var(--muted), 0.12);
+    background: rgb(var(--card));
+    border: 1px solid var(--border-card, rgba(var(--muted), 0.12));
     border-radius: 18px;
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .roster-host-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(var(--brand), 0.25);
 }
 
 .roster-host-identity {
@@ -1446,7 +1551,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     margin: 0;
     font-size: 0.95rem;
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1499,12 +1604,12 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 
 .roster-bank--verified {
     background: rgba(16, 185, 129, 0.12);
-    color: #059669;
+    color: #10b981;
 }
 
 .roster-bank--pending {
     background: rgba(245, 158, 11, 0.12);
-    color: #d97706;
+    color: #f59e0b;
 }
 
 .roster-host-stats {
@@ -1526,7 +1631,11 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 .roster-stat-value {
     font-size: 0.92rem;
     font-weight: 800;
-    color: var(--text-primary, #1e293b);
+    color: rgb(var(--text));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .roster-stat-label {
@@ -1549,7 +1658,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 }
 
 .roster-bank-info--pending {
-    color: #d97706;
+    color: #f59e0b;
     font-weight: 600;
     font-size: 0.73rem;
 }
@@ -1564,7 +1673,7 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     padding: 3rem 1.5rem;
     text-align: center;
     color: rgb(var(--muted));
-    background: var(--bg-card, #fff);
+    background: rgb(var(--card));
     border-radius: 18px;
     border: 1px dashed rgba(var(--muted), 0.2);
 }
@@ -1577,11 +1686,14 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
 }
 
 /* ─── Responsive Media Queries (Desktop, Tablet & Mobile) ─── */
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
     .roster-events-grid,
     .roster-hosts-grid {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
+    }
+    .super-diagnostics-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -1596,33 +1708,80 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
         margin-left: 0;
         width: 100%;
     }
-    .super-diagnostics-grid {
+    .dashboard-stats-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+    .alerts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .revenue-reports-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .admin-charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .chart-canvas-wrapper {
+        height: 260px !important;
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+    .hero-actions-wrap {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .hero-action-btn {
+        font-size: 0.85rem;
+    }
+    .super-diagnostics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .super-command-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    .super-cmd-link {
+        justify-content: center;
+        text-align: center;
+    }
+    .roster-events-grid,
+    .roster-hosts-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .chart-canvas-wrapper {
+        height: 240px !important;
+    }
+}
+
+@media (max-width: 600px) {
     .admin-dashboard-hero {
         padding: 1.15rem;
         border-radius: 18px;
     }
+    .hero-title {
+        font-size: 1.3rem;
+    }
     .hero-actions-wrap {
-        width: 100%;
+        grid-template-columns: 1fr;
     }
     .hero-action-btn {
-        flex: 1 1 calc(50% - 0.35rem);
-        justify-content: center;
+        font-size: 0.85rem;
+        min-height: 44px;
     }
     .super-diagnostics-grid {
+        grid-template-columns: 1fr;
+    }
+    .super-command-actions {
         grid-template-columns: 1fr;
     }
     .alerts-grid {
         grid-template-columns: 1fr;
     }
-    .roster-events-grid,
-    .roster-hosts-grid {
+    .dashboard-stats-grid {
         grid-template-columns: 1fr;
-        gap: 0.85rem;
+    }
+    .revenue-reports-grid {
+        grid-template-columns: 1fr;
     }
     .roster-host-card,
     .roster-event-card {
@@ -1634,6 +1793,19 @@ $currencySymbol = setting('currency_symbols.' . $currency, '₦');
     }
     .audit-search-box {
         width: 100%;
+    }
+    .au-table-wrap {
+        margin: 0 -0.5rem;
+        width: calc(100% + 1rem);
+    }
+    .chart-canvas-wrapper {
+        height: 220px !important;
+    }
+    .chart-card-header h3 {
+        font-size: 0.9rem !important;
+    }
+    .chart-card-header p {
+        font-size: 0.75rem !important;
     }
 }
 </style>
@@ -1671,9 +1843,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const textColor = isDark ? '#94a3b8' : '#64748b';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-    const tooltipBg = isDark ? '#1e293b' : '#ffffff';
-    const tooltipBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-    const tooltipText = isDark ? '#e2e8f0' : '#1e293b';
+    const tooltipBg = isDark ? '#12151b' : '#ffffff';
+    const tooltipBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)';
+    const tooltipText = isDark ? '#f3f5f7' : '#121619';
 
     const sharedTooltip = {
         backgroundColor: tooltipBg,
@@ -1729,7 +1901,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: '#10b981',
-                        pointBorderColor: isDark ? '#1e293b' : '#fff',
+                        pointBorderColor: isDark ? '#12151b' : '#fff',
                         pointBorderWidth: 2,
                         pointRadius: 5,
                         pointHoverRadius: 7,
@@ -1844,7 +2016,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: '#10b981',
-                        pointBorderColor: isDark ? '#1e293b' : '#fff',
+                        pointBorderColor: isDark ? '#12151b' : '#fff',
                         pointBorderWidth: 2,
                         pointRadius: 4,
                         pointHoverRadius: 6
@@ -1858,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: '#14b8a6',
-                        pointBorderColor: isDark ? '#1e293b' : '#fff',
+                        pointBorderColor: isDark ? '#12151b' : '#fff',
                         pointBorderWidth: 2,
                         pointRadius: 4,
                         pointHoverRadius: 6

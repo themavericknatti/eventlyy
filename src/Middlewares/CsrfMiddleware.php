@@ -25,8 +25,11 @@ class CsrfMiddleware extends Middleware
         if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             $path = $request->getPath();
 
-            // Exempt automated webhook endpoints (which use HMAC SHA512 signature verification)
-            if (str_starts_with($path, '/webhook/') || str_starts_with($path, 'webhook/') || str_starts_with($path, '/api/webhook/')) {
+            // Exempt automated webhook endpoints and external API routes
+            if (
+                str_starts_with($path, '/webhook/') || str_starts_with($path, 'webhook/') ||
+                str_starts_with($path, '/api/') || str_starts_with($path, 'api/')
+            ) {
                 return;
             }
 
