@@ -36,12 +36,20 @@ class PaymentService
 
         // If already completed and tickets exist, return success immediately without duplicating
         if ($tx && $tx['status'] === 'completed') {
-            $existingTicketsStmt = $db->prepare("SELECT * FROM tickets WHERE status_detail LIKE :ref OR id = :tx_id");
+            $existingTicketsStmt = $db->prepare("
+                SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                FROM tickets t 
+                LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+                WHERE t.status_detail LIKE :ref OR t.id = :tx_id
+            ");
             $existingTicketsStmt->execute([
                 'ref' => '%' . $reference . '%',
                 'tx_id' => $reference
             ]);
             $existingTickets = $existingTicketsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            $attendeeName = !empty($tx['payer_name']) ? $tx['payer_name'] : (!empty($existingTickets[0]['attendee_name']) ? $existingTickets[0]['attendee_name'] : 'Attendee');
+            $attendeeEmail = !empty($tx['payer_email']) ? $tx['payer_email'] : (!empty($existingTickets[0]['attendee_email']) ? $existingTickets[0]['attendee_email'] : '');
 
             return [
                 'success' => true,
@@ -49,6 +57,9 @@ class PaymentService
                 'message' => 'Transaction was already completed and fulfilled.',
                 'reference' => $reference,
                 'transaction' => $tx,
+                'attendee_name' => $attendeeName,
+                'attendee_email' => $attendeeEmail,
+                'total_amount' => (float)($tx['total_amount'] ?? 0),
                 'tickets' => $existingTickets
             ];
         }
@@ -315,11 +326,20 @@ class PaymentService
             Application::$app->session->remove('pending_order');
         }
 
+        // Fetch fresh transaction record from DB to guarantee accurate details
+        $finalTxStmt = $db->prepare("SELECT * FROM transactions WHERE reference = :ref LIMIT 1");
+        $finalTxStmt->execute(['ref' => $reference]);
+        $finalTx = $finalTxStmt->fetch(\PDO::FETCH_ASSOC) ?: ($tx ?: []);
+
         return [
             'success' => true,
             'message' => 'Payment verified, tickets issued, and platform revenue recorded.',
             'reference' => $reference,
             'event' => $event,
+            'transaction' => $finalTx,
+            'attendee_name' => $name,
+            'attendee_email' => $email,
+            'total_amount' => $totalAmount,
             'tickets' => $createdTickets
         ];
     }

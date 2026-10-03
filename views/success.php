@@ -75,8 +75,8 @@ Order Success - <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin-bottom:1.25rem; font-size:0.88rem;">
             <div>
                 <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; display:block;">Billed To</span>
-                <strong style="color:var(--text);"><?= e($order['attendee_name']) ?></strong>
-                <div style="color:var(--text-muted); font-size:0.8rem;"><?= e($order['attendee_email']) ?></div>
+                <strong style="color:var(--text);"><?= e(!empty($order['attendee_name']) && $order['attendee_name'] !== 'Attendee' ? $order['attendee_name'] : (!empty($order['tickets'][0]['attendee_name']) ? $order['tickets'][0]['attendee_name'] : 'Attendee')) ?></strong>
+                <div style="color:var(--text-muted); font-size:0.8rem;"><?= e(!empty($order['attendee_email']) ? $order['attendee_email'] : ($order['tickets'][0]['attendee_email'] ?? '')) ?></div>
             </div>
             <div>
                 <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; display:block;">Event</span>
@@ -164,7 +164,7 @@ Order Success - <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                         </div>
                         <div class="pass-detail-item">
                             <span class="pass-detail-label">Ticket Holder</span>
-                            <strong class="pass-detail-value">👤 <?= e($order['attendee_name']) ?></strong>
+                            <strong class="pass-detail-value">👤 <?= e(!empty($t['attendee_name']) && $t['attendee_name'] !== 'Attendee' ? $t['attendee_name'] : (!empty($order['attendee_name']) && $order['attendee_name'] !== 'Attendee' ? $order['attendee_name'] : 'Attendee')) ?></strong>
                         </div>
                         <div class="pass-detail-item">
                             <span class="pass-detail-label">Payment Reference</span>

@@ -629,17 +629,46 @@ class CheckoutController extends Controller
         if ($result['success']) {
             $event = $result['event'] ?? [];
             $eventId = $event['id'] ?? 0;
-            
+            $tx = $result['transaction'] ?? [];
+
+            // Resolve attendee name and email with multi-layer fallback
+            $attendeeName = !empty($result['attendee_name']) && $result['attendee_name'] !== 'Attendee' 
+                ? $result['attendee_name'] 
+                : (!empty($tx['payer_name']) && $tx['payer_name'] !== 'Attendee' ? $tx['payer_name'] : '');
+            $attendeeEmail = !empty($result['attendee_email']) ? $result['attendee_email'] : ($tx['payer_email'] ?? '');
+            $totalAmount = (float)(!empty($result['total_amount']) ? $result['total_amount'] : ($tx['total_amount'] ?? 0));
+
+            // Session pending_order fallback
+            $pending = Application::$app->session ? Application::$app->session->get('pending_order') : null;
+            if (empty($attendeeName) && !empty($pending['attendee_name'])) {
+                $attendeeName = $pending['attendee_name'];
+            }
+            if (empty($attendeeEmail) && !empty($pending['attendee_email'])) {
+                $attendeeEmail = $pending['attendee_email'];
+            }
+
+            // Ticket rows fallback
+            if (empty($attendeeName) && !empty($result['tickets'][0]['attendee_name'])) {
+                $attendeeName = $result['tickets'][0]['attendee_name'];
+            }
+            if (empty($attendeeEmail) && !empty($result['tickets'][0]['attendee_email'])) {
+                $attendeeEmail = $result['tickets'][0]['attendee_email'];
+            }
+
+            if (empty($attendeeName)) {
+                $attendeeName = 'Attendee';
+            }
+
             Application::$app->session->set('order_success', [
                 'event_id' => $eventId,
                 'event_name' => $event['name'] ?? 'Event',
                 'event_date' => $event['date'] ?? '',
                 'event_location' => $event['location'] ?? '',
-                'attendee_name' => $result['transaction']['payer_name'] ?? 'Attendee',
-                'attendee_email' => $result['transaction']['payer_email'] ?? '',
+                'attendee_name' => $attendeeName,
+                'attendee_email' => $attendeeEmail,
                 'payment_method' => 'PAYSTACK',
                 'payment_reference' => $reference,
-                'total_amount' => (float)($result['transaction']['total_amount'] ?? 0),
+                'total_amount' => $totalAmount,
                 'tickets' => $result['tickets'] ?? []
             ]);
 
@@ -872,13 +901,65 @@ class CheckoutController extends Controller
     public function success(Request $request): string
     {
         $order = Application::$app->session->get('order_success');
+        $ref = trim((string)($_GET['ref'] ?? ($order['payment_reference'] ?? '')));
+
+        $db = Application::$app->db->pdo;
+
+        // If order in session is missing or has placeholder 'Attendee', restore from database
+        if (!empty($ref) && (!$order || empty($order['attendee_name']) || $order['attendee_name'] === 'Attendee')) {
+            $txStmt = $db->prepare("SELECT * FROM transactions WHERE reference = :ref LIMIT 1");
+            $txStmt->execute(['ref' => $ref]);
+            $tx = $txStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($tx) {
+                // Fetch event
+                $eventStmt = $db->prepare("SELECT * FROM events WHERE id = :event_id LIMIT 1");
+                $eventStmt->execute(['event_id' => $tx['event_id']]);
+                $event = $eventStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+                // Fetch tickets with ticket_type name
+                $tStmt = $db->prepare("
+                    SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                    FROM tickets t 
+                    LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+                    WHERE t.status_detail LIKE :ref1 OR t.status_detail LIKE :ref2 
+                    ORDER BY t.id ASC
+                ");
+                $tStmt->execute([
+                    'ref1' => '%' . $ref . '%',
+                    'ref2' => $ref
+                ]);
+                $tickets = $tStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+                $payerName = !empty($tx['payer_name']) && $tx['payer_name'] !== 'Attendee' 
+                    ? $tx['payer_name'] 
+                    : (!empty($tickets[0]['attendee_name']) && $tickets[0]['attendee_name'] !== 'Attendee' ? $tickets[0]['attendee_name'] : 'Attendee');
+                $payerEmail = !empty($tx['payer_email']) ? $tx['payer_email'] : (!empty($tickets[0]['attendee_email']) ? $tickets[0]['attendee_email'] : '');
+
+                $order = [
+                    'event_id' => $tx['event_id'],
+                    'event_name' => $event['name'] ?? 'Event',
+                    'event_date' => $event['date'] ?? '',
+                    'event_location' => $event['location'] ?? '',
+                    'attendee_name' => $payerName,
+                    'attendee_email' => $payerEmail,
+                    'payment_method' => strtoupper($tx['payment_method'] ?? 'PAYSTACK'),
+                    'payment_reference' => $ref,
+                    'total_amount' => (float)($tx['total_amount'] ?? 0),
+                    'tickets' => !empty($tickets) ? $tickets : ($order['tickets'] ?? [])
+                ];
+
+                Application::$app->session->set('order_success', $order);
+            }
+        }
+
         if (!$order) {
             redirect('/');
             return '';
         }
 
         return $this->render('success', [
-            'title' => 'Purchase Success - ' . $order['event_name'],
+            'title' => 'Purchase Success - ' . ($order['event_name'] ?? 'Event'),
             'order' => $order
         ]);
     }
