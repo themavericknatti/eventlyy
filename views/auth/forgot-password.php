@@ -39,8 +39,13 @@ Forgot Password - <?= e($siteName) ?>
     <!-- Left Panel: Brand info / Promo -->
     <section class="auth-panel">
         <div class="auth-brand-badge">
-            <span class="brand-letter"><?= e(mb_substr($siteName, 0, 1)) ?></span>
-            <span><?= e($siteName) ?> Platform</span>
+            <?php $siteLogo = site_setting('site_logo'); ?>
+            <?php if (!empty($siteLogo)): ?>
+                <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-brand-logo" />
+            <?php else: ?>
+                <span class="brand-letter"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
+                <span><?= e($siteName) ?></span>
+            <?php endif; ?>
         </div>
         <div class="auth-panel-hero">
             <span class="panel-badge">Forgot password</span>
@@ -106,13 +111,12 @@ Forgot Password - <?= e($siteName) ?>
                     autocomplete="email">
             </label>
 
-            <button type="submit" class="admin-action-btn primary"
-                style="width:100%; height:48px; font-weight:700; font-size:0.95rem; margin-top:1.5rem; border-radius:14px; justify-content:center;">
+            <button type="submit" class="admin-action-btn primary auth-submit-btn">
                 Send Reset Link
             </button>
         </form>
 
-        <div class="auth-foot" style="justify-content:center;">
+        <div class="auth-foot">
             <a href="{{ route('login') }}" class="auth-link" style="font-size:0.88rem;">Back to sign in</a>
         </div>
     </div>

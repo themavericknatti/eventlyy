@@ -30,7 +30,20 @@
     <?php
     $styleVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') : '1.0.0';
     ?>
+    <script>
+        (function() {
+            try {
+                var saved = localStorage.getItem('theme');
+                if (saved) {
+                    document.documentElement.setAttribute('data-theme', saved);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">
+    @yield('style')
 </head>
 
 <body>
@@ -70,7 +83,13 @@
     </main>
 
     <!-- JS Files -->
-    <script src="{{ route('assets/js/app.js') }}" defer></script>
+    <?php
+    $jsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') : '1.0.0';
+    $authJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/auth.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/auth.js') : '1.0.0';
+    ?>
+    <script src="{{ route('assets/js/app.js') }}?v=<?= $jsVer ?>" defer></script>
+    <script src="{{ route('assets/js/auth.js') }}?v=<?= $authJsVer ?>" defer></script>
+    @yield('script')
     <div id="theme-announcer" class="visually-hidden" aria-live="polite"></div>
 </body>
 

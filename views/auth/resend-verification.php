@@ -12,6 +12,7 @@
  * @version 1.0.0
  */
 
+$siteName = site_setting('site_title', 'Eventlyy');
 ?>
 
 @extends('layouts/auth')
@@ -38,8 +39,13 @@ Resend Email Verification - <?= e(site_setting('site_title', 'Evently')) ?>
     <!-- Left Panel: Brand info -->
     <section class="auth-panel">
         <div class="auth-brand-badge">
-            <span class="brand-letter"><?= strtoupper(substr(site_setting('site_title', 'Evently'), 0, 1)) ?></span>
-            <span><?= e(site_setting('site_title', 'Evently')) ?> Platform</span>
+            <?php $siteLogo = site_setting('site_logo'); ?>
+            <?php if (!empty($siteLogo)): ?>
+                <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-brand-logo" />
+            <?php else: ?>
+                <span class="brand-letter"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
+                <span><?= e($siteName) ?></span>
+            <?php endif; ?>
         </div>
         <div class="auth-panel-hero">
             <span class="panel-badge">Email Verification</span>
@@ -89,13 +95,12 @@ Resend Email Verification - <?= e(site_setting('site_title', 'Evently')) ?>
                     autocomplete="email">
             </label>
 
-            <button type="submit" class="admin-action-btn primary"
-                style="width:100%; height:48px; font-weight:700; font-size:0.95rem; margin-top:1.5rem; border-radius:14px; justify-content:center;">
+            <button type="submit" class="admin-action-btn primary auth-submit-btn">
                 Send Verification Link →
             </button>
         </form>
 
-        <div class="auth-foot" style="justify-content:center;">
+        <div class="auth-foot">
             <a href="{{ route('login') }}" class="auth-link" style="font-size:0.88rem;">Back to sign in</a>
         </div>
     </div>
