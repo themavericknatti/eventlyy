@@ -360,8 +360,11 @@ if (!function_exists('public_path')) {
 if (!function_exists('public_dir')) {
     /**
      * Get the absolute filesystem path to the public directory on disk.
-     * Automatically adapts between local development (where assets are in public/)
-     * and cPanel/shared hosting production (where the whole app loads from public_html/).
+     * Automatically adapts between:
+     * - local development (where assets are in public/)
+     * - cPanel/shared hosting production (where the whole app loads from public_html/)
+     * - web server DOCUMENT_ROOT
+     * - direct root directory /
      */
     function public_dir(string $path = ''): string
     {
@@ -374,8 +377,13 @@ if (!function_exists('public_dir')) {
             $base = $root . '/public';
         } elseif (is_dir($root . '/public_html/assets') || is_dir($root . '/public_html')) {
             $base = $root . '/public_html';
+        } elseif (!empty($_SERVER['DOCUMENT_ROOT']) && (is_dir($_SERVER['DOCUMENT_ROOT'] . '/assets') || is_dir($_SERVER['DOCUMENT_ROOT']))) {
+            $base = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
+        } elseif (is_dir($root . '/assets')) {
+            // Assets directory directly in application root /
+            $base = $root;
         } else {
-            // Whole app is in public_html (root is public)
+            // Fallback to application root /
             $base = $root;
         }
 
@@ -1107,9 +1115,55 @@ if (!function_exists('ticket_qr_url')) {
     }
 }
 
+if (!function_exists('app_base_url')) {
+    /**
+     * Get the absolute public base URL (origin) of the application.
+     * Intelligently detects:
+     * 1. Active request host & protocol (HTTPS, Cloudflare proxy, reverse proxy)
+     * 2. Production APP_URL from environment
+     * 3. Fallback to current host or localhost
+     */
+    function app_base_url(): string
+    {
+        $httpHost = $_SERVER['HTTP_HOST'] ?? '';
+        if (!empty($httpHost)) {
+            $isLocal = str_contains($httpHost, 'localhost') || str_ends_with($httpHost, '.test') || str_starts_with($httpHost, '127.0.0.1');
+
+            $envAppUrl = trim((string) env('APP_URL', ''), '"\'/ ');
+            $envHasRealDomain = !empty($envAppUrl) && !str_contains($envAppUrl, 'localhost') && !str_contains($envAppUrl, '.test') && !str_contains($envAppUrl, '127.0.0.1');
+
+            if ($envHasRealDomain && $isLocal) {
+                if (!str_starts_with($envAppUrl, 'http://') && !str_starts_with($envAppUrl, 'https://')) {
+                    $envAppUrl = 'https://' . $envAppUrl;
+                }
+                return rtrim($envAppUrl, '/');
+            }
+
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+                || (isset($_SERVER['HTTP_CF_VISITOR']) && str_contains($_SERVER['HTTP_CF_VISITOR'], 'https'))
+                || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+
+            $scheme = $isHttps ? 'https://' : 'http://';
+            return rtrim($scheme . $httpHost, '/');
+        }
+
+        $envAppUrl = trim((string) env('APP_URL', ''), '"\'/ ');
+        if (!empty($envAppUrl)) {
+            if (!str_starts_with($envAppUrl, 'http://') && !str_starts_with($envAppUrl, 'https://')) {
+                $envAppUrl = 'https://' . $envAppUrl;
+            }
+            return rtrim($envAppUrl, '/');
+        }
+
+        return 'http://localhost';
+    }
+}
+
 if (!function_exists('email_logo_url')) {
     /**
      * Get the absolute web URL for the organization logo in email templates.
+     * Guarantees a fully-qualified, reachable HTTP/HTTPS image URL for email clients.
      */
     function email_logo_url(): ?string
     {
@@ -1118,30 +1172,30 @@ if (!function_exists('email_logo_url')) {
             return null;
         }
 
-        if (str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://') || str_starts_with($logo, 'data:image')) {
+        if (str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://')) {
             return $logo;
         }
 
         $cleanPath = ltrim($logo, '/\\');
 
-        // If path doesn't start with assets/ or uploads/, prepend assets/ for branding files
+        // Normalize path: if it doesn't already start with assets/ or uploads/, prepend assets/
         if (!str_starts_with($cleanPath, 'assets/') && !str_starts_with($cleanPath, 'uploads/')) {
             $cleanPath = 'assets/' . $cleanPath;
         }
 
-        $appUrl = rtrim((string) env('APP_URL', ''), '/');
-        if (!empty($appUrl)) {
-            return $appUrl . '/' . $cleanPath;
-        }
-
-        return \url($cleanPath);
+        $baseUrl = app_base_url();
+        return $baseUrl . '/' . $cleanPath;
     }
 }
 
 if (!function_exists('email_logo_src')) {
     /**
-     * Get the image source (base64 data URI or absolute web URL) for the organization logo in emails.
-     * Guarantees reliable display across local development, webmail, and mail clients.
+     * Get the image source for the organization logo in emails.
+     * - In Development (localhost / .test / Mailtrap sandbox): Returns base64 data URI so
+     *   Mailtrap's HTTPS UI renders it without browser mixed-content blocks or local DNS failure.
+     * - In Production (live public domain): Returns the fully-qualified public HTTPS URL
+     *   (e.g. https://eventlyy.com/assets/img/branding/...) which Gmail, Outlook, Yahoo,
+     *   and mobile clients proxy and render without blocking.
      */
     function email_logo_src(): ?string
     {
@@ -1150,49 +1204,50 @@ if (!function_exists('email_logo_src')) {
             return null;
         }
 
-        if (str_starts_with($logo, 'data:image') || str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://')) {
+        if (str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://')) {
             return $logo;
         }
 
-        $cleanPath = ltrim($logo, '/\\');
-        $rawPath = preg_replace('#^assets/#', '', $cleanPath);
-        $root = \Ace\Application::$ROOT_DIR;
+        $appUrl = app_base_url();
+        $isLocal = str_contains($appUrl, 'localhost') || str_contains($appUrl, '.test') || str_contains($appUrl, '127.0.0.1');
 
-        // Check potential locations on disk across both dev (public/assets/) and production (public_html/assets/):
-        $candidatePaths = [
-            public_dir('assets/' . $rawPath),
-            public_dir($cleanPath),
-            $root . '/assets/' . $rawPath,
-            $root . '/public/assets/' . $rawPath,
-            $root . '/public_html/assets/' . $rawPath,
-            $root . '/' . $cleanPath,
-        ];
-        if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-            $candidatePaths[] = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/assets/' . $rawPath;
-            $candidatePaths[] = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/' . $cleanPath;
-        }
+        if ($isLocal) {
+            $cleanPath = ltrim($logo, '/\\');
+            $rawPath = preg_replace('#^assets/#', '', $cleanPath);
+            $root = \Ace\Application::$ROOT_DIR;
 
-        $filePath = null;
-        foreach ($candidatePaths as $p) {
-            if (file_exists($p) && is_readable($p) && !is_dir($p)) {
-                $filePath = $p;
-                break;
+            $candidatePaths = [
+                public_dir('assets/' . $rawPath),
+                public_dir($cleanPath),
+                $root . '/assets/' . $rawPath,
+                $root . '/public/assets/' . $rawPath,
+                $root . '/public_html/assets/' . $rawPath,
+                $root . '/' . $cleanPath,
+                $root . '/' . $rawPath,
+            ];
+            if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+                $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
+                $candidatePaths[] = $docRoot . '/assets/' . $rawPath;
+                $candidatePaths[] = $docRoot . '/' . $cleanPath;
+                $candidatePaths[] = $docRoot . '/' . $rawPath;
             }
-        }
 
-        if ($filePath) {
-            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-            $mime = match($ext) {
-                'png' => 'image/png',
-                'jpg', 'jpeg' => 'image/jpeg',
-                'gif' => 'image/gif',
-                'svg' => 'image/svg+xml',
-                'webp' => 'image/webp',
-                default => 'image/png'
-            };
-            $content = @file_get_contents($filePath);
-            if ($content !== false && strlen($content) > 0 && strlen($content) < 800000) {
-                return "data:{$mime};base64," . base64_encode($content);
+            foreach ($candidatePaths as $p) {
+                if (file_exists($p) && is_readable($p) && !is_dir($p)) {
+                    $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION));
+                    $mime = match($ext) {
+                        'png' => 'image/png',
+                        'jpg', 'jpeg' => 'image/jpeg',
+                        'gif' => 'image/gif',
+                        'svg' => 'image/svg+xml',
+                        'webp' => 'image/webp',
+                        default => 'image/png'
+                    };
+                    $content = @file_get_contents($p);
+                    if ($content !== false && strlen($content) > 0 && strlen($content) < 800000) {
+                        return "data:{$mime};base64," . base64_encode($content);
+                    }
+                }
             }
         }
 
