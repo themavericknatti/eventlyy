@@ -23,32 +23,32 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
 @endsection
 
 @section('content')
-<section class="page-hero" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.25rem;">
-    <div>
+<section class="page-hero event-detail-page-hero">
+    <div class="event-detail-hero-title">
         <span class="panel-badge">Event detail</span>
         <h1 style="margin:0.25rem 0;">Event performance and host overview</h1>
         <p class="lede" style="margin:0;">Inspect event metrics, ticket status, and organizer payment readiness.</p>
     </div>
-    <div style="display:flex; gap:0.65rem; align-items:center; flex-wrap:wrap;">
-        <a href="{{ route('admin/events') }}" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
+    <div class="event-detail-actions-grid">
+        <a href="{{ route('admin/events') }}" class="admin-action-btn event-detail-btn event-detail-btn-default">
             <span>←</span> All Events
         </a>
-        <a href="{{ route('admin/overview') }}" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
+        <a href="{{ route('admin/overview') }}" class="admin-action-btn event-detail-btn event-detail-btn-default">
             <span>🏛️</span> Dashboard
         </a>
-        <a href="{{ route('host/event/edit/{id}', ['id' => $event['id']]) }}" class="admin-action-btn primary" style="padding:0.55rem 1.05rem; font-size:0.85rem; border-radius:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
+        <a href="{{ route('host/event/edit/{id}', ['id' => $event['id']]) }}" class="admin-action-btn primary event-detail-btn event-detail-btn-primary">
             <span>✏️</span> Edit Event
         </a>
-        <a href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
-            <span>⚙️</span> Manage & Staff
+        <a href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}" class="admin-action-btn event-detail-btn event-detail-btn-default">
+            <span>⚙️</span> Manage &amp; Staff
         </a>
-        <a href="{{ route('host/event/referrals/{id}', ['id' => $event['id']]) }}" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(16, 185, 129, 0.1); color:#059669; border:1px solid rgba(16, 185, 129, 0.25);">
+        <a href="{{ route('host/event/referrals/{id}', ['id' => $event['id']]) }}" class="admin-action-btn event-detail-btn event-detail-btn-success">
             <span>🔗</span> Referrals Hub
         </a>
         <?php 
             $publicSlug = !empty($event['custom_url']) ? $event['custom_url'] : ($event['slug'] ?? $event['id']);
         ?>
-        <a href="/event/<?= e($publicSlug) ?>" target="_blank" class="admin-action-btn" style="padding:0.55rem 1rem; font-size:0.85rem; border-radius:10px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--muted), 0.1); border:1px solid rgba(var(--muted),0.2);">
+        <a href="/event/<?= e($publicSlug) ?>" target="_blank" rel="noopener noreferrer" class="admin-action-btn event-detail-btn event-detail-btn-public">
             <span>🌐</span> Public Page ↗
         </a>
     </div>
@@ -406,9 +406,9 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
     </div>
     <div class="event-item">
         <p class="meta">Event Status: <strong><?= ucfirst($event['status']) ?></strong></p>
-        <div class="guest-row" style="display:flex; gap:1rem; margin-top:1rem; align-items:center; flex-wrap:wrap;">
+        <div class="guest-row admin-detail-footer-actions" style="display:flex; gap:0.75rem; margin-top:1rem; align-items:center; flex-wrap:wrap;">
             <a href="{{ route('admin/events') }}" class="admin-action-btn" style="text-decoration:none;">← Back to Events List</a>
-            <form method="POST" action="{{ route('admin/events/toggle-featured') }}" style="display:inline;">
+            <form method="POST" action="{{ route('admin/events/toggle-featured') }}" style="display:inline-flex; margin:0;">
                 <?= csrf_field() ?>
                 <input type="hidden" name="event_id" value="<?= $event['id'] ?>" />
                 <?php if (!empty($event['is_featured'])): ?>
@@ -444,6 +444,190 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
         </form>
     </div>
 </div>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   ADMIN EVENT DETAIL RESPONSIVE HERO & ACTION LINKS
+   ════════════════════════════════════════════════════════════════ */
+.event-detail-page-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    padding: clamp(1.25rem, 2.5vw, 2.25rem) 0;
+}
+
+.event-detail-hero-title {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.event-detail-actions-grid {
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.event-detail-btn {
+    padding: 0.52rem 0.95rem;
+    font-size: 0.84rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 40px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    transition: transform var(--duration-fast, 180ms) ease, background var(--duration-fast, 180ms) ease, border-color var(--duration-fast, 180ms) ease, box-shadow var(--duration-fast, 180ms) ease;
+}
+
+.event-detail-btn:hover {
+    transform: translateY(-1px);
+}
+
+.event-detail-btn-default {
+    background: rgba(var(--text), 0.04);
+    border: 1px solid rgba(var(--muted), 0.2);
+    color: rgb(var(--text));
+}
+
+.event-detail-btn-default:hover {
+    background: rgba(var(--brand), 0.08);
+    color: rgb(var(--brand));
+    border-color: rgba(var(--brand), 0.3);
+}
+
+.event-detail-btn-primary {
+    background: rgb(var(--brand)) !important;
+    border: 1px solid rgb(var(--brand)) !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(var(--brand), 0.3);
+}
+
+.event-detail-btn-primary:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 6px 18px rgba(var(--brand), 0.4);
+    color: #fff !important;
+}
+
+.event-detail-btn-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669 !important;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.event-detail-btn-success:hover {
+    background: rgba(16, 185, 129, 0.18);
+    color: #047857 !important;
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.event-detail-btn-public {
+    background: rgba(var(--muted), 0.1);
+    border: 1px solid rgba(var(--muted), 0.22);
+    color: rgb(var(--text));
+}
+
+.event-detail-btn-public:hover {
+    background: rgba(var(--text), 0.08);
+}
+
+/* ── Tablet View (641px - 1024px) ── */
+@media (max-width: 1024px) {
+    .event-detail-page-hero {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.15rem;
+    }
+
+    .event-detail-hero-title {
+        width: 100%;
+    }
+
+    .event-detail-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.55rem;
+        width: 100%;
+    }
+
+    .event-detail-btn {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        font-size: 0.82rem;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* ── Mobile View (≤ 640px) ── */
+@media (max-width: 640px) {
+    .event-detail-page-hero {
+        padding: 1rem 0;
+        gap: 0.85rem;
+    }
+
+    .event-detail-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.45rem;
+        width: 100%;
+    }
+
+    .event-detail-btn {
+        width: 100%;
+        padding: 0.55rem 0.45rem;
+        font-size: 0.79rem;
+        gap: 0.3rem;
+        min-height: 40px;
+        border-radius: 10px;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .event-detail-btn span {
+        font-size: 0.85rem;
+    }
+
+    /* Bottom footer actions on mobile */
+    .admin-detail-footer-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .admin-detail-footer-actions .admin-action-btn,
+    .admin-detail-footer-actions form,
+    .admin-detail-footer-actions form button {
+        width: 100% !important;
+        justify-content: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* ── Extra Small Mobile (≤ 380px) ── */
+@media (max-width: 380px) {
+    .event-detail-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.35rem;
+    }
+
+    .event-detail-btn {
+        padding: 0.48rem 0.25rem;
+        font-size: 0.74rem;
+        gap: 0.25rem;
+    }
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
