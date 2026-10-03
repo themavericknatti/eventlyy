@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Ace\Application;
+use Ace\Logger;
 use Ace\Mail;
 
 class AdminBroadcastService
@@ -59,64 +60,83 @@ class AdminBroadcastService
         string $priority = 'normal',
         ?string $recipientEmail = null
     ): array {
+        // Prevent timeout during long-running broadcast email sends in production
+        @set_time_limit(0);
+        @ini_set('max_execution_time', '0');
+
         $recipients = $this->getRecipients($audienceType, $recipientEmail);
+        $totalRecipients = count($recipients);
+
+        if ($totalRecipients === 0) {
+            return [
+                'total' => 0,
+                'sent' => 0,
+                'failed' => 0,
+                'error' => 'No active recipients found for the selected audience.',
+            ];
+        }
+
         $siteName = site_setting('site_title', 'Eventlyy');
         $db = Application::$app->db->pdo;
-        $sentCount = 0;
-        $failedCount = 0;
 
-        foreach ($recipients as $recipient) {
-            $status = 'failed';
-            try {
-                $sent = Mail::send(
-                    $recipient['email'],
-                    $subject,
-                    'emails/admin_broadcast',
-                    [
-                        'recipientName' => $recipient['name'] ?? 'User',
-                        'subject' => $subject,
-                        'messageBody' => $message,
-                        'ctaText' => $ctaText,
-                        'ctaUrl' => $ctaUrl,
-                        'priority' => $priority,
-                        'siteName' => $siteName,
-                    ]
-                );
-                if ($sent) {
-                    $status = 'sent';
-                    $sentCount++;
-                } else {
-                    $failedCount++;
-                }
-            } catch (\Throwable $e) {
-                $failedCount++;
+        // Prepare insert statement once outside the loop for high performance
+        $stmt = $db->prepare("
+            INSERT INTO admin_broadcast_logs 
+            (admin_id, audience_type, recipient_count, recipient_email, recipient_name, subject, message, cta_text, cta_url, priority, status, sent_at)
+            VALUES (:admin_id, :audience_type, :recipient_count, :email, :name, :subject, :message, :cta_text, :cta_url, :priority, :status, NOW())
+        ");
+
+        $batchResult = Mail::sendBatch(
+            $recipients,
+            $subject,
+            'emails/admin_broadcast',
+            function (array $recipient) use ($subject, $message, $ctaText, $ctaUrl, $priority, $siteName) {
+                return [
+                    'recipientName' => $recipient['name'] ?? 'User',
+                    'subject' => $subject,
+                    'messageBody' => $message,
+                    'ctaText' => $ctaText,
+                    'ctaUrl' => $ctaUrl,
+                    'priority' => $priority,
+                    'siteName' => $siteName,
+                ];
             }
+        );
 
-            // Log to admin_broadcast_logs
-            $stmt = $db->prepare("
-                INSERT INTO admin_broadcast_logs 
-                (admin_id, audience_type, recipient_count, recipient_email, recipient_name, subject, message, cta_text, cta_url, priority, status, sent_at)
-                VALUES (:admin_id, :audience_type, :recipient_count, :email, :name, :subject, :message, :cta_text, :cta_url, :priority, :status, NOW())
-            ");
-            $stmt->execute([
-                'admin_id' => $adminId,
-                'audience_type' => $audienceType,
-                'recipient_count' => count($recipients),
-                'email' => $recipient['email'],
-                'name' => $recipient['name'] ?? '',
-                'subject' => $subject,
-                'message' => $message,
-                'cta_text' => $ctaText,
-                'cta_url' => $ctaUrl,
-                'priority' => $priority,
-                'status' => $status,
-            ]);
+        $sentCount = $batchResult['sent'];
+        $failedCount = $batchResult['failed'];
+        $errors = $batchResult['errors'] ?? [];
+
+        // Log each recipient outcome to database
+        foreach ($recipients as $recipient) {
+            $email = $recipient['email'];
+            $isFailed = isset($errors[$email]);
+            $status = $isFailed ? 'failed' : 'sent';
+
+            try {
+                $stmt->execute([
+                    'admin_id' => $adminId,
+                    'audience_type' => $audienceType,
+                    'recipient_count' => $totalRecipients,
+                    'email' => $email,
+                    'name' => $recipient['name'] ?? '',
+                    'subject' => $subject,
+                    'message' => $message,
+                    'cta_text' => $ctaText,
+                    'cta_url' => $ctaUrl,
+                    'priority' => $priority,
+                    'status' => $status,
+                ]);
+            } catch (\Throwable $e) {
+                Logger::error("Failed to write broadcast log for {$email}: {$e->getMessage()}");
+            }
         }
 
         return [
-            'total' => count($recipients),
+            'total' => $totalRecipients,
             'sent' => $sentCount,
             'failed' => $failedCount,
+            'last_error' => Mail::getLastError(),
         ];
     }
 

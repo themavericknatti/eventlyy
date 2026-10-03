@@ -71,10 +71,17 @@ class AdminBroadcastController extends Controller
             $recipientEmail ?: null
         );
 
-        if ($result['sent'] > 0) {
-            Application::$app->session->setFlash('success', "Successfully sent {$result['sent']} email(s)!" . ($result['failed'] > 0 ? " ({$result['failed']} failed)" : ''));
+        if ($result['total'] === 0) {
+            Application::$app->session->setFlash('warning', $result['error'] ?? 'No active recipients found for the selected audience.');
+        } elseif ($result['sent'] > 0) {
+            $msg = "Successfully sent {$result['sent']} email(s)!";
+            if ($result['failed'] > 0) {
+                $msg .= " ({$result['failed']} failed)";
+            }
+            Application::$app->session->setFlash('success', $msg);
         } else {
-            Application::$app->session->setFlash('error', 'Failed to send emails. Please check your mail configuration and try again.');
+            $errDetail = !empty($result['last_error']) ? ': ' . $result['last_error'] : '. Please check your mail server configuration and try again.';
+            Application::$app->session->setFlash('error', 'Failed to send emails' . $errDetail);
         }
 
         return back();
