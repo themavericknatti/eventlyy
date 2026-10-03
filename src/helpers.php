@@ -325,7 +325,11 @@ if (!function_exists('asset')) {
      */
     function asset(string $path): string
     {
-        return route('assets/' . ltrim($path, '/'));
+        $clean = ltrim($path, '/\\');
+        if (str_starts_with($clean, 'assets/')) {
+            return route($clean);
+        }
+        return route('assets/' . $clean);
     }
 }
 
@@ -350,6 +354,32 @@ if (!function_exists('public_path')) {
     function public_path(string $path = ''): string
     {
         return route($path);
+    }
+}
+
+if (!function_exists('public_dir')) {
+    /**
+     * Get the absolute filesystem path to the public directory on disk.
+     * Automatically adapts between local development (where assets are in public/)
+     * and cPanel/shared hosting production (where the whole app loads from public_html/).
+     */
+    function public_dir(string $path = ''): string
+    {
+        $clean = ltrim($path, '/\\');
+        $root = \Ace\Application::$ROOT_DIR;
+
+        if (defined('ACE_PUBLIC_DIR') && is_dir(ACE_PUBLIC_DIR)) {
+            $base = ACE_PUBLIC_DIR;
+        } elseif (is_dir($root . '/public/assets') || is_dir($root . '/public')) {
+            $base = $root . '/public';
+        } elseif (is_dir($root . '/public_html/assets') || is_dir($root . '/public_html')) {
+            $base = $root . '/public_html';
+        } else {
+            // Whole app is in public_html (root is public)
+            $base = $root;
+        }
+
+        return $clean !== '' ? $base . '/' . $clean : $base;
     }
 }
 
@@ -1093,7 +1123,13 @@ if (!function_exists('email_logo_url')) {
         }
 
         $cleanPath = ltrim($logo, '/\\');
-        $appUrl = rtrim(env('APP_URL', ''), '/');
+
+        // If path doesn't start with assets/ or uploads/, prepend assets/ for branding files
+        if (!str_starts_with($cleanPath, 'assets/') && !str_starts_with($cleanPath, 'uploads/')) {
+            $cleanPath = 'assets/' . $cleanPath;
+        }
+
+        $appUrl = rtrim((string) env('APP_URL', ''), '/');
         if (!empty($appUrl)) {
             return $appUrl . '/' . $cleanPath;
         }
@@ -1119,10 +1155,32 @@ if (!function_exists('email_logo_src')) {
         }
 
         $cleanPath = ltrim($logo, '/\\');
-        $publicDir = defined('ACE_PUBLIC_DIR') ? ACE_PUBLIC_DIR : (\Ace\Application::$ROOT_DIR . '/public');
-        $filePath = $publicDir . '/' . $cleanPath;
+        $rawPath = preg_replace('#^assets/#', '', $cleanPath);
+        $root = \Ace\Application::$ROOT_DIR;
 
-        if (file_exists($filePath) && is_readable($filePath)) {
+        // Check potential locations on disk across both dev (public/assets/) and production (public_html/assets/):
+        $candidatePaths = [
+            public_dir('assets/' . $rawPath),
+            public_dir($cleanPath),
+            $root . '/assets/' . $rawPath,
+            $root . '/public/assets/' . $rawPath,
+            $root . '/public_html/assets/' . $rawPath,
+            $root . '/' . $cleanPath,
+        ];
+        if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+            $candidatePaths[] = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/assets/' . $rawPath;
+            $candidatePaths[] = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/' . $cleanPath;
+        }
+
+        $filePath = null;
+        foreach ($candidatePaths as $p) {
+            if (file_exists($p) && is_readable($p) && !is_dir($p)) {
+                $filePath = $p;
+                break;
+            }
+        }
+
+        if ($filePath) {
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $mime = match($ext) {
                 'png' => 'image/png',

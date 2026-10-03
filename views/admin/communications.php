@@ -110,8 +110,13 @@ Communications Center - Admin
         <div id="emailPreview" style="border: 1px solid rgba(var(--muted), 0.12); border-radius: 12px; overflow: hidden; font-size: 0.85rem;">
             <!-- Preview Header -->
             <div style="background: #0B7366; padding: 16px; text-align: center;">
-                <span style="display: inline-block; width: 28px; height: 28px; line-height: 28px; background: #fff; color: #0B7366; font-weight: 900; font-size: 16px; border-radius: 6px;">E</span>
-                <span style="color: #fff; font-weight: 700; font-size: 14px; margin-left: 6px; vertical-align: middle;" id="previewBrand"><?= e(site_setting('site_title', 'Eventlyy')) ?></span>
+                <?php if ($previewLogo = email_logo_src()): ?>
+                    <img src="<?= $previewLogo ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" height="32" style="display: inline-block; max-height: 32px; height: 32px; width: auto; vertical-align: middle; border: 0; margin-right: 8px;" />
+                    <span style="color: #fff; font-weight: 700; font-size: 14px; margin-left: 6px; vertical-align: middle;" id="previewBrand"><?= e(site_setting('site_title', 'Eventlyy')) ?></span>
+                <?php else: ?>
+                    <span style="display: inline-block; width: 28px; height: 28px; line-height: 28px; background: #fff; color: #0B7366; font-weight: 900; font-size: 16px; border-radius: 6px;"><?= strtoupper(mb_substr(site_setting('site_title', 'Eventlyy'), 0, 1)) ?></span>
+                    <span style="color: #fff; font-weight: 700; font-size: 14px; margin-left: 6px; vertical-align: middle;" id="previewBrand"><?= e(site_setting('site_title', 'Eventlyy')) ?></span>
+                <?php endif; ?>
             </div>
             <!-- Preview Body -->
             <div style="padding: 20px; background: #fff;" id="previewBody">

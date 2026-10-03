@@ -167,8 +167,7 @@ class AdminSettingsController extends Controller
 
             // Upload directory setup
             $uploadService = new \Ace\UploadService();
-            // $uploadDir = public_dir('assets/img/branding/');
-			$uploadDir = Application::$ROOT_DIR . '/assets/img/branding/';
+            $uploadDir = public_dir('assets/img/branding/');
             \Ace\UploadService::ensureDirectory($uploadDir);
 
             // Process Logo Upload (Auto-downscales to max 600x200 & compresses to < 50KB)
