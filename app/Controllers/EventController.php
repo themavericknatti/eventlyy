@@ -69,12 +69,24 @@ class EventController extends Controller
         // 2. Track referral link clicks if ?ref= parameter is provided
         $refCode = trim($_GET['ref'] ?? ($request->getBody()['ref'] ?? ''));
         if (!empty($refCode)) {
-            $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
+            $refStmt = $db->prepare("SELECT id, referral_code FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
             $refStmt->execute(['event_id' => $internalId, 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
                 \App\Models\EventReferral::recordVisit((int)$referral['id']);
                 Application::$app->session->set('event_ref_' . $internalId, (int)$referral['id']);
+                if (!headers_sent()) {
+                    @setcookie('event_ref_' . $internalId, (string)$referral['id'], time() + (86400 * 30), '/');
+                    @setcookie('event_ref_code_' . $internalId, (string)$referral['referral_code'], time() + (86400 * 30), '/');
+                }
+            }
+        } else {
+            // Restore from session or cookie if previously visited via referral link
+            $savedRefId = Application::$app->session->get('event_ref_' . $internalId) ?? ($_COOKIE['event_ref_' . $internalId] ?? null);
+            if ($savedRefId) {
+                $refStmt = $db->prepare("SELECT referral_code FROM event_referrals WHERE id = :id AND status = 'active' LIMIT 1");
+                $refStmt->execute(['id' => (int)$savedRefId]);
+                $refCode = $refStmt->fetchColumn() ?: '';
             }
         }
 
@@ -193,12 +205,24 @@ class EventController extends Controller
         // 4. Track referral link clicks
         $refCode = trim($_GET['ref'] ?? ($request->getBody()['ref'] ?? ''));
         if (!empty($refCode)) {
-            $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
+            $refStmt = $db->prepare("SELECT id, referral_code FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
             $refStmt->execute(['event_id' => $internalId, 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
                 \App\Models\EventReferral::recordVisit((int)$referral['id']);
                 Application::$app->session->set('event_ref_' . $internalId, (int)$referral['id']);
+                if (!headers_sent()) {
+                    @setcookie('event_ref_' . $internalId, (string)$referral['id'], time() + (86400 * 30), '/');
+                    @setcookie('event_ref_code_' . $internalId, (string)$referral['referral_code'], time() + (86400 * 30), '/');
+                }
+            }
+        } else {
+            // Restore from session or cookie if previously visited via referral link
+            $savedRefId = Application::$app->session->get('event_ref_' . $internalId) ?? ($_COOKIE['event_ref_' . $internalId] ?? null);
+            if ($savedRefId) {
+                $refStmt = $db->prepare("SELECT referral_code FROM event_referrals WHERE id = :id AND status = 'active' LIMIT 1");
+                $refStmt->execute(['id' => (int)$savedRefId]);
+                $refCode = $refStmt->fetchColumn() ?: '';
             }
         }
 

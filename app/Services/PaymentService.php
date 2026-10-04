@@ -208,6 +208,12 @@ class PaymentService
             $extraCharge = (float)site_setting('extra_charge', 100.00);
             $totalAmount = (float)($orderData['total_amount'] ?? ($tx['total_amount'] ?? ($calculatedSubtotal + $feeAmount + $extraCharge)));
             $referralId = !empty($orderData['referral_id']) ? (int)$orderData['referral_id'] : (!empty($tx['referral_id']) ? (int)$tx['referral_id'] : null);
+            if (!$referralId && class_exists('\Ace\Application') && Application::$app->session) {
+                $referralId = Application::$app->session->get('event_ref_' . $eventId) ?: null;
+            }
+            if (!$referralId && !empty($_COOKIE['event_ref_' . $eventId])) {
+                $referralId = (int)$_COOKIE['event_ref_' . $eventId];
+            }
             $promoCode = $orderData['promo_code'] ?? ($tx['promo_code'] ?? null);
             $discountAmount = (float)($orderData['discount_amount'] ?? ($tx['discount_amount'] ?? 0.00));
 
@@ -228,6 +234,7 @@ class PaymentService
                         subtotal_amount = :subtotal_amount,
                         fee_amount = :fee_amount,
                         extra_charge_amount = :extra_charge_amount,
+                        referral_id = COALESCE(:referral_id, referral_id),
                         total_amount = :total_amount,
                         gateway_response = :gateway_response,
                         updated_at = NOW()
@@ -237,6 +244,7 @@ class PaymentService
                     'subtotal_amount' => $calculatedSubtotal,
                     'fee_amount' => $feeAmount,
                     'extra_charge_amount' => $extraCharge,
+                    'referral_id' => $referralId,
                     'total_amount' => $totalAmount,
                     'gateway_response' => $finalGatewayResponse,
                     'reference' => $reference
@@ -263,27 +271,19 @@ class PaymentService
                 ]);
             }
 
-            // Promoter referral attribution
+            // Promoter referral attribution — update event_referrals tickets_sold & revenue_generated
             if ($referralId) {
                 try {
-                    $commissionRate = (float)($event['promoter_commission'] ?? 10);
-                    $commissionAmount = $calculatedSubtotal * ($commissionRate / 100);
-
-                    $refStmt = $db->prepare("
-                        UPDATE promoter_referrals 
-                        SET sales_count = sales_count + 1,
-                            total_revenue = total_revenue + :rev,
-                            total_commission = total_commission + :comm,
-                            updated_at = NOW()
-                        WHERE id = :id
-                    ");
-                    $refStmt->execute([
-                        'rev' => $calculatedSubtotal,
-                        'comm' => $commissionAmount,
-                        'id' => $referralId
-                    ]);
+                    \App\Models\EventReferral::recordSale((int)$referralId, count($createdTickets), (float)$calculatedSubtotal);
+                    if (class_exists('\Ace\Application') && Application::$app->session) {
+                        Application::$app->session->remove('event_ref_' . $eventId);
+                    }
+                    if (!headers_sent()) {
+                        @setcookie('event_ref_' . $eventId, '', time() - 3600, '/');
+                        @setcookie('event_ref_code_' . $eventId, '', time() - 3600, '/');
+                    }
                 } catch (\Throwable $e) {
-                    error_log("Failed to update promoter referral #{$referralId}: " . $e->getMessage());
+                    error_log("Failed to update event referral #{$referralId}: " . $e->getMessage());
                 }
             }
 

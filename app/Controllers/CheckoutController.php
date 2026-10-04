@@ -381,13 +381,17 @@ class CheckoutController extends Controller
         $totalPaid = $netSubtotal > 0 ? max(0, $netSubtotal + $fee + $extraCharge) : 0.00;
 
         // Track referral if passed in checkout submission
-        $refCode = trim($data['ref'] ?? ($_POST['ref'] ?? ($_GET['ref'] ?? '')));
+        $refCode = trim($data['ref'] ?? ($_POST['ref'] ?? ($_GET['ref'] ?? ($_COOKIE['event_ref_code_' . $event['id']] ?? ''))));
         if (!empty($refCode)) {
-            $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
+            $refStmt = $db->prepare("SELECT id, referral_code FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
             $refStmt->execute(['event_id' => $event['id'], 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
                 Application::$app->session->set('event_ref_' . $event['id'], (int)$referral['id']);
+                if (!headers_sent()) {
+                    @setcookie('event_ref_' . $event['id'], (string)$referral['id'], time() + (86400 * 30), '/');
+                    @setcookie('event_ref_code_' . $event['id'], (string)$referral['referral_code'], time() + (86400 * 30), '/');
+                }
             }
         }
 
@@ -489,7 +493,7 @@ class CheckoutController extends Controller
             $db = Application::$app->db->pdo;
             $currentUser = Application::$app->user;
             $userId = $currentUser ? $currentUser->id : null;
-            $referralId = Application::$app->session->get('event_ref_' . $event['id']) ?: null;
+            $referralId = Application::$app->session->get('event_ref_' . $event['id']) ?: ($_COOKIE['event_ref_' . $event['id']] ?? null);
             if (!$referralId && !empty($refCode)) {
                 $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
                 $refStmt->execute(['event_id' => $event['id'], 'code' => strtolower($refCode)]);
@@ -808,7 +812,7 @@ class CheckoutController extends Controller
             $isFree = ($totalPaid <= 0.00);
             $paymentMethodStr = $isFree ? 'FREE' : strtoupper($paymentMethod);
 
-            $referralId = Application::$app->session->get('event_ref_' . $eventId) ?: null;
+            $referralId = Application::$app->session->get('event_ref_' . $eventId) ?: ($_COOKIE['event_ref_' . $eventId] ?? null);
             if (!$referralId && !empty($refCode)) {
                 $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
                 $refStmt->execute(['event_id' => $eventId, 'code' => strtolower($refCode)]);
@@ -851,6 +855,10 @@ class CheckoutController extends Controller
             if (!empty($referralId)) {
                 \App\Models\EventReferral::recordSale((int)$referralId, count($createdTickets), (float)$subtotal);
                 Application::$app->session->remove('event_ref_' . $eventId);
+                if (!headers_sent()) {
+                    @setcookie('event_ref_' . $eventId, '', time() - 3600, '/');
+                    @setcookie('event_ref_code_' . $eventId, '', time() - 3600, '/');
+                }
             }
 
             $db->commit();
