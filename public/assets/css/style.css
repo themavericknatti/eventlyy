@@ -10596,9 +10596,15 @@ select::-ms-expand {
 /* Page-level 2-column grid */
 .promo-page-grid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 1.75rem;
   margin-top: 1.5rem;
+  min-width: 0;
+}
+
+.promo-list-section {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Inner form rows */
