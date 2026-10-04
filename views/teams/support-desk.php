@@ -4,12 +4,15 @@
  * Team Support Desk Page
  *
  * Workstation task view for guest support & help desk staff.
+ * Features attendee lookup, ticket verification, check-in overrides,
+ * cross-event pass resolution, and instant gate pass issuance.
+ * Fully responsive across Mobile, Tablet, and Desktop.
  *
  * @package Evently
  * @subpackage Views/Teams
  * @author Your Name <Celio Natti>
  * @license MIT License
- * @version 1.2.0
+ * @version 2.0.0
  */
 
 $eventTime = !empty($event['date']) ? strtotime($event['date']) : null;
@@ -22,35 +25,801 @@ $assignments = $assignments ?? [];
 Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
 @endsection
 
+@section('style')
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   Support Desk Scoped Component System (.sd-*)
+   ═══════════════════════════════════════════════════════════════════ */
+.sd-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+/* ── Hero & Event Workspace Banner ── */
+.sd-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.16);
+    border-radius: 20px;
+    padding: 1.4rem 1.6rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.sd-hero-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 260px;
+}
+
+.sd-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.sd-panel-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(var(--brand), 0.12);
+    color: rgb(var(--brand));
+    border: 1px solid rgba(var(--brand), 0.25);
+    padding: 0.3rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.sd-live-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #10b981;
+}
+
+.sd-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: sdPulse 2s infinite ease-in-out;
+}
+
+@keyframes sdPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.sd-hero-title {
+    margin: 0;
+    font-size: clamp(1.3rem, 2.8vw, 1.85rem);
+    font-weight: 800;
+    color: rgb(var(--text));
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+.sd-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    font-size: 0.88rem;
+    color: rgb(var(--muted));
+}
+
+.sd-hero-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.sd-meta-divider {
+    opacity: 0.35;
+}
+
+.sd-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sd-btn-issue {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sd-btn-issue:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.sd-btn-issue:active {
+    transform: translateY(0);
+}
+
+.sd-switcher-box {
+    background: rgb(var(--bg));
+    border: 1px solid rgba(var(--muted), 0.18);
+    border-radius: 12px;
+    padding: 0.4rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sd-switcher-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: rgb(var(--muted));
+}
+
+.sd-switcher-select {
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgb(var(--text));
+    outline: none;
+    cursor: pointer;
+    padding-right: 0.5rem;
+}
+
+/* ── Cross-Event Match Banner ── */
+.sd-cross-match {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.sd-cross-match-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 1;
+}
+
+.sd-cross-match-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.sd-cross-match-info {
+    font-size: 0.88rem;
+    color: rgb(var(--text));
+    line-height: 1.45;
+}
+
+.sd-cross-match-code {
+    background: rgba(59, 130, 246, 0.15);
+    color: #2563eb;
+    font-family: monospace;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+}
+
+.sd-cross-match-btn {
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: background 0.18s ease;
+}
+
+.sd-cross-match-btn:hover {
+    background: #1d4ed8;
+}
+
+/* ── Quick Stats Grid ── */
+.sd-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.sd-stat-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 18px;
+    padding: 1.25rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+.sd-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(var(--muted), 0.15);
+}
+
+.sd-stat-card.stat-green::before { background: #10b981; }
+.sd-stat-card.stat-amber::before { background: #f59e0b; }
+.sd-stat-card.stat-brand::before { background: rgb(var(--brand)); }
+
+.sd-stat-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(var(--muted));
+}
+
+.sd-stat-val {
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+    font-weight: 800;
+    color: rgb(var(--text));
+    line-height: 1.2;
+}
+
+.sd-stat-card.stat-green .sd-stat-val { color: #10b981; }
+.sd-stat-card.stat-amber .sd-stat-val { color: #d97706; }
+.sd-stat-card.stat-brand .sd-stat-val { color: rgb(var(--brand)); }
+
+.sd-stat-sub {
+    font-size: 0.78rem;
+    color: rgb(var(--muted));
+}
+
+/* ── Search Toolbar ── */
+.sd-search-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.16);
+    border-radius: 18px;
+    padding: 1.25rem 1.4rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.sd-search-form {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.sd-search-input-wrap {
+    flex: 1;
+    min-width: 280px;
+    position: relative;
+}
+
+.sd-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 1.15rem 0.75rem 2.6rem;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--muted), 0.24);
+    background: rgb(var(--bg));
+    color: rgb(var(--text));
+    font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sd-search-input:focus {
+    border-color: rgb(var(--brand));
+    box-shadow: 0 0 0 3px rgba(var(--brand), 0.15);
+}
+
+.sd-search-icon {
+    position: absolute;
+    left: 0.95rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgb(var(--muted));
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.sd-search-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    background: rgb(var(--brand));
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: opacity 0.18s ease;
+}
+
+.sd-search-btn:hover {
+    opacity: 0.92;
+}
+
+.sd-clear-btn {
+    padding: 0.75rem 1.2rem;
+    border-radius: 12px;
+    background: rgba(var(--muted), 0.12);
+    color: rgb(var(--text));
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background 0.18s ease;
+}
+
+.sd-clear-btn:hover {
+    background: rgba(var(--muted), 0.2);
+}
+
+/* ── Attendee Table & Card Container ── */
+.sd-content-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.16);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+}
+
+.sd-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.12);
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.sd-card-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+}
+
+.sd-card-subtitle {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: rgb(var(--muted));
+}
+
+/* ── Desktop Table ── */
+.sd-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.sd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.sd-table th {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgb(var(--muted));
+    border-bottom: 1px solid rgba(var(--muted), 0.15);
+    background: rgba(var(--muted), 0.02);
+}
+
+.sd-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.08);
+    vertical-align: middle;
+}
+
+.sd-table tr:last-child td {
+    border-bottom: none;
+}
+
+.sd-table tr:hover td {
+    background: rgba(var(--muted), 0.03);
+}
+
+/* ── Attendee Cell ── */
+.sd-attendee-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sd-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(var(--brand), 0.2), rgba(var(--brand), 0.06));
+    border: 1px solid rgba(var(--brand), 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.92rem;
+    color: rgb(var(--brand));
+    flex-shrink: 0;
+}
+
+.sd-attendee-name {
+    font-weight: 700;
+    color: rgb(var(--text));
+    font-size: 0.95rem;
+}
+
+.sd-attendee-email {
+    font-size: 0.8rem;
+    color: rgb(var(--muted));
+    word-break: break-all;
+}
+
+.sd-code-badge {
+    display: inline-block;
+    background: rgba(var(--muted), 0.12);
+    border: 1px solid rgba(var(--muted), 0.18);
+    padding: 0.2rem 0.55rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-family: monospace;
+    font-size: 0.84rem;
+    letter-spacing: 0.5px;
+    color: rgb(var(--text));
+}
+
+.sd-tier-sub {
+    font-size: 0.78rem;
+    color: rgb(var(--muted));
+    margin-top: 0.25rem;
+}
+
+/* ── Status Pills ── */
+.sd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.sd-badge-paid {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.sd-badge-free {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.sd-badge-pending {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.sd-badge-in {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.sd-badge-not-in {
+    background: rgba(var(--muted), 0.12);
+    color: rgb(var(--muted));
+    border: 1px solid rgba(var(--muted), 0.2);
+}
+
+/* ── Action Buttons ── */
+.sd-btn-action {
+    padding: 0.45rem 0.95rem;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.sd-btn-action:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.sd-btn-override {
+    background: rgb(var(--brand));
+    color: #ffffff;
+}
+
+.sd-btn-reset {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* ── Mobile & Tablet Cards ── */
+.sd-cards-list {
+    display: none;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.sd-mobile-card {
+    background: rgb(var(--bg));
+    border: 1px solid rgba(var(--muted), 0.16);
+    border-radius: 16px;
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    transition: border-color 0.2s ease;
+}
+
+.sd-mobile-card.card-checked-in {
+    border-left: 4px solid #10b981;
+}
+
+.sd-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.sd-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    background: rgba(var(--muted), 0.05);
+    border-radius: 12px;
+}
+
+.sd-grid-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sd-grid-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(var(--muted));
+}
+
+.sd-mobile-action {
+    width: 100%;
+}
+
+.sd-mobile-action button {
+    width: 100%;
+    height: 44px;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+/* ── Empty State ── */
+.sd-empty-state {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: rgba(var(--muted), 0.03);
+    border-radius: 16px;
+    border: 1px dashed rgba(var(--muted), 0.2);
+}
+
+.sd-empty-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.sd-empty-title {
+    margin: 0 0 0.4rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+}
+
+.sd-empty-desc {
+    margin: 0 0 1.25rem;
+    font-size: 0.88rem;
+    color: rgb(var(--muted));
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVENESS (Desktop, Tablet, Mobile)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Tablet (680px – 1024px) */
+@media (max-width: 1024px) {
+    .sd-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.85rem;
+    }
+    .sd-hero {
+        padding: 1.25rem;
+    }
+}
+
+/* Mobile & Narrow Tablets (≤ 768px) */
+@media (max-width: 768px) {
+    .sd-table-wrap {
+        display: none !important;
+    }
+    .sd-cards-list {
+        display: flex !important;
+    }
+    .sd-hero {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    .sd-hero-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sd-btn-issue {
+        width: 100%;
+        justify-content: center;
+        height: 46px;
+    }
+    .sd-switcher-box {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .sd-search-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sd-search-input-wrap {
+        min-width: 100%;
+    }
+    .sd-search-btn,
+    .sd-clear-btn {
+        width: 100%;
+        justify-content: center;
+        height: 46px;
+        box-sizing: border-box;
+    }
+    .sd-content-card {
+        padding: 1rem;
+        border-radius: 16px;
+    }
+    .sd-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+    }
+    .sd-stat-card {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+    .sd-stat-val {
+        font-size: 1.35rem;
+    }
+    .sd-cross-match {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sd-cross-match-btn {
+        width: 100%;
+        justify-content: center;
+        height: 42px;
+    }
+}
+
+/* Small Phones (≤ 420px) */
+@media (max-width: 420px) {
+    .sd-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .sd-stat-card {
+        padding: 0.85rem;
+    }
+    .sd-card-grid {
+        grid-template-columns: 1fr;
+    }
+    .sd-hero-title {
+        font-size: 1.25rem;
+    }
+}
+</style>
+@endsection
+
 @section('content')
-<div class="support-desk-page-wrapper">
+<div class="sd-wrapper">
     <!-- Active Event Context Banner -->
-    <div class="support-event-hero">
-        <div class="support-event-info">
-            <div class="support-badge-group">
-                <span class="panel-badge support-panel-badge">🎧 Workstation — Customer Support</span>
-                <span class="support-active-tag">Active Workspace</span>
+    <header class="sd-hero">
+        <div class="sd-hero-left">
+            <div class="sd-badge-row">
+                <span class="sd-panel-badge">🎧 Workstation — Customer Support</span>
+                <span class="sd-live-status">
+                    <span class="sd-pulse-dot"></span>
+                    Live Workspace
+                </span>
             </div>
-            <h1 class="support-event-title"><?= e($event['name'] ?? 'Event Workspace') ?></h1>
-            <p class="lede support-event-meta">
+            <h1 class="sd-hero-title"><?= e($event['name'] ?? 'Event Workspace') ?></h1>
+            <div class="sd-hero-meta">
                 <?php if ($eventTime): ?>
                     <span>📅 <?= date('D, M d, Y • g:i A', $eventTime) ?></span>
-                    <span class="meta-dot">•</span>
+                    <span class="sd-meta-divider">•</span>
                 <?php endif; ?>
                 <span>📍 <?= e($event['location'] ?? 'Venue') ?></span>
-            </p>
+            </div>
         </div>
 
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-            <button type="button" id="btn-open-box-office-support" class="checkout-btn" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; font-weight:800; padding:0.65rem 1.25rem; border-radius:12px; display:inline-flex; align-items:center; gap:0.4rem; border:none; cursor:pointer; box-shadow:0 6px 18px rgba(16,185,129,0.35);">
+        <div class="sd-hero-actions">
+            <button type="button" id="btn-open-box-office-support" class="sd-btn-issue">
                 <span>🎟️</span> Issue Gate Ticket
             </button>
             <?php if (count($assignments) > 1): ?>
-                <div class="support-event-switcher-card">
-                    <span class="switcher-label">Switch Event Workspace</span>
-                    <form method="POST" action="{{ route('teams/switch-event') }}" class="support-switch-form">
+                <div class="sd-switcher-box">
+                    <span class="sd-switcher-label">Switch Event</span>
+                    <form method="POST" action="{{ route('teams/switch-event') }}" style="margin:0;">
                         <?= csrf_field() ?>
-                        <select name="event_id" onchange="this.form.submit()" class="support-switch-select">
+                        <select name="event_id" onchange="this.form.submit()" class="sd-switcher-select">
                             <?php foreach ($assignments as $asg): ?>
                                 <option value="<?= $asg['event_id'] ?>" <?= $asg['event_id'] == $event['id'] ? 'selected' : '' ?>>
                                     <?= e($asg['event_name']) ?> (<?= e($asg['role_name']) ?>)
@@ -61,46 +830,48 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                 </div>
             <?php endif; ?>
         </div>
-    </div>
+    </header>
 
     <!-- Quick Stats Grid -->
     <?php if (!empty($stats)): ?>
-        <section class="support-stats-grid">
-            <article class="summary-card">
-                <span class="card-label">Total Issued Passes</span>
-                <h3 class="card-value"><?= number_format($stats['total_tickets']) ?></h3>
-                <p class="card-meta">Paid &amp; verified tickets</p>
+        <section class="sd-stats-grid">
+            <article class="sd-stat-card">
+                <span class="sd-stat-label">Total Issued</span>
+                <span class="sd-stat-val"><?= number_format($stats['total_tickets']) ?></span>
+                <span class="sd-stat-sub">Paid &amp; verified tickets</span>
             </article>
-            <article class="summary-card stat-checked-in">
-                <span class="card-label">Checked In</span>
-                <h3 class="card-value"><?= number_format($stats['checked_in']) ?></h3>
-                <p class="card-meta">Arrived at venue</p>
+            <article class="sd-stat-card stat-green">
+                <span class="sd-stat-label">Checked In</span>
+                <span class="sd-stat-val"><?= number_format($stats['checked_in']) ?></span>
+                <span class="sd-stat-sub">Admitted at gate</span>
             </article>
-            <article class="summary-card stat-remaining">
-                <span class="card-label">Remaining Expected</span>
-                <h3 class="card-value"><?= number_format($stats['remaining']) ?></h3>
-                <p class="card-meta">Not checked in yet</p>
+            <article class="sd-stat-card stat-amber">
+                <span class="sd-stat-label">Remaining Expected</span>
+                <span class="sd-stat-val"><?= number_format($stats['remaining']) ?></span>
+                <span class="sd-stat-sub">Not checked in yet</span>
             </article>
-            <article class="summary-card stat-rate">
-                <span class="card-label">Attendance Rate</span>
-                <h3 class="card-value"><?= number_format($stats['percentage'], 1) ?>%</h3>
-                <p class="card-meta">Of total capacity</p>
+            <article class="sd-stat-card stat-brand">
+                <span class="sd-stat-label">Attendance Rate</span>
+                <span class="sd-stat-val"><?= number_format($stats['percentage'], 1) ?>%</span>
+                <span class="sd-stat-sub">Of total passes</span>
             </article>
         </section>
     <?php endif; ?>
 
-    <!-- Cross-Event Match Notification (if attendee has ticket for another assigned event) -->
+    <!-- Cross-Event Match Notification -->
     <?php if (!empty($other_match)): ?>
-        <div class="support-cross-event-alert">
-            <span class="cross-alert-icon">💡</span>
-            <div class="cross-alert-text">
-                <strong>Ticket Found in Another Assigned Event:</strong>
-                <span>Pass <code><?= e($other_match['ticket_code']) ?></code> (<?= e($other_match['attendee_name']) ?>) is registered for <strong><?= e($other_match['event_name']) ?></strong>.</span>
+        <div class="sd-cross-match">
+            <div class="sd-cross-match-left">
+                <span class="sd-cross-match-icon">💡</span>
+                <div class="sd-cross-match-info">
+                    <strong>Pass Registered for Another Assigned Event:</strong><br />
+                    Ticket <span class="sd-cross-match-code"><?= e($other_match['ticket_code']) ?></span> for <strong><?= e($other_match['attendee_name']) ?></strong> is active on <strong><?= e($other_match['event_name']) ?></strong>.
+                </div>
             </div>
-            <form method="POST" action="{{ route('teams/switch-event') }}" style="margin: 0; flex-shrink: 0;">
+            <form method="POST" action="{{ route('teams/switch-event') }}" style="margin:0; flex-shrink:0;">
                 <?= csrf_field() ?>
                 <input type="hidden" name="event_id" value="<?= $other_match['event_id'] ?>">
-                <button type="submit" class="admin-action-btn primary" style="padding: 0.45rem 0.95rem; font-size: 0.85rem; border-radius: 8px;">
+                <button type="submit" class="sd-cross-match-btn">
                     Switch to <?= e($other_match['event_name']) ?> →
                 </button>
             </form>
@@ -108,27 +879,28 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
     <?php endif; ?>
 
     <!-- Search Toolbar -->
-    <section class="form-card support-search-card">
-        <form method="GET" action="{{ route('teams/support-desk') }}" class="support-search-form">
-            <div class="support-search-input-wrap">
-                <input type="text" name="q" value="<?= e($query ?? '') ?>" placeholder="Search attendee by name, email, or ticket code (e.g. EV-A1B2 or Alex)..."
-                    class="support-search-input">
+    <section class="sd-search-card">
+        <form method="GET" action="{{ route('teams/support-desk') }}" class="sd-search-form">
+            <div class="sd-search-input-wrap">
+                <span class="sd-search-icon">🔍</span>
+                <input type="text" name="q" value="<?= e($query ?? '') ?>" placeholder="Search attendee by name, email, or ticket code (e.g. EV-1001 or Alex)..."
+                    class="sd-search-input">
             </div>
-            <button type="submit" class="admin-action-btn primary support-search-btn">
-                🔍 Search Attendee
+            <button type="submit" class="sd-search-btn">
+                <span>🔍</span> Search Pass
             </button>
             <?php if (!empty($query)): ?>
-                <a href="{{ route('teams/support-desk') }}" class="admin-action-btn support-clear-btn">Clear</a>
+                <a href="{{ route('teams/support-desk') }}" class="sd-clear-btn">Clear</a>
             <?php endif; ?>
         </form>
     </section>
 
     <!-- Attendees / Tickets Section -->
-    <section class="form-card support-content-card">
-        <div class="support-table-header">
+    <section class="sd-content-card">
+        <div class="sd-card-header">
             <div>
-                <h2 style="margin: 0; font-size: 1.25rem;">Attendee Ticket Passes</h2>
-                <p class="support-header-sub">
+                <h2 class="sd-card-title">Attendee Admission Passes</h2>
+                <p class="sd-card-subtitle">
                     <?php if (!empty($query)): ?>
                         Showing results matching "<strong><?= e($query) ?></strong>" (<?= count($tickets ?? []) ?> found)
                     <?php else: ?>
@@ -139,33 +911,33 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
         </div>
 
         <?php if (empty($tickets)): ?>
-            <div class="empty-state support-empty-state">
-                <span class="empty-icon">🎟️</span>
-                <h3>No Attendee Passes Found</h3>
-                <p>
+            <div class="sd-empty-state">
+                <span class="sd-empty-icon">🎟️</span>
+                <h3 class="sd-empty-title">No Admission Passes Found</h3>
+                <p class="sd-empty-desc">
                     <?php if (!empty($query)): ?>
-                        No tickets match your search query "<strong><?= e($query) ?></strong>" in this event. Double check spelling or ticket code.
+                        No tickets match "<strong><?= e($query) ?></strong>" in this event. Check spelling or try searching by ticket code.
                     <?php else: ?>
                         No tickets have been issued or purchased for this event yet.
                     <?php endif; ?>
                 </p>
                 <?php if (!empty($query)): ?>
-                    <a href="{{ route('teams/support-desk') }}" class="admin-action-btn" style="display: inline-block; padding: 0.5rem 1.25rem; border-radius: 10px; text-decoration: none;">
+                    <a href="{{ route('teams/support-desk') }}" class="sd-clear-btn" style="display:inline-flex;">
                         View All Attendees
                     </a>
                 <?php endif; ?>
             </div>
         <?php else: ?>
             <!-- Desktop Table View (>= 769px) -->
-            <div class="support-desktop-table-wrap">
-                <table class="au-table" style="width: 100%;">
+            <div class="sd-table-wrap">
+                <table class="sd-table">
                     <thead>
                         <tr>
                             <th style="width: 28%;">Attendee</th>
                             <th style="width: 22%;">Ticket Code &amp; Tier</th>
-                            <th style="width: 15%;">Payment Status</th>
-                            <th style="width: 18%;">Check-in Status</th>
-                            <th class="au-th-actions" style="width: 17%; text-align: right;">Support Action</th>
+                            <th style="width: 15%;">Payment</th>
+                            <th style="width: 18%;">Check-In Status</th>
+                            <th style="width: 17%; text-align: right;">Gate Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -174,52 +946,54 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                         ?>
                         <tr>
                             <td>
-                                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                    <div class="attendee-avatar">
+                                <div class="sd-attendee-cell">
+                                    <div class="sd-avatar">
                                         <?= strtoupper(substr($t['attendee_name'] ?? 'A', 0, 1)) ?>
                                     </div>
                                     <div>
-                                        <strong style="color: var(--text); font-size: 0.95rem;"><?= e($t['attendee_name']) ?></strong>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);"><?= e($t['attendee_email']) ?></div>
+                                        <div class="sd-attendee-name"><?= e($t['attendee_name']) ?></div>
+                                        <div class="sd-attendee-email"><?= e($t['attendee_email']) ?></div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <code class="ticket-code-badge"><?= e($t['id']) ?></code>
-                                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                <span class="sd-code-badge"><?= e($t['id']) ?></span>
+                                <div class="sd-tier-sub">
                                     <?= e($t['ticket_type_name'] ?? 'General Admission') ?>
                                     <?php if (!empty($t['price'])): ?>
-                                        <span style="opacity: 0.7;">(<?= format_price($t['price']) ?>)</span>
+                                        <span>(<?= format_price($t['price']) ?>)</span>
                                     <?php endif; ?>
                                 </div>
                             </td>
                             <td>
                                 <?php if (strcasecmp($t['status'], 'Paid') === 0): ?>
-                                    <span class="au-status-badge au-status--active">Paid</span>
+                                    <span class="sd-badge sd-badge-paid">Paid</span>
                                 <?php elseif (strcasecmp($t['status'], 'Comped') === 0 || strcasecmp($t['status'], 'Free') === 0): ?>
-                                    <span class="au-status-badge au-role--host"><?= e(ucfirst($t['status'])) ?></span>
+                                    <span class="sd-badge sd-badge-free"><?= e(ucfirst($t['status'])) ?></span>
                                 <?php else: ?>
-                                    <span class="au-status-badge au-status--suspended"><?= e(ucfirst($t['status'])) ?></span>
+                                    <span class="sd-badge sd-badge-pending"><?= e(ucfirst($t['status'])) ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($isCheckedIn): ?>
-                                    <span class="au-status-badge au-status--active">✓ Checked In</span>
-                                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                        <?= date('M d, H:i', strtotime($t['checked_in_at'])) ?>
-                                    </div>
+                                    <span class="sd-badge sd-badge-in">✓ Checked In</span>
+                                    <?php if (!empty($t['checked_in_at'])): ?>
+                                        <div class="sd-tier-sub">
+                                            <?= date('M d, H:i', strtotime($t['checked_in_at'])) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else: ?>
-                                    <span class="au-status-badge au-status--unverified">Not Arrived</span>
+                                    <span class="sd-badge sd-badge-not-in">Not Arrived</span>
                                 <?php endif; ?>
                             </td>
                             <td style="text-align: right;">
-                                <form method="POST" action="{{ route('teams/support-action') }}" style="display: inline; margin: 0;">
+                                <form method="POST" action="{{ route('teams/support-action') }}" style="display:inline; margin:0;">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="override_checkin" />
                                     <input type="hidden" name="ticket_id" value="<?= $t['id'] ?>" />
                                     <input type="hidden" name="check_in" value="<?= $isCheckedIn ? '0' : '1' ?>" />
-                                    <button type="submit" class="admin-action-btn <?= $isCheckedIn ? 'warning' : 'primary' ?>" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; border-radius: 8px;">
-                                        <?= $isCheckedIn ? 'Reset Status' : 'Override Entry' ?>
+                                    <button type="submit" class="sd-btn-action <?= $isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override' ?>">
+                                        <?= $isCheckedIn ? '↩ Reset' : '✓ Override Entry' ?>
                                     </button>
                                 </form>
                             </td>
@@ -230,59 +1004,63 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
             </div>
 
             <!-- Mobile & Tablet Cards View (<= 768px) -->
-            <div class="support-mobile-cards-list">
+            <div class="sd-cards-list">
                 <?php foreach ($tickets as $t):
                     $isCheckedIn = ($t['checked_in'] == 1);
                 ?>
-                <article class="support-mobile-card <?= $isCheckedIn ? 'card-checked-in' : '' ?>">
-                    <div class="sm-card-header">
-                        <div style="display: flex; align-items: center; gap: 0.65rem;">
-                            <div class="attendee-avatar">
+                <article class="sd-mobile-card <?= $isCheckedIn ? 'card-checked-in' : '' ?>">
+                    <div class="sd-card-top">
+                        <div class="sd-attendee-cell">
+                            <div class="sd-avatar">
                                 <?= strtoupper(substr($t['attendee_name'] ?? 'A', 0, 1)) ?>
                             </div>
                             <div>
-                                <h4 class="sm-attendee-name"><?= e($t['attendee_name']) ?></h4>
-                                <span class="sm-attendee-email"><?= e($t['attendee_email']) ?></span>
+                                <div class="sd-attendee-name"><?= e($t['attendee_name']) ?></div>
+                                <div class="sd-attendee-email"><?= e($t['attendee_email']) ?></div>
                             </div>
                         </div>
                         <div>
                             <?php if ($isCheckedIn): ?>
-                                <span class="au-status-badge au-status--active">Checked In</span>
+                                <span class="sd-badge sd-badge-in">Checked In</span>
                             <?php else: ?>
-                                <span class="au-status-badge au-status--unverified">Not Arrived</span>
+                                <span class="sd-badge sd-badge-not-in">Not Arrived</span>
                             <?php endif; ?>
                         </div>
                     </div>
 
-                    <div class="sm-card-details">
-                        <div class="sm-detail-item">
-                            <span class="sm-detail-label">Pass Code</span>
-                            <code class="ticket-code-badge"><?= e($t['id']) ?></code>
+                    <div class="sd-card-grid">
+                        <div class="sd-grid-item">
+                            <span class="sd-grid-label">Pass Code</span>
+                            <span class="sd-code-badge"><?= e($t['id']) ?></span>
                         </div>
-                        <div class="sm-detail-item">
-                            <span class="sm-detail-label">Ticket Tier</span>
-                            <span style="font-size: 0.88rem; font-weight: 600;"><?= e($t['ticket_type_name'] ?? 'General Admission') ?></span>
+                        <div class="sd-grid-item">
+                            <span class="sd-grid-label">Tier</span>
+                            <span style="font-weight:700; font-size:0.85rem; color:rgb(var(--text));">
+                                <?= e($t['ticket_type_name'] ?? 'General Admission') ?>
+                            </span>
                         </div>
-                        <div class="sm-detail-item">
-                            <span class="sm-detail-label">Payment</span>
-                            <span style="font-weight: 700; font-size: 0.85rem; color: <?= strcasecmp($t['status'], 'Paid') === 0 ? '#10b981' : 'inherit' ?>;">
+                        <div class="sd-grid-item">
+                            <span class="sd-grid-label">Payment</span>
+                            <span style="font-weight:700; font-size:0.82rem; color:<?= strcasecmp($t['status'], 'Paid') === 0 ? '#10b981' : 'inherit' ?>;">
                                 <?= e(ucfirst($t['status'])) ?>
                             </span>
                         </div>
-                        <div class="sm-detail-item">
-                            <span class="sm-detail-label">Purchase Date</span>
-                            <span style="font-size: 0.82rem; color: var(--text-muted);"><?= date('M d, Y', strtotime($t['purchase_date'])) ?></span>
+                        <div class="sd-grid-item">
+                            <span class="sd-grid-label">Purchased</span>
+                            <span style="font-size:0.82rem; color:rgb(var(--muted));">
+                                <?= !empty($t['purchase_date']) ? date('M d, Y', strtotime($t['purchase_date'])) : '—' ?>
+                            </span>
                         </div>
                     </div>
 
-                    <div class="sm-card-action">
-                        <form method="POST" action="{{ route('teams/support-action') }}" style="width: 100%; margin: 0;">
+                    <div class="sd-mobile-action">
+                        <form method="POST" action="{{ route('teams/support-action') }}" style="width:100%; margin:0;">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="override_checkin" />
                             <input type="hidden" name="ticket_id" value="<?= $t['id'] ?>" />
                             <input type="hidden" name="check_in" value="<?= $isCheckedIn ? '0' : '1' ?>" />
-                            <button type="submit" class="admin-action-btn <?= $isCheckedIn ? 'warning' : 'primary' ?> sm-submit-btn">
-                                <?= $isCheckedIn ? '↩️ Reset Check-In Status' : '🎟️ Override Check-In &amp; Admit' ?>
+                            <button type="submit" class="sd-btn-action <?= $isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override' ?>">
+                                <?= $isCheckedIn ? '↩ Reset Check-In Status' : '🎟️ Override Check-In &amp; Admit' ?>
                             </button>
                         </form>
                     </div>
@@ -292,537 +1070,6 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
         <?php endif; ?>
     </section>
 </div>
-
-<style>
-/* ═══════════════════════════════════════════════════════════════════
-   Support Desk Styles & Responsiveness
-   ═══════════════════════════════════════════════════════════════════ */
-.support-desk-page-wrapper {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.support-event-hero {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
-}
-
-.support-badge-group {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.4rem;
-    flex-wrap: wrap;
-}
-
-.support-panel-badge {
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    font-weight: 700;
-    font-size: 0.8rem;
-}
-
-.support-active-tag {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 600;
-}
-
-.support-event-title {
-    margin: 0;
-    font-size: clamp(1.35rem, 3vw, 1.85rem);
-    font-weight: 800;
-}
-
-.support-event-meta {
-    margin: 0.35rem 0 0;
-    font-size: 0.92rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.meta-dot {
-    opacity: 0.5;
-}
-
-.support-event-switcher-card {
-    background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.15);
-    border-radius: 14px;
-    padding: 0.65rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.switcher-label {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: rgb(var(--muted));
-    letter-spacing: 0.4px;
-}
-
-.support-switch-select {
-    padding: 0.4rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid rgba(var(--muted), 0.25);
-    background: rgb(var(--bg));
-    color: rgb(var(--text));
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-/* Stats Grid */
-.support-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.support-stats-grid .summary-card {
-    border-radius: 16px;
-    padding: 1.15rem;
-    background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.12);
-}
-
-.stat-checked-in {
-    border-color: rgba(16, 185, 129, 0.25) !important;
-    background: rgba(16, 185, 129, 0.03) !important;
-}
-.stat-checked-in .card-value { color: #10b981; }
-
-.stat-remaining {
-    border-color: rgba(245, 158, 11, 0.25) !important;
-    background: rgba(245, 158, 11, 0.03) !important;
-}
-.stat-remaining .card-value { color: #d97706; }
-
-.stat-rate .card-value { color: rgb(var(--brand)); }
-
-/* Cross-Event Alert */
-.support-cross-event-alert {
-    background: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    border-radius: 14px;
-    padding: 0.85rem 1.15rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.cross-alert-icon {
-    font-size: 1.5rem;
-}
-
-.cross-alert-text {
-    flex: 1;
-    font-size: 0.88rem;
-    color: rgb(var(--text));
-}
-
-.cross-alert-text code {
-    background: rgba(59, 130, 246, 0.15);
-    padding: 0.15rem 0.4rem;
-    border-radius: 6px;
-    font-weight: 700;
-    color: #2563eb;
-}
-
-/* Search Card */
-.support-search-card {
-    padding: 1.15rem;
-    margin-bottom: 1.5rem;
-    background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.14);
-    border-radius: 18px;
-}
-    border-radius: 18px;
-    background: var(--surface);
-    border: 1px solid rgba(var(--muted), 0.12);
-}
-
-.support-search-form {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.support-search-input-wrap {
-    flex: 1;
-    min-width: 260px;
-}
-
-.support-search-input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.7rem 1.1rem;
-    border-radius: 12px;
-    border: 1px solid rgba(var(--muted), 0.2);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 0.95rem;
-}
-
-.support-search-btn {
-    padding: 0.7rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.support-clear-btn {
-    padding: 0.7rem 1rem;
-    border-radius: 12px;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-}
-
-/* Content Section */
-.support-content-card {
-    padding: 1.5rem;
-    border-radius: 20px;
-    background: var(--surface);
-    border: 1px solid rgba(var(--muted), 0.12);
-}
-
-.support-table-header {
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.85rem;
-    border-bottom: 1px solid rgba(var(--muted), 0.1);
-}
-
-.support-header-sub {
-    margin: 0.25rem 0 0;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.support-empty-state {
-    text-align: center;
-    padding: 3rem 1.5rem;
-    background: rgba(var(--muted), 0.03);
-    border-radius: 16px;
-    border: 1px dashed rgba(var(--muted), 0.2);
-}
-
-.support-empty-state .empty-icon {
-    font-size: 2.8rem;
-    display: block;
-    margin-bottom: 0.75rem;
-}
-
-.attendee-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, rgba(var(--brand), 0.2), rgba(var(--brand), 0.05));
-    border: 1px solid rgba(var(--brand), 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 0.88rem;
-    color: rgb(var(--brand));
-    flex-shrink: 0;
-}
-
-.ticket-code-badge {
-    background: rgba(var(--muted), 0.1);
-    border: 1px solid rgba(var(--muted), 0.15);
-    padding: 0.25rem 0.55rem;
-    border-radius: 8px;
-    font-weight: 700;
-    font-family: monospace;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-}
-
-.support-desktop-table-wrap {
-    width: 100%;
-    overflow-x: auto;
-}
-
-.support-mobile-cards-list {
-    display: none;
-    flex-direction: column;
-    gap: 0.85rem;
-}
-
-.support-mobile-card {
-    background: var(--bg);
-    border: 1px solid rgba(var(--muted), 0.15);
-    border-radius: 16px;
-    padding: 1.15rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-}
-
-.support-mobile-card.card-checked-in {
-    border-left: 4px solid #10b981;
-}
-
-.sm-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-
-.sm-attendee-name {
-    margin: 0;
-    font-size: 0.98rem;
-    font-weight: 700;
-}
-
-.sm-attendee-email {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.sm-card-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
-    padding: 0.75rem;
-    background: rgba(var(--muted), 0.04);
-    border-radius: 12px;
-}
-
-.sm-detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.sm-detail-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    letter-spacing: 0.4px;
-}
-
-.sm-submit-btn {
-    width: 100%;
-    height: 42px;
-    justify-content: center;
-    border-radius: 10px;
-    font-size: 0.88rem;
-    font-weight: 700;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   Tablet Responsive (769px – 1024px)
-   ═══════════════════════════════════════════════════════════════════ */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .support-content-card {
-        padding: 1rem;
-    }
-    .support-desktop-table-wrap {
-        -webkit-overflow-scrolling: touch;
-    }
-    .support-desktop-table-wrap table {
-        min-width: 680px;
-    }
-    .support-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .support-event-hero {
-        gap: 1rem;
-    }
-    .support-event-title {
-        font-size: 1.4rem;
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   Mobile Responsive (≤ 768px)
-   ═══════════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-    .support-desktop-table-wrap {
-        display: none !important;
-    }
-    .support-mobile-cards-list {
-        display: flex !important;
-    }
-    .support-event-hero {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .support-event-switcher-card {
-        width: 100%;
-        box-sizing: border-box;
-    }
-    .support-switch-select {
-        width: 100%;
-        font-size: 0.92rem;
-        padding: 0.5rem 0.75rem;
-    }
-    .support-search-form {
-        flex-direction: column;
-    }
-    .support-search-input-wrap {
-        min-width: unset;
-        width: 100%;
-    }
-    .support-search-input {
-        font-size: 16px; /* prevents iOS zoom */
-        padding: 0.75rem 1rem;
-    }
-    .support-search-btn,
-    .support-clear-btn {
-        width: 100%;
-        justify-content: center;
-        text-align: center;
-        box-sizing: border-box;
-        height: 44px;
-    }
-    .support-content-card {
-        padding: 1rem;
-        border-radius: 16px;
-    }
-    .support-table-header h2 {
-        font-size: 1.1rem;
-    }
-    .support-stats-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.65rem;
-    }
-    .support-stats-grid .summary-card {
-        padding: 0.85rem;
-    }
-    .support-stats-grid .card-value {
-        font-size: 1.25rem;
-    }
-    .support-cross-event-alert {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 0.75rem 1rem;
-        font-size: 0.85rem;
-    }
-    .support-cross-event-alert .admin-action-btn {
-        width: 100%;
-        text-align: center;
-        justify-content: center;
-        box-sizing: border-box;
-    }
-    /* Mobile card refinements */
-    .support-mobile-card {
-        padding: 1rem;
-        gap: 0.75rem;
-        border-radius: 14px;
-    }
-    .sm-card-header {
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    .sm-attendee-name {
-        font-size: 0.95rem;
-        word-break: break-word;
-    }
-    .sm-attendee-email {
-        font-size: 0.78rem;
-        word-break: break-all;
-    }
-    .sm-card-details {
-        gap: 0.5rem;
-        padding: 0.65rem;
-    }
-    .ticket-code-badge {
-        font-size: 0.78rem;
-        padding: 0.2rem 0.45rem;
-    }
-    .sm-submit-btn {
-        height: 44px;
-        font-size: 0.85rem;
-    }
-    .support-search-card {
-        padding: 0.85rem;
-        border-radius: 14px;
-    }
-    .support-empty-state {
-        padding: 2rem 1rem;
-    }
-    .support-empty-state .empty-icon {
-        font-size: 2.2rem;
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   Small Phone (≤ 400px)
-   ═══════════════════════════════════════════════════════════════════ */
-@media (max-width: 400px) {
-    .support-desk-page-wrapper {
-        padding: 0 0.25rem;
-    }
-    .support-content-card {
-        padding: 0.75rem;
-        border-radius: 12px;
-    }
-    .support-stats-grid {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-    }
-    .support-stats-grid .summary-card {
-        padding: 0.75rem;
-        border-radius: 12px;
-    }
-    .support-mobile-card {
-        padding: 0.8rem;
-        border-radius: 12px;
-        gap: 0.6rem;
-    }
-    .sm-card-header {
-        flex-direction: column;
-        gap: 0.4rem;
-    }
-    .sm-card-details {
-        grid-template-columns: 1fr;
-        gap: 0.4rem;
-        padding: 0.55rem;
-    }
-    .sm-attendee-name {
-        font-size: 0.9rem;
-    }
-    .attendee-avatar {
-        width: 32px;
-        height: 32px;
-        font-size: 0.8rem;
-        border-radius: 8px;
-    }
-    .support-event-title {
-        font-size: 1.15rem;
-    }
-    .support-event-meta {
-        font-size: 0.8rem;
-    }
-    .sm-submit-btn {
-        height: 42px;
-        font-size: 0.82rem;
-    }
-    .support-search-input {
-        padding: 0.65rem 0.85rem;
-    }
-}
-</style>
 
 <!-- ════════════════════════════════════════════════════════════════
      GATE BOX OFFICE & TICKET SALES MODAL (SUPPORT DESK)
@@ -930,6 +1177,16 @@ document.addEventListener('DOMContentLoaded', function() {
             statusSupp.style.display = 'none';
 
             const csrfToken = "<?= csrf_token() ?>";
+            const formData = new FormData(formSupp);
+            const payload = {
+                ticket_type_id: formData.get('ticket_type_id'),
+                attendee_name: formData.get('attendee_name'),
+                attendee_email: formData.get('attendee_email'),
+                quantity: formData.get('quantity'),
+                payment_method: formData.get('payment_method'),
+                mark_checked_in: formData.get('mark_checked_in') ? 1 : 0,
+                csrf_token: csrfToken
+            };
 
             fetch('<?= route('/teams/issue-gate-ticket') ?>', {
                 method: 'POST',

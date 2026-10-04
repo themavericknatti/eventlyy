@@ -8,10 +8,10 @@
  * - Staff check-in and deployment status
  * - Live check-in rates and gate capacity
  *
- * @package Evently
+ * @package Eventlyy
  * @subpackage Views/Teams
  * @author Celio Natti
- * @version 2.3.0
+ * @version 3.0.0
  */
 
 $eventTime = !empty($event['date']) ? strtotime($event['date']) : null;
@@ -23,94 +23,490 @@ $currencySymbol = get_currency_symbol();
 @extends('layouts/team')
 
 @section('title')
-Event Organiser (Box Office) - <?= e($event['name'] ?? 'Evently') ?>
+Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
 @endsection
 
 @section('style')
 <style>
-.coord-hero {
-    margin-bottom: 1.5rem;
+/* ═════════════════════════════════════════════════════════════
+   Coordinator Dashboard Component System (.cd-*)
+   Scoped, modern, accessible, responsive across viewports.
+   ═════════════════════════════════════════════════════════════ */
+
+.cd-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* ─── Hero Header ──────────────────────────────────────────── */
+.cd-hero {
+    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+                linear-gradient(135deg, rgba(var(--card), 0.95), rgba(var(--card), 0.85));
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    border-radius: 22px;
+    padding: clamp(1.25rem, 3vw, 1.85rem) clamp(1.25rem, 3vw, 2rem);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1.25rem;
     flex-wrap: wrap;
-    gap: 1rem;
+    box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.12);
 }
-.coord-stats-grid {
+
+.cd-hero-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.cd-badge-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.cd-pill-desk {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(99, 102, 241, 0.14);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.28);
+}
+
+.cd-pill-live {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.cd-pill-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    display: inline-block;
+}
+
+.cd-title {
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 900;
+    color: rgb(var(--text));
+    margin: 0 0 0.35rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.cd-meta {
+    font-size: 0.86rem;
+    color: rgb(var(--muted));
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.cd-btn-box-office {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #ffffff !important;
+    font-weight: 800;
+    font-size: 0.92rem;
+    padding: 0.75rem 1.45rem;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(99, 102, 241, 0.35);
+    transition: all var(--duration-fast, 0.15s) ease-out;
+}
+
+.cd-btn-box-office:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.45);
+    filter: brightness(1.05);
+}
+
+/* ─── 4-Card Stats Grid ────────────────────────────────────── */
+.cd-stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    gap: 1.15rem;
+}
+
+.cd-stat-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 18px;
+    padding: 1.25rem 1.35rem;
+    display: flex;
+    align-items: center;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+    transition: transform var(--duration-fast, 0.15s) ease-out, border-color var(--duration-fast, 0.15s) ease-out;
 }
-.coord-content-grid {
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+
+.cd-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--brand), 0.3);
 }
-.staff-roster-item {
+
+.cd-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cd-stat-icon--brand {
+    background: rgba(var(--brand), 0.12);
+    color: rgb(var(--brand));
+}
+
+.cd-stat-icon--blue {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+}
+
+.cd-stat-icon--amber {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.cd-stat-icon--emerald {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.cd-stat-val {
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: rgb(var(--text));
+    display: block;
+}
+
+.cd-stat-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(var(--muted));
+    margin-top: 0.2rem;
+    display: block;
+}
+
+/* ─── Card Container ───────────────────────────────────────── */
+.cd-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 22px;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.cd-card-head {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.12);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cd-card-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.015em;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.cd-card-sub {
+    font-size: 0.84rem;
+    color: rgb(var(--muted));
+    margin: 0;
+}
+
+.cd-card-count {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: rgb(var(--brand));
+    background: rgba(var(--brand), 0.1);
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+}
+
+/* ─── Staff Roster Items ───────────────────────────────────── */
+.cd-roster-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.cd-roster-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: rgb(var(--bg));
     border: 1px solid rgba(var(--muted), 0.14);
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 0.9rem 1.15rem;
     flex-wrap: wrap;
-    gap: 0.75rem;
-}
-.gate-sale-grid-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 0.85rem;
+    transition: border-color var(--duration-fast, 0.15s) ease-out;
 }
 
+.cd-roster-item:hover {
+    border-color: rgba(var(--brand), 0.3);
+}
+
+.cd-roster-staff {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.cd-roster-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.cd-roster-name {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cd-roster-email {
+    font-size: 0.78rem;
+    color: rgb(var(--muted));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cd-roster-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.cd-role-badge {
+    font-size: 0.74rem;
+    font-weight: 800;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.cd-checkin-badge {
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.cd-btn-toggle {
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    transition: all var(--duration-fast, 0.15s) ease-out;
+    white-space: nowrap;
+}
+
+/* ─── Content Dual Column Layout ───────────────────────────── */
+.cd-content-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.cd-tier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.cd-tier-item {
+    background: rgb(var(--bg));
+    border: 1px solid rgba(var(--muted), 0.12);
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
+}
+
+.cd-tier-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.45rem;
+    font-size: 0.88rem;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.cd-progress-wrap {
+    width: 100%;
+    height: 8px;
+    background: rgba(var(--muted), 0.14);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.cd-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, rgb(var(--brand)), #10b981);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+.cd-activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.cd-activity-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.95rem;
+    border-radius: 12px;
+    background: rgb(var(--bg));
+    border: 1px solid rgba(var(--muted), 0.12);
+    font-size: 0.85rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   Responsive Breakpoints
+   ═════════════════════════════════════════════════════════════ */
+
+/* Tablet (max 1024px) */
 @media (max-width: 1024px) {
-    .coord-stats-grid {
+    .cd-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    .coord-content-grid {
+    .cd-content-grid {
         grid-template-columns: 1fr;
     }
 }
-@media (max-width: 768px) {
-    .coord-hero {
+
+/* Mobile (max 680px) */
+@media (max-width: 680px) {
+    .cd-hero {
         flex-direction: column;
         align-items: stretch;
-        gap: 0.75rem;
+        padding: 1.25rem 1.15rem;
     }
-    .coord-hero button {
+
+    .cd-btn-box-office {
         width: 100%;
         justify-content: center;
     }
-    .coord-stats-grid {
-        grid-template-columns: 1fr 1fr;
+
+    .cd-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .cd-stat-card {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 0.65rem;
     }
-    .staff-roster-item {
+
+    .cd-stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+    }
+
+    .cd-stat-val {
+        font-size: 1.25rem;
+    }
+
+    .cd-stat-label {
+        font-size: 0.72rem;
+    }
+
+    .cd-roster-item {
         flex-direction: column;
         align-items: stretch;
-        padding: 0.85rem;
-        gap: 0.65rem;
+        padding: 1rem;
+        gap: 0.75rem;
     }
-    .staff-roster-actions {
-        display: flex;
+
+    .cd-roster-actions {
         justify-content: space-between;
-        align-items: center;
         width: 100%;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        padding-top: 0.4rem;
-        border-top: 1px dashed rgba(var(--muted), 0.15);
+        padding-top: 0.5rem;
+        border-top: 1px dashed rgba(var(--muted), 0.14);
     }
-    .gate-sale-grid-2 {
-        grid-template-columns: 1fr;
-        gap: 0.65rem;
+
+    .cd-card {
+        padding: 1.25rem 1rem;
+        border-radius: 18px;
     }
 }
-@media (max-width: 480px) {
-    .coord-stats-grid {
+
+/* Very Small Mobile (< 400px) */
+@media (max-width: 400px) {
+    .cd-stats-grid {
         grid-template-columns: 1fr;
     }
 }
@@ -118,207 +514,227 @@ Event Organiser (Box Office) - <?= e($event['name'] ?? 'Evently') ?>
 @endsection
 
 @section('content')
-<section class="coord-hero">
-    <div>
-        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap;">
-            <span class="panel-badge" style="background:rgba(99,102,241,0.15); color:#6366f1; font-weight:800;">
-                🎧 Workstation — Event Organiser (Box Office/Finance)
-            </span>
-            <span style="font-size:0.75rem; font-weight:800; background:rgba(16,185,129,0.15); color:#059669; padding:0.25rem 0.65rem; border-radius:10px;">
-                ● Box Office Active
-            </span>
-        </div>
-        <h1 style="font-size:clamp(1.35rem, 3vw, 1.85rem); margin:0.25rem 0; color:rgb(var(--text));"><?= e($event['name'] ?? 'Event Organizer Desk') ?></h1>
-        <p class="lede" style="margin:0; font-size:0.92rem; color:rgb(var(--muted));">
-            <?php if ($eventTime): ?>
-                <span>📅 <?= date('D, M d, Y • g:i A', $eventTime) ?></span> •
-            <?php endif; ?>
-            <span>📍 <?= e($event['location'] ?? 'Venue') ?></span>
-        </p>
-    </div>
+<div class="cd-wrapper">
 
-    <!-- Quick Gate Action -->
-    <div>
-        <button type="button" id="btn-open-box-office" class="checkout-btn" style="background:linear-gradient(135deg, #6366f1, #4f46e5); color:#fff; font-weight:800; padding:0.7rem 1.35rem; border-radius:14px; display:inline-flex; align-items:center; gap:0.45rem; border:none; cursor:pointer; box-shadow:0 8px 20px rgba(99,102,241,0.35);">
-            <span>🎟️</span> Sell / Issue Gate Ticket
-        </button>
-    </div>
-</section>
-
-<!-- Overall Check-in & Gate Stats -->
-<section class="coord-stats-grid">
-    <div class="au-stat-card">
-        <span class="au-stat-icon au-stat-icon--brand">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-        </span>
-        <div class="au-stat-body">
-            <span class="au-stat-num" style="color:rgb(var(--brand));"><?= number_format($stats['checked_in'] ?? 0) ?></span>
-            <span class="au-stat-lbl">Checked-In Attendees</span>
-        </div>
-    </div>
-    <div class="au-stat-card">
-        <span class="au-stat-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-        </span>
-        <div class="au-stat-body">
-            <span class="au-stat-num"><?= number_format($stats['total_tickets'] ?? 0) ?></span>
-            <span class="au-stat-lbl">Total Issued Passes</span>
-        </div>
-    </div>
-    <div class="au-stat-card">
-        <span class="au-stat-icon au-stat-icon--warning">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-        </span>
-        <div class="au-stat-body">
-            <span class="au-stat-num" style="color:#d97706;"><?= number_format($stats['remaining'] ?? 0) ?></span>
-            <span class="au-stat-lbl">Awaiting Arrival</span>
-        </div>
-    </div>
-    <div class="au-stat-card">
-        <span class="au-stat-icon au-stat-icon--success">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
-        </span>
-        <div class="au-stat-body">
-            <span class="au-stat-num" style="color:#10b981;"><?= $stats['percentage'] ?? 0 ?>%</span>
-            <span class="au-stat-lbl">Check-In Rate</span>
-        </div>
-    </div>
-</section>
-
-<!-- SECTION: Staff Check-In & Deployment Hub -->
-<section class="form-card" style="margin: 1.5rem 0;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.5rem;">
-        <div>
-            <h2 style="margin:0; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:0.4rem; color:rgb(var(--text));">
-                <span>👥</span> Staff Check-In &amp; Deployment Roster
-            </h2>
-            <p style="margin:0.2rem 0 0; font-size:0.82rem; color:rgb(var(--muted));">
-                Maintain and verify which team members are currently on duty and checked-in at the event
+    <!-- ═══ Hero Header ═══ -->
+    <header class="cd-hero">
+        <div class="cd-hero-text">
+            <div class="cd-badge-wrap">
+                <span class="cd-pill-desk">🎧 Workstation — Event Organiser (Box Office)</span>
+                <span class="cd-pill-live">Box Office Active</span>
+            </div>
+            <h1 class="cd-title"><?= e($event['name'] ?? 'Event Organizer Desk') ?></h1>
+            <p class="cd-meta">
+                <?php if ($eventTime): ?>
+                    <span>📅 <?= date('D, M d, Y • g:i A', $eventTime) ?></span>
+                    <span>&bull;</span>
+                <?php endif; ?>
+                <span>📍 <?= e($event['location'] ?? 'Venue Box Office') ?></span>
+                <span>&bull;</span>
+                <span>Door Admission &amp; Roster Controls</span>
             </p>
         </div>
-        <span style="font-size:0.8rem; font-weight:800; background:rgba(var(--brand),0.1); color:rgb(var(--brand)); padding:0.35rem 0.85rem; border-radius:12px;">
-            <?= count($staffRoster) ?> Assigned Personnel
-        </span>
-    </div>
 
-    <?php if (empty($staffRoster)): ?>
-        <div style="text-align:center; padding:2rem 1rem; color:rgb(var(--muted)); background:rgba(var(--muted),0.04); border-radius:14px; border:1px dashed rgba(var(--muted),0.2);">
-            <span style="font-size:2rem; display:block; margin-bottom:0.25rem;">👥</span>
-            <p style="margin:0; font-weight:700;">No team members assigned to this event yet.</p>
+        <div>
+            <button type="button" id="btn-open-box-office" class="cd-btn-box-office">
+                <span>🎟️</span>
+                <span>Sell / Issue Gate Ticket</span>
+            </button>
         </div>
-    <?php else: ?>
-        <div style="display:flex; flex-direction:column; gap:0.75rem;">
-            <?php foreach ($staffRoster as $st): 
-                $isChecked = !empty($st['checked_in']);
-            ?>
-                <div class="staff-roster-item" id="staff-row-<?= (int)$st['assignment_id'] ?>">
-                    <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:0;">
-                        <div style="width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg, #6366f1, #a855f7); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1rem; flex-shrink:0;">
-                            <?= strtoupper(substr($st['staff_name'], 0, 1)) ?>
-                        </div>
-                        <div style="min-width:0; flex:1;">
-                            <strong style="font-size:0.92rem; color:rgb(var(--text)); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($st['staff_name']) ?></strong>
-                            <span style="font-size:0.78rem; color:rgb(var(--muted)); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($st['staff_email']) ?></span>
-                        </div>
-                    </div>
+    </header>
 
-                    <div class="staff-roster-actions" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-                        <span style="font-size:0.75rem; font-weight:800; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); padding:0.25rem 0.65rem; border-radius:8px; white-space:nowrap;">
-                            <?= e($st['role_name']) ?>
-                        </span>
-
-                        <span class="staff-checkin-badge" id="badge-checkin-<?= (int)$st['assignment_id'] ?>" style="font-size:0.75rem; font-weight:800; padding:0.25rem 0.75rem; border-radius:8px; white-space:nowrap; <?= $isChecked ? 'background:rgba(16,185,129,0.14); color:#059669; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(100,116,139,0.12); color:rgb(100,116,139);' ?>">
-                            <?= $isChecked ? '● Checked In' . (!empty($st['checked_in_at']) ? ' (' . date('H:i', strtotime($st['checked_in_at'])) . ')' : '') : '○ Not Checked In' ?>
-                        </span>
-
-                        <button type="button" class="btn-toggle-checkin" data-assignment-id="<?= (int)$st['assignment_id'] ?>" data-current="<?= $isChecked ? '1' : '0' ?>" style="padding:0.4rem 0.9rem; border-radius:10px; font-size:0.8rem; font-weight:800; cursor:pointer; border:none; transition:all 0.15s ease; white-space:nowrap; <?= $isChecked ? 'background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25);' : 'background:#10b981; color:#fff;' ?>">
-                            <?= $isChecked ? 'Check Out' : '✓ Check In Staff' ?>
-                        </button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+    <!-- ═══ 4-Card Stats Grid ═══ -->
+    <section class="cd-stats-grid">
+        <div class="cd-stat-card">
+            <div class="cd-stat-icon cd-stat-icon--brand">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <div>
+                <span class="cd-stat-val" style="color: rgb(var(--brand));"><?= number_format($stats['checked_in'] ?? 0) ?></span>
+                <span class="cd-stat-label">Checked-In Attendees</span>
+            </div>
         </div>
-    <?php endif; ?>
-</section>
 
-<!-- Content Grid: Tier Attendance & Gate Activity -->
-<div class="coord-content-grid">
-    
-    <!-- Ticket Type Capacity Breakdown -->
-    <div class="form-card" style="margin-bottom:0;">
-        <h2 style="margin:0 0 0.25rem; font-size:1.15rem; font-weight:700; color:rgb(var(--text));">Ticket Tier Attendance</h2>
-        <p class="section-note" style="margin:0 0 1.25rem; font-size:0.82rem; color:rgb(var(--muted));">Live entry rates per ticket tier.</p>
+        <div class="cd-stat-card">
+            <div class="cd-stat-icon cd-stat-icon--blue">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+            </div>
+            <div>
+                <span class="cd-stat-val"><?= number_format($stats['total_tickets'] ?? 0) ?></span>
+                <span class="cd-stat-label">Total Issued Passes</span>
+            </div>
+        </div>
 
-        <div style="display:flex; flex-direction:column; gap:1.25rem;">
-            <?php if (empty($ticket_types)): ?>
-                <p style="color:rgb(var(--muted)); text-align:center; padding:1.5rem 0;">No ticket type data available.</p>
-            <?php else: ?>
-                <?php foreach ($ticket_types as $type):
-                    $sold = (int)($type['tickets_sold'] ?? 0);
-                    $checked = (int)($type['checked_in_count'] ?? 0);
-                    $pct = $sold > 0 ? round(($checked / $sold) * 100, 1) : 0;
+        <div class="cd-stat-card">
+            <div class="cd-stat-icon cd-stat-icon--amber">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <div>
+                <span class="cd-stat-val" style="color: #f59e0b;"><?= number_format($stats['remaining'] ?? 0) ?></span>
+                <span class="cd-stat-label">Awaiting Arrival</span>
+            </div>
+        </div>
+
+        <div class="cd-stat-card">
+            <div class="cd-stat-icon cd-stat-icon--emerald">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+            </div>
+            <div>
+                <span class="cd-stat-val" style="color: #10b981;"><?= $stats['percentage'] ?? 0 ?>%</span>
+                <span class="cd-stat-label">Check-In Velocity</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Staff Check-In & Deployment Roster ═══ -->
+    <section class="cd-card">
+        <div class="cd-card-head">
+            <div>
+                <h2 class="cd-card-title">
+                    <span>👥</span> Staff Check-In &amp; Deployment Roster
+                </h2>
+                <p class="cd-card-sub">Maintain and verify which team members are currently on duty and checked-in at the venue.</p>
+            </div>
+            <span class="cd-card-count">
+                <?= count($staffRoster) ?> Assigned Personnel
+            </span>
+        </div>
+
+        <?php if (empty($staffRoster)): ?>
+            <div style="text-align:center; padding: 2.5rem 1rem; color: rgb(var(--muted));">
+                <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">👥</span>
+                <p style="margin: 0; font-weight: 700;">No team members assigned to this event yet.</p>
+            </div>
+        <?php else: ?>
+            <div class="cd-roster-list">
+                <?php foreach ($staffRoster as $st): 
+                    $isChecked = !empty($st['checked_in']);
                 ?>
-                <div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-size:0.88rem; flex-wrap:wrap; gap:0.25rem;">
-                        <strong style="color:rgb(var(--text));"><?= e($type['type_name']) ?></strong>
-                        <span style="font-size:0.82rem; color:rgb(var(--muted));"><strong style="color:rgb(var(--text));"><?= $checked ?></strong> / <?= $sold ?> checked in (<?= $pct ?>%)</span>
-                    </div>
-                    <div style="width:100%; height:10px; background:rgba(var(--muted),0.15); border-radius:10px; overflow:hidden;">
-                        <div style="width:<?= $pct ?>%; height:100%; background:linear-gradient(90deg, rgb(var(--brand)), #10b981); border-radius:10px; transition:width 0.5s ease;"></div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-    </div>
+                    <div class="cd-roster-item" id="staff-row-<?= (int)$st['assignment_id'] ?>">
+                        <div class="cd-roster-staff">
+                            <div class="cd-roster-avatar">
+                                <?= strtoupper(mb_substr($st['staff_name'], 0, 1)) ?>
+                            </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <strong class="cd-roster-name"><?= e($st['staff_name']) ?></strong>
+                                <span class="cd-roster-email"><?= e($st['staff_email']) ?></span>
+                            </div>
+                        </div>
 
-    <!-- Live Scan Stream / Recent Activity -->
-    <div class="form-card" style="margin-bottom:0;">
-        <h2 style="margin:0 0 0.25rem; font-size:1.15rem; font-weight:700; color:rgb(var(--text));">Recent Gate Activity Log</h2>
-        <p class="section-note" style="margin:0 0 1.25rem; font-size:0.82rem; color:rgb(var(--muted));">Real-time stream of verified admission passes.</p>
+                        <div class="cd-roster-actions">
+                            <span class="cd-role-badge">
+                                <?= e($st['role_name']) ?>
+                            </span>
 
-        <div style="display:flex; flex-direction:column; gap:0.6rem; max-height:360px; overflow-y:auto;">
-            <?php if (empty($recent_activity)): ?>
-                <div style="text-align:center; padding:2rem 1rem; color:rgb(var(--muted)); background:rgba(var(--muted),0.04); border-radius:12px; border:1px dashed rgba(var(--muted),0.18);">
-                    No check-in activity logged yet.
-                </div>
-            <?php else: ?>
-                <?php foreach ($recent_activity as $act): ?>
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0.85rem; border-radius:12px; background:rgb(var(--bg)); border:1px solid rgba(var(--muted),0.12); font-size:0.85rem; gap:0.5rem; flex-wrap:wrap;">
-                    <div style="min-width:0; flex:1;">
-                        <strong style="display:block; word-break:break-word; color:rgb(var(--text));"><?= e($act['attendee_name']) ?></strong>
-                        <div style="font-size:0.75rem; color:rgb(var(--muted)); margin-top:0.15rem;">
-                            <code><?= e($act['ticket_code']) ?></code> • <?= e($act['ticket_type']) ?>
+                            <span class="cd-checkin-badge" id="badge-checkin-<?= (int)$st['assignment_id'] ?>" style="<?= $isChecked ? 'background:rgba(16,185,129,0.14); color:#059669; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(100,116,139,0.12); color:rgb(100,116,139);' ?>">
+                                <?= $isChecked ? '● Checked In' . (!empty($st['checked_in_at']) ? ' (' . date('H:i', strtotime($st['checked_in_at'])) . ')' : '') : '○ Not Checked In' ?>
+                            </span>
+
+                            <button type="button" class="btn-toggle-checkin cd-btn-toggle" data-assignment-id="<?= (int)$st['assignment_id'] ?>" data-current="<?= $isChecked ? '1' : '0' ?>" style="<?= $isChecked ? 'background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25);' : 'background:#10b981; color:#fff;' ?>">
+                                <?= $isChecked ? 'Check Out' : '✓ Check In Staff' ?>
+                            </button>
                         </div>
                     </div>
-                    <span style="font-size:0.75rem; color:#10b981; font-weight:700; background:rgba(16,185,129,0.12); padding:0.2rem 0.5rem; border-radius:6px; flex-shrink:0;">
-                        <?= date('H:i:s', strtotime($act['checked_in_at'])) ?>
-                    </span>
-                </div>
                 <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <!-- ═══ Content Dual Column Layout ═══ -->
+    <div class="cd-content-grid">
+        
+        <!-- Ticket Tier Capacity Breakdown -->
+        <section class="cd-card">
+            <div class="cd-card-head">
+                <div>
+                    <h2 class="cd-card-title">
+                        <span>📊</span> Ticket Tier Attendance
+                    </h2>
+                    <p class="cd-card-sub">Live admission progress broken down by ticket tier.</p>
+                </div>
+            </div>
+
+            <div class="cd-tier-list">
+                <?php if (empty($ticket_types)): ?>
+                    <p style="color: rgb(var(--muted)); text-align: center; padding: 1.5rem 0;">No ticket tier data available.</p>
+                <?php else: ?>
+                    <?php foreach ($ticket_types as $type):
+                        $sold = (int)($type['tickets_sold'] ?? 0);
+                        $checked = (int)($type['checked_in_count'] ?? 0);
+                        $pct = $sold > 0 ? round(($checked / $sold) * 100, 1) : 0;
+                    ?>
+                    <div class="cd-tier-item">
+                        <div class="cd-tier-head">
+                            <strong style="color: rgb(var(--text)); font-size: 0.92rem;"><?= e($type['type_name']) ?></strong>
+                            <span style="font-size: 0.8rem; color: rgb(var(--muted));">
+                                <strong style="color: rgb(var(--text));"><?= $checked ?></strong> / <?= $sold ?> checked in (<?= $pct ?>%)
+                            </span>
+                        </div>
+                        <div class="cd-progress-wrap">
+                            <div class="cd-progress-fill" style="width: <?= $pct ?>%;"></div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </section>
+
+        <!-- Live Scan Stream / Recent Activity -->
+        <section class="cd-card">
+            <div class="cd-card-head">
+                <div>
+                    <h2 class="cd-card-title">
+                        <span>⚡</span> Recent Gate Activity Log
+                    </h2>
+                    <p class="cd-card-sub">Real-time stream of verified admission passes.</p>
+                </div>
+            </div>
+
+            <div class="cd-activity-list">
+                <?php if (empty($recent_activity)): ?>
+                    <div style="text-align: center; padding: 2.5rem 1rem; color: rgb(var(--muted));">
+                        No check-in activity logged yet.
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($recent_activity as $act): ?>
+                    <div class="cd-activity-item">
+                        <div style="min-width: 0; flex: 1;">
+                            <strong style="display: block; color: rgb(var(--text));"><?= e($act['attendee_name']) ?></strong>
+                            <div style="font-size: 0.76rem; color: rgb(var(--muted)); margin-top: 0.15rem;">
+                                <code style="font-family: monospace;"><?= e($act['ticket_code']) ?></code> &bull; <?= e($act['ticket_type']) ?>
+                            </div>
+                        </div>
+                        <span style="font-size: 0.76rem; color: #10b981; font-weight: 800; background: rgba(16,185,129,0.12); padding: 0.2rem 0.55rem; border-radius: 6px; flex-shrink: 0;">
+                            <?= date('H:i:s', strtotime($act['checked_in_at'])) ?>
+                        </span>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </section>
+
     </div>
+
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
-     GATE BOX OFFICE & TICKET SALES MODAL (CRYSTAL CLEAR)
+     GATE BOX OFFICE & TICKET SALES MODAL
      ════════════════════════════════════════════════════════════════ -->
 <div id="modal-box-office" class="team-modal-backdrop">
     <div class="team-modal-dialog">
@@ -335,7 +751,7 @@ Event Organiser (Box Office) - <?= e($event['name'] ?? 'Evently') ?>
         <form id="form-gate-sale">
             <?= csrf_field() ?>
             
-            <div style="margin-bottom:1rem;">
+            <div style="margin-bottom: 1rem;">
                 <label class="team-modal-label">Ticket Tier *</label>
                 <select name="ticket_type_id" id="gate-ticket-tier" required class="team-modal-select">
                     <?php foreach ($allTicketTypes as $tt): 
