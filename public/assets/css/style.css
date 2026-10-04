@@ -11903,3 +11903,1003 @@ button[type="submit"]:disabled,
 }
 
 
+
+
+/* ==========================================================================
+   Refactored Event Detail Page Styles (.ep-*)
+   ========================================================================== */
+
+/* ── Hero Section ────────────────────────────────────────────────────────── */
+.ep-hero {
+  display: grid;
+  grid-template-columns: 1.3fr 0.95fr;
+  gap: 2.5rem;
+  align-items: start;
+  margin: 2rem 0 3rem;
+}
+
+.ep-hero__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Status & Category Badges */
+.ep-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.ep-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: transform var(--duration-fast) var(--ease-spring), opacity var(--duration-fast) var(--ease-out);
+}
+
+.ep-badge--completed {
+  background: rgba(100, 116, 139, 0.12);
+  color: rgb(100, 116, 139);
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.ep-badge--live {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+
+.ep-badge--live-sm {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+
+.ep-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  display: inline-block;
+  animation: epPulse 1.8s infinite;
+}
+
+@keyframes epPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1.15); box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.ep-badge--today {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.ep-badge--category {
+  background: rgba(var(--brand), 0.1);
+  color: rgb(var(--brand));
+  border: 1px solid rgba(var(--brand), 0.2);
+}
+
+.ep-badge--flyer {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.28);
+}
+
+.ep-badge--flyer:hover {
+  transform: translateY(-1px);
+  background: rgba(99, 102, 241, 0.18);
+  color: #4f46e5;
+}
+
+/* Event Title & Summary */
+.ep-title {
+  font-size: clamp(2.1rem, 3.8vw, 3rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: rgb(var(--text));
+  margin: 0.25rem 0 1rem;
+  word-break: break-word;
+}
+
+.ep-summary {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: rgb(var(--muted));
+  margin-bottom: 2rem;
+  max-width: 65ch;
+}
+
+/* Quick Info Meta Grid */
+.ep-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: auto;
+}
+
+.ep-meta__item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 16px;
+  background: rgb(var(--card));
+  border: 1px solid rgba(var(--muted), 0.12);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+  min-width: 0;
+  overflow: hidden;
+  transition: transform var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ep-meta__item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--brand), 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.ep-meta__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 12px;
+  background: rgba(var(--brand), 0.08);
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.ep-meta__text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.ep-meta__label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgb(var(--muted));
+  margin-bottom: 0.2rem;
+}
+
+.ep-meta__value {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+/* ── Sidebar Event Card ─────────────────────────────────────────────────── */
+.ep-sidebar-card {
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgb(var(--card));
+  border: 1px solid rgba(var(--muted), 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.07);
+  display: flex;
+  flex-direction: column;
+}
+
+.ep-image {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ep-image__blur {
+  position: absolute;
+  inset: -15px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px) brightness(0.65);
+  opacity: 0.85;
+  transform: scale(1.15);
+  pointer-events: none;
+}
+
+.ep-image__full {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.35s var(--ease-out);
+}
+
+.ep-image:hover .ep-image__full {
+  transform: scale(1.03);
+}
+
+.ep-card-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.ep-organizer {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.ep-organizer .au-avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ep-organizer__info strong {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  line-height: 1.25;
+}
+
+.ep-organizer__rating {
+  font-size: 0.8rem;
+  color: rgb(var(--brand));
+  font-weight: 700;
+  display: inline-block;
+  margin-top: 0.15rem;
+}
+
+.ep-organizer__bio {
+  font-size: 0.88rem;
+  color: rgb(var(--muted));
+  line-height: 1.55;
+  margin: 0;
+}
+
+.ep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ep-tags span {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(var(--brand), 0.08);
+  color: rgb(var(--brand));
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid rgba(var(--brand), 0.14);
+}
+
+.ep-action-block {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(var(--muted), 0.12);
+}
+
+.ep-action-block__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(var(--muted));
+  margin-bottom: 0.65rem;
+}
+
+.ep-action-block__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Share & Calendar Buttons */
+.ep-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-spring), opacity var(--duration-fast) var(--ease-out), filter var(--duration-fast) var(--ease-out);
+}
+
+.ep-share-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.ep-share-btn--whatsapp {
+  background: #25D366;
+  color: #fff;
+}
+
+.ep-share-btn--twitter {
+  background: #000;
+  color: #fff;
+}
+
+.ep-share-btn--facebook {
+  background: #1877F2;
+  color: #fff;
+}
+
+.ep-share-btn--copy {
+  background: rgba(var(--muted), 0.1);
+  color: rgb(var(--text));
+  border: 1px solid rgba(var(--muted), 0.2);
+}
+
+.ep-share-btn--copy:hover {
+  background: rgba(var(--muted), 0.18);
+}
+
+.ep-calendar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 10px;
+  background: rgba(var(--muted), 0.08);
+  color: rgb(var(--text));
+  border: 1px solid rgba(var(--muted), 0.18);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.ep-calendar-btn:hover {
+  background: rgba(var(--brand), 0.1);
+  border-color: rgba(var(--brand), 0.3);
+  color: rgb(var(--brand));
+  transform: translateY(-1px);
+}
+
+/* ── Completed Banner ────────────────────────────────────────────────────── */
+.ep-completed-banner {
+  background: rgba(var(--card), 0.9);
+  border: 1.5px solid rgba(var(--muted), 0.2);
+  border-radius: 20px;
+  padding: 2.75rem 1.75rem;
+  text-align: center;
+  margin: 2.5rem 0;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.ep-completed-banner__icon {
+  font-size: 3.2rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.ep-completed-banner h3 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+  color: rgb(var(--text));
+}
+
+.ep-completed-banner p {
+  color: rgb(var(--muted));
+  font-size: 0.95rem;
+  max-width: 520px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.6;
+}
+
+.ep-completed-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.85rem;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: rgb(var(--brand));
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+  transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ep-completed-banner__btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(var(--brand), 0.3);
+}
+
+/* ── Tickets Section ─────────────────────────────────────────────────────── */
+.ep-tickets {
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr;
+  gap: 2.25rem;
+  align-items: start;
+  margin-bottom: 3rem;
+}
+
+.ep-tickets__main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.ep-tickets__header h2 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.35rem;
+  color: rgb(var(--text));
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.ep-tickets__note {
+  color: rgb(var(--muted));
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ep-ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ep-ticket-list__empty {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: rgb(var(--muted));
+  font-size: 0.95rem;
+  border-radius: 18px;
+  background: rgba(var(--muted), 0.05);
+  border: 1px dashed rgba(var(--muted), 0.2);
+}
+
+/* Ticket Row Item */
+.ep-ticket {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.4rem;
+  border-radius: 18px;
+  background: rgb(var(--card));
+  border: 1.5px solid rgba(var(--muted), 0.14);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  transition: transform var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ep-ticket:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--brand), 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.ep-ticket--soldout {
+  opacity: 0.55;
+  background: rgba(var(--muted), 0.04);
+}
+
+.ep-ticket--soldout:hover {
+  transform: none;
+  border-color: rgba(var(--muted), 0.14);
+  box-shadow: none;
+}
+
+.ep-ticket__info {
+  min-width: 0;
+}
+
+.ep-ticket__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ep-ticket__name-row h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+}
+
+.ep-ticket-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  line-height: 1.2;
+}
+
+.ep-ticket-badge--soldout {
+  background: #ef4444;
+  color: #fff;
+}
+
+.ep-ticket-badge--low {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.ep-ticket__desc {
+  margin: 0.35rem 0 0;
+  color: rgb(var(--muted));
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.ep-ticket__desc-link {
+  color: rgb(var(--muted));
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.ep-ticket__desc-link:hover {
+  color: rgb(var(--brand));
+  text-decoration: underline;
+}
+
+/* Stepper Controls */
+.ep-ticket__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ep-ticket__controls .qty-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(var(--muted), 0.22);
+  background: rgba(var(--card), 0.9);
+  color: rgb(var(--text));
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.ep-ticket__controls .qty-btn:hover:not(:disabled) {
+  background: rgba(var(--brand), 0.12);
+  border-color: rgb(var(--brand));
+  color: rgb(var(--brand));
+  transform: scale(1.06);
+}
+
+.ep-ticket__controls .qty-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ep-ticket__controls .qty-value {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: rgb(var(--text));
+}
+
+.ep-ticket__price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: rgb(var(--text));
+  white-space: nowrap;
+  text-align: right;
+  min-width: 80px;
+}
+
+.ep-ticket__price--free {
+  color: #10b981;
+}
+
+/* ── Order Summary Sidebar ──────────────────────────────────────────────── */
+.ep-summary {
+  position: sticky;
+  top: 5.5rem;
+  padding: 1.6rem;
+  border-radius: 22px;
+  background: rgb(var(--card));
+  border: 1.5px solid rgba(var(--muted), 0.14);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.ep-summary__head h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: rgb(var(--text));
+}
+
+.ep-summary__head p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgb(var(--muted));
+  line-height: 1.4;
+}
+
+.ep-summary__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 52px;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(var(--muted), 0.12);
+  border-bottom: 1px solid rgba(var(--muted), 0.12);
+}
+
+.ep-summary__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.92rem;
+  color: rgb(var(--text));
+  font-weight: 600;
+}
+
+.ep-summary__empty {
+  font-size: 0.88rem;
+  color: rgb(var(--muted));
+  margin: auto 0;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.ep-summary__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 0.25rem;
+}
+
+.ep-summary__total span {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+}
+
+.ep-summary__total strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgb(var(--brand));
+}
+
+.ep-checkout-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 1.35rem;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 80%, rgb(var(--accent))));
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+  transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-out), filter var(--duration-fast) var(--ease-out);
+  text-decoration: none;
+  text-align: center;
+}
+
+.ep-checkout-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(var(--brand), 0.35);
+  filter: brightness(1.05);
+}
+
+.ep-checkout-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── About This Event Section ───────────────────────────────────────────── */
+.ep-about {
+  margin: 2.5rem 0 4rem;
+  padding: 2.25rem;
+  border-radius: 24px;
+  background: rgb(var(--card));
+  border: 1px solid rgba(var(--muted), 0.12);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.ep-about h2 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.25rem;
+  color: rgb(var(--text));
+}
+
+.ep-description {
+  font-size: 1.02rem;
+  line-height: 1.8;
+  color: rgb(var(--text));
+  background: rgba(var(--muted), 0.04);
+  border-left: 4px solid rgb(var(--brand));
+  padding: 1.4rem 1.75rem;
+  border-radius: 0 16px 16px 0;
+  margin-bottom: 2rem;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.ep-guests {
+  margin: 2rem 0;
+}
+
+.ep-guests h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgb(var(--text));
+}
+
+.ep-highlights__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 2.25rem 0 1rem;
+  color: rgb(var(--text));
+}
+
+.ep-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-left: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.ep-highlights li {
+  position: relative;
+  padding-left: 1.85rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgb(var(--text));
+}
+
+.ep-highlights li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0.18rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(var(--brand), 0.12);
+  color: rgb(var(--brand));
+  font-weight: 800;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Dark Mode Overrides for Event Detail (.ep-*) ───────────────────────── */
+:root[data-theme='dark'] .ep-meta__item {
+  background: rgba(var(--card), 0.8);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme='dark'] .ep-sidebar-card,
+:root[data-theme='dark'] .ep-summary,
+:root[data-theme='dark'] .ep-about {
+  background: rgb(var(--card));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme='dark'] .ep-ticket {
+  background: rgba(var(--card), 0.7);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+:root[data-theme='dark'] .ep-ticket:hover {
+  border-color: rgba(var(--brand), 0.45);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme='dark'] .ep-ticket--soldout {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme='dark'] .ep-ticket__controls .qty-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgb(var(--text));
+}
+
+:root[data-theme='dark'] .ep-description {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgb(var(--text));
+}
+
+:root[data-theme='dark'] .ep-highlights li::before {
+  background: rgba(var(--brand), 0.2);
+}
+
+:root[data-theme='dark'] .ep-completed-banner {
+  background: rgba(var(--card), 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Responsive Design for Event Detail (.ep-*) ─────────────────────────── */
+@media (max-width: 960px) {
+  .ep-hero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin: 1.5rem 0 2.5rem;
+  }
+
+  .ep-hero__content {
+    order: 1;
+  }
+
+  .ep-sidebar-card {
+    order: 2;
+  }
+
+  .ep-tickets {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .ep-summary {
+    position: static;
+    top: auto;
+  }
+
+  .ep-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .ep-title {
+    font-size: 1.85rem;
+  }
+
+  .ep-meta {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .ep-meta__item {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .ep-meta__value {
+    -webkit-line-clamp: 3;
+  }
+
+  .ep-image {
+    height: 250px;
+  }
+
+  .ep-card-body {
+    padding: 1.25rem;
+  }
+
+  .ep-ticket {
+    grid-template-columns: 1fr auto;
+    gap: 0.85rem 1rem;
+    padding: 1.15rem;
+  }
+
+  .ep-ticket__info {
+    grid-column: 1 / -1;
+  }
+
+  .ep-ticket__controls {
+    justify-self: start;
+  }
+
+  .ep-ticket__price {
+    justify-self: end;
+    text-align: right;
+    min-width: auto;
+  }
+
+  .ep-about {
+    padding: 1.4rem;
+    margin: 2rem 0 3rem;
+  }
+
+  .ep-description {
+    padding: 1rem 1.15rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .ep-title {
+    font-size: 1.6rem;
+  }
+
+  .ep-summary {
+    font-size: 0.95rem;
+  }
+
+  .ep-badges {
+    gap: 0.4rem;
+  }
+
+  .ep-badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  .ep-action-block__buttons {
+    gap: 0.4rem;
+  }
+
+  .ep-share-btn,
+  .ep-calendar-btn {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .ep-summary {
+    padding: 1.25rem 1rem;
+  }
+}
