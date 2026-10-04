@@ -1069,6 +1069,16 @@ if (!function_exists('site_setting')) {
                 'social_tiktok' => '',
                 'meta_description' => '',
                 'meta_keywords' => '',
+                'announcement_enabled' => '0',
+                'announcement_location' => 'home',
+                'announcement_badge' => '🎉 Special Announcement',
+                'announcement_title' => '',
+                'announcement_message' => '',
+                'announcement_image' => '',
+                'announcement_link_text' => 'Check It Out →',
+                'announcement_link_url' => '',
+                'announcement_dismiss_text' => 'Continue to Site',
+                'announcement_updated_at' => '0',
             ];
 
             $settingsFile = \Ace\Application::$ROOT_DIR . '/config/settings.json';

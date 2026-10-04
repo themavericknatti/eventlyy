@@ -94,6 +94,7 @@
     </main>
     @include('partials/footer')
     @include('partials/bottom-nav')
+    @include('partials/announcement-modal')
 
     <!-- Scroll-To-Top Floating Button -->
     <button id="scroll-to-top" class="scroll-to-top-btn" aria-label="Scroll to top">

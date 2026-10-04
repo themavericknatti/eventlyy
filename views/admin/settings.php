@@ -195,6 +195,116 @@ try {
 
                 <input type="file" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
             </div>
+    </div>
+
+    <!-- ═══ Platform Announcement & Holiday Celebration Modal ═══ -->
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; border:1px solid rgba(var(--brand), 0.25); background: linear-gradient(135deg, rgba(var(--brand), 0.04) 0%, rgba(245, 158, 11, 0.04) 100%), rgb(var(--card));">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
+            <div>
+                <span style="background:rgba(var(--brand), 0.15); color:rgb(var(--brand)); font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Home Page Modal</span>
+                <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.25rem;">📣 Platform Announcement &amp; Celebration Popup</h2>
+            </div>
+            <div>
+                <?php $isAnnLive = !empty($settings['announcement_enabled']) && $settings['announcement_enabled'] === '1'; ?>
+                <span style="font-size:0.8rem; font-weight:800; border-radius:999px; padding:0.3rem 0.8rem; display:inline-flex; align-items:center; gap:0.4rem; <?= $isAnnLive ? 'background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(var(--muted),0.12); color:rgb(var(--muted)); border:1px solid rgba(var(--muted),0.2);' ?>">
+                    <span style="width:8px; height:8px; border-radius:50%; background:<?= $isAnnLive ? '#10b981' : 'rgb(var(--muted))' ?>; display:inline-block;"></span>
+                    <?= $isAnnLive ? 'Active on Platform' : 'Currently Inactive' ?>
+                </span>
+            </div>
+        </div>
+        <p class="section-note" style="margin-bottom:1.5rem;">
+            Display a centered, high-impact celebration modal card at the home page to inform all users about holidays, anniversaries, promotions, or platform notices. Visitors can read the update, click an action link to proceed, or clear the popup to continue.
+        </p>
+
+        <div style="display:grid; gap:1.25rem;">
+            <!-- Active Toggle & Scope Grid -->
+            <div class="admin-grid-2">
+                <div style="background:rgba(var(--muted), 0.04); border:1px solid rgba(var(--muted), 0.12); border-radius:14px; padding:1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                    <div>
+                        <strong style="display:block; font-size:0.95rem; margin-bottom:0.2rem;">Enable Announcement Popup</strong>
+                        <span style="font-size:0.8rem; color:rgb(var(--muted));">Show the notification card to visitors</span>
+                    </div>
+                    <label style="position:relative; display:inline-block; width:52px; height:28px; margin:0; cursor:pointer;">
+                        <input type="checkbox" name="announcement_enabled" value="1" <?= $isAnnLive ? 'checked' : '' ?> style="opacity:0; width:0; height:0;">
+                        <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:<?= $isAnnLive ? 'rgb(var(--brand))' : 'rgba(var(--muted),0.3)' ?>; transition:.3s; border-radius:28px;" id="ann-toggle-slider">
+                            <span style="position:absolute; content:''; height:22px; width:22px; left:<?= $isAnnLive ? '26px' : '3px' ?>; bottom:3px; background:white; transition:.3s; border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,0.2);" id="ann-toggle-knob"></span>
+                        </span>
+                    </label>
+                </div>
+
+                <label>Display Scope
+                    <select name="announcement_location">
+                        <option value="home" <?= ($settings['announcement_location'] ?? 'home') === 'home' ? 'selected' : '' ?>>Home Page Only (Recommended)</option>
+                        <option value="sitewide" <?= ($settings['announcement_location'] ?? '') === 'sitewide' ? 'selected' : '' ?>>Site-Wide (All Public Pages)</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Badge & Headline Title -->
+            <div class="admin-grid-2">
+                <label>Badge / Eyebrow Tag
+                    <input type="text" name="announcement_badge" value="<?= e($settings['announcement_badge'] ?? '🎉 Special Announcement') ?>" placeholder="e.g. 🎉 Special Celebration or 🚀 Anniversary">
+                </label>
+
+                <label>Headline Title *
+                    <input type="text" name="announcement_title" value="<?= e($settings['announcement_title'] ?? '') ?>" placeholder="e.g. Celebrating 5 Years of Eventlyy! 🎉">
+                </label>
+            </div>
+
+            <!-- Body Message -->
+            <label>Announcement Body Message
+                <textarea name="announcement_message" rows="4" style="width:100%; box-sizing:border-box; border-radius:14px; padding:0.85rem 1rem; font-family:inherit; font-size:0.92rem; line-height:1.5; resize:vertical;" placeholder="Write your full celebration or announcement message here. Share your milestone, holiday wishes, promo codes, or important system updates..."><?= e($settings['announcement_message'] ?? '') ?></textarea>
+            </label>
+
+            <!-- Media / Image Upload -->
+            <div style="background:rgba(var(--muted), 0.03); border:1px dashed rgba(var(--muted), 0.2); border-radius:16px; padding:1.25rem;">
+                <h4 style="margin:0 0 0.35rem 0; font-size:0.95rem; font-weight:700;">Announcement Banner Image (Optional, Max 3MB)</h4>
+                <p style="font-size:0.8rem; color:rgb(var(--muted)); margin:0 0 0.85rem 0;">Upload a festive graphic, celebration poster, or holiday banner (PNG, JPG, WEBP, GIF, SVG).</p>
+
+                <?php if (!empty($settings['announcement_image'])): 
+                    $annImgSrc = str_starts_with($settings['announcement_image'], 'http') ? $settings['announcement_image'] : asset($settings['announcement_image']);
+                ?>
+                    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.85rem; background:rgba(0,0,0,0.15); padding:0.6rem 0.85rem; border-radius:12px; flex-wrap:wrap;">
+                        <img src="<?= e($annImgSrc) ?>" alt="Announcement Banner" style="max-height:64px; max-width:140px; border-radius:8px; object-fit:cover;" />
+                        <label style="margin:0; cursor:pointer; font-size:0.8rem; color:#ef4444; display:flex; align-items:center; gap:0.35rem;">
+                            <input type="checkbox" name="remove_announcement_image" value="1" style="width:auto; margin:0;"> Remove Banner Image
+                        </label>
+                    </div>
+                <?php endif; ?>
+
+                <div class="admin-grid-2">
+                    <div>
+                        <span style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); display:block; margin-bottom:0.25rem;">Upload File:</span>
+                        <input type="file" name="announcement_image" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
+                    </div>
+                    <div>
+                        <span style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); display:block; margin-bottom:0.25rem;">Or Image URL:</span>
+                        <input type="url" name="announcement_image_url" placeholder="https://example.com/banner.jpg" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Config -->
+            <div class="admin-grid-3">
+                <label>Action Button Label
+                    <input type="text" name="announcement_link_text" value="<?= e($settings['announcement_link_text'] ?? 'Check It Out →') ?>" placeholder="e.g. Check It Out →">
+                </label>
+
+                <label>Action Button URL (Optional)
+                    <input type="text" name="announcement_link_url" value="<?= e($settings['announcement_link_url'] ?? '') ?>" placeholder="e.g. /events or https://...">
+                </label>
+
+                <label>Cancel / Dismiss Button Label
+                    <input type="text" name="announcement_dismiss_text" value="<?= e($settings['announcement_dismiss_text'] ?? 'Continue to Site') ?>" placeholder="e.g. Continue to Site">
+                </label>
+            </div>
+
+            <!-- Live Preview Trigger -->
+            <div style="display:flex; justify-content:flex-start; margin-top:0.5rem;">
+                <button type="button" class="admin-action-btn" id="btn-preview-announcement" onclick="window.openAnnouncementPreview(event)" style="padding:0.55rem 1.15rem; font-size:0.85rem; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--brand), 0.12); color:rgb(var(--brand)); border:1px solid rgba(var(--brand), 0.25); cursor:pointer;">
+                    👁️ Test / Preview Modal Popup
+                </button>
+            </div>
         </div>
     </div>
 
@@ -564,5 +674,151 @@ function toggleKeyVisibility(inputId, btn) {
         btn.textContent = 'Show';
     }
 }
+
+// ── Live Announcement Modal Previewer ──
+document.addEventListener('DOMContentLoaded', function() {
+// ── Globally Accessible Live Announcement Modal Previewer ──
+window.openAnnouncementPreview = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    var modal = document.getElementById('admin-announcement-preview-modal');
+    if (!modal) {
+        console.error('Modal preview element not found');
+        return;
+    }
+
+    // Ensure modal is directly under document.body to avoid parent container stacking/overflow clipping
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+
+    var badgeInput = document.querySelector('input[name="announcement_badge"]');
+    var titleInput = document.querySelector('input[name="announcement_title"]');
+    var msgInput = document.querySelector('textarea[name="announcement_message"]');
+    var linkTextInput = document.querySelector('input[name="announcement_link_text"]');
+    var linkUrlInput = document.querySelector('input[name="announcement_link_url"]');
+    var dismissInput = document.querySelector('input[name="announcement_dismiss_text"]');
+    var imgUrlInput = document.querySelector('input[name="announcement_image_url"]');
+    var fileInput = document.querySelector('input[name="announcement_image"]');
+    var existingThumb = document.querySelector('img[alt="Announcement Banner"]');
+
+    var badgeVal = (badgeInput && badgeInput.value.trim()) ? badgeInput.value.trim() : '🎉 Special Announcement';
+    var titleVal = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : 'Celebrating Our 5th Anniversary! 🎉';
+    var msgVal = (msgInput && msgInput.value.trim()) ? msgInput.value.trim() : 'This is a live preview of your announcement. Share celebratory news, holiday wishes, promotions, or platform notices with your visitors!';
+    var linkTextVal = (linkTextInput && linkTextInput.value.trim()) ? linkTextInput.value.trim() : 'Check It Out →';
+    var linkUrlVal = (linkUrlInput && linkUrlInput.value.trim()) ? linkUrlInput.value.trim() : '';
+    var dismissVal = (dismissInput && dismissInput.value.trim()) ? dismissInput.value.trim() : 'Continue to Site';
+
+    document.getElementById('prev-ann-badge').textContent = badgeVal;
+    document.getElementById('prev-ann-title').textContent = titleVal;
+    document.getElementById('prev-ann-msg').innerHTML = msgVal.replace(/\n/g, '<br>');
+    document.getElementById('prev-ann-dismiss-btn').textContent = dismissVal;
+
+    var actionBtn = document.getElementById('prev-ann-action-btn');
+    if (linkUrlVal || linkTextVal) {
+        actionBtn.textContent = linkTextVal;
+        actionBtn.style.display = 'inline-flex';
+    } else {
+        actionBtn.style.display = 'none';
+    }
+
+    var mediaWrap = document.getElementById('prev-ann-media');
+    var mediaImg = document.getElementById('prev-ann-img');
+    
+    // Check if user has chosen a file locally or provided a URL or has an existing thumbnail
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        try {
+            mediaImg.src = URL.createObjectURL(fileInput.files[0]);
+            mediaWrap.style.display = 'block';
+        } catch(err) {
+            mediaWrap.style.display = 'none';
+        }
+    } else if (imgUrlInput && imgUrlInput.value.trim()) {
+        mediaImg.src = imgUrlInput.value.trim();
+        mediaWrap.style.display = 'block';
+    } else if (existingThumb && existingThumb.src) {
+        mediaImg.src = existingThumb.src;
+        mediaWrap.style.display = 'block';
+    } else {
+        mediaWrap.style.display = 'none';
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeAnnouncementPreview = function() {
+    var modal = document.getElementById('admin-announcement-preview-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+};
+
+// Bind keyboard & toggle handlers safely
+function initAdminAnnouncementHelpers() {
+    var btnPreview = document.getElementById('btn-preview-announcement');
+    if (btnPreview) {
+        btnPreview.onclick = window.openAnnouncementPreview;
+    }
+
+    var annCheckbox = document.querySelector('input[name="announcement_enabled"]');
+    var annSlider = document.getElementById('ann-toggle-slider');
+    var annKnob = document.getElementById('ann-toggle-knob');
+    if (annCheckbox && annSlider && annKnob) {
+        annCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                annSlider.style.background = 'rgb(var(--brand))';
+                annKnob.style.left = '26px';
+            } else {
+                annSlider.style.background = 'rgba(var(--muted),0.3)';
+                annKnob.style.left = '3px';
+            }
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            window.closeAnnouncementPreview();
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminAnnouncementHelpers);
+} else {
+    initAdminAnnouncementHelpers();
+}
 </script>
+
+<!-- Live Announcement Preview Modal Dialog (Glassmorphic Admin Preview) -->
+<div id="admin-announcement-preview-modal" style="display:none; position:fixed; inset:0; background:radial-gradient(circle at 50% 35%, rgba(var(--brand), 0.22) 0%, rgba(0, 0, 0, 0.55) 100%); backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%); z-index:99999999 !important; align-items:center; justify-content:center; padding:clamp(0.75rem, 3vw, 1.75rem); box-sizing:border-box;">
+    <div id="admin-ann-preview-backdrop" onclick="window.closeAnnouncementPreview()" style="position:absolute; inset:0; cursor:pointer;"></div>
+    <div style="position:relative; width:100%; max-width:min(92vw, 520px); max-height:min(88vh, 740px); background:linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%); color:rgb(var(--text)); border:1px solid rgba(255, 255, 255, 0.2); border-radius:clamp(20px, 4vw, 30px); box-shadow:0 28px 70px -15px rgba(0,0,0,0.45), 0 0 0 1px rgba(var(--brand), 0.15), 0 0 45px rgba(var(--brand), 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.3); backdrop-filter:blur(30px) saturate(190%); -webkit-backdrop-filter:blur(30px) saturate(190%); overflow-y:auto; overflow-x:hidden; z-index:1; animation:previewScale 0.28s cubic-bezier(0.16, 1, 0.3, 1);">
+        <button type="button" id="btn-close-ann-preview" onclick="window.closeAnnouncementPreview()" style="position:absolute; top:1rem; right:1rem; width:38px; height:38px; border-radius:50%; background:rgba(var(--card), 0.7); border:1px solid rgba(255,255,255,0.22); color:rgb(var(--text)); font-size:1.25rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 4px 14px rgba(0,0,0,0.2);">&times;</button>
+        
+        <div id="prev-ann-media" style="display:none; position:relative; width:100%; height:clamp(160px, 32vw, 220px); overflow:hidden;">
+            <img id="prev-ann-img" src="" alt="Banner Preview" style="width:100%; height:100%; object-fit:cover; display:block;">
+            <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 35%, rgba(var(--card),0.85) 92%, rgba(var(--card),0.95) 100%); pointer-events:none;"></div>
+        </div>
+
+        <div style="padding:clamp(1.4rem, 4vw, 2.25rem) clamp(1.25rem, 3.5vw, 2rem) clamp(1.5rem, 4vw, 2.25rem); text-align:center; position:relative; z-index:2;">
+            <span id="prev-ann-badge" style="display:inline-flex; align-items:center; gap:0.45rem; padding:0.35rem 1rem; border-radius:999px; background:linear-gradient(135deg, rgba(var(--brand), 0.18) 0%, rgba(var(--brand), 0.08) 100%); color:rgb(var(--brand)); font-weight:800; font-size:0.82rem; letter-spacing:0.025em; border:1px solid rgba(var(--brand), 0.32); box-shadow:0 4px 14px rgba(var(--brand), 0.16); margin-bottom:0.85rem;">🎉 Special Announcement</span>
+            <h2 id="prev-ann-title" style="font-size:clamp(1.35rem, 3.8vw, 1.8rem); font-weight:900; line-height:1.24; margin:0 0 0.85rem; color:rgb(var(--text)); letter-spacing:-0.025em;">Announcement Title</h2>
+            <div id="prev-ann-msg" style="font-size:clamp(0.92rem, 1.8vw, 0.98rem); line-height:1.65; color:rgba(var(--text), 0.82); margin-bottom:1.75rem; text-align:center;">
+                Announcement message will appear here.
+            </div>
+            <div style="display:flex; gap:0.75rem; justify-content:center; align-items:center; flex-wrap:wrap;">
+                <button type="button" id="prev-ann-action-btn" class="admin-action-btn primary" style="height:48px; padding:0 1.65rem; border-radius:14px; font-weight:800; cursor:pointer; flex:1; min-width:140px; background:linear-gradient(135deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 75%, #059669)); color:#fff; border:none; box-shadow:0 8px 24px -4px rgba(var(--brand), 0.45);">Check It Out →</button>
+                <button type="button" id="btn-dismiss-ann-preview" onclick="window.closeAnnouncementPreview()" class="admin-action-btn" style="height:48px; padding:0 1.5rem; border-radius:14px; font-weight:700; cursor:pointer; flex:1; min-width:130px; background:rgba(var(--muted),0.08); color:rgb(var(--text)); border:1px solid rgba(var(--muted),0.22); backdrop-filter:blur(8px);">Continue to Site</button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes previewScale {
+    from { transform: scale(0.92) translateY(12px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+</style>
 @endsection

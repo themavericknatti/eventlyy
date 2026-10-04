@@ -68,6 +68,16 @@ class AdminSettingsController extends Controller
             'stripe_secret_key' => '',
             'flutterwave_public_key' => '',
             'flutterwave_secret_key' => '',
+            'announcement_enabled' => '0',
+            'announcement_location' => 'home',
+            'announcement_badge' => '🎉 Special Announcement',
+            'announcement_title' => '',
+            'announcement_message' => '',
+            'announcement_image' => '',
+            'announcement_link_text' => 'Check It Out →',
+            'announcement_link_url' => '',
+            'announcement_dismiss_text' => 'Continue to Site',
+            'announcement_updated_at' => '0',
         ];
 
         if (!file_exists($this->settingsFile)) {
@@ -138,6 +148,16 @@ class AdminSettingsController extends Controller
                 'stripe_secret_key' => trim($data['stripe_secret_key'] ?? ''),
                 'flutterwave_public_key' => trim($data['flutterwave_public_key'] ?? ''),
                 'flutterwave_secret_key' => trim($data['flutterwave_secret_key'] ?? ''),
+                'announcement_enabled' => !empty($data['announcement_enabled']) ? '1' : '0',
+                'announcement_location' => in_array($data['announcement_location'] ?? '', ['home', 'sitewide']) ? $data['announcement_location'] : 'home',
+                'announcement_badge' => trim($data['announcement_badge'] ?? '🎉 Special Announcement'),
+                'announcement_title' => trim($data['announcement_title'] ?? ''),
+                'announcement_message' => trim($data['announcement_message'] ?? ''),
+                'announcement_image' => $currentSettings['announcement_image'] ?? '',
+                'announcement_link_text' => trim($data['announcement_link_text'] ?? 'Check It Out →'),
+                'announcement_link_url' => trim($data['announcement_link_url'] ?? ''),
+                'announcement_dismiss_text' => trim($data['announcement_dismiss_text'] ?? 'Continue to Site'),
+                'announcement_updated_at' => (string)time(),
             ];
 
             // Also update the runtime timezone immediately
@@ -170,10 +190,26 @@ class AdminSettingsController extends Controller
             $uploadDir = public_dir('assets/img/branding/');
             \Ace\UploadService::ensureDirectory($uploadDir);
 
-            // Process Logo Upload (Auto-downscales to max 600x200 & compresses to < 50KB)
+            // Helper: delete an old asset file from public/assets/ if it exists
+            $deleteOldAsset = function (string $relativePath) {
+                if (empty($relativePath) || str_starts_with($relativePath, 'http')) {
+                    return;
+                }
+                $fullPath = public_dir('assets/' . $relativePath);
+                if (is_file($fullPath)) {
+                    @unlink($fullPath);
+                }
+            };
+
+            // Process Logo: Option to remove or replace
+            if (!empty($data['remove_logo'])) {
+                $deleteOldAsset($currentSettings['site_logo'] ?? '');
+                $settings['site_logo'] = '';
+            }
             if (isset($_FILES['site_logo']) && !empty($_FILES['site_logo']['name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
                 $result = $uploadService->uploadFile($_FILES['site_logo'], $uploadDir, ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'], 2097152, 600, 200, 85);
                 if ($result['success']) {
+                    $deleteOldAsset($currentSettings['site_logo'] ?? '');
                     $settings['site_logo'] = 'img/branding/' . $result['filename'];
                 } else {
                     Application::$app->session->setFlash('error', 'Site logo upload failed: ' . $result['error']);
@@ -181,10 +217,15 @@ class AdminSettingsController extends Controller
                 }
             }
 
-            // Process Favicon Upload (Auto-downscales to max 128x128 & compresses to < 15KB)
+            // Process Favicon: Option to remove or replace
+            if (!empty($data['remove_favicon'])) {
+                $deleteOldAsset($currentSettings['site_favicon'] ?? '');
+                $settings['site_favicon'] = '';
+            }
             if (isset($_FILES['site_favicon']) && !empty($_FILES['site_favicon']['name']) && $_FILES['site_favicon']['error'] === UPLOAD_ERR_OK) {
                 $result = $uploadService->uploadFile($_FILES['site_favicon'], $uploadDir, ['ico', 'png', 'svg', 'jpg', 'jpeg'], 2097152, 128, 128, 85);
                 if ($result['success']) {
+                    $deleteOldAsset($currentSettings['site_favicon'] ?? '');
                     $settings['site_favicon'] = 'img/branding/' . $result['filename'];
                 } else {
                     Application::$app->session->setFlash('error', 'Favicon upload failed: ' . $result['error']);
@@ -192,14 +233,25 @@ class AdminSettingsController extends Controller
                 }
             }
 
-            // Option to remove logo
-            if (!empty($data['remove_logo'])) {
-                $settings['site_logo'] = '';
+            // Process Announcement Image: Option to remove or replace
+            if (!empty($data['remove_announcement_image'])) {
+                $deleteOldAsset($currentSettings['announcement_image'] ?? '');
+                $settings['announcement_image'] = '';
             }
-
-            // Option to remove favicon
-            if (!empty($data['remove_favicon'])) {
-                $settings['site_favicon'] = '';
+            if (isset($_FILES['announcement_image']) && !empty($_FILES['announcement_image']['name']) && $_FILES['announcement_image']['error'] === UPLOAD_ERR_OK) {
+                $annUploadDir = public_dir('assets/img/announcements/');
+                \Ace\UploadService::ensureDirectory($annUploadDir);
+                $result = $uploadService->uploadFile($_FILES['announcement_image'], $annUploadDir, ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'], 3145728, 1200, 800, 85);
+                if ($result['success']) {
+                    $deleteOldAsset($currentSettings['announcement_image'] ?? '');
+                    $settings['announcement_image'] = 'img/announcements/' . $result['filename'];
+                } else {
+                    Application::$app->session->setFlash('error', 'Announcement image upload failed: ' . $result['error']);
+                    return redirect('/admin/settings');
+                }
+            } elseif (!empty($data['announcement_image_url'])) {
+                $deleteOldAsset($currentSettings['announcement_image'] ?? '');
+                $settings['announcement_image'] = trim($data['announcement_image_url']);
             }
 
             @file_put_contents($this->settingsFile, json_encode($settings, JSON_PRETTY_PRINT));
