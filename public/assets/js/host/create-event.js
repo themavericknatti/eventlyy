@@ -137,17 +137,17 @@ document.addEventListener('DOMContentLoaded', () => {
         row.innerHTML = `
             <input type="hidden" name="ticket-id[]" value="0">
             <div class="ticket-tier-grid">
-                <label class="tier-name-label">
-                    <span>Tier Name</span>
-                    <input type="text" name="ticket-name[]" required placeholder="Tier Name (e.g. VIP, General Admission)">
+                <label class="tier-name-label event-field-group" style="margin-bottom:0;">
+                    <span class="event-label">Tier Name <span class="required-star">*</span></span>
+                    <input type="text" name="ticket-name[]" class="event-input" required placeholder="Tier Name (e.g. VIP, General Admission)">
                 </label>
-                <label class="tier-price-label">
-                    <span>Price</span>
-                    <input type="number" step="0.01" name="ticket-price[]" required placeholder="0.00" min="0">
+                <label class="tier-price-label event-field-group" style="margin-bottom:0;">
+                    <span class="event-label">Price <span class="required-star">*</span></span>
+                    <input type="number" step="0.01" name="ticket-price[]" class="event-input" required placeholder="0.00" min="0">
                 </label>
-                <label class="tier-qty-label">
-                    <span>Total Capacity</span>
-                    <input type="number" name="ticket-qty[]" required placeholder="Quantity" min="1">
+                <label class="tier-qty-label event-field-group" style="margin-bottom:0;">
+                    <span class="event-label">Total Capacity <span class="required-star">*</span></span>
+                    <input type="number" name="ticket-qty[]" class="event-input" required placeholder="Quantity" min="1">
                 </label>
                 <div class="tier-remove-wrap">
                     <button type="button" class="remove-ticket-row-btn ticket-remove-btn" title="Remove ticket tier">
@@ -189,25 +189,25 @@ document.addEventListener('DOMContentLoaded', () => {
         row.className = 'guest-row';
         row.innerHTML = `
             <div class="guest-row-grid">
-                <label>
-                    <span>Name</span>
-                    <input type="text" name="guest-name[]" placeholder="Artist / Speaker Name" required>
+                <label class="event-field-group">
+                    <span class="event-label">Name <span class="required-star">*</span></span>
+                    <input type="text" name="guest-name[]" class="event-input" placeholder="Artist / Speaker Name" required>
                 </label>
-                <label>
-                    <span>Role</span>
-                    <input type="text" name="guest-role[]" placeholder="Performer / Keynote">
+                <label class="event-field-group">
+                    <span class="event-label">Role <span class="optional-tag">(Optional)</span></span>
+                    <input type="text" name="guest-role[]" class="event-input" placeholder="Performer / Keynote">
                 </label>
-                <label>
-                    <span>Phone</span>
-                    <input type="tel" name="guest-phone[]" placeholder="+1 555 555 5555">
+                <label class="event-field-group">
+                    <span class="event-label">Phone <span class="optional-tag">(Optional)</span></span>
+                    <input type="tel" name="guest-phone[]" class="event-input" placeholder="+1 555 555 5555">
                 </label>
-                <label>
-                    <span>Social</span>
-                    <input type="text" name="guest-social[]" placeholder="@handle or https://...">
+                <label class="event-field-group">
+                    <span class="event-label">Social <span class="optional-tag">(Optional)</span></span>
+                    <input type="text" name="guest-social[]" class="event-input" placeholder="@handle or https://...">
                 </label>
             </div>
-            <div style="display:flex; justify-content:flex-end; margin-top:0.5rem;">
-                <button type="button" class="guest-remove" style="background:#ef4444; color:#fff; border:none; border-radius:8px; padding:0.45rem 0.9rem; cursor:pointer; font-weight:600; font-size:0.82rem;">Remove Guest</button>
+            <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">
+                <button type="button" class="guest-remove">🗑️ Remove Guest</button>
             </div>
         `;
         const gp = row.querySelector('[name="guest-phone[]"]');
