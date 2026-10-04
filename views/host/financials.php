@@ -8,7 +8,7 @@
  * @package Evently
  * @subpackage Views/Host
  * @author Celio Natti
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 $siteName = site_setting('site_title', 'Eventlyy');
@@ -22,81 +22,452 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
 @endsection
 
 @section('content')
-<!-- Page Header -->
-<div class="event-mgmt-header" style="margin-bottom:1.5rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
-        <a href="{{ route('host/dashboard') }}" class="back-link" style="display:inline-flex; align-items:center; gap:0.4rem; font-weight:600; text-decoration:none;">
-            ← Back to Dashboard
-        </a>
-        <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
-            <a href="{{ route('host/settings') }}" class="admin-action-btn" style="padding:0.45rem 0.9rem; font-size:0.84rem; border-radius:8px; display:inline-flex; align-items:center; gap:0.35rem; text-decoration:none;">
-                ⚙️ Payout Settings
-            </a>
-        </div>
-    </div>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   Host Financials — Responsive Polish & Layout Refactor
+   ═══════════════════════════════════════════════════════════ */
 
-    <section class="page-hero" style="padding:1.5rem; background:rgb(var(--card)); border:1px solid rgba(var(--muted), 0.15); border-radius:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem;">
-            <div>
-                <span class="panel-badge" style="background:rgba(16, 185, 129, 0.12); color:#10b981; border:1px solid rgba(16, 185, 129, 0.25);">💳 Host Financials &amp; Payouts</span>
-                <h1 style="margin:0.35rem 0 0.5rem; font-size:clamp(1.5rem, 2.5vw, 2rem);">Earnings, Revenue &amp; Withdrawals</h1>
-                <p class="lede" style="margin:0; font-size:0.92rem; color:rgb(var(--muted));">
-                    Track your total net earnings, per-event ticket revenues, fee deductions, and withdrawal transactions.
-                </p>
-            </div>
-            
-            <!-- Linked Bank Badge -->
-            <div style="background:rgba(var(--muted), 0.05); border:1px solid rgba(var(--muted), 0.15); border-radius:12px; padding:0.85rem 1.1rem; min-width:240px;">
-                <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:rgb(var(--muted)); letter-spacing:0.04em; display:block; margin-bottom:0.25rem;">Destination Payout Bank</span>
-                <?php if ($bankConfigured): ?>
-                    <div style="font-weight:700; color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
-                        <span>🏦</span> <?= e($profile['payout_bank']) ?>
-                    </div>
-                    <div style="font-size:0.82rem; color:rgb(var(--muted)); font-family:monospace; margin-top:2px;">
-                        Acc: <?= e($profile['payout_account']) ?>
-                        <span style="color:#10b981; font-weight:700; margin-left:4px;">● Verified</span>
-                    </div>
-                <?php else: ?>
-                    <div style="font-size:0.85rem; color:#ef4444; font-weight:600; display:flex; align-items:center; gap:0.35rem;">
-                        <span>⚠️</span> Bank Not Configured
-                    </div>
-                    <a href="{{ route('host/settings') }}" style="font-size:0.78rem; color:rgb(var(--brand)); font-weight:700; text-decoration:underline; display:block; margin-top:2px;">Set up payout account →</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </section>
+/* Top Navigation Bar */
+.fin-top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.fin-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: rgb(var(--text));
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.fin-back-link:hover {
+    color: rgb(var(--brand));
+}
+
+/* Page Hero Card */
+.fin-hero-card {
+    padding: 1.5rem 1.75rem;
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.16);
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    margin-bottom: 1.75rem;
+}
+
+.fin-hero-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.fin-hero-info {
+    flex: 1;
+    min-width: 280px;
+}
+
+/* Linked Bank Destination Box */
+.fin-bank-box {
+    background: rgba(var(--muted), 0.05);
+    border: 1px solid rgba(var(--muted), 0.16);
+    border-radius: 14px;
+    padding: 0.95rem 1.25rem;
+    min-width: 260px;
+}
+
+/* Primary Financial Summary Cards Grid */
+.fin-primary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.fin-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.15);
+    border-radius: 18px;
+    padding: 1.25rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.fin-card-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgb(var(--muted));
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.fin-card-value {
+    font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+    font-weight: 900;
+    color: rgb(var(--text));
+    margin: 0 0 0.35rem;
+    line-height: 1.2;
+}
+
+.fin-card-meta {
+    font-size: 0.8rem;
+    color: rgb(var(--muted));
+    margin: 0;
+}
+
+/* Secondary Metrics Grid */
+.fin-secondary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.fin-mini-card {
+    background: rgba(var(--card), 0.7);
+    border: 1px solid rgba(var(--muted), 0.12);
+    border-radius: 16px;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.fin-mini-value {
+    margin: 0.2rem 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+}
+
+/* ── Interactive Navigation Tabs ── */
+.fin-tabs-bar {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.35rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.12);
+}
+
+.fin-tabs-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.fin-tabs-bar .tab-btn {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--muted), 0.15);
+    background: rgba(var(--muted), 0.06);
+    color: rgb(var(--text));
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: inherit;
+}
+
+.fin-tabs-bar .tab-btn:hover {
+    background: rgba(var(--brand), 0.1);
+    color: rgb(var(--brand));
+    border-color: rgba(var(--brand), 0.25);
+}
+
+.fin-tabs-bar .tab-btn.active {
+    background: rgb(var(--brand));
+    color: #ffffff;
+    border-color: rgb(var(--brand));
+    box-shadow: 0 3px 10px rgba(var(--brand), 0.25);
+}
+
+/* Action Buttons */
+.fin-btn {
+    padding: 0.55rem 1.15rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+    border-radius: 10px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-family: inherit;
+}
+
+.fin-btn--primary {
+    background: rgb(var(--brand));
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(var(--brand), 0.25);
+}
+
+.fin-btn--primary:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.fin-btn--escrow {
+    background: #ea580c;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+}
+
+.fin-btn--escrow:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.fin-btn--disabled {
+    background: rgba(var(--muted), 0.1);
+    color: rgb(var(--muted)) !important;
+    border: 1px solid rgba(var(--muted), 0.15);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Tables Section Polish */
+.fin-table-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 22px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+    margin-bottom: 2rem;
+}
+
+.fin-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.fin-table-search {
+    padding: 0.5rem 0.95rem;
+    border-radius: 11px;
+    border: 1px solid rgba(var(--muted), 0.18);
+    background: rgba(var(--card), 0.6);
+    color: rgb(var(--text));
+    font-size: 0.85rem;
+    min-width: 230px;
+    font-family: inherit;
+}
+
+.fin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.88rem;
+    text-align: left;
+}
+
+.fin-table th {
+    background: rgba(var(--muted), 0.05);
+    color: rgb(var(--muted));
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.15);
+    white-space: nowrap;
+}
+
+.fin-table td {
+    padding: 0.95rem 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.08);
+    color: rgb(var(--text));
+    vertical-align: middle;
+}
+
+.fin-table tr:hover td {
+    background: rgba(var(--muted), 0.03);
+}
+
+/* ══ Tablet Breakpoint (601px - 900px) ══ */
+@media (max-width: 900px) and (min-width: 601px) {
+    .fin-primary-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .fin-secondary-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .fin-hero-wrap {
+        flex-direction: column;
+    }
+
+    .fin-bank-box {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .fin-table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fin-table-search {
+        width: 100%;
+    }
+}
+
+/* ══ Mobile Breakpoint (<= 600px) ══ */
+@media (max-width: 600px) {
+    .fin-top-nav {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fin-hero-card {
+        padding: 1.15rem;
+    }
+
+    .fin-hero-wrap {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .fin-bank-box {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .fin-primary-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem;
+    }
+
+    .fin-secondary-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem;
+    }
+
+    .fin-mini-card {
+        padding: 0.85rem;
+    }
+
+    .fin-table-card {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .fin-table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fin-table-search {
+        width: 100%;
+    }
+}
+</style>
+
+<!-- Top Navigation Bar -->
+<div class="fin-top-nav">
+    <a href="{{ route('host/dashboard') }}" class="fin-back-link">
+        ← Back to Dashboard
+    </a>
+    <a href="{{ route('host/settings') }}" class="admin-action-btn" style="padding:0.45rem 0.95rem; font-size:0.84rem; border-radius:10px; display:inline-flex; align-items:center; gap:0.35rem; text-decoration:none; font-weight:700;">
+        ⚙️ Payout Settings
+    </a>
 </div>
 
+<!-- Page Hero Card -->
+<section class="fin-hero-card">
+    <div class="fin-hero-wrap">
+        <div class="fin-hero-info">
+            <span class="panel-badge" style="background:rgba(16, 185, 129, 0.12); color:#10b981; border:1px solid rgba(16, 185, 129, 0.25);">💳 Host Financials &amp; Payouts</span>
+            <h1 style="margin:0.35rem 0 0.5rem; font-size:clamp(1.5rem, 2.5vw, 2.1rem); font-weight:900;">Earnings, Revenue &amp; Withdrawals</h1>
+            <p class="lede" style="margin:0; font-size:0.92rem; color:rgb(var(--muted));">
+                Track your total net earnings, per-event ticket revenues, fee deductions, and withdrawal transactions in real time.
+            </p>
+        </div>
+        
+        <!-- Linked Bank Badge -->
+        <div class="fin-bank-box">
+            <span style="font-size:0.75rem; text-transform:uppercase; font-weight:800; color:rgb(var(--muted)); letter-spacing:0.04em; display:block; margin-bottom:0.3rem;">Destination Payout Bank</span>
+            <?php if ($bankConfigured): ?>
+                <div style="font-weight:800; color:rgb(var(--text)); font-size:1rem; display:flex; align-items:center; gap:0.4rem;">
+                    <span>🏦</span> <?= e($profile['payout_bank']) ?>
+                </div>
+                <div style="font-size:0.84rem; color:rgb(var(--muted)); font-family:monospace; margin-top:3px;">
+                    Acc: <?= e($profile['payout_account']) ?>
+                    <span style="color:#10b981; font-weight:800; margin-left:4px;">● Verified</span>
+                </div>
+            <?php else: ?>
+                <div style="font-size:0.88rem; color:#ef4444; font-weight:700; display:flex; align-items:center; gap:0.35rem;">
+                    <span>⚠️</span> Bank Not Configured
+                </div>
+                <a href="{{ route('host/settings') }}" style="font-size:0.8rem; color:rgb(var(--brand)); font-weight:700; text-decoration:underline; display:block; margin-top:3px;">Set up payout account →</a>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+
 <!-- Primary Financial Stats Grid -->
-<section class="host-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+<section class="fin-primary-grid">
     <!-- Lifetime Net Earnings -->
-    <article class="summary-card">
-        <span class="card-label">Lifetime Net Earnings</span>
-        <h3 class="card-value" style="color:rgb(var(--text));"><?= format_price($totalNetRevenue ?? 0) ?></h3>
+    <article class="fin-card">
+        <div>
+            <span class="fin-card-label">Lifetime Net Earnings</span>
+            <h3 class="fin-card-value" style="color:rgb(var(--text));"><?= format_price($totalNetRevenue ?? 0) ?></h3>
+        </div>
         <?php if (($totalPlatformFees ?? 0) > 0): ?>
-            <p class="card-meta" style="font-size:0.78rem;">Gross sales: <?= format_price($totalRevenue ?? 0) ?></p>
-            <p class="card-meta" style="font-size:0.75rem; color:#ef4444;">− <?= format_price($totalPlatformFees ?? 0) ?> platform fee (5%)</p>
+            <div>
+                <p class="fin-card-meta" style="font-size:0.78rem;">Gross sales: <?= format_price($totalRevenue ?? 0) ?></p>
+                <p class="fin-card-meta" style="font-size:0.75rem; color:#ef4444; font-weight:600;">− <?= format_price($totalPlatformFees ?? 0) ?> platform fee (5%)</p>
+            </div>
         <?php else: ?>
-            <p class="card-meta" style="font-size:0.78rem;">100% of all ticket sales</p>
+            <p class="fin-card-meta" style="font-size:0.78rem;">100% of all ticket sales</p>
         <?php endif; ?>
     </article>
 
     <!-- Available Completed Balance -->
-    <article class="summary-card" style="display:flex; flex-direction:column; justify-content:space-between; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.04);">
+    <article class="fin-card" style="border-color: rgba(16, 185, 129, 0.28); background: rgba(16, 185, 129, 0.04);">
         <div>
-            <span class="card-label" style="color: #10b981; font-weight: 700;">Available to Withdraw</span>
-            <h3 class="card-value" style="color: #10b981;"><?= format_price($availableBalance ?? 0) ?></h3>
-            <p class="card-meta" style="font-size:0.78rem;">From completed events</p>
+            <span class="fin-card-label" style="color: #10b981;">Available to Withdraw</span>
+            <h3 class="fin-card-value" style="color: #10b981;"><?= format_price($availableBalance ?? 0) ?></h3>
+            <p class="fin-card-meta" style="font-size:0.78rem;">From completed events</p>
         </div>
-        <form method="POST" action="{{ route('host/withdraw') }}" style="margin-top:0.75rem; width:100%;">
+        <form method="POST" action="{{ route('host/withdraw') }}" style="margin-top:0.85rem; width:100%;">
             <?= csrf_field() ?>
             <input type="hidden" name="withdraw_type" value="completed">
             <?php if (($availableBalance ?? 0.00) > 0 && $bankConfigured): ?>
-                <button type="submit" class="checkout-btn" style="padding:0.5rem 1rem; font-size:0.85rem; height:auto; width:100%; text-align:center;">
+                <button type="submit" class="fin-btn fin-btn--primary" style="width:100%;">
                     💸 Request Standard Payout
                 </button>
             <?php else: ?>
-                <button type="button" class="checkout-btn secondary" disabled style="padding:0.5rem 1rem; font-size:0.85rem; height:auto; width:100%; opacity:0.5; cursor:not-allowed;">
+                <button type="button" class="fin-btn fin-btn--disabled" disabled style="width:100%;">
                     <?= !$bankConfigured ? 'Configure Bank First' : 'No Balance Available' ?>
                 </button>
             <?php endif; ?>
@@ -104,19 +475,19 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
     </article>
 
     <!-- Escrow Balance (Upcoming Events) -->
-    <article class="summary-card" style="display:flex; flex-direction:column; justify-content:space-between; border-color: rgba(251, 146, 60, 0.3); background: rgba(251, 146, 60, 0.04);">
+    <article class="fin-card" style="border-color: rgba(251, 146, 60, 0.28); background: rgba(251, 146, 60, 0.04);">
         <div>
-            <span class="card-label" style="color: #ea580c; font-weight: 700;">🔒 Escrow Balance (Live/Upcoming)</span>
-            <h3 class="card-value" style="color: #ea580c;"><?= format_price($escrowRevenue ?? 0) ?></h3>
-            <p class="card-meta" style="font-size:0.78rem;">Withdrawable: <strong><?= format_price($availableEscrowBalance ?? 0) ?></strong></p>
+            <span class="fin-card-label" style="color: #ea580c;">🔒 Escrow Balance (Upcoming)</span>
+            <h3 class="fin-card-value" style="color: #ea580c;"><?= format_price($escrowRevenue ?? 0) ?></h3>
+            <p class="fin-card-meta" style="font-size:0.78rem;">Withdrawable: <strong><?= format_price($availableEscrowBalance ?? 0) ?></strong></p>
         </div>
-        <div style="margin-top:0.75rem; width:100%;">
+        <div style="margin-top:0.85rem; width:100%;">
             <?php if (($availableEscrowBalance ?? 0.00) > 0 && $bankConfigured): ?>
-                <button type="button" id="financials-escrow-btn" class="checkout-btn" style="padding:0.5rem 1rem; font-size:0.85rem; height:auto; width:100%; text-align:center; background:#ea580c; border-color:#ea580c;">
+                <button type="button" id="financials-escrow-btn" class="fin-btn fin-btn--escrow" style="width:100%;">
                     ⚡ Request Early Escrow Release
                 </button>
             <?php else: ?>
-                <button type="button" class="checkout-btn secondary" disabled style="padding:0.5rem 1rem; font-size:0.85rem; height:auto; width:100%; opacity:0.5; cursor:not-allowed;">
+                <button type="button" class="fin-btn fin-btn--disabled" disabled style="width:100%;">
                     <?= !$bankConfigured ? 'Configure Bank First' : 'No Escrow Available' ?>
                 </button>
             <?php endif; ?>
@@ -124,39 +495,41 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
     </article>
 
     <!-- Disbursed to Bank -->
-    <article class="summary-card">
-        <span class="card-label">Total Disbursed (Paid Out)</span>
-        <h3 class="card-value" style="color:#0284c7;"><?= format_price($disbursedPayouts ?? 0) ?></h3>
-        <p class="card-meta" style="font-size:0.78rem;">Sent to your bank account</p>
+    <article class="fin-card">
+        <div>
+            <span class="fin-card-label">Total Disbursed (Paid Out)</span>
+            <h3 class="fin-card-value" style="color:#0284c7;"><?= format_price($disbursedPayouts ?? 0) ?></h3>
+        </div>
+        <p class="fin-card-meta" style="font-size:0.78rem;">Sent directly to your bank account</p>
     </article>
 </section>
 
 <!-- Secondary Stats Row -->
-<section class="host-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-    <article class="summary-card" style="min-height:auto; padding:1.1rem 1.25rem;">
-        <span class="card-label" style="font-size:0.82rem;">Pending / Processing Payouts</span>
-        <h4 style="margin:0; font-size:1.25rem; font-weight:700; color:#d97706;"><?= format_price($pendingPayouts ?? 0) ?></h4>
-        <p class="card-meta" style="font-size:0.75rem;">Awaiting admin transfer</p>
+<section class="fin-secondary-grid">
+    <article class="fin-mini-card">
+        <span class="fin-card-label" style="font-size:0.76rem;">Pending Payouts</span>
+        <h4 class="fin-mini-value" style="color:#d97706;"><?= format_price($pendingPayouts ?? 0) ?></h4>
+        <p class="fin-card-meta" style="font-size:0.75rem;">Awaiting admin transfer</p>
     </article>
-    <article class="summary-card" style="min-height:auto; padding:1.1rem 1.25rem;">
-        <span class="card-label" style="font-size:0.82rem;">Total Platform Fee Deductions</span>
-        <h4 style="margin:0; font-size:1.25rem; font-weight:700; color:rgb(var(--muted));"><?= format_price($totalPlatformFees ?? 0) ?></h4>
-        <p class="card-meta" style="font-size:0.75rem;">5% fee where host absorbed fee</p>
+    <article class="fin-mini-card">
+        <span class="fin-card-label" style="font-size:0.76rem;">Platform Fee Deductions</span>
+        <h4 class="fin-mini-value" style="color:rgb(var(--muted));"><?= format_price($totalPlatformFees ?? 0) ?></h4>
+        <p class="fin-card-meta" style="font-size:0.75rem;">5% fee where absorbed</p>
     </article>
-    <article class="summary-card" style="min-height:auto; padding:1.1rem 1.25rem;">
-        <span class="card-label" style="font-size:0.82rem;">Online Tickets Sold</span>
-        <h4 style="margin:0; font-size:1.25rem; font-weight:700; color:rgb(var(--text));"><?= number_format($totalTicketsSold ?? 0) ?></h4>
-        <p class="card-meta" style="font-size:0.75rem;">Online platform purchases</p>
+    <article class="fin-mini-card">
+        <span class="fin-card-label" style="font-size:0.76rem;">Online Tickets Sold</span>
+        <h4 class="fin-mini-value"><?= number_format($totalTicketsSold ?? 0) ?></h4>
+        <p class="fin-card-meta" style="font-size:0.75rem;">Online platform purchases</p>
     </article>
-    <article class="summary-card" style="min-height:auto; padding:1.1rem 1.25rem;">
-        <span class="card-label" style="font-size:0.82rem;">Events Hosted</span>
-        <h4 style="margin:0; font-size:1.25rem; font-weight:700; color:rgb(var(--text));"><?= number_format($totalEventsCount ?? 0) ?></h4>
-        <p class="card-meta" style="font-size:0.75rem;">All-time created events</p>
+    <article class="fin-mini-card">
+        <span class="fin-card-label" style="font-size:0.76rem;">Events Hosted</span>
+        <h4 class="fin-mini-value"><?= number_format($totalEventsCount ?? 0) ?></h4>
+        <p class="fin-card-meta" style="font-size:0.75rem;">All-time created events</p>
     </article>
 </section>
 
 <!-- Interactive Navigation Tabs -->
-<div class="dashboard-tabs" style="margin-bottom:1.5rem;">
+<div class="fin-tabs-bar dashboard-tabs">
     <button type="button" class="tab-btn active" id="tab-btn-events" onclick="switchFinancialTab('events')">
         📊 Per-Event Earnings Breakdown (<?= count($eventFinancials ?? []) ?>)
     </button>
@@ -172,29 +545,28 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
 <!-- TAB 1: PER-EVENT EARNINGS BREAKDOWN                      -->
 <!-- ======================================================== -->
 <div id="tab-content-events" class="financial-tab-panel">
-    <section class="form-card" style="padding:1.5rem; margin-bottom:2rem;">
-        <div class="card-header" style="margin-bottom:1.25rem; border-bottom:none; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+    <section class="fin-table-card">
+        <div class="fin-table-header">
             <div>
-                <h2 style="margin:0; font-size:1.25rem;">Event Revenue &amp; Settlement Tally</h2>
-                <p class="section-note" style="margin:0.25rem 0 0;">Exact gross ticket sales, platform fee policy, disbursements, and unrequested balances per event.</p>
+                <h2 style="margin:0; font-size:1.25rem; font-weight:800;">Event Revenue &amp; Settlement Tally</h2>
+                <p class="section-note" style="margin:0.25rem 0 0; font-size:0.82rem; color:rgb(var(--muted));">Exact gross ticket sales, platform fee policy, disbursements, and unrequested balances per event.</p>
             </div>
-            <input type="text" id="event-search-input" placeholder="Search events..." onkeyup="filterEventsTable()" style="padding:0.5rem 0.85rem; border-radius:8px; border:1px solid rgba(var(--muted),0.2); background:rgb(var(--card)); color:rgb(var(--text)); font-size:0.85rem; min-width:220px;" />
+            <input type="text" id="event-search-input" class="fin-table-search" placeholder="Search events..." onkeyup="filterEventsTable()" />
         </div>
 
         <?php if (empty($eventFinancials)): ?>
-            <div class="empty-state" style="padding:2.5rem 1rem; text-align:center;">
+            <div class="empty-state" style="padding:3rem 1rem; text-align:center;">
                 <span style="font-size:2.5rem; display:block; margin-bottom:0.75rem;">🎟️</span>
                 <p style="margin:0 0 1rem; font-weight:600; color:rgb(var(--muted));">No events found in your account.</p>
-                <a href="{{ route('host/event/create') }}" class="checkout-btn" style="display:inline-block; text-decoration:none; padding:0.6rem 1.25rem;">Create Your First Event</a>
+                <a href="{{ route('host/event/create') }}" class="fin-btn fin-btn--primary">Create Your First Event</a>
             </div>
         <?php else: ?>
-            <!-- Desktop Table -->
             <div class="admin-table-wrap" style="overflow-x:auto;">
-                <table class="admin-table" id="events-breakdown-table" style="width:100%; border-collapse:collapse;">
+                <table class="fin-table" id="events-breakdown-table">
                     <thead>
                         <tr>
-                            <th style="min-width:220px;">Event</th>
-                            <th>Status &amp; Fee Policy</th>
+                            <th style="min-width:200px;">Event</th>
+                            <th>Status &amp; Policy</th>
                             <th>Tickets</th>
                             <th>Gross Sales</th>
                             <th>Host Net Share</th>
@@ -211,8 +583,8 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                             ?>
                             <tr class="event-breakdown-row" data-search="<?= strtolower(e($ev['name'] . ' ' . $ev['location'])) ?>">
                                 <td>
-                                    <strong style="color:rgb(var(--text)); font-size:0.95rem; display:block;"><?= e($ev['name']) ?></strong>
-                                    <span style="font-size:0.78rem; color:rgb(var(--muted)); display:block; margin-top:2px;">
+                                    <strong style="color:rgb(var(--text)); font-size:0.92rem; display:block;"><?= e($ev['name']) ?></strong>
+                                    <span style="font-size:0.76rem; color:rgb(var(--muted)); display:block; margin-top:2px;">
                                         📅 <?= date('M d, Y', strtotime($ev['date'])) ?> · <?= e($ev['location']) ?>
                                     </span>
                                 </td>
@@ -232,9 +604,9 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                     <?php endif; ?>
 
                                     <?php if ($isPassFee): ?>
-                                        <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block; margin-top:3px;" title="Buyer covered 5% fee at checkout">🎟️ Net 100% (Buyer paid fee)</span>
+                                        <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block; margin-top:3px;" title="Buyer covered 5% fee at checkout">🎟️ Net 100% (Buyer paid)</span>
                                     <?php else: ?>
-                                        <span style="font-size:0.72rem; color:#8b5cf6; font-weight:600; display:block; margin-top:3px;" title="5% platform fee deducted from ticket price">🏷️ Net 95% (Host absorbed fee)</span>
+                                        <span style="font-size:0.72rem; color:#8b5cf6; font-weight:600; display:block; margin-top:3px;" title="5% platform fee deducted from ticket price">🏷️ Net 95% (Host fee)</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -256,7 +628,7 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                 <td>
                                     <strong><?= format_price($ev['total_disbursed']) ?></strong>
                                     <?php if ($ev['escrow_disbursed'] > 0): ?>
-                                        <span style="font-size:0.72rem; color:#ea580c; display:block;">⚡ <?= format_price($ev['escrow_disbursed']) ?> via escrow</span>
+                                        <span style="font-size:0.72rem; color:#ea580c; display:block;">⚡ <?= format_price($ev['escrow_disbursed']) ?> escrow</span>
                                     <?php endif; ?>
                                     <?php if ($ev['pending_amount'] > 0): ?>
                                         <span style="font-size:0.72rem; color:#d97706; display:block;">⏳ <?= format_price($ev['pending_amount']) ?> pending</span>
@@ -265,13 +637,13 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                 <td>
                                     <?php if ($hasRemainder): ?>
                                         <strong style="color:#d97706; font-size:0.95rem;"><?= format_price($ev['unrequested_balance']) ?></strong>
-                                        <span style="font-size:0.72rem; color:#ea580c; display:block; font-weight:600;">⚡ Unrequested</span>
+                                        <span style="font-size:0.72rem; color:#ea580c; display:block; font-weight:700;">⚡ Unrequested</span>
                                     <?php else: ?>
-                                        <span style="color:#059669; font-weight:700; font-size:0.85rem;">✓ Fully Settled</span>
+                                        <span style="color:#059669; font-weight:700; font-size:0.82rem;">✓ Fully Settled</span>
                                     <?php endif; ?>
                                 </td>
                                 <td style="text-align:right;">
-                                    <a href="{{ route('host/event/management/' . $ev['id']) }}" class="admin-action-btn" style="padding:0.35rem 0.75rem; font-size:0.8rem; border-radius:6px; text-decoration:none; display:inline-block;">
+                                    <a href="{{ route('host/event/management/' . $ev['id']) }}" class="admin-action-btn" style="padding:0.4rem 0.75rem; font-size:0.8rem; border-radius:8px; text-decoration:none; display:inline-block; font-weight:700;">
                                         Manage →
                                     </a>
                                 </td>
@@ -288,30 +660,30 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
 <!-- TAB 2: WITHDRAWAL & PAYOUT TRANSACTIONS HISTORY          -->
 <!-- ======================================================== -->
 <div id="tab-content-history" class="financial-tab-panel" style="display:none;">
-    <section class="form-card" style="padding:1.5rem; margin-bottom:2rem;">
-        <div class="card-header" style="margin-bottom:1.25rem; border-bottom:none; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+    <section class="fin-table-card">
+        <div class="fin-table-header">
             <div>
-                <h2 style="margin:0; font-size:1.25rem;">Withdrawal &amp; Payout Transactions</h2>
-                <p class="section-note" style="margin:0.25rem 0 0;">All payout requests, escrow withdrawals, and auto-settlements processed to your bank.</p>
+                <h2 style="margin:0; font-size:1.25rem; font-weight:800;">Withdrawal &amp; Payout Transactions</h2>
+                <p class="section-note" style="margin:0.25rem 0 0; font-size:0.82rem; color:rgb(var(--muted));">All payout requests, escrow withdrawals, and auto-settlements processed to your bank.</p>
             </div>
-            <input type="text" id="payout-search-input" placeholder="Search payouts..." onkeyup="filterPayoutsTable()" style="padding:0.5rem 0.85rem; border-radius:8px; border:1px solid rgba(var(--muted),0.2); background:rgb(var(--card)); color:rgb(var(--text)); font-size:0.85rem; min-width:220px;" />
+            <input type="text" id="payout-search-input" class="fin-table-search" placeholder="Search payouts..." onkeyup="filterPayoutsTable()" />
         </div>
 
         <?php if (empty($payoutHistory)): ?>
-            <div class="empty-state" style="padding:2.5rem 1rem; text-align:center;">
+            <div class="empty-state" style="padding:3rem 1rem; text-align:center;">
                 <span style="font-size:2.5rem; display:block; margin-bottom:0.75rem;">💸</span>
                 <p style="margin:0 0 1rem; font-weight:600; color:rgb(var(--muted));">No withdrawal requests recorded yet.</p>
                 <?php if (($availableBalance ?? 0) > 0): ?>
                     <form method="POST" action="{{ route('host/withdraw') }}" style="display:inline-block;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="withdraw_type" value="completed">
-                        <button type="submit" class="checkout-btn" style="padding:0.6rem 1.25rem;">Request Payout Now</button>
+                        <button type="submit" class="fin-btn fin-btn--primary">Request Payout Now</button>
                     </form>
                 <?php endif; ?>
             </div>
         <?php else: ?>
             <div class="admin-table-wrap" style="overflow-x:auto;">
-                <table class="admin-table" id="payouts-history-table" style="width:100%; border-collapse:collapse;">
+                <table class="fin-table" id="payouts-history-table">
                     <thead>
                         <tr>
                             <th>Ref #</th>
@@ -338,7 +710,7 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                 </td>
                                 <td>
                                     <?php if (!empty($p['event_name'])): ?>
-                                        <strong style="color:rgb(var(--text)); font-size:0.92rem; display:block;"><?= e($p['event_name']) ?></strong>
+                                        <strong style="color:rgb(var(--text)); font-size:0.9rem; display:block;"><?= e($p['event_name']) ?></strong>
                                         <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:2px;">
                                             Event ID: #<?= e($p['event_id']) ?>
                                         </span>
@@ -365,24 +737,24 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                     <strong style="color:rgb(var(--text)); font-size:1.02rem;"><?= format_price($p['amount']) ?></strong>
                                 </td>
                                 <td>
-                                    <div style="font-size:0.85rem; font-weight:600; color:rgb(var(--text));">
+                                    <div style="font-size:0.86rem; font-weight:700; color:rgb(var(--text));">
                                         🏦 <?= e($p['payout_bank'] ?? ($profile['payout_bank'] ?? 'Bank')) ?>
                                     </div>
-                                    <div style="font-size:0.75rem; color:rgb(var(--muted)); font-family:monospace;">
+                                    <div style="font-size:0.76rem; color:rgb(var(--muted)); font-family:monospace;">
                                         Acc: <?= e($p['payout_account'] ?? ($profile['payout_account'] ?? '—')) ?>
                                     </div>
                                 </td>
                                 <td>
                                     <?php if ($isCompleted): ?>
-                                        <span style="background:rgba(16, 185, 129, 0.12); color:#059669; border:1px solid rgba(16, 185, 129, 0.28); font-size:0.76rem; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
+                                        <span style="background:rgba(16, 185, 129, 0.12); color:#059669; border:1px solid rgba(16, 185, 129, 0.28); font-size:0.74rem; font-weight:800; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
                                             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Disbursed
                                         </span>
                                     <?php elseif ($isFailed): ?>
-                                        <span style="background:rgba(239, 68, 68, 0.12); color:#dc2626; border:1px solid rgba(239, 68, 68, 0.25); font-size:0.76rem; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
+                                        <span style="background:rgba(239, 68, 68, 0.12); color:#dc2626; border:1px solid rgba(239, 68, 68, 0.25); font-size:0.74rem; font-weight:800; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
                                             ⚠️ Flagged / On Hold
                                         </span>
                                     <?php else: ?>
-                                        <span style="background:rgba(245, 158, 11, 0.12); color:#b45309; border:1px solid rgba(245, 158, 11, 0.25); font-size:0.76rem; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
+                                        <span style="background:rgba(245, 158, 11, 0.12); color:#b45309; border:1px solid rgba(245, 158, 11, 0.25); font-size:0.74rem; font-weight:800; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
                                             ⏳ In Review
                                         </span>
                                     <?php endif; ?>
@@ -403,43 +775,43 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
 <!-- TAB 3: HOW PAYOUTS & FEE SETTLEMENTS WORK                -->
 <!-- ======================================================== -->
 <div id="tab-content-guide" class="financial-tab-panel" style="display:none;">
-    <section class="form-card" style="padding:1.75rem; margin-bottom:2rem;">
-        <h2 style="margin:0 0 0.5rem; font-size:1.3rem;">Understanding Your Host Earnings &amp; Payouts</h2>
-        <p class="section-note" style="margin:0 0 1.5rem;">Everything you need to know about ticket revenue, platform fee policies, escrow security, and withdrawals.</p>
+    <section class="fin-table-card">
+        <h2 style="margin:0 0 0.5rem; font-size:1.3rem; font-weight:900;">Understanding Your Host Earnings &amp; Payouts</h2>
+        <p class="section-note" style="margin:0 0 1.5rem; font-size:0.86rem; color:rgb(var(--muted));">Everything you need to know about ticket revenue, platform fee policies, escrow security, and withdrawals.</p>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem;">
             <!-- Standard Payouts -->
-            <div style="background:rgba(16, 185, 129, 0.04); border:1px solid rgba(16, 185, 129, 0.2); border-radius:14px; padding:1.25rem;">
-                <div style="font-size:1.5rem; margin-bottom:0.5rem;">💸</div>
-                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:700; color:#059669;">1. Standard Event Payouts</h3>
-                <p style="margin:0; font-size:0.85rem; line-height:1.55; color:rgb(var(--text));">
+            <div style="background:rgba(16, 185, 129, 0.04); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px; padding:1.25rem;">
+                <div style="font-size:1.6rem; margin-bottom:0.5rem;">💸</div>
+                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:800; color:#059669;">1. Standard Event Payouts</h3>
+                <p style="margin:0; font-size:0.86rem; line-height:1.55; color:rgb(var(--text));">
                     Once your event ends and is marked completed, <strong>100% of your remaining net ticket sales</strong> become immediately available in your <strong>Available Balance</strong> to request a payout straight to your bank account.
                 </p>
             </div>
 
             <!-- Auto-Requested Payouts -->
-            <div style="background:rgba(59, 130, 246, 0.04); border:1px solid rgba(59, 130, 246, 0.2); border-radius:14px; padding:1.25rem;">
-                <div style="font-size:1.5rem; margin-bottom:0.5rem;">🤖</div>
-                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:700; color:#2563eb;">2. Automatic Payout Generation</h3>
-                <p style="margin:0; font-size:0.85rem; line-height:1.55; color:rgb(var(--text));">
+            <div style="background:rgba(59, 130, 246, 0.04); border:1px solid rgba(59, 130, 246, 0.2); border-radius:16px; padding:1.25rem;">
+                <div style="font-size:1.6rem; margin-bottom:0.5rem;">🤖</div>
+                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:800; color:#2563eb;">2. Automatic Payout Generation</h3>
+                <p style="margin:0; font-size:0.86rem; line-height:1.55; color:rgb(var(--text));">
                     If an event concludes and you forget to manually request a payout, the system <strong>automatically generates an auto-payout request</strong> on your behalf so our admin team can process and transfer your funds without delay.
                 </p>
             </div>
 
             <!-- Escrow Early Release -->
-            <div style="background:rgba(251, 146, 60, 0.04); border:1px solid rgba(251, 146, 60, 0.2); border-radius:14px; padding:1.25rem;">
-                <div style="font-size:1.5rem; margin-bottom:0.5rem;">⚡</div>
-                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:700; color:#ea580c;">3. Early Escrow Release</h3>
-                <p style="margin:0; font-size:0.85rem; line-height:1.55; color:rgb(var(--text));">
+            <div style="background:rgba(251, 146, 60, 0.04); border:1px solid rgba(251, 146, 60, 0.2); border-radius:16px; padding:1.25rem;">
+                <div style="font-size:1.6rem; margin-bottom:0.5rem;">⚡</div>
+                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:800; color:#ea580c;">3. Early Escrow Release</h3>
+                <p style="margin:0; font-size:0.86rem; line-height:1.55; color:rgb(var(--text));">
                     Need upfront capital to pay for venue deposits, sound equipment, or artists? You can request an <strong>early escrow withdrawal</strong> on active/upcoming events. (Subject to terms of service and refund liability).
                 </p>
             </div>
 
             <!-- Fee Settlement Policy -->
-            <div style="background:rgba(139, 92, 246, 0.04); border:1px solid rgba(139, 92, 246, 0.2); border-radius:14px; padding:1.25rem;">
-                <div style="font-size:1.5rem; margin-bottom:0.5rem;">🏷️</div>
-                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:700; color:#7c3aed;">4. 5% Platform Fee Settlement</h3>
-                <p style="margin:0; font-size:0.85rem; line-height:1.55; color:rgb(var(--text));">
+            <div style="background:rgba(139, 92, 246, 0.04); border:1px solid rgba(139, 92, 246, 0.2); border-radius:16px; padding:1.25rem;">
+                <div style="font-size:1.6rem; margin-bottom:0.5rem;">🏷️</div>
+                <h3 style="margin:0 0 0.4rem; font-size:1.05rem; font-weight:800; color:#7c3aed;">4. 5% Platform Fee Settlement</h3>
+                <p style="margin:0; font-size:0.86rem; line-height:1.55; color:rgb(var(--text));">
                     When creating an event:
                     <br>• <strong>Pass fee to buyer (`pass_fee = 1`):</strong> Attendee pays the 5% fee during checkout; you receive 100% of ticket price.
                     <br>• <strong>Absorb fee (`pass_fee = 0`):</strong> 5% platform fee is deducted from ticket sales; you receive 95% net share.
@@ -450,26 +822,26 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
 </div>
 
 <!-- Escrow Agreement Modal -->
-<div id="escrow-modal-backdrop" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); animation: escrowFadeIn 0.2s ease; overflow-y:auto; -webkit-overflow-scrolling:touch; justify-content:center; align-items:flex-start; padding:1rem;">
-    <div style="width:92%; max-width:520px; max-height:calc(100dvh - 2rem); overflow-y:auto; -webkit-overflow-scrolling:touch; background:rgb(var(--card)); border-radius:20px; box-shadow:0 25px 60px rgba(0,0,0,0.25); border:1px solid rgba(var(--muted), 0.15); animation: escrowSlideIn 0.25s ease; margin:auto 0; box-sizing:border-box;">
+<div id="escrow-modal-backdrop" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); animation: escrowFadeIn 0.2s ease; overflow-y:auto; -webkit-overflow-scrolling:touch; justify-content:center; align-items:center; padding:1rem;">
+    <div style="width:100%; max-width:min(92vw, 520px); max-height:calc(100dvh - 2rem); overflow-y:auto; -webkit-overflow-scrolling:touch; background:rgb(var(--card)); border-radius:22px; box-shadow:0 25px 60px rgba(0,0,0,0.3); border:1px solid rgba(var(--muted), 0.2); animation: escrowSlideIn 0.25s ease; margin:auto; box-sizing:border-box;">
         <!-- Modal Header -->
-        <div style="padding:1.5rem 1.75rem 0; display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="padding:1.5rem 1.75rem 0.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-                <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:rgb(var(--text));">⚡ Escrow Funds Release Agreement</h3>
-                <p style="margin:0.35rem 0 0; font-size:0.82rem; color:rgb(var(--muted));">Please review and accept the terms below</p>
+                <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:rgb(var(--text));">⚡ Escrow Funds Release Agreement</h3>
+                <p style="margin:0.25rem 0 0; font-size:0.82rem; color:rgb(var(--muted));">Please review and accept the terms below</p>
             </div>
-            <button type="button" id="escrow-modal-close" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:rgb(var(--muted)); padding:0; line-height:1;" aria-label="Close">&times;</button>
+            <button type="button" id="escrow-modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:rgb(var(--muted)); padding:0 0.35rem; line-height:1;" aria-label="Close">&times;</button>
         </div>
 
         <!-- Modal Body: Key Terms -->
-        <div style="padding:1.25rem 1.75rem; font-size:0.88rem; line-height:1.6; color:rgb(var(--text));">
+        <div style="padding:1.25rem 1.75rem 1.5rem; font-size:0.88rem; line-height:1.6; color:rgb(var(--text));">
             <div style="background:rgba(251, 146, 60, 0.08); border:1px solid rgba(251, 146, 60, 0.25); border-radius:12px; padding:0.85rem 1rem; margin-bottom:1rem;">
                 <p style="margin:0; font-size:0.82rem; color:#ea580c; font-weight:600;">
                     ⚠️ <strong>Important Notice:</strong> Early escrow releases allow you to withdraw funds from upcoming events to assist with upfront logistics and planning.
                 </p>
             </div>
 
-            <h4 style="margin:0 0 0.5rem; font-size:0.92rem; font-weight:700;">Host Obligations &amp; Conditions:</h4>
+            <h4 style="margin:0 0 0.5rem; font-size:0.9rem; font-weight:800;">Host Obligations &amp; Conditions:</h4>
             <ul style="margin:0 0 1rem; padding-left:1.25rem; font-size:0.84rem; color:rgb(var(--muted));">
                 <li style="margin-bottom:0.35rem;">You agree to host the event as described and fulfill all commitments to ticket holders.</li>
                 <li style="margin-bottom:0.35rem;">If the event is <strong>cancelled, postponed indefinitely, or significantly altered</strong>, you are personally liable to refund all disbursed funds.</li>
@@ -482,17 +854,17 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                 <?= csrf_field() ?>
                 <input type="hidden" name="withdraw_type" value="escrow">
 
-                <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.84rem; font-weight:600; user-select:none; margin-bottom:1.25rem; padding:0.75rem; border-radius:10px; background:rgba(var(--muted),0.05); border:1px solid rgba(var(--muted),0.12);">
+                <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.84rem; font-weight:600; user-select:none; margin-bottom:1.25rem; padding:0.75rem; border-radius:12px; background:rgba(var(--muted),0.06); border:1px solid rgba(var(--muted),0.15);">
                     <input type="checkbox" id="escrow-agree-checkbox" name="escrow_agreed" value="1" required style="margin-top:0.2rem; width:16px; height:16px; cursor:pointer;">
                     <span>I understand and agree to the Escrow Release Terms and accept full liability for refunding ticket holders if my event is cancelled.</span>
                 </label>
 
                 <!-- Actions -->
                 <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
-                    <button type="button" id="escrow-modal-cancel" class="checkout-btn secondary" style="padding:0.6rem 1.25rem; font-size:0.88rem; height:auto;">
+                    <button type="button" id="escrow-modal-cancel" class="admin-action-btn" style="padding:0.6rem 1.25rem; font-size:0.88rem; border-radius:11px;">
                         Cancel
                     </button>
-                    <button type="submit" id="escrow-confirm-btn" class="checkout-btn" disabled style="padding:0.6rem 1.25rem; font-size:0.88rem; height:auto; background:#ea580c; border-color:#ea580c; opacity:0.5; cursor:not-allowed;">
+                    <button type="submit" id="escrow-confirm-btn" class="fin-btn fin-btn--escrow" disabled style="padding:0.6rem 1.25rem; font-size:0.88rem; opacity:0.5; cursor:not-allowed;">
                         Accept &amp; Request Payout
                     </button>
                 </div>
