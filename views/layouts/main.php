@@ -63,9 +63,7 @@
 
     <?php endif; ?>
 
-    <?php if (!app()->request->is('terms') && !app()->request->is('privacy')): ?>
-        @include('partials/header')
-    <?php endif; ?>
+    @include('partials/header')
 
     <main class="container{{ app()->request->is('event/*') ? ' event-detail-page' : '' }}">
         @session('success')
