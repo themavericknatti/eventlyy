@@ -1,15 +1,26 @@
-RewriteEngine On
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
 
-Options -Indexes
+    RewriteEngine On
 
-<FilesMatch "^(\.env|\.env\..*|composer\.json|composer\.lock)$">
-    Require all denied
-</FilesMatch>
+    # Handle Authorization Header (Bearer tokens, HTTP basic auth)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+    # Prevent direct access to sensitive files
+    <FilesMatch "^(\.env|\.env\..*|composer\.json|composer\.lock)$">
+        Require all denied
+    </FilesMatch>
 
-RewriteRule ^ index.php [L,QSA]
+    # Serve existing files and directories directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Send all other requests to front controller
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
 
 ServerSignature Off

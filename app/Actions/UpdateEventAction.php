@@ -58,7 +58,7 @@ class UpdateEventAction
         $imagePath = $oldImage;
         if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
             $uploadService = new \Ace\UploadService();
-            $targetDir = Application::$ROOT_DIR . '/uploads/events';
+            $targetDir = function_exists('public_dir') ? public_dir('uploads/events') : (Application::$ROOT_DIR . '/public/uploads/events');
             $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
 
             if (!$result['success']) {

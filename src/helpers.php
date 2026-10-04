@@ -178,6 +178,10 @@ if (!function_exists('route')) {
         }
 
         $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
+        $basePath = str_replace('\\', '/', $basePath);
+        if (str_ends_with($basePath, '/public') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/public')) {
+            $basePath = substr($basePath, 0, -7);
+        }
         return $basePath . '/' . ltrim($path, '/');
     }
 }

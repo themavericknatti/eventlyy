@@ -56,6 +56,9 @@ class Response
             $baseDir = str_replace('\\', '/', $baseDir);
             
             if ($baseDir !== '/' && !empty($baseDir)) {
+                if (str_ends_with($baseDir, '/public') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/public')) {
+                    $baseDir = substr($baseDir, 0, -7);
+                }
                 $url = rtrim($baseDir, '/') . $url;
             }
         }

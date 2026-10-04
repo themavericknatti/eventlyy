@@ -11,18 +11,27 @@ use Ace\Application;
 
 $rootDir = __DIR__;
 
-// Boot up basic app variables
-$appConfig = require_once $rootDir . '/config/app.php';
-$dbConfig = require_once $rootDir . '/config/database.php';
-$config = array_merge($appConfig, ['db' => $dbConfig]);
-$app = new Application($rootDir, $config);
-
 // Command arguments
 $args = $argv;
 $command = $args[1] ?? 'help';
 
 echo "\n✨ Mini PHP MVC - Ace CLI Command Runner\n";
 echo "==========================================\n";
+
+// Boot up basic app variables
+$appConfig = require_once $rootDir . '/config/app.php';
+$dbConfig = require_once $rootDir . '/config/database.php';
+$config = array_merge($appConfig, ['db' => $dbConfig]);
+
+$app = null;
+try {
+    $app = new Application($rootDir, $config);
+} catch (\Throwable $e) {
+    if (in_array($command, ['migrate', 'migrate:rollback', 'migrate:status'])) {
+        echo "❌ Database Error: " . $e->getMessage() . "\n\n";
+        exit(1);
+    }
+}
 
 switch ($command) {
     case 'migrate':
@@ -175,9 +184,27 @@ switch ($command) {
         }
         break;
 
+    case 'serve':
+        $host = '127.0.0.1';
+        $port = 8000;
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--port=')) {
+                $port = (int) substr($arg, 7);
+            }
+            if (str_starts_with($arg, '--host=')) {
+                $host = substr($arg, 7);
+            }
+        }
+        echo "🚀 Development server started on [http://{$host}:{$port}]\n";
+        echo "   Document root is: public/\n";
+        echo "   Press Ctrl+C to stop the server\n\n";
+        passthru(PHP_BINARY . " -S {$host}:{$port} -t public \"{$rootDir}/src/server.php\"");
+        break;
+
     case 'help':
     default:
         echo "Available Commands:\n";
+        echo "  serve                    Starts the local development server (like artisan serve).\n";
         echo "  migrate                  Runs database schemas migrations.\n";
         echo "  migrate:rollback         Rolls back the last migration batch.\n";
         echo "  migrate:status           Displays the status of all migrations.\n";

@@ -1,10 +1,13 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+define('ACE_PUBLIC_DIR', __DIR__);
+define('ROOT_DIR', dirname(__DIR__));
+
+require_once ROOT_DIR . '/vendor/autoload.php';
 
 use Ace\Application;
 
-$rootDir = dirname(__DIR__);
+$rootDir = ROOT_DIR;
 
 /**
  * Load .env file

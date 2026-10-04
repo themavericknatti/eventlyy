@@ -27,6 +27,11 @@ class Request
         if ($baseDir !== '/' && !empty($baseDir)) {
             if (strpos($path, $baseDir) === 0) {
                 $path = substr($path, strlen($baseDir));
+            } elseif (str_ends_with($baseDir, '/public')) {
+                $parentBase = substr($baseDir, 0, -7);
+                if ($parentBase !== '' && strpos($path, $parentBase) === 0) {
+                    $path = substr($path, strlen($parentBase));
+                }
             }
         }
 
