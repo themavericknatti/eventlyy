@@ -111,6 +111,23 @@ try {
             </a>
         </div>
     </div>
+
+    <!-- System Cache & View Optimization Shortcut -->
+    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(239, 68, 68, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
+        <div>
+            <span style="background:rgba(239, 68, 68, 0.15); color:#ef4444; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Maintenance</span>
+            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">⚡ View Cache &amp; Storage</h2>
+            <p class="section-note" style="margin:0; font-size:0.86rem;">Instantly purge all compiled Blade view templates across the application. Useful when new design, auth, or layout updates are deployed.</p>
+        </div>
+        <div>
+            <form method="POST" action="{{ route('admin/cache/clear') }}" style="margin:0;">
+                <?= csrf_field() ?>
+                <button type="submit" class="admin-action-btn primary" style="background:#ef4444; border-color:#ef4444; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem; cursor:pointer;" onclick="return confirm('Purge all compiled view cache files now?');">
+                    Purge View Cache Now 🧹
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <form method="POST" action="{{ route('admin/settings') }}" enctype="multipart/form-data" class="admin-settings-layout">

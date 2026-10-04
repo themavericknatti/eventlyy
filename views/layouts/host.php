@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Admin Layout
+ * Host Layout
  *
- * This layout is used for admin-related views.
+ * This layout is used for host-related views.
  *
  * @package Evently
  * @subpackage Views/Layouts
@@ -31,17 +31,17 @@
 
 
     <?php if (app()->request->is('host/event/create', 'host/event/edit/*')): ?>
-         <link rel="stylesheet" href="{{ route('assets/css/flatpickr.min.css') }}?v=<?= filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/css/flatpickr.min.css') ?>">
+         <link rel="stylesheet" href="{{ route('assets/css/flatpickr.min.css') }}?v=<?= asset_version('assets/css/flatpickr.min.css') ?>">
     <?php endif; ?>
 
     <?php
-    $styleVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') : '1.0.0';
-    $appJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') : '1.0.0';
-    $createEventJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/create-event.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/create-event.js') : '1.0.0';
-    $ticketDetailJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/host-ticket-detail.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/host-ticket-detail.js') : '1.0.0';
-    $eventMgmtJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/host-event-management.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/host-event-management.js') : '1.0.0';
-    $ticketVerifyJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/ticket-verification.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/host/ticket-verification.js') : '1.0.0';
-    $html5QrcodeJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/html5qrcode.min.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/html5qrcode.min.js') : '1.0.0';
+    $styleVer = asset_version('assets/css/style.css');
+    $appJsVer = asset_version('assets/js/app.js');
+    $createEventJsVer = asset_version('assets/js/host/create-event.js');
+    $ticketDetailJsVer = asset_version('assets/js/host/host-ticket-detail.js');
+    $eventMgmtJsVer = asset_version('assets/js/host/host-event-management.js');
+    $ticketVerifyJsVer = asset_version('assets/js/host/ticket-verification.js');
+    $html5QrcodeJsVer = asset_version('assets/js/html5qrcode.min.js');
     ?>
 
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">

@@ -346,11 +346,13 @@ HTML;
 
         $cacheFile = $this->cacheDir . '/' . md5($filePath) . '.php';
 
-        $isDev = ($_ENV['APP_ENV'] ?? 'development') === 'development';
         $shouldCompile = !file_exists($cacheFile);
 
-        // Only check file modification times in development environment
-        if ($isDev && !$shouldCompile) {
+        // Check file modification times in ALL environments (dev and production)
+        // so that template edits and deployments recompile immediately without stale delays
+        if (!$shouldCompile) {
+            clearstatcache(true, $filePath);
+            clearstatcache(true, $cacheFile);
             $shouldCompile = filemtime($filePath) > filemtime($cacheFile);
         }
 
@@ -359,9 +361,41 @@ HTML;
             $sourceComment = "<?php // Source: " . str_replace('\\', '/', $filePath) . " ?>\n";
             $compiledContent = $sourceComment . $this->compileString($content);
             file_put_contents($cacheFile, $compiledContent);
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($cacheFile, true);
+            }
         }
 
         return $cacheFile;
+    }
+
+    /**
+     * Clear all compiled view cache files.
+     *
+     * @return int Number of cache files deleted
+     */
+    public function clearCache(): int
+    {
+        if (!is_dir($this->cacheDir)) {
+            return 0;
+        }
+
+        $count = 0;
+        $files = glob($this->cacheDir . '/*.php');
+        if ($files) {
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    if (function_exists('opcache_invalidate')) {
+                        @opcache_invalidate($file, true);
+                    }
+                    if (@unlink($file)) {
+                        $count++;
+                    }
+                }
+            }
+        }
+
+        return $count;
     }
 
     /**

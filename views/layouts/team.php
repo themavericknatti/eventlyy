@@ -29,9 +29,9 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     <?php if ($favicon = site_setting('site_favicon')): ?>
     <link rel="icon" href="<?= e(asset($favicon)) ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= filemtime('assets/css/style.css') ?>">
+    <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= asset_version('assets/css/style.css') ?>">
 
-    <script src="{{ route('assets/js/html5qrcode.min.js') }}?v=<?= filemtime('assets/js/html5qrcode.min.js') ?>"></script>
+    <script src="{{ route('assets/js/html5qrcode.min.js') }}?v=<?= asset_version('assets/js/html5qrcode.min.js') ?>"></script>
 
     <style>
         .team-workstation-body {
@@ -235,7 +235,7 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     </main>
 
     <!-- JS Files -->
-    <script src="{{ route('assets/js/app.js') }}?v=<?= filemtime('assets/js/app.js') ?>" defer></script>
+    <script src="{{ route('assets/js/app.js') }}?v=<?= asset_version('assets/js/app.js') ?>" defer></script>
     @yield('script')
     <div id="theme-announcer" class="visually-hidden" aria-live="polite"></div>
 </body>

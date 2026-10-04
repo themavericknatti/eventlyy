@@ -369,7 +369,9 @@ if (!function_exists('public_dir')) {
     function public_dir(string $path = ''): string
     {
         $clean = ltrim($path, '/\\');
-        $root = \Ace\Application::$ROOT_DIR;
+        $root = (class_exists('\Ace\Application', false) && isset(\Ace\Application::$ROOT_DIR))
+            ? \Ace\Application::$ROOT_DIR
+            : (defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__));
 
         if (defined('ACE_PUBLIC_DIR') && is_dir(ACE_PUBLIC_DIR)) {
             $base = ACE_PUBLIC_DIR;
@@ -388,6 +390,34 @@ if (!function_exists('public_dir')) {
         }
 
         return $clean !== '' ? $base . '/' . $clean : $base;
+    }
+}
+
+if (!function_exists('asset_version')) {
+    /**
+     * Get cache-busting timestamp version for any public asset file.
+     * Resolves the real file path using public_dir() so it works seamlessly in
+     * local dev (public/), production (public_html/), DOCUMENT_ROOT, etc.
+     */
+    function asset_version(string $assetPath, string $default = '1.0.0'): string
+    {
+        $clean = ltrim($assetPath, '/\\');
+        $filePath = public_dir($clean);
+        if (file_exists($filePath)) {
+            return (string) filemtime($filePath);
+        }
+        if (str_starts_with($clean, 'assets/')) {
+            $alt = public_dir(substr($clean, 7));
+            if (file_exists($alt)) {
+                return (string) filemtime($alt);
+            }
+        } else {
+            $alt = public_dir('assets/' . $clean);
+            if (file_exists($alt)) {
+                return (string) filemtime($alt);
+            }
+        }
+        return $default;
     }
 }
 
@@ -934,57 +964,65 @@ if (!function_exists('generate_event_slug')) {
 //     }
 // }
 
-function value(array|object $item, string|int $key, $default = null)
-{
-    if (is_array($item)) {
-        return $item[$key] ?? $default;
-    }
+if (!function_exists('value')) {
+    function value(array|object $item, string|int $key, $default = null)
+    {
+        if (is_array($item)) {
+            return $item[$key] ?? $default;
+        }
 
-    if (is_object($item)) {
-        return $item->$key ?? $default;
-    }
+        if (is_object($item)) {
+            return $item->$key ?? $default;
+        }
 
-    return $default;
+        return $default;
+    }
 }
 
-function event_url(array|object|null $event): string
-{
-    if (!$event) {
-        return url('/');
+if (!function_exists('event_url')) {
+    function event_url(array|object|null $event): string
+    {
+        if (!$event) {
+            return url('/');
+        }
+
+        $customUrl = trim((string) value($event, 'custom_url'));
+        $slug = trim((string) value($event, 'slug'));
+
+        $identifier = $customUrl !== '' ? $customUrl : ($slug !== '' ? $slug : value($event, 'id'));
+
+        return url('event/' . $identifier);
     }
-
-    $customUrl = trim((string) value($event, 'custom_url'));
-    $slug = trim((string) value($event, 'slug'));
-
-    $identifier = $customUrl !== '' ? $customUrl : ($slug !== '' ? $slug : value($event, 'id'));
-
-    return url('event/' . $identifier);
 }
 
-function event_flyer_url(array|object|null $event): string
-{
-    if (!$event) {
-        return url('/');
+if (!function_exists('event_flyer_url')) {
+    function event_flyer_url(array|object|null $event): string
+    {
+        if (!$event) {
+            return url('/');
+        }
+
+        $customUrl = trim((string) value($event, 'custom_url'));
+        $slug = trim((string) value($event, 'slug'));
+
+        $identifier = $customUrl !== '' ? $customUrl : ($slug !== '' ? $slug : value($event, 'id'));
+
+        return url('f/' . $identifier);
     }
-
-    $customUrl = trim((string) value($event, 'custom_url'));
-    $slug = trim((string) value($event, 'slug'));
-
-    $identifier = $customUrl !== '' ? $customUrl : ($slug !== '' ? $slug : value($event, 'id'));
-
-    return url('f/' . $identifier);
 }
 
-function event_referral_url(array|object|null $event, string $referralCode): string
-{
-    if (!$event) {
-        return url('/');
+if (!function_exists('event_referral_url')) {
+    function event_referral_url(array|object|null $event, string $referralCode): string
+    {
+        if (!$event) {
+            return url('/');
+        }
+
+        $flyerEnabled = !empty(value($event, 'flyer_page_enabled'));
+        $baseUrl = $flyerEnabled ? event_flyer_url($event) : event_url($event);
+
+        return $baseUrl . '?ref=' . urlencode(trim($referralCode));
     }
-
-    $flyerEnabled = !empty(value($event, 'flyer_page_enabled'));
-    $baseUrl = $flyerEnabled ? event_flyer_url($event) : event_url($event);
-
-    return $baseUrl . '?ref=' . urlencode(trim($referralCode));
 }
 
 if (!function_exists('site_setting')) {

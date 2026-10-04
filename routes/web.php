@@ -159,6 +159,8 @@ $router->post('/admin/payouts', [AdminPayoutController::class, 'processAction'])
 $router->get('/cron/auto-payouts', [AdminPayoutController::class, 'runAutoPayoutsCron']);
 $router->get('/admin/settings', [AdminSettingsController::class, 'settings']);
 $router->post('/admin/settings', [AdminSettingsController::class, 'saveSettings']);
+$router->post('/admin/cache/clear', [AdminSettingsController::class, 'clearCache']);
+$router->get('/admin/cache/clear', [AdminSettingsController::class, 'clearCache']);
 $router->get('/admin/support', [AdminSupportController::class, 'inquiries']);
 $router->post('/admin/support', [AdminSupportController::class, 'postAction']);
 

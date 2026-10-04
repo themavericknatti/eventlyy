@@ -203,11 +203,28 @@ class AdminSettingsController extends Controller
             }
 
             @file_put_contents($this->settingsFile, json_encode($settings, JSON_PRETTY_PRINT));
-            Application::$app->session->setFlash('success', 'Admin settings updated successfully!');
+            // Invalidate compiled views so updated site branding/title takes effect immediately
+            if (isset(Application::$app->view)) {
+                Application::$app->view->clearCache();
+            }
+            Application::$app->session->setFlash('success', 'Admin settings updated and view cache refreshed successfully!');
         } else {
             Application::$app->session->setFlash('error', 'Invalid settings action.');
         }
 
+        return redirect('/admin/settings');
+    }
+
+    /**
+     * Purge all compiled Blade view templates.
+     */
+    public function clearCache(Request $request)
+    {
+        $count = 0;
+        if (isset(Application::$app->view)) {
+            $count = Application::$app->view->clearCache();
+        }
+        Application::$app->session->setFlash('success', "View cache purged successfully! ({$count} compiled views refreshed)");
         return redirect('/admin/settings');
     }
 }

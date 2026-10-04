@@ -28,7 +28,7 @@
     <link rel="icon" href="<?= e(asset($favicon)) ?>">
     <?php endif; ?>
     <?php
-    $styleVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/css/style.css') : '1.0.0';
+    $styleVer = asset_version('assets/css/style.css');
     ?>
     <script>
         (function() {
@@ -84,8 +84,8 @@
 
     <!-- JS Files -->
     <?php
-    $jsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/app.js') : '1.0.0';
-    $authJsVer = file_exists(\Ace\Application::$ROOT_DIR . '/public/assets/js/auth.js') ? filemtime(\Ace\Application::$ROOT_DIR . '/public/assets/js/auth.js') : '1.0.0';
+    $jsVer = asset_version('assets/js/app.js');
+    $authJsVer = asset_version('assets/js/auth.js');
     ?>
     <script src="{{ route('assets/js/app.js') }}?v=<?= $jsVer ?>" defer></script>
     <script src="{{ route('assets/js/auth.js') }}?v=<?= $authJsVer ?>" defer></script>
