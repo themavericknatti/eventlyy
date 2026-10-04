@@ -206,7 +206,7 @@ try {
             </div>
             <div>
                 <?php $isAnnLive = !empty($settings['announcement_enabled']) && $settings['announcement_enabled'] === '1'; ?>
-                <span style="font-size:0.8rem; font-weight:800; border-radius:999px; padding:0.3rem 0.8rem; display:inline-flex; align-items:center; gap:0.4rem; <?= $isAnnLive ? 'background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(var(--muted),0.12); color:rgb(var(--muted)); border:1px solid rgba(var(--muted),0.2);' ?>">
+                <span id="ann-status-pill" style="font-size:0.8rem; font-weight:800; border-radius:999px; padding:0.3rem 0.8rem; display:inline-flex; align-items:center; gap:0.4rem; <?= $isAnnLive ? 'background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(var(--muted),0.12); color:rgb(var(--muted)); border:1px solid rgba(var(--muted),0.2);' ?>">
                     <span style="width:8px; height:8px; border-radius:50%; background:<?= $isAnnLive ? '#10b981' : 'rgb(var(--muted))' ?>; display:inline-block;"></span>
                     <?= $isAnnLive ? 'Active on Platform' : 'Currently Inactive' ?>
                 </span>
@@ -224,10 +224,11 @@ try {
                         <strong style="display:block; font-size:0.95rem; margin-bottom:0.2rem;">Enable Announcement Popup</strong>
                         <span style="font-size:0.8rem; color:rgb(var(--muted));">Show the notification card to visitors</span>
                     </div>
-                    <label style="position:relative; display:inline-block; width:52px; height:28px; margin:0; cursor:pointer;">
-                        <input type="checkbox" name="announcement_enabled" value="1" <?= $isAnnLive ? 'checked' : '' ?> style="opacity:0; width:0; height:0;">
-                        <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:<?= $isAnnLive ? 'rgb(var(--brand))' : 'rgba(var(--muted),0.3)' ?>; transition:.3s; border-radius:28px;" id="ann-toggle-slider">
-                            <span style="position:absolute; content:''; height:22px; width:22px; left:<?= $isAnnLive ? '26px' : '3px' ?>; bottom:3px; background:white; transition:.3s; border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,0.2);" id="ann-toggle-knob"></span>
+                    <label style="position:relative; display:inline-block; width:54px; height:30px; margin:0; cursor:pointer;" for="ann-toggle-checkbox">
+                        <input type="hidden" name="announcement_enabled" value="0">
+                        <input type="checkbox" name="announcement_enabled" id="ann-toggle-checkbox" value="1" <?= $isAnnLive ? 'checked' : '' ?> style="position:absolute; width:100%; height:100%; top:0; left:0; opacity:0; margin:0; cursor:pointer; z-index:2;">
+                        <span style="position:absolute; inset:0; background:<?= $isAnnLive ? 'rgb(var(--brand))' : 'rgba(var(--muted),0.3)' ?>; transition:background .25s ease; border-radius:30px; pointer-events:none;" id="ann-toggle-slider">
+                            <span style="position:absolute; height:24px; width:24px; top:3px; left:<?= $isAnnLive ? '27px' : '3px' ?>; background:white; transition:left .25s cubic-bezier(0.16, 1, 0.3, 1); border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.25);" id="ann-toggle-knob"></span>
                         </span>
                     </label>
                 </div>
@@ -675,8 +676,6 @@ function toggleKeyVisibility(inputId, btn) {
     }
 }
 
-// ── Live Announcement Modal Previewer ──
-document.addEventListener('DOMContentLoaded', function() {
 // ── Globally Accessible Live Announcement Modal Previewer ──
 window.openAnnouncementPreview = function(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -762,17 +761,31 @@ function initAdminAnnouncementHelpers() {
         btnPreview.onclick = window.openAnnouncementPreview;
     }
 
-    var annCheckbox = document.querySelector('input[name="announcement_enabled"]');
+    var annCheckbox = document.getElementById('ann-toggle-checkbox');
     var annSlider = document.getElementById('ann-toggle-slider');
     var annKnob = document.getElementById('ann-toggle-knob');
+    var annStatusPill = document.getElementById('ann-status-pill');
+
     if (annCheckbox && annSlider && annKnob) {
         annCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 annSlider.style.background = 'rgb(var(--brand))';
-                annKnob.style.left = '26px';
+                annKnob.style.left = '27px';
+                if (annStatusPill) {
+                    annStatusPill.innerHTML = '<span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span> Active on Platform';
+                    annStatusPill.style.background = 'rgba(16,185,129,0.15)';
+                    annStatusPill.style.color = '#10b981';
+                    annStatusPill.style.borderColor = 'rgba(16,185,129,0.3)';
+                }
             } else {
                 annSlider.style.background = 'rgba(var(--muted),0.3)';
                 annKnob.style.left = '3px';
+                if (annStatusPill) {
+                    annStatusPill.innerHTML = '<span style="width:8px; height:8px; border-radius:50%; background:rgb(var(--muted)); display:inline-block;"></span> Currently Inactive';
+                    annStatusPill.style.background = 'rgba(var(--muted),0.12)';
+                    annStatusPill.style.color = 'rgb(var(--muted))';
+                    annStatusPill.style.borderColor = 'rgba(var(--muted),0.2)';
+                }
             }
         });
     }

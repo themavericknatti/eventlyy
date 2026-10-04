@@ -148,7 +148,7 @@ class AdminSettingsController extends Controller
                 'stripe_secret_key' => trim($data['stripe_secret_key'] ?? ''),
                 'flutterwave_public_key' => trim($data['flutterwave_public_key'] ?? ''),
                 'flutterwave_secret_key' => trim($data['flutterwave_secret_key'] ?? ''),
-                'announcement_enabled' => !empty($data['announcement_enabled']) ? '1' : '0',
+                'announcement_enabled' => (!empty($data['announcement_enabled']) && $data['announcement_enabled'] === '1') ? '1' : '0',
                 'announcement_location' => in_array($data['announcement_location'] ?? '', ['home', 'sitewide']) ? $data['announcement_location'] : 'home',
                 'announcement_badge' => trim($data['announcement_badge'] ?? '🎉 Special Announcement'),
                 'announcement_title' => trim($data['announcement_title'] ?? ''),
