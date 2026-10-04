@@ -25,7 +25,7 @@ $isCompleted = ($eventDate && $now > $liveWindowEnd) || in_array(strtolower($eve
 $isLiveNow = !$isCompleted && ($eventDate && $now >= $eventDate && $now <= $liveWindowEnd);
 $isToday = !$isCompleted && ($eventDate && date('Y-m-d', $now) === date('Y-m-d', $eventDate));
 $eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id);
-$shareUrl = url(event_url($event));
+$shareUrl = event_url($event);
 $shareText = urlencode("Check out " . ($event->name ?? 'this event') . " on Eventlyy!");
 $encodedShareUrl = urlencode($shareUrl);
 ?>

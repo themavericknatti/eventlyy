@@ -115,6 +115,9 @@ if (!function_exists('url')) {
      */
     function url(string $path = ''): string
     {
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
         $path = ltrim($path, '/');
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';

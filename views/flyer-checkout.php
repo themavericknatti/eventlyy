@@ -21,7 +21,7 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout — <?= e($event->name) ?></title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -352,6 +352,30 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
             }
             .checkout-single-stage {
                 padding: 1.5rem 1rem;
+            }
+        }
+
+        @media (max-width: 540px) {
+            .checkout-single-stage {
+                padding: 1rem 0.75rem 2.5rem;
+            }
+            .checkout-glass-pod {
+                border-radius: 20px;
+            }
+            .summary-column,
+            .form-column {
+                padding: 1.25rem 1.1rem;
+            }
+            .summary-header h1 {
+                font-size: 1.25rem;
+            }
+            .ticket-item-pill {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.82rem;
+            }
+            .pay-action-btn {
+                padding: 0.95rem 1.25rem;
+                font-size: 1rem;
             }
         }
     </style>
