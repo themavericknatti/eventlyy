@@ -12903,3 +12903,674 @@ button[type="submit"]:disabled,
     padding: 1.25rem 1rem;
   }
 }
+
+
+/* ==========================================================================
+   Refactored Checkout Page Styles (.co-*)
+   ========================================================================== */
+
+/* ── Header & Navigation ─────────────────────────────────────────────────── */
+.co-header {
+  margin: 1.5rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.co-header__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.co-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: rgb(var(--muted));
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 12px;
+  background: rgba(var(--card), 0.6);
+  border: 1px solid rgba(var(--muted), 0.14);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.co-back-link:hover {
+  color: rgb(var(--brand));
+  border-color: rgba(var(--brand), 0.3);
+  background: rgba(var(--card), 0.95);
+  transform: translateX(-2px);
+}
+
+.co-secure-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--brand));
+  background: rgba(var(--brand), 0.08);
+  border: 1px solid rgba(var(--brand), 0.2);
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+}
+
+.co-header__intro .eyebrow {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(var(--brand));
+  margin-bottom: 0.35rem;
+}
+
+.co-title {
+  font-size: clamp(1.85rem, 3.2vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: rgb(var(--text));
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+
+.co-subtitle {
+  font-size: 1rem;
+  color: rgb(var(--muted));
+  line-height: 1.55;
+  max-width: 65ch;
+  margin: 0;
+}
+
+/* ── Checkout Grid Layout ────────────────────────────────────────────────── */
+.co-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 2.25rem;
+  align-items: start;
+  margin-bottom: 4rem;
+}
+
+.co-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.co-card {
+  background: rgb(var(--card));
+  border-radius: 24px;
+  border: 1.5px solid rgba(var(--muted), 0.12);
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.co-card__header {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(var(--muted), 0.1);
+}
+
+.co-card__header h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.35rem;
+  color: rgb(var(--text));
+}
+
+.co-card__header p {
+  font-size: 0.88rem;
+  color: rgb(var(--muted));
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Form Fields */
+.co-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.co-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.co-required {
+  color: #ef4444;
+  font-size: 0.85rem;
+}
+
+.co-input {
+  width: 100%;
+  padding: 0.9rem 1.15rem;
+  border-radius: 14px;
+  border: 1.5px solid rgba(var(--muted), 0.2);
+  background: rgb(var(--card));
+  color: rgb(var(--text));
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all var(--duration-fast) var(--ease-out);
+  box-sizing: border-box;
+}
+
+.co-input:focus {
+  outline: none;
+  border-color: rgb(var(--brand));
+  box-shadow: 0 0 0 3px rgba(var(--brand), 0.18);
+}
+
+.co-input.invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Free Order Celebration Banner */
+.co-free-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem 1.35rem;
+  border-radius: 18px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1.5px solid rgba(16, 185, 129, 0.28);
+  margin: 1.25rem 0;
+}
+
+.co-free-banner__icon {
+  font-size: 1.85rem;
+  flex-shrink: 0;
+}
+
+.co-free-banner__content strong {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #10b981;
+  margin-bottom: 0.2rem;
+}
+
+.co-free-banner__content span {
+  font-size: 0.85rem;
+  color: rgb(var(--muted));
+  line-height: 1.45;
+}
+
+/* Payment Provider Selection */
+.co-provider-section {
+  margin: 1.5rem 0 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(var(--muted), 0.1);
+}
+
+.co-provider-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  margin-bottom: 0.75rem;
+}
+
+.co-provider-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.co-card-fields {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: rgba(var(--muted), 0.04);
+  border: 1px solid rgba(var(--muted), 0.12);
+}
+
+.co-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.co-gateway-note {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.15rem;
+  border-radius: 14px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #10b981;
+  margin-top: 1rem;
+  line-height: 1.45;
+}
+
+.co-gateway-note__icon {
+  flex-shrink: 0;
+}
+
+/* Submit Action */
+.co-submit-wrap {
+  margin-top: 1.75rem;
+}
+
+.co-submit-btn {
+  width: 100%;
+  height: 52px;
+  padding: 0.95rem 1.5rem;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 80%, rgb(var(--accent))));
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+  transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-out), filter var(--duration-fast) var(--ease-out);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-decoration: none;
+}
+
+.co-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(var(--brand), 0.35);
+  filter: brightness(1.05);
+}
+
+.co-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.co-trust-note {
+  font-size: 0.82rem;
+  color: rgb(var(--muted));
+  text-align: center;
+  margin-top: 0.85rem;
+  line-height: 1.45;
+}
+
+/* ── Order Summary Sidebar (.co-summary-*) ──────────────────────────────── */
+.co-summary-section {
+  position: sticky;
+  top: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.co-summary-card {
+  padding: 1.75rem;
+  border-radius: 24px;
+  background: rgb(var(--card));
+  border: 1.5px solid rgba(var(--muted), 0.14);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.co-summary-event {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.co-summary-event__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.co-summary-event__title strong {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: rgb(var(--text));
+  line-height: 1.3;
+}
+
+.co-summary-event__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.84rem;
+  color: rgb(var(--muted));
+}
+
+.co-summary-event__meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.co-divider {
+  height: 1px;
+  background: rgba(var(--muted), 0.12);
+  margin: 0.25rem 0;
+}
+
+/* Itemized Tickets */
+.co-summary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.co-summary-subhead {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(var(--muted));
+  margin-bottom: 0.25rem;
+}
+
+.co-ticket-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.92rem;
+  color: rgb(var(--text));
+}
+
+.co-ticket-row__name strong {
+  color: rgb(var(--brand));
+  font-weight: 800;
+}
+
+.co-ticket-row__price {
+  font-weight: 700;
+  color: rgb(var(--text));
+  white-space: nowrap;
+}
+
+.co-summary-empty {
+  font-size: 0.88rem;
+  color: rgb(var(--muted));
+  margin: 0;
+}
+
+/* Price Breakdown */
+.co-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.co-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  color: rgb(var(--muted));
+}
+
+.co-breakdown__row strong {
+  font-weight: 700;
+  color: rgb(var(--text));
+}
+
+.co-breakdown__row--fee strong {
+  color: rgb(var(--brand));
+}
+
+.co-breakdown__row--discount strong {
+  color: #10b981;
+  font-weight: 800;
+}
+
+/* Promo Code Box */
+.co-promo-box {
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(var(--brand), 0.04);
+  border: 1.5px dashed rgba(var(--brand), 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.co-promo-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+}
+
+.co-promo-input-wrap {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.co-promo-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  border-radius: 10px;
+  border: 1.5px solid rgba(var(--muted), 0.25);
+  background: rgb(var(--card));
+  color: rgb(var(--text));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: inherit;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.co-promo-input:focus {
+  border-color: rgb(var(--brand));
+  outline: none;
+}
+
+.co-promo-btn {
+  padding: 0.65rem 1.15rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border-radius: 10px;
+  background: rgb(var(--brand));
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  white-space: nowrap;
+}
+
+.co-promo-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.co-promo-msg {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Grand Total Row */
+.co-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 0.25rem;
+}
+
+.co-summary-total span {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+}
+
+.co-summary-total strong {
+  font-size: 1.55rem;
+  font-weight: 900;
+  color: rgb(var(--brand));
+}
+
+/* Guarantee Card */
+.co-trust-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 18px;
+  background: rgba(var(--card), 0.7);
+  border: 1px solid rgba(var(--muted), 0.1);
+}
+
+.co-trust-card__icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.co-trust-card strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  margin-bottom: 0.2rem;
+}
+
+.co-trust-card p {
+  font-size: 0.8rem;
+  color: rgb(var(--muted));
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── Dark Mode Support for Checkout (.co-*) ─────────────────────────────── */
+:root[data-theme='dark'] .co-card,
+:root[data-theme='dark'] .co-summary-card {
+  background: rgb(var(--card));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='dark'] .co-input,
+:root[data-theme='dark'] .co-promo-input {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgb(var(--text));
+}
+
+:root[data-theme='dark'] .co-back-link {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(var(--muted), 0.9);
+}
+
+:root[data-theme='dark'] .co-trust-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .co-card-fields {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Responsive Design for Checkout (.co-*) ─────────────────────────────── */
+@media (max-width: 960px) {
+  .co-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .co-summary-section {
+    position: static;
+    top: auto;
+    order: -1; /* Display order summary first on tablets & mobile */
+  }
+
+  .co-title {
+    font-size: 1.85rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .co-card,
+  .co-summary-card {
+    padding: 1.35rem 1.15rem;
+    border-radius: 20px;
+  }
+
+  .co-form-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .co-header {
+    margin: 1rem 0 1.5rem;
+  }
+
+  .co-title {
+    font-size: 1.6rem;
+  }
+
+  .co-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .co-free-banner {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .co-free-banner__icon {
+    font-size: 1.5rem;
+  }
+
+  .co-submit-btn {
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  .pm-btn {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 100px;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 440px) {
+  .pm-btn {
+    flex: 1 1 100%;
+  }
+
+  .co-promo-input-wrap {
+    flex-direction: column;
+  }
+
+  .co-promo-btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
+}

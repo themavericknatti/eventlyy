@@ -5,12 +5,12 @@
  *
  * Confirms buyer billing information, selected ticket tier quantities, pricing breakdown, and processes order checkout.
  *
- * @package Evently
+ * @package Eventlyy
  * @subpackage Views/Checkout
- * @author Your Name <Celio Natti>
- * @license MIT License
- * @version 1.0.0
+ * @author Celio Natti
+ * @version 2.0.0
  */
+
 $currentUser = $currentUser ?? null;
 $userName = $currentUser ? $currentUser->name : '';
 $userEmail = $currentUser ? $currentUser->email : '';
@@ -40,26 +40,54 @@ $defaultGateway  = site_setting('default_gateway', 'paystack');
 if (!in_array($defaultGateway, $enabledGateways)) {
     $defaultGateway = $enabledGateways[0] ?? 'paystack';
 }
+
+$eventName = value($event, 'name', 'Event');
+$eventId = value($event, 'id');
+$eventDate = strtotime(value($event, 'date', ''));
+$eventLocation = value($event, 'location', 'Venue TBA');
+$backUrl = event_url($event);
+$platformFeePercent = e($platformFeePercent ?? get_setting('platform_fee', 5));
 ?>
 
 @extends('layouts/main')
 
 @section('title')
-Checkout - <?= e($event['name'] ?? 'Complete Your Purchase') ?>
+Checkout — <?= e($eventName) ?>
 @endsection
 
 @section('content')
-<section class="checkout-intro">
-    <span class="eyebrow">Checkout</span>
-    <h1>Confirm Your Order</h1>
-    <p class="lede">Finish your purchase securely for <strong><?= e($event['name'] ?? site_setting('site_title', 'Eventlyy') . ' Event') ?></strong>.</p>
+
+<!-- ═══ Checkout Header ═══ -->
+<section class="co-header">
+    <div class="co-header__nav">
+        <a href="<?= e($backUrl) ?>" class="co-back-link" title="Return to event page">
+            ← <span>Back to Event</span>
+        </a>
+        <span class="co-secure-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            256-Bit SSL Encrypted
+        </span>
+    </div>
+
+    <div class="co-header__intro">
+        <span class="eyebrow">Checkout</span>
+        <h1 class="co-title"><?= $isFreeOrder ? 'Complete Your Registration' : 'Confirm Your Order' ?></h1>
+        <p class="co-subtitle">
+            <?= $isFreeOrder 
+                ? 'Finish your free registration for <strong>' . e($eventName) . '</strong> to receive your instant digital ticket QR passes.' 
+                : 'Finish your purchase securely for <strong>' . e($eventName) . '</strong>.' ?>
+        </p>
+    </div>
 </section>
 
-<!-- Unified Form Wrapper -->
-<form id="checkout-form-main" method="POST" action="{{ route('checkout/{event_id}', ['event_id' => $event['id']]) }}">
+<!-- ═══ Unified Checkout Form ═══ -->
+<form id="checkout-form-main" method="POST" action="{{ route('checkout/{event_id}', ['event_id' => $eventId]) }}">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="process_checkout" />
-    <input type="hidden" name="event_id" value="<?= $event['id'] ?>" />
+    <input type="hidden" name="event_id" value="<?= $eventId ?>" />
     <input type="hidden" name="payment_method" id="selected-payment-method" value="<?= $isFreeOrder ? 'free' : e($defaultGateway) ?>" />
     <?php if (!empty($_GET['ref']) || !empty($_POST['ref']) || !empty($refCode)): ?>
         <input type="hidden" name="ref" value="<?= e($refCode ?? ($_GET['ref'] ?? ($_POST['ref'] ?? ''))) ?>" />
@@ -72,185 +100,222 @@ Checkout - <?= e($event['name'] ?? 'Complete Your Purchase') ?>
         <?php endforeach; ?>
     <?php endif; ?>
 
-    <div class="checkout-grid">
-        <section class="checkout-form">
-            <div class="section-header">
-                <div>
-                    <h2><?= $isFreeOrder ? 'Attendee Details' : 'Payment & Attendee Details' ?></h2>
-                    <p class="section-note">Enter your details to receive your digital ticket QR codes.</p>
+    <div class="co-grid">
+        
+        <!-- Left Column: Attendee & Payment Information -->
+        <section class="co-form-section">
+            <div class="co-card">
+                <div class="co-card__header">
+                    <h2><?= $isFreeOrder ? 'Attendee Details' : 'Attendee &amp; Payment' ?></h2>
+                    <p>Enter your details below. Your digital QR tickets will be issued instantly upon completion.</p>
                 </div>
-            </div>
 
-            <div class="form-card">
-                <!-- Alert message block -->
+                <!-- Alert Message Block -->
                 <div class="checkout-message" id="checkout-alert-msg" style="display:none;" aria-live="polite"></div>
 
-                <label>
-                    Full Name (Attendee Name)
-                    <input type="text" name="name" id="billing-name" placeholder="e.g. Jane Doe" required
-                        value="<?= e($userName) ?>" autocomplete="name" />
-                </label>
+                <!-- Attendee Input Fields -->
+                <div class="co-field-group">
+                    <label class="co-label" for="billing-name">
+                        Full Name (Ticket Holder)
+                        <span class="co-required">*</span>
+                    </label>
+                    <input type="text" name="name" id="billing-name" class="co-input" placeholder="e.g. Jane Doe" required
+                           value="<?= e($userName) ?>" autocomplete="name" />
+                </div>
 
-                <label>
-                    Email Address (Tickets will be delivered here)
-                    <input type="email" name="email" id="billing-email" placeholder="e.g. jane@example.com" required
-                        value="<?= e($userEmail) ?>" autocomplete="email" />
-                </label>
+                <div class="co-field-group">
+                    <label class="co-label" for="billing-email">
+                        Email Address (Digital QR delivery)
+                        <span class="co-required">*</span>
+                    </label>
+                    <input type="email" name="email" id="billing-email" class="co-input" placeholder="e.g. jane@example.com" required
+                           value="<?= e($userEmail) ?>" autocomplete="email" />
+                </div>
 
-                <!-- Free Ticket Notice Badge -->
-                <div id="free-registration-badge" style="margin-top:1.25rem; padding:1rem 1.15rem; border-radius:14px; background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); display:<?= $isFreeOrder ? 'flex' : 'none' ?>; align-items:center; gap:0.85rem; color:#10b981;">
-                    <span style="font-size:1.6rem; flex-shrink:0;">🎉</span>
-                    <div>
-                        <strong style="display:block; font-size:0.95rem; color:var(--text); margin-bottom:0.15rem;">Free Ticket Registration</strong>
-                        <span style="font-size:0.82rem; color:var(--text-muted); line-height:1.4;">No payment or credit card required. Your digital QR tickets will be issued directly upon confirmation.</span>
+                <!-- Free Ticket Notice Banner -->
+                <div id="free-registration-badge" class="co-free-banner" style="display:<?= $isFreeOrder ? 'flex' : 'none' ?>;">
+                    <span class="co-free-banner__icon">🎉</span>
+                    <div class="co-free-banner__content">
+                        <strong>Free Ticket Registration</strong>
+                        <span>No credit card or payment required. Your digital QR tickets will be generated directly upon confirmation.</span>
                     </div>
                 </div>
 
-                <!-- Payment Provider Selection Toggle (hidden for free tickets) -->
-                <div id="payment-provider-section" style="<?= $isFreeOrder ? 'display:none;' : '' ?>">
-                    <div style="margin-top:1.25rem; font-weight:600; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text);">Select Payment Provider</div>
-                    <div class="payment-methods" role="tablist" aria-label="Payment methods">
+                <!-- Payment Provider Selection Section (hidden for free orders) -->
+                <div id="payment-provider-section" class="co-provider-section" style="<?= $isFreeOrder ? 'display:none;' : '' ?>">
+                    <span class="co-provider-label">Select Payment Provider</span>
+                    
+                    <div class="payment-methods co-provider-grid" role="tablist" aria-label="Payment methods">
                         <?php if (in_array('paystack', $enabledGateways)): ?>
-                        <button type="button" class="pm-btn" data-method="paystack" aria-pressed="<?= $defaultGateway === 'paystack' ? 'true' : 'false' ?>">
-                            <span class="logo" aria-hidden>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="9" fill="currentColor" />
-                                </svg>
-                            </span>
-                            <span>Paystack</span>
-                        </button>
+                            <button type="button" class="pm-btn" data-method="paystack" aria-pressed="<?= $defaultGateway === 'paystack' ? 'true' : 'false' ?>">
+                                <span class="logo" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="12" cy="12" r="9" />
+                                    </svg>
+                                </span>
+                                <span>Paystack</span>
+                            </button>
                         <?php endif; ?>
 
                         <?php if (in_array('stripe', $enabledGateways)): ?>
-                        <button type="button" class="pm-btn" data-method="stripe" aria-pressed="<?= $defaultGateway === 'stripe' ? 'true' : 'false' ?>">
-                            <span class="logo" aria-hidden>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="2" y="6" width="20" height="12" rx="2" fill="currentColor" />
-                                </svg>
-                            </span>
-                            <span>Stripe</span>
-                        </button>
+                            <button type="button" class="pm-btn" data-method="stripe" aria-pressed="<?= $defaultGateway === 'stripe' ? 'true' : 'false' ?>">
+                                <span class="logo" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                        <rect x="2" y="6" width="20" height="12" rx="2" />
+                                    </svg>
+                                </span>
+                                <span>Stripe</span>
+                            </button>
                         <?php endif; ?>
 
                         <?php if (in_array('flutterwave', $enabledGateways)): ?>
-                        <button type="button" class="pm-btn" data-method="flutterwave" aria-pressed="<?= $defaultGateway === 'flutterwave' ? 'true' : 'false' ?>">
-                            <span class="logo" aria-hidden>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                                </svg>
-                            </span>
-                            <span>Flutterwave</span>
-                        </button>
+                            <button type="button" class="pm-btn" data-method="flutterwave" aria-pressed="<?= $defaultGateway === 'flutterwave' ? 'true' : 'false' ?>">
+                                <span class="logo" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                        <path d="M4 12h16" />
+                                    </svg>
+                                </span>
+                                <span>Flutterwave</span>
+                            </button>
                         <?php endif; ?>
                     </div>
 
-                    <!-- Conditional Card Input Fields (only for Stripe) -->
-                    <div class="card-fields" id="card-fields-section" aria-hidden="true" style="margin-top: 1rem; display: none;">
-                        <label class="card-number">
-                            Card Number
-                            <input type="text" name="card_number" id="card-number" placeholder="4242 •••• •••• 4242"
-                                autocomplete="cc-number" />
-                        </label>
-                        <div class="form-row">
-                            <label>
-                                Expiry Date
-                                <input type="text" name="card_expiry" id="card-expiry" placeholder="MM/YY"
-                                    autocomplete="cc-exp" />
-                            </label>
-                            <label>
-                                CVC
-                                <input type="text" name="card_cvc" id="card-cvc" placeholder="123" autocomplete="cc-csc" />
-                            </label>
+                    <!-- Card Fields for Direct Stripe Checkout -->
+                    <div class="card-fields co-card-fields" id="card-fields-section" aria-hidden="true" style="display: none;">
+                        <div class="co-field-group">
+                            <label class="co-label" for="card-number">Card Number</label>
+                            <input type="text" name="card_number" id="card-number" class="co-input" placeholder="4242 •••• •••• 4242" autocomplete="cc-number" />
+                        </div>
+                        <div class="form-row co-form-row">
+                            <div class="co-field-group">
+                                <label class="co-label" for="card-expiry">Expiry Date</label>
+                                <input type="text" name="card_expiry" id="card-expiry" class="co-input" placeholder="MM/YY" autocomplete="cc-exp" />
+                            </div>
+                            <div class="co-field-group">
+                                <label class="co-label" for="card-cvc">CVC</label>
+                                <input type="text" name="card_cvc" id="card-cvc" class="co-input" placeholder="123" autocomplete="cc-csc" />
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Gateway Info Note -->
-                    <div id="gateway-info" style="margin-top:1rem; padding:0.85rem 1rem; border-radius:12px; background:rgba(35, 182, 107, 0.06); border:1px solid rgba(35, 182, 107, 0.15); font-size:0.85rem; color:rgb(35, 182, 107); display:flex; align-items:center; gap:0.6rem; width:100%; box-sizing:border-box;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" fill="currentColor"/></svg>
-                        <span id="gateway-info-text" style="line-height:1.4;">You'll be securely redirected to Paystack to complete your payment.</span>
+                    <!-- Gateway Informational Note -->
+                    <div id="gateway-info" class="co-gateway-note">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="co-gateway-note__icon">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span id="gateway-info-text">You'll be securely redirected to Paystack to complete your payment.</span>
                     </div>
                 </div>
-            </div>
 
-            <div class="checkout-actions">
-                <button type="submit" id="checkout-submit" class="checkout-btn" style="border:none; cursor:pointer; width:100%; height:48px; font-size:1rem; border-radius:12px;">
-                    <?= $isFreeOrder ? 'Get Free Tickets →' : 'Pay with Paystack →' ?>
-                </button>
-                <p class="checkout-note" style="text-align:center; margin-top:0.75rem;">Your tickets will be generated and issued instantly upon confirmation.</p>
+                <!-- Submit CTA -->
+                <div class="co-submit-wrap">
+                    <button type="submit" id="checkout-submit" class="checkout-btn co-submit-btn">
+                        <?= $isFreeOrder ? 'Get Free Tickets →' : 'Pay with Paystack →' ?>
+                    </button>
+                    <p class="co-trust-note">
+                        🔒 Safe &amp; encrypted transaction. Digital passes delivered instantly to your email.
+                    </p>
+                </div>
             </div>
         </section>
 
-        <!-- Right Sidebar Order Summary -->
-        <aside class="order-summary">
-            <div class="summary-head">
-                <h3>Order Summary</h3>
-                <p class="meta">Review selected tickets before purchase.</p>
-            </div>
-
-            <div class="summary-card">
-                <div class="summary-row" style="font-weight: 700; font-size: 1.05rem; color: var(--text); border-bottom:1px solid rgba(var(--muted),0.12); padding-bottom:0.75rem; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-                    <span>🎟️ <?= e($event['name']) ?></span>
-                    <span style="font-size:0.82rem; color:var(--text-muted); font-weight:500; white-space:nowrap;"><?= date('M d, Y', strtotime($event['date'])) ?></span>
-                </div>
-
-                <?php if (empty($selectedItems)): ?>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">No tickets selected.</p>
-                <?php else: ?>
-                    <?php foreach ($selectedItems as $item): ?>
-                        <div class="summary-row" style="margin-bottom:0.5rem; font-size:0.9rem;">
-                            <span><?= e($item['name']) ?> × <?= $item['qty'] ?></span>
-                            <strong><?= $item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?></strong>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-
-                <div class="summary-divider" style="margin:0.75rem 0;"></div>
-
-                <div class="summary-row" style="font-size:0.88rem; color:var(--text-muted);">
-                    <span>Subtotal</span>
-                    <span id="summary-subtotal"><?= $subtotal > 0 ? format_price($subtotal) : 'Free' ?></span>
-                </div>
-
-                <div class="summary-row" style="color: var(--brand); font-weight: 600; font-size:0.88rem; margin-top:0.25rem;">
-                    <span>Ticketing Fee (<?= e($platformFeePercent ?? get_setting('platform_fee', 5)) ?>%)</span>
-                    <span id="summary-fee"><?= ($passFee && $subtotal > 0) ? format_price($fee) : '$0.00 (Covered by Host)' ?></span>
-                </div>
-
-                <div class="summary-row" style="font-size:0.88rem; color:var(--text-muted); margin-top:0.25rem;">
-                    <span>Service Fee / Extra Charge</span>
-                    <span id="summary-extra-charge"><?= $subtotal > 0 ? format_price($extraCharge ?? 100.00) : '$0.00' ?></span>
-                </div>
-
-                <div class="promo-box" style="margin: 0.85rem 0; padding: 0.85rem; background: rgba(11, 115, 102, 0.05); border: 1px dashed #0B7366; border-radius: 12px; width:100%; box-sizing:border-box;">
-                    <label style="font-size:0.82rem; font-weight:700; color:var(--text); display:block; margin-bottom:0.4rem;">🏷️ Have a Promo Code?</label>
-                    <div style="display:flex; gap:0.5rem; width:100%; box-sizing:border-box;">
-                        <input type="text" name="promo_code" id="promo-code-input" placeholder="e.g. DISCOUNT10" style="flex:1 1 auto; min-width:0; padding:0.6rem 0.75rem; font-size:0.9rem; font-weight:700; border-radius:8px; border:1px solid #0B7366; background:rgb(var(--card)); color:rgb(var(--text)); text-transform:uppercase; letter-spacing:0.5px; box-sizing:border-box;">
-                        <button type="button" id="apply-promo-btn" style="padding:0.6rem 1rem; font-size:0.88rem; font-weight:800; border-radius:8px; background-color:#0B7366; color:#ffffff; border:none; cursor:pointer; flex:0 0 auto; box-shadow: 0 2px 6px rgba(11,115,102,0.3);">Apply</button>
+        <!-- Right Column: Sticky Order Summary -->
+        <aside class="co-summary-section order-summary">
+            <div class="co-summary-card summary-card">
+                
+                <!-- Event Header in Summary -->
+                <div class="co-summary-event">
+                    <div class="co-summary-event__title">
+                        <span class="co-summary-event__icon">🎟️</span>
+                        <strong><?= e($eventName) ?></strong>
                     </div>
-                    <div id="promo-message" style="font-size:0.82rem; font-weight:600; margin-top:0.4rem; display:none; word-break:break-word;"></div>
+                    <div class="co-summary-event__meta">
+                        <?php if ($eventDate): ?>
+                            <span>📅 <?= date('M d, Y • g:i A', $eventDate) ?></span>
+                        <?php endif; ?>
+                        <span title="<?= e($eventLocation) ?>">📍 <?= e($eventLocation) ?></span>
+                    </div>
                 </div>
 
-                <div class="summary-row" id="discount-row" style="font-size:0.88rem; color:#10b981; font-weight:700; margin-top:0.25rem; display:none;">
-                    <span>Discount Applied</span>
-                    <span id="discount-amount-text">-</span>
+                <div class="summary-divider co-divider"></div>
+
+                <!-- Selected Tickets Itemized -->
+                <div class="co-summary-items">
+                    <span class="co-summary-subhead">Selected Tickets</span>
+                    <?php if (empty($selectedItems)): ?>
+                        <p class="co-summary-empty">No tickets selected.</p>
+                    <?php else: ?>
+                        <?php foreach ($selectedItems as $item): ?>
+                            <div class="summary-row co-ticket-row">
+                                <span class="co-ticket-row__name">
+                                    <strong><?= (int)$item['qty'] ?>×</strong> <?= e($item['name']) ?>
+                                </span>
+                                <strong class="co-ticket-row__price">
+                                    <?= $item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
+                                </strong>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
 
-                <div class="summary-divider" style="margin:0.75rem 0;"></div>
+                <div class="summary-divider co-divider"></div>
 
-                <div class="summary-total" style="display:flex; justify-content:space-between; align-items:center; font-size:1.25rem; font-weight:800; color:var(--text);">
-                    <span>Total</span>
-                    <strong id="final-total-amount" style="color:var(--brand);"><?= $totalAmount > 0 ? format_price($totalAmount) : 'Free' ?></strong>
+                <!-- Price Breakdown -->
+                <div class="co-breakdown">
+                    <div class="summary-row co-breakdown__row">
+                        <span>Subtotal</span>
+                        <strong id="summary-subtotal"><?= $subtotal > 0 ? format_price($subtotal) : 'Free' ?></strong>
+                    </div>
+
+                    <div class="summary-row co-breakdown__row co-breakdown__row--fee">
+                        <span>Ticketing Fee (<?= $platformFeePercent ?>%)</span>
+                        <strong id="summary-fee"><?= ($passFee && $subtotal > 0) ? format_price($fee) : '$0.00 (Covered by Host)' ?></strong>
+                    </div>
+
+                    <div class="summary-row co-breakdown__row">
+                        <span>Service / Processing</span>
+                        <strong id="summary-extra-charge"><?= $subtotal > 0 ? format_price($extraCharge) : '$0.00' ?></strong>
+                    </div>
+
+                    <!-- Discount Row (revealed on valid promo code) -->
+                    <div class="summary-row co-breakdown__row co-breakdown__row--discount" id="discount-row" style="display:none;">
+                        <span>Discount Applied</span>
+                        <strong id="discount-amount-text">-</strong>
+                    </div>
+                </div>
+
+                <!-- Promo Code Accordion / Box -->
+                <div class="promo-box co-promo-box">
+                    <label for="promo-code-input" class="co-promo-label">🏷️ Have a Promo Code?</label>
+                    <div class="co-promo-input-wrap">
+                        <input type="text" name="promo_code" id="promo-code-input" class="co-promo-input" placeholder="e.g. DISCOUNT10" autocomplete="off" />
+                        <button type="button" id="apply-promo-btn" class="co-promo-btn">Apply</button>
+                    </div>
+                    <div id="promo-message" class="co-promo-msg" style="display:none;" aria-live="polite"></div>
+                </div>
+
+                <div class="summary-divider co-divider"></div>
+
+                <!-- Total Amount -->
+                <div class="summary-total co-summary-total">
+                    <span>Total Amount</span>
+                    <strong id="final-total-amount"><?= $totalAmount > 0 ? format_price($totalAmount) : 'Free' ?></strong>
                 </div>
             </div>
 
-            <div class="summary-info" style="margin-top:1.25rem; background:rgba(var(--muted),0.04); border-radius:12px; padding:1rem;">
-                <h4 style="margin:0 0 0.25rem; font-size:0.92rem; font-weight:700;">🔒 Instant Digital Issuance</h4>
-                <p class="meta" style="margin:0; font-size:0.8rem; color:var(--text-muted);">Your transaction is protected and instant QR passes will be generated.</p>
+            <!-- Trust / Guarantee Badge -->
+            <div class="co-trust-card">
+                <span class="co-trust-card__icon">⚡</span>
+                <div>
+                    <strong>Instant Digital Delivery</strong>
+                    <p>Tickets are issued immediately with QR code validation for effortless gate check-in.</p>
+                </div>
             </div>
         </aside>
     </div>
 </form>
 
+<!-- ═══ Checkout Client-Side Logic ═══ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let isFreeOrder = <?= $isFreeOrder ? 'true' : 'false' ?>;
@@ -276,9 +341,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const gatewayColors = {
-        paystack: { bg: 'rgba(35, 182, 107, 0.06)', border: 'rgba(35, 182, 107, 0.15)', text: 'rgb(35, 182, 107)' },
-        stripe: { bg: 'rgba(99, 91, 255, 0.06)', border: 'rgba(99, 91, 255, 0.15)', text: 'rgb(99, 91, 255)' },
-        flutterwave: { bg: 'rgba(251, 146, 60, 0.06)', border: 'rgba(251, 146, 60, 0.15)', text: 'rgb(251, 146, 60)' }
+        paystack: { bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.25)', text: '#10b981' },
+        stripe: { bg: 'rgba(99, 91, 255, 0.08)', border: 'rgba(99, 91, 255, 0.25)', text: '#635bff' },
+        flutterwave: { bg: 'rgba(245, 158, 11, 0.08)', border: 'rgba(245, 158, 11, 0.25)', text: '#f59e0b' }
     };
 
     function updateGatewayUI(method) {
@@ -293,12 +358,12 @@ document.addEventListener('DOMContentLoaded', function() {
             cardFields.setAttribute('aria-hidden', method === 'stripe' ? 'false' : 'true');
         }
 
-        // Update submit button
+        // Update submit button text
         if (submitBtn) {
             submitBtn.textContent = buttonLabels[method] || 'Complete Purchase →';
         }
 
-        // Update gateway info
+        // Update gateway information capsule
         if (gatewayInfo && gatewayInfoText) {
             const colors = gatewayColors[method] || gatewayColors.paystack;
             gatewayInfo.style.background = colors.bg;
@@ -320,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ── Full-Page Blur Processing Overlay Helper ──────────
+    // ── Full-Page Processing Overlay Helper ──────────
     function showProcessingOverlay(title, desc) {
         let overlay = document.querySelector('.evently-processing-overlay');
         if (!overlay) {
@@ -345,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ── Form Submission Handling with Loading Effect ──────
+    // ── Form Submission Handling ─────────────────────
     const checkoutForm = document.getElementById('checkout-form-main');
     if (checkoutForm) {
         checkoutForm.addEventListener('submit', function(e) {
@@ -394,6 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ── Promo Code Validation ─────────────────────────
     const applyPromoBtn = document.getElementById('apply-promo-btn');
     const promoInput = document.getElementById('promo-code-input');
     const promoMsg = document.getElementById('promo-message');
@@ -420,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: new URLSearchParams({
                     code: code,
-                    event_id: '<?= $event['id'] ?>',
+                    event_id: '<?= $eventId ?>',
                     subtotal: '<?= $subtotal ?>',
                     csrf_token: '<?= csrf_token() ?>'
                 })
@@ -475,8 +541,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize on load
+    // Initialize UI on page load
     updateGatewayUI(selectedPmInput ? selectedPmInput.value : 'paystack');
 });
 </script>
+
 @endsection
