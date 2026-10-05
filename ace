@@ -165,6 +165,85 @@ switch ($command) {
         echo "✅ Created Middleware: app/Middlewares/{$name}.php\n\n";
         break;
 
+    case 'make:action':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the action name. e.g. php ace make:action CreateOrderAction\n\n";
+            exit(1);
+        }
+        
+        $name = ucfirst($name);
+        if (!str_ends_with($name, 'Action')) {
+            $name .= 'Action';
+        }
+        
+        $actionsDir = $rootDir . '/app/Actions';
+        if (!is_dir($actionsDir)) {
+            mkdir($actionsDir, 0755, true);
+        }
+        
+        $filePath = $actionsDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Action '{$name}' already exists.\n\n";
+            exit(1);
+        }
+        
+        $template = "<?php\n\nnamespace App\Actions;\n\nclass {$name}\n{\n    public function execute(mixed ...\$params): mixed\n    {\n        // Implement discrete business logic here\n        return null;\n    }\n}\n";
+        
+        file_put_contents($filePath, $template);
+        echo "✅ Created Action: app/Actions/{$name}.php\n\n";
+        break;
+
+    case 'make:event':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the event name. e.g. php ace make:event UserRegistered\n\n";
+            exit(1);
+        }
+        
+        $name = ucfirst($name);
+        $eventsDir = $rootDir . '/app/Events';
+        if (!is_dir($eventsDir)) {
+            mkdir($eventsDir, 0755, true);
+        }
+        
+        $filePath = $eventsDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Event '{$name}' already exists.\n\n";
+            exit(1);
+        }
+        
+        $template = "<?php\n\nnamespace App\Events;\n\nclass {$name}\n{\n    public function __construct(\n        // Define event properties here\n    ) {}\n}\n";
+        
+        file_put_contents($filePath, $template);
+        echo "✅ Created Event: app/Events/{$name}.php\n\n";
+        break;
+
+    case 'make:listener':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the listener name. e.g. php ace make:listener SendWelcomeEmail\n\n";
+            exit(1);
+        }
+        
+        $name = ucfirst($name);
+        $listenersDir = $rootDir . '/app/Listeners';
+        if (!is_dir($listenersDir)) {
+            mkdir($listenersDir, 0755, true);
+        }
+        
+        $filePath = $listenersDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Listener '{$name}' already exists.\n\n";
+            exit(1);
+        }
+        
+        $template = "<?php\n\nnamespace App\Listeners;\n\nclass {$name}\n{\n    public function handle(mixed ...\$payload): void\n    {\n        // Handle the incoming dispatched event\n    }\n}\n";
+        
+        file_put_contents($filePath, $template);
+        echo "✅ Created Listener: app/Listeners/{$name}.php\n\n";
+        break;
+
     case 'make:seeder':
         $name = $args[2] ?? null;
         if (!$name) {
@@ -347,6 +426,9 @@ switch ($command) {
         echo "  make:controller <Name>   Generates a boilerplate Controller class.\n";
         echo "  make:model <Name>        Generates a boilerplate Active Record Model class.\n";
         echo "  make:middleware <Name>   Generates a boilerplate Middleware class.\n";
+        echo "  make:action <Name>       Generates an Action class for single-purpose business logic.\n";
+        echo "  make:event <Name>        Generates an Event class.\n";
+        echo "  make:listener <Name>     Generates an Event Listener class.\n";
         echo "  make:seeder <Name>       Generates a boilerplate Seeder class.\n";
         echo "  view:clear               Wipes all cached, compiled view templates.\n";
         echo "  help                     Shows this help manual.\n\n";

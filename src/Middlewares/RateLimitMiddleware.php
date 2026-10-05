@@ -7,12 +7,22 @@ use Ace\Middleware;
 
 class RateLimitMiddleware extends Middleware
 {
-    private int $limit = 60; // 60 requests
-    private int $window = 60; // per 60 seconds
+    public function __construct(
+        private int $limit = 60,
+        private int $window = 60,
+        private ?string $prefix = null
+    ) {
+    }
+
+    public static function per(int $limit, int $window = 60, ?string $prefix = null): self
+    {
+        return new self($limit, $window, $prefix);
+    }
 
     protected function run(): void
     {
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $key = ($this->prefix ? $this->prefix . ':' : '') . $ip;
         $cacheDir = Application::$ROOT_DIR . '/storage/cache';
         
         if (!is_dir($cacheDir)) {
@@ -35,15 +45,15 @@ class RateLimitMiddleware extends Middleware
             }
         }
 
-        if (isset($data[$ip])) {
-            $data[$ip]['count']++;
-            if ($data[$ip]['count'] > $this->limit) {
+        if (isset($data[$key])) {
+            $data[$key]['count']++;
+            if ($data[$key]['count'] > $this->limit) {
                 // Save state and block request
                 file_put_contents($cacheFile, json_encode($data));
                 throw new \Exception("Too Many Requests", 429);
             }
         } else {
-            $data[$ip] = [
+            $data[$key] = [
                 'count' => 1,
                 'time' => $now
             ];

@@ -1552,3 +1552,62 @@ if (!function_exists('parse_guest_socials')) {
     }
 }
 
+
+
+if (!function_exists('dump')) {
+    /**
+     * Pretty-print one or more variables for debugging.
+     * Does NOT halt execution.
+     */
+    function dump(mixed ...$vars): void
+    {
+        $isCli = php_sapi_name() === 'cli' || php_sapi_name() === 'phpdbg';
+
+        foreach ($vars as $var) {
+            if ($isCli) {
+                echo "\n";
+                var_export($var);
+                echo "\n";
+            } else {
+                echo '<pre style="background:#1e1e2e;color:#cdd6f4;padding:12px 16px;margin:8px 0;border-radius:8px;font-family:\'JetBrains Mono\',monospace;font-size:13px;line-height:1.5;overflow-x:auto;border-left:4px solid #89b4fa;">';
+                echo '<span style="color:#585b70;font-size:11px;display:block;margin-bottom:4px;">';
+                $bt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
+                if (!empty($bt[0])) {
+                    echo htmlspecialchars(basename($bt[0]['file'])) . ':' . $bt[0]['line'];
+                }
+                echo '</span>';
+                echo htmlspecialchars(var_export($var, true));
+                echo '</pre>';
+            }
+        }
+    }
+}
+
+if (!function_exists('dd')) {
+    /**
+     * Dump variables and die. "Dump and Die" debugging helper.
+     */
+    function dd(mixed ...$vars): never
+    {
+        dump(...$vars);
+
+        if (php_sapi_name() !== 'cli' && php_sapi_name() !== 'phpdbg') {
+            echo '<div style="background:#f38ba8;color:#1e1e2e;padding:6px 12px;border-radius:4px;font-family:monospace;font-size:12px;margin:8px 0;">⛔ Execution halted by dd()</div>';
+        }
+
+        exit(1);
+    }
+}
+
+if (!function_exists('collect')) {
+    /**
+     * Create a new Collection instance from the given array.
+     *
+     * @param array $items
+     * @return \Ace\Collection
+     */
+    function collect(array $items = []): \Ace\Collection
+    {
+        return new \Ace\Collection($items);
+    }
+}
