@@ -21,5 +21,13 @@
             "name": "Celionatti",
             "email": "celionattidev@gmail.com"
         }
-    ]
+    ],
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    }
 }

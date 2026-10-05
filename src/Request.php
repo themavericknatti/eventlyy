@@ -347,6 +347,110 @@ class Request
     }
 
     /**
+     * Get all input parameters (alias for getBody())
+     */
+    public function all(): array
+    {
+        return $this->getBody();
+    }
+
+    /**
+     * Retrieve a subset of request input parameters.
+     *
+     *   $data = $request->only(['name', 'email']);
+     *   $data = $request->only('name', 'email');
+     */
+    public function only(string|array ...$keys): array
+    {
+        $keys = array_merge(
+            ...array_map(fn($k) => is_array($k) ? $k : [$k], $keys)
+        );
+
+        $body = $this->getBody();
+        $results = [];
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $body)) {
+                $results[$key] = $body[$key];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Retrieve all input parameters except specified keys.
+     *
+     *   $data = $request->except(['_token', '_method']);
+     *   $data = $request->except('_token', '_method');
+     */
+    public function except(string|array ...$keys): array
+    {
+        $keys = array_merge(
+            ...array_map(fn($k) => is_array($k) ? $k : [$k], $keys)
+        );
+
+        $body = $this->getBody();
+        foreach ($keys as $key) {
+            unset($body[$key]);
+        }
+
+        return $body;
+    }
+
+    /**
+     * Get a request header value.
+     */
+    public function header(string $key, ?string $default = null): ?string
+    {
+        $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+        
+        if (isset($_SERVER[$serverKey])) {
+            return $_SERVER[$serverKey];
+        }
+
+        if (in_array(strtolower($key), ['content-type', 'content_type'], true) && isset($_SERVER['CONTENT_TYPE'])) {
+            return $_SERVER['CONTENT_TYPE'];
+        }
+        if (in_array(strtolower($key), ['content-length', 'content_length'], true) && isset($_SERVER['CONTENT_LENGTH'])) {
+            return $_SERVER['CONTENT_LENGTH'];
+        }
+
+        return $default;
+    }
+
+    /**
+     * Retrieve a Bearer token from the Authorization header.
+     */
+    public function bearerToken(): ?string
+    {
+        $header = $this->header('Authorization') ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        if (preg_match('/Bearer\s+(.+)$/i', $header, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get client IP address
+     */
+    public function ip(): string
+    {
+        $ip = $_SERVER['HTTP_CF_CONNECTING_IP']
+            ?? $_SERVER['HTTP_X_FORWARDED_FOR']
+            ?? $_SERVER['REMOTE_ADDR']
+            ?? '127.0.0.1';
+
+        // In case of multiple forwarded IPs, take the first one
+        if (str_contains($ip, ',')) {
+            $ip = trim(explode(',', $ip)[0]);
+        }
+
+        return $ip;
+    }
+
+    /**
      * Recursively sanitize values to prevent XSS
      */
     private function sanitize(mixed $value): mixed

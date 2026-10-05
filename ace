@@ -266,10 +266,79 @@ switch ($command) {
         passthru(PHP_BINARY . " -S {$host}:{$port} -t public \"{$rootDir}/src/server.php\"");
         break;
 
+    case 'down':
+        $downDir = $rootDir . '/storage/framework';
+        if (!is_dir($downDir)) {
+            mkdir($downDir, 0755, true);
+        }
+
+        $message = 'We are performing scheduled maintenance. Please check back shortly.';
+        $retry = 60;
+        $secret = null;
+
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--message=')) {
+                $message = substr($arg, 10);
+            }
+            if (str_starts_with($arg, '--retry=')) {
+                $retry = (int) substr($arg, 8);
+            }
+            if (str_starts_with($arg, '--secret=')) {
+                $secret = substr($arg, 9);
+            }
+        }
+
+        $payload = [
+            'time' => time(),
+            'message' => $message,
+            'retry' => $retry,
+            'secret' => $secret,
+        ];
+
+        file_put_contents($downDir . '/down', json_encode($payload, JSON_PRETTY_PRINT));
+        echo "🚧 Application is now in maintenance mode.\n";
+        if ($secret) {
+            echo "   Bypass secret: ?secret={$secret}\n";
+        }
+        echo "\n";
+        break;
+
+    case 'up':
+        $downFile = $rootDir . '/storage/framework/down';
+        if (file_exists($downFile)) {
+            @unlink($downFile);
+            echo "🚀 Application is now live!\n\n";
+        } else {
+            echo "ℹ️  Application is already live.\n\n";
+        }
+        break;
+
+    case 'test':
+        $phpunitBin = $rootDir . '/vendor/bin/phpunit';
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $phpunitBat = $rootDir . '/vendor/bin/phpunit.bat';
+            if (file_exists($phpunitBat)) {
+                $phpunitBin = $phpunitBat;
+            }
+        }
+
+        if (!file_exists($phpunitBin) && !file_exists($rootDir . '/vendor/bin/phpunit.bat')) {
+            echo "❌ PHPUnit is not installed. Run 'composer install' to install test dependencies.\n\n";
+            exit(1);
+        }
+
+        echo "🧪 Running Ace Test Suite...\n\n";
+        $extraArgs = implode(' ', array_slice($args, 2));
+        passthru("\"{$phpunitBin}\" {$extraArgs}");
+        break;
+
     case 'help':
     default:
         echo "Available Commands:\n";
         echo "  serve                    Starts the local development server (like artisan serve).\n";
+        echo "  test                     Runs the PHPUnit test suite.\n";
+        echo "  down [--secret=token]    Puts application into maintenance mode.\n";
+        echo "  up                       Brings application out of maintenance mode.\n";
         echo "  migrate                  Runs database schemas migrations.\n";
         echo "  migrate:rollback         Rolls back the last migration batch.\n";
         echo "  migrate:status           Displays the status of all migrations.\n";

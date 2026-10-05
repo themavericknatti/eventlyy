@@ -45,6 +45,7 @@ class XssSanitizer
         // 5. Remove dangerous URI schemes (javascript:, vbscript:, data:text/html, etc.)
         $value = preg_replace('/(href|src|action|data)\s*=\s*(["\'])\s*(?:javascript|vbscript|data\s*:\s*text\/html|data\s*:\s*application):.*?\2/is', '', $value);
         $value = preg_replace('/(href|src|action|data)\s*=\s*(?:javascript|vbscript|data\s*:\s*text\/html):[^\s>]+/is', '', $value);
+        $value = preg_replace('/(?:javascript|vbscript)\s*:[^\s]*/is', '', $value);
 
         // 6. Neutralize CSS expressions and dynamic binding behaviors
         $value = preg_replace('/expression\s*\((.*?)\)/is', '', $value);

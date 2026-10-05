@@ -252,6 +252,9 @@ class Application
     {
         ob_start();
         try {
+            // Check for maintenance mode
+            $this->checkMaintenanceMode();
+
             // Run global middlewares
             (new \Ace\Middlewares\SecurityHeadersMiddleware())->execute('');
             (new \Ace\Middlewares\RateLimitMiddleware())->execute('');
@@ -261,6 +264,54 @@ class Application
             ob_end_flush();
         } catch (\Throwable $e) {
             $this->handleException($e);
+        }
+    }
+
+    /**
+     * Check if application is currently in maintenance mode
+     */
+    protected function checkMaintenanceMode(): void
+    {
+        $downFile = self::$ROOT_DIR . '/storage/framework/down';
+        if (!file_exists($downFile)) {
+            return;
+        }
+
+        $data = json_decode(file_get_contents($downFile), true) ?: [];
+        $secret = $data['secret'] ?? null;
+        $hasSecret = false;
+
+        // Check if bypass secret is provided in query param or cookie
+        if ($secret) {
+            if (($_GET['secret'] ?? '') === $secret) {
+                setcookie('ace_bypass_secret', $secret, time() + 86400, '/');
+                $hasSecret = true;
+            } elseif (($_COOKIE['ace_bypass_secret'] ?? '') === $secret) {
+                $hasSecret = true;
+            }
+        }
+
+        if (!$hasSecret) {
+            http_response_code(503);
+            header('Retry-After: ' . ($data['retry'] ?? 60));
+
+            $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+                || str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json');
+
+            if ($isJson) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'message' => $data['message'] ?? 'Service Unavailable for maintenance.',
+                    'code' => 503,
+                    'retry_after' => (int)($data['retry'] ?? 60)
+                ]);
+                exit;
+            }
+
+            echo $this->router->renderView('errors/503', [
+                'message' => $data['message'] ?? 'We are performing scheduled maintenance. Please check back shortly.'
+            ]);
+            exit;
         }
     }
 

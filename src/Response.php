@@ -85,5 +85,96 @@ class Response
             exit;
         }
     }
+
+    /**
+     * Redirect back to the previous page using HTTP_REFERER.
+     */
+    public function back(int $statusCode = 302, array $flashData = [], string $fallback = '/'): void
+    {
+        $referer = $_SERVER['HTTP_REFERER'] ?? null;
+        $target = $referer ?: $fallback;
+        $this->redirect($target, $statusCode, $flashData);
+    }
+
+    /**
+     * Return a 204 No Content response.
+     */
+    public function noContent(): void
+    {
+        $this->setStatusCode(204);
+        if (php_sapi_name() !== 'cli') {
+            exit;
+        }
+    }
+
+    /**
+     * Return a file download response.
+     */
+    public function download(string $filePath, ?string $filename = null, array $headers = []): void
+    {
+        if (!file_exists($filePath)) {
+            throw new \Exception("File not found for download: {$filePath}", 404);
+        }
+
+        $filename = $filename ?? basename($filePath);
+        $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+        $size = filesize($filePath);
+
+        $defaultHeaders = [
+            'Content-Description' => 'File Transfer',
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'attachment; filename="' . addslashes($filename) . '"',
+            'Content-Length' => (string)$size,
+            'Expires' => '0',
+            'Cache-Control' => 'must-revalidate',
+            'Pragma' => 'public',
+        ];
+
+        foreach (array_merge($defaultHeaders, $headers) as $name => $value) {
+            $this->setHeader($name, $value);
+        }
+
+        // Flush any output buffers before streaming file
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        readfile($filePath);
+        if (php_sapi_name() !== 'cli') {
+            exit;
+        }
+    }
+
+    /**
+     * Return an inline file display response (e.g. for viewing PDFs/images in browser).
+     */
+    public function file(string $filePath, array $headers = []): void
+    {
+        if (!file_exists($filePath)) {
+            throw new \Exception("File not found: {$filePath}", 404);
+        }
+
+        $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+        $size = filesize($filePath);
+
+        $defaultHeaders = [
+            'Content-Type' => $mime,
+            'Content-Length' => (string)$size,
+            'Content-Disposition' => 'inline; filename="' . addslashes(basename($filePath)) . '"',
+        ];
+
+        foreach (array_merge($defaultHeaders, $headers) as $name => $value) {
+            $this->setHeader($name, $value);
+        }
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        readfile($filePath);
+        if (php_sapi_name() !== 'cli') {
+            exit;
+        }
+    }
 }
 
