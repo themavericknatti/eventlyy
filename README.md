@@ -1,5 +1,135 @@
-# ✨ Ace PHP MVC Framework
+# ⚡ Ace PHP MVC Framework (Starter Boilerplate)
 
-Ace Core Framework
-Copyright © 2026 Celio Natti
-Released under the MIT License.
+A clean, modern, and lightweight PHP MVC framework inspired by Laravel. Built for rapid application development, security, and effortless production deployment.
+
+---
+
+## 🚀 Quick Start: Creating a New Project
+
+To spin up a new project using this clean framework skeleton without any existing application code, run:
+
+```bash
+# Clone only the clean framework starter branch
+git clone -b framework https://github.com/themavericknatti/eventlyy.git my-new-project
+
+# Navigate into the project
+cd my-new-project
+
+# Copy environment file
+cp .env.example .env
+
+# Install dependencies
+composer install
+
+# Start development server
+php ace serve
+```
+
+Your app will be live at `http://127.0.0.1:8000`!
+
+---
+
+## 📁 Directory Structure
+
+```text
+├── app/
+│   ├── Controllers/       # Application Controllers
+│   ├── Middlewares/       # Custom Middlewares
+│   └── Models/            # ActiveRecord Models
+├── config/
+│   ├── app.php            # App configuration
+│   ├── database.php       # Database configuration
+│   └── settings.json      # Dynamic settings
+├── migrations/            # Database schema migrations
+├── public/                # Web server DocumentRoot (Front Controller)
+│   ├── assets/            # CSS, JavaScript, and Static Files
+│   ├── uploads/           # User uploads
+│   ├── .htaccess          # Production URL rewrites
+│   └── index.php          # Single application entry point
+├── routes/
+│   └── web.php            # Application HTTP routes
+├── src/                   # Core Ace Framework source code
+├── storage/               # Logs and compiled view cache
+├── .env.example           # Environment template
+├── .htaccess              # Root Apache bridge & directory protection
+├── ace                    # CLI command runner (like artisan)
+└── composer.json          # Dependencies & autoloading
+```
+
+---
+
+## 💻 Ace CLI Command Runner
+
+Ace includes a built-in CLI tool to streamline development:
+
+| Command | Description |
+| :--- | :--- |
+| `php ace serve` | Starts the built-in development server (default port 8000) |
+| `php ace serve --port=8080` | Starts dev server on a custom port |
+| `php ace make:controller <Name>` | Generates a boilerplate Controller in `app/Controllers/` |
+| `php ace make:model <Name>` | Generates an ActiveRecord Model in `app/Models/` |
+| `php ace make:middleware <Name>` | Generates a Middleware in `app/Middlewares/` |
+| `php ace make:migration <name>` | Generates a timestamped migration in `migrations/` |
+| `php ace migrate` | Runs all pending database migrations |
+| `php ace migrate:rollback` | Rolls back the last migration batch |
+| `php ace migrate:status` | Displays migration status |
+| `php ace view:clear` | Wipes compiled template view cache |
+| `php ace help` | Displays list of available commands |
+
+---
+
+## 🛠️ Routing (`routes/web.php`)
+
+```php
+use App\Controllers\HomeController;
+use App\Controllers\UserController;
+
+// Basic GET route
+$router->get('/', [HomeController::class, 'index'])->name('home');
+
+// Parameterized route
+$router->get('/users/{id}', [UserController::class, 'show'])->name('users.show');
+
+// POST request with middleware
+$router->post('/users', [UserController::class, 'store']);
+```
+
+---
+
+## 🎨 Views & Templates
+
+Views are located in `views/` and support layouts, sections, components, and automatic escaping:
+
+```php
+@layout('layouts/main')
+
+@section('title', 'Dashboard')
+
+@section('content')
+<div class="card">
+    <h1>Welcome, <?= e($userName) ?></h1>
+</div>
+@endsection
+```
+
+### Useful Helper Functions
+- `route('route.name')` - Generates clean URL path.
+- `asset('css/style.css')` - Generates static asset URL path.
+- `upload('avatars/pic.jpg')` - Generates user upload URL path.
+- `csrf_field()` - Emits a secure CSRF token input tag.
+- `redirect('/login')` - Safely redirects requests.
+
+---
+
+## 🚢 Production Deployment
+
+This framework follows standard Laravel architecture:
+- **No `index.php` in the root folder**; all HTTP requests are directed through `public/index.php`.
+- Fully compatible with **Whogohost Go52**, cPanel, DirectAdmin, Apache, and Nginx.
+- Refer to [how-to-upload.md](how-to-upload.md) for detailed deployment steps.
+
+---
+
+## 📄 License
+
+The Ace PHP MVC Framework is open-sourced software licensed under the [MIT license](LICENSE).

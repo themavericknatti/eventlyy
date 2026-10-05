@@ -2,7 +2,7 @@
 
 use Ace\Migration;
 
-class m2026_06_15_000001_create_users_and_transactions_tables extends Migration
+class m2026_01_01_000001_create_users_table extends Migration
 {
     public function up(): void
     {
@@ -24,4 +24,3 @@ class m2026_06_15_000001_create_users_and_transactions_tables extends Migration
         $this->pdo->exec("DROP TABLE IF EXISTS `users`");
     }
 }
-
