@@ -243,24 +243,24 @@ try {
 
             <!-- Badge & Headline Title -->
             <div class="admin-grid-2">
-                <label>Badge / Eyebrow Tag
-                    <input type="text" name="announcement_badge" value="<?= e($settings['announcement_badge'] ?? '🎉 Special Announcement') ?>" placeholder="e.g. 🎉 Special Celebration or 🚀 Anniversary">
+                <label>Badge / Eyebrow Tag (Optional)
+                    <input type="text" name="announcement_badge" value="<?= e($settings['announcement_badge'] ?? '') ?>" placeholder="e.g. 🎉 Special Announcement (Leave blank to hide)">
                 </label>
 
-                <label>Headline Title *
-                    <input type="text" name="announcement_title" value="<?= e($settings['announcement_title'] ?? '') ?>" placeholder="e.g. Celebrating 5 Years of Eventlyy! 🎉">
+                <label>Headline Title (Optional if banner image provided)
+                    <input type="text" name="announcement_title" value="<?= e($settings['announcement_title'] ?? '') ?>" placeholder="e.g. Celebrating 5 Years of Eventlyy! 🎉 (Leave blank for image-only)">
                 </label>
             </div>
 
             <!-- Body Message -->
-            <label>Announcement Body Message
-                <textarea name="announcement_message" rows="4" style="width:100%; box-sizing:border-box; border-radius:14px; padding:0.85rem 1rem; font-family:inherit; font-size:0.92rem; line-height:1.5; resize:vertical;" placeholder="Write your full celebration or announcement message here. Share your milestone, holiday wishes, promo codes, or important system updates..."><?= e($settings['announcement_message'] ?? '') ?></textarea>
+            <label>Announcement Body Message (Optional)
+                <textarea name="announcement_message" rows="4" style="width:100%; box-sizing:border-box; border-radius:14px; padding:0.85rem 1rem; font-family:inherit; font-size:0.92rem; line-height:1.5; resize:vertical;" placeholder="Write your full celebration or announcement message here. Leave blank if using a visual flyer/poster only..."><?= e($settings['announcement_message'] ?? '') ?></textarea>
             </label>
 
             <!-- Media / Image Upload -->
             <div style="background:rgba(var(--muted), 0.03); border:1px dashed rgba(var(--muted), 0.2); border-radius:16px; padding:1.25rem;">
                 <h4 style="margin:0 0 0.35rem 0; font-size:0.95rem; font-weight:700;">Announcement Banner Image (Optional, Max 3MB)</h4>
-                <p style="font-size:0.8rem; color:rgb(var(--muted)); margin:0 0 0.85rem 0;">Upload a festive graphic, celebration poster, or holiday banner (PNG, JPG, WEBP, GIF, SVG).</p>
+                <p style="font-size:0.8rem; color:rgb(var(--muted)); margin:0 0 0.85rem 0;">Upload a festive graphic, celebration poster, or holiday banner (PNG, JPG, WEBP, GIF, SVG). If only an image is provided without text, it displays as a clean visual flyer.</p>
 
                 <?php if (!empty($settings['announcement_image'])): 
                     $annImgSrc = str_starts_with($settings['announcement_image'], 'http') ? $settings['announcement_image'] : asset($settings['announcement_image']);
@@ -287,16 +287,16 @@ try {
 
             <!-- Action Buttons Config -->
             <div class="admin-grid-3">
-                <label>Action Button Label
-                    <input type="text" name="announcement_link_text" value="<?= e($settings['announcement_link_text'] ?? 'Check It Out →') ?>" placeholder="e.g. Check It Out →">
+                <label>Action Button Label (Optional)
+                    <input type="text" name="announcement_link_text" value="<?= e($settings['announcement_link_text'] ?? '') ?>" placeholder="e.g. Check It Out → (Leave blank to hide)">
                 </label>
 
                 <label>Action Button URL (Optional)
-                    <input type="text" name="announcement_link_url" value="<?= e($settings['announcement_link_url'] ?? '') ?>" placeholder="e.g. /events or https://...">
+                    <input type="text" name="announcement_link_url" value="<?= e($settings['announcement_link_url'] ?? '') ?>" placeholder="e.g. /events or https://... (Leave blank to hide)">
                 </label>
 
-                <label>Cancel / Dismiss Button Label
-                    <input type="text" name="announcement_dismiss_text" value="<?= e($settings['announcement_dismiss_text'] ?? 'Continue to Site') ?>" placeholder="e.g. Continue to Site">
+                <label>Cancel / Dismiss Button Label (Optional)
+                    <input type="text" name="announcement_dismiss_text" value="<?= e($settings['announcement_dismiss_text'] ?? 'Continue to Site') ?>" placeholder="e.g. Continue to Site (Leave blank to hide)">
                 </label>
             </div>
 
@@ -701,45 +701,140 @@ window.openAnnouncementPreview = function(e) {
     var fileInput = document.querySelector('input[name="announcement_image"]');
     var existingThumb = document.querySelector('img[alt="Announcement Banner"]');
 
-    var badgeVal = (badgeInput && badgeInput.value.trim()) ? badgeInput.value.trim() : '🎉 Special Announcement';
-    var titleVal = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : 'Celebrating Our 5th Anniversary! 🎉';
-    var msgVal = (msgInput && msgInput.value.trim()) ? msgInput.value.trim() : 'This is a live preview of your announcement. Share celebratory news, holiday wishes, promotions, or platform notices with your visitors!';
-    var linkTextVal = (linkTextInput && linkTextInput.value.trim()) ? linkTextInput.value.trim() : 'Check It Out →';
-    var linkUrlVal = (linkUrlInput && linkUrlInput.value.trim()) ? linkUrlInput.value.trim() : '';
-    var dismissVal = (dismissInput && dismissInput.value.trim()) ? dismissInput.value.trim() : 'Continue to Site';
+    var badgeVal = badgeInput ? badgeInput.value.trim() : '';
+    var titleVal = titleInput ? titleInput.value.trim() : '';
+    var msgVal = msgInput ? msgInput.value.trim() : '';
+    var linkTextVal = linkTextInput ? linkTextInput.value.trim() : '';
+    var linkUrlVal = linkUrlInput ? linkUrlInput.value.trim() : '';
+    var dismissVal = dismissInput ? dismissInput.value.trim() : '';
 
-    document.getElementById('prev-ann-badge').textContent = badgeVal;
-    document.getElementById('prev-ann-title').textContent = titleVal;
-    document.getElementById('prev-ann-msg').innerHTML = msgVal.replace(/\n/g, '<br>');
-    document.getElementById('prev-ann-dismiss-btn').textContent = dismissVal;
+    var badgeEl = document.getElementById('prev-ann-badge');
+    if (badgeEl) {
+        if (badgeVal) {
+            badgeEl.textContent = badgeVal;
+            badgeEl.style.display = 'inline-flex';
+        } else {
+            badgeEl.style.display = 'none';
+        }
+    }
+
+    var titleEl = document.getElementById('prev-ann-title');
+    if (titleEl) {
+        if (titleVal) {
+            titleEl.textContent = titleVal;
+            titleEl.style.display = 'block';
+        } else {
+            titleEl.style.display = 'none';
+        }
+    }
+
+    var msgEl = document.getElementById('prev-ann-msg');
+    if (msgEl) {
+        if (msgVal) {
+            msgEl.innerHTML = msgVal.replace(/\n/g, '<br>');
+            msgEl.style.display = 'block';
+        } else {
+            msgEl.style.display = 'none';
+        }
+    }
 
     var actionBtn = document.getElementById('prev-ann-action-btn');
-    if (linkUrlVal || linkTextVal) {
-        actionBtn.textContent = linkTextVal;
-        actionBtn.style.display = 'inline-flex';
-    } else {
-        actionBtn.style.display = 'none';
+    if (actionBtn) {
+        if (linkUrlVal) {
+            actionBtn.textContent = linkTextVal || 'Check It Out →';
+            actionBtn.style.display = 'inline-flex';
+        } else {
+            actionBtn.style.display = 'none';
+        }
+    }
+
+    var dismissBtn = document.getElementById('btn-dismiss-ann-preview') || document.getElementById('prev-ann-dismiss-btn');
+    if (dismissBtn) {
+        if (dismissVal) {
+            dismissBtn.textContent = dismissVal;
+            dismissBtn.style.display = 'inline-flex';
+        } else {
+            dismissBtn.style.display = 'none';
+        }
+    }
+
+    var actionsWrap = document.getElementById('prev-ann-actions-wrap');
+    if (actionsWrap) {
+        actionsWrap.style.display = (linkUrlVal || dismissVal) ? 'flex' : 'none';
+    }
+
+    var bodyEl = document.getElementById('prev-ann-body');
+    var hasBodyContent = Boolean(badgeVal || titleVal || msgVal || linkUrlVal || dismissVal);
+    if (bodyEl) {
+        bodyEl.style.display = hasBodyContent ? 'block' : 'none';
     }
 
     var mediaWrap = document.getElementById('prev-ann-media');
     var mediaImg = document.getElementById('prev-ann-img');
+    var mediaBlend = document.getElementById('prev-ann-media-blend');
+    var cardEl = document.getElementById('prev-ann-card');
+    var hasImg = false;
     
     // Check if user has chosen a file locally or provided a URL or has an existing thumbnail
     if (fileInput && fileInput.files && fileInput.files[0]) {
         try {
             mediaImg.src = URL.createObjectURL(fileInput.files[0]);
-            mediaWrap.style.display = 'block';
+            hasImg = true;
         } catch(err) {
-            mediaWrap.style.display = 'none';
+            hasImg = false;
         }
     } else if (imgUrlInput && imgUrlInput.value.trim()) {
         mediaImg.src = imgUrlInput.value.trim();
-        mediaWrap.style.display = 'block';
+        hasImg = true;
     } else if (existingThumb && existingThumb.src) {
         mediaImg.src = existingThumb.src;
+        hasImg = true;
+    }
+
+    if (hasImg) {
         mediaWrap.style.display = 'block';
+        if (!hasBodyContent) {
+            // Image-only poster layout: clean full image without gradient or empty body
+            mediaWrap.style.height = 'auto';
+            mediaWrap.style.maxHeight = 'min(82vh, 680px)';
+            mediaImg.style.maxHeight = 'min(82vh, 680px)';
+            mediaImg.style.objectFit = 'contain';
+            if (mediaBlend) mediaBlend.style.display = 'none';
+            if (cardEl) {
+                cardEl.style.background = 'transparent';
+                cardEl.style.border = 'none';
+                cardEl.style.boxShadow = 'none';
+            }
+        } else {
+            mediaWrap.style.height = 'clamp(160px, 32vw, 220px)';
+            mediaWrap.style.maxHeight = '';
+            mediaImg.style.maxHeight = '';
+            mediaImg.style.objectFit = 'cover';
+            if (mediaBlend) mediaBlend.style.display = 'block';
+            if (cardEl) {
+                cardEl.style.background = 'linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%)';
+                cardEl.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+                cardEl.style.boxShadow = '0 28px 70px -15px rgba(0,0,0,0.45)';
+            }
+        }
     } else {
         mediaWrap.style.display = 'none';
+        if (cardEl) {
+            cardEl.style.background = 'linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%)';
+            cardEl.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            cardEl.style.boxShadow = '0 28px 70px -15px rgba(0,0,0,0.45)';
+        }
+        if (!hasBodyContent && bodyEl) {
+            bodyEl.style.display = 'block';
+            if (titleEl) {
+                titleEl.textContent = 'Preview: No Content Entered';
+                titleEl.style.display = 'block';
+            }
+            if (msgEl) {
+                msgEl.textContent = 'Add a banner image or enter a title/message above to see how your announcement will look to visitors.';
+                msgEl.style.display = 'block';
+            }
+        }
     }
 
     modal.style.display = 'flex';
@@ -807,21 +902,21 @@ if (document.readyState === 'loading') {
 <!-- Live Announcement Preview Modal Dialog (Glassmorphic Admin Preview) -->
 <div id="admin-announcement-preview-modal" style="display:none; position:fixed; inset:0; background:radial-gradient(circle at 50% 35%, rgba(var(--brand), 0.22) 0%, rgba(0, 0, 0, 0.55) 100%); backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%); z-index:99999999 !important; align-items:center; justify-content:center; padding:clamp(0.75rem, 3vw, 1.75rem); box-sizing:border-box;">
     <div id="admin-ann-preview-backdrop" onclick="window.closeAnnouncementPreview()" style="position:absolute; inset:0; cursor:pointer;"></div>
-    <div style="position:relative; width:100%; max-width:min(92vw, 520px); max-height:min(88vh, 740px); background:linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%); color:rgb(var(--text)); border:1px solid rgba(255, 255, 255, 0.2); border-radius:clamp(20px, 4vw, 30px); box-shadow:0 28px 70px -15px rgba(0,0,0,0.45), 0 0 0 1px rgba(var(--brand), 0.15), 0 0 45px rgba(var(--brand), 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.3); backdrop-filter:blur(30px) saturate(190%); -webkit-backdrop-filter:blur(30px) saturate(190%); overflow-y:auto; overflow-x:hidden; z-index:1; animation:previewScale 0.28s cubic-bezier(0.16, 1, 0.3, 1);">
+    <div id="prev-ann-card" style="position:relative; width:100%; max-width:min(92vw, 520px); max-height:min(88vh, 740px); background:linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%); color:rgb(var(--text)); border:1px solid rgba(255, 255, 255, 0.2); border-radius:clamp(20px, 4vw, 30px); box-shadow:0 28px 70px -15px rgba(0,0,0,0.45), 0 0 0 1px rgba(var(--brand), 0.15), 0 0 45px rgba(var(--brand), 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.3); backdrop-filter:blur(30px) saturate(190%); -webkit-backdrop-filter:blur(30px) saturate(190%); overflow-y:auto; overflow-x:hidden; z-index:1; animation:previewScale 0.28s cubic-bezier(0.16, 1, 0.3, 1);">
         <button type="button" id="btn-close-ann-preview" onclick="window.closeAnnouncementPreview()" style="position:absolute; top:1rem; right:1rem; width:38px; height:38px; border-radius:50%; background:rgba(var(--card), 0.7); border:1px solid rgba(255,255,255,0.22); color:rgb(var(--text)); font-size:1.25rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 4px 14px rgba(0,0,0,0.2);">&times;</button>
         
         <div id="prev-ann-media" style="display:none; position:relative; width:100%; height:clamp(160px, 32vw, 220px); overflow:hidden;">
             <img id="prev-ann-img" src="" alt="Banner Preview" style="width:100%; height:100%; object-fit:cover; display:block;">
-            <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 35%, rgba(var(--card),0.85) 92%, rgba(var(--card),0.95) 100%); pointer-events:none;"></div>
+            <div id="prev-ann-media-blend" style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 35%, rgba(var(--card),0.85) 92%, rgba(var(--card),0.95) 100%); pointer-events:none;"></div>
         </div>
 
-        <div style="padding:clamp(1.4rem, 4vw, 2.25rem) clamp(1.25rem, 3.5vw, 2rem) clamp(1.5rem, 4vw, 2.25rem); text-align:center; position:relative; z-index:2;">
+        <div id="prev-ann-body" style="padding:clamp(1.4rem, 4vw, 2.25rem) clamp(1.25rem, 3.5vw, 2rem) clamp(1.5rem, 4vw, 2.25rem); text-align:center; position:relative; z-index:2;">
             <span id="prev-ann-badge" style="display:inline-flex; align-items:center; gap:0.45rem; padding:0.35rem 1rem; border-radius:999px; background:linear-gradient(135deg, rgba(var(--brand), 0.18) 0%, rgba(var(--brand), 0.08) 100%); color:rgb(var(--brand)); font-weight:800; font-size:0.82rem; letter-spacing:0.025em; border:1px solid rgba(var(--brand), 0.32); box-shadow:0 4px 14px rgba(var(--brand), 0.16); margin-bottom:0.85rem;">🎉 Special Announcement</span>
             <h2 id="prev-ann-title" style="font-size:clamp(1.35rem, 3.8vw, 1.8rem); font-weight:900; line-height:1.24; margin:0 0 0.85rem; color:rgb(var(--text)); letter-spacing:-0.025em;">Announcement Title</h2>
             <div id="prev-ann-msg" style="font-size:clamp(0.92rem, 1.8vw, 0.98rem); line-height:1.65; color:rgba(var(--text), 0.82); margin-bottom:1.75rem; text-align:center;">
                 Announcement message will appear here.
             </div>
-            <div style="display:flex; gap:0.75rem; justify-content:center; align-items:center; flex-wrap:wrap;">
+            <div id="prev-ann-actions-wrap" style="display:flex; gap:0.75rem; justify-content:center; align-items:center; flex-wrap:wrap;">
                 <button type="button" id="prev-ann-action-btn" class="admin-action-btn primary" style="height:48px; padding:0 1.65rem; border-radius:14px; font-weight:800; cursor:pointer; flex:1; min-width:140px; background:linear-gradient(135deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 75%, #059669)); color:#fff; border:none; box-shadow:0 8px 24px -4px rgba(var(--brand), 0.45);">Check It Out →</button>
                 <button type="button" id="btn-dismiss-ann-preview" onclick="window.closeAnnouncementPreview()" class="admin-action-btn" style="height:48px; padding:0 1.5rem; border-radius:14px; font-weight:700; cursor:pointer; flex:1; min-width:130px; background:rgba(var(--muted),0.08); color:rgb(var(--text)); border:1px solid rgba(var(--muted),0.22); backdrop-filter:blur(8px);">Continue to Site</button>
             </div>

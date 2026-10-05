@@ -8,3 +8,4 @@ public/uploads/*
 storage
 uploads
 todo.txt
+.phpunit.result.cache

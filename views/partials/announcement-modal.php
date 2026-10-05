@@ -14,11 +14,11 @@
 $announcementActive = (site_setting('announcement_enabled', '0') === '1');
 $announcementTitle = trim(site_setting('announcement_title', ''));
 $announcementMessage = trim(site_setting('announcement_message', ''));
-$announcementBadge = trim(site_setting('announcement_badge', '🎉 Special Announcement'));
+$announcementBadge = trim(site_setting('announcement_badge', ''));
 $announcementImage = trim(site_setting('announcement_image', ''));
-$announcementLinkText = trim(site_setting('announcement_link_text', 'Check It Out →'));
+$announcementLinkText = trim(site_setting('announcement_link_text', ''));
 $announcementLinkUrl = trim(site_setting('announcement_link_url', ''));
-$announcementDismissText = trim(site_setting('announcement_dismiss_text', 'Continue to Site'));
+$announcementDismissText = trim(site_setting('announcement_dismiss_text', ''));
 $announcementUpdatedAt = trim(site_setting('announcement_updated_at', '1'));
 $announcementLocation = site_setting('announcement_location', 'home');
 
@@ -26,7 +26,10 @@ $announcementLocation = site_setting('announcement_location', 'home');
 $currentUri = trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/');
 $isHomePage = ($currentUri === '' || $currentUri === 'index.php');
 
-$shouldDisplay = $announcementActive && !empty($announcementTitle) && ($announcementLocation === 'sitewide' || $isHomePage);
+// Active if enabled, on target location, and has at least an image, title, or message
+$hasContent = !empty($announcementTitle) || !empty($announcementMessage) || !empty($announcementImage);
+$hasBody = !empty($announcementBadge) || !empty($announcementTitle) || !empty($announcementMessage) || !empty($announcementLinkUrl) || !empty($announcementDismissText);
+$shouldDisplay = $announcementActive && $hasContent && ($announcementLocation === 'sitewide' || $isHomePage);
 ?>
 
 <?php if ($shouldDisplay): ?>
@@ -148,6 +151,15 @@ $shouldDisplay = $announcementActive && !empty($announcementTitle) && ($announce
     background: rgba(0, 0, 0, 0.12);
 }
 
+.pl-announcement-media.is-image-only {
+    height: auto;
+    max-height: min(84vh, 720px);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .pl-announcement-media img {
     width: 100%;
     height: 100%;
@@ -156,12 +168,36 @@ $shouldDisplay = $announcementActive && !empty($announcementTitle) && ($announce
     transition: transform 0.6s ease;
 }
 
+.pl-announcement-media.is-image-only img {
+    height: auto;
+    max-height: min(84vh, 720px);
+    width: 100%;
+    object-fit: contain;
+    border-radius: clamp(20px, 4vw, 30px);
+    box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.pl-announcement-media-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.pl-announcement-card--image-only {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+}
+
 .pl-announcement-overlay.is-visible .pl-announcement-media img {
-    transform: scale(1.02);
+    transform: scale(1.01);
 }
 
 /* Seamless blend gradient between the banner and the card body */
-.pl-announcement-media::after {
+.pl-announcement-media:not(.is-image-only)::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -330,44 +366,58 @@ $shouldDisplay = $announcementActive && !empty($announcementTitle) && ($announce
 }
 </style>
 
-<div id="platform-announcement-modal" class="pl-announcement-overlay" role="dialog" aria-modal="true" aria-labelledby="pl-announcement-title" data-updated-at="<?= e($announcementUpdatedAt) ?>">
+<div id="platform-announcement-modal" class="pl-announcement-overlay" role="dialog" aria-modal="true" <?= !empty($announcementTitle) ? 'aria-labelledby="pl-announcement-title"' : 'aria-label="Platform Announcement"' ?> data-updated-at="<?= e($announcementUpdatedAt) ?>">
     <div class="pl-announcement-backdrop" id="btn-announcement-backdrop"></div>
-    <div class="pl-announcement-card">
+    <div class="pl-announcement-card<?= (!$hasBody && !empty($announcementImage)) ? ' pl-announcement-card--image-only' : '' ?>">
         <button type="button" class="pl-announcement-close" id="btn-announcement-close" aria-label="Close Announcement">&times;</button>
         
         <?php if (!empty($announcementImage)): 
             $annImgSrc = str_starts_with($announcementImage, 'http') ? $announcementImage : asset($announcementImage);
         ?>
-            <div class="pl-announcement-media">
-                <img src="<?= e($annImgSrc) ?>" alt="<?= e($announcementTitle) ?>">
+            <div class="pl-announcement-media<?= !$hasBody ? ' is-image-only' : '' ?>">
+                <?php if (!empty($announcementLinkUrl)): ?>
+                    <a href="<?= e($announcementLinkUrl) ?>" class="pl-announcement-media-link" title="<?= e($announcementTitle ?: 'View Announcement') ?>">
+                        <img src="<?= e($annImgSrc) ?>" alt="<?= e($announcementTitle ?: 'Announcement Banner') ?>">
+                    </a>
+                <?php else: ?>
+                    <img src="<?= e($annImgSrc) ?>" alt="<?= e($announcementTitle ?: 'Announcement Banner') ?>">
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
-        <div class="pl-announcement-body">
-            <?php if (!empty($announcementBadge)): ?>
-                <span class="pl-announcement-badge"><?= e($announcementBadge) ?></span>
-            <?php endif; ?>
-
-            <h2 id="pl-announcement-title" class="pl-announcement-title"><?= e($announcementTitle) ?></h2>
-
-            <?php if (!empty($announcementMessage)): ?>
-                <div class="pl-announcement-text">
-                    <?= nl2br(e($announcementMessage)) ?>
-                </div>
-            <?php endif; ?>
-
-            <div class="pl-announcement-actions">
-                <?php if (!empty($announcementLinkUrl)): ?>
-                    <a href="<?= e($announcementLinkUrl) ?>" class="pl-announcement-btn pl-announcement-btn--primary" id="btn-announcement-action">
-                        <?= e(!empty($announcementLinkText) ? $announcementLinkText : 'Check It Out →') ?>
-                    </a>
+        <?php if ($hasBody): ?>
+            <div class="pl-announcement-body">
+                <?php if (!empty($announcementBadge)): ?>
+                    <span class="pl-announcement-badge"><?= e($announcementBadge) ?></span>
                 <?php endif; ?>
 
-                <button type="button" class="pl-announcement-btn pl-announcement-btn--dismiss" id="btn-announcement-dismiss">
-                    <?= e(!empty($announcementDismissText) ? $announcementDismissText : 'Continue to Site') ?>
-                </button>
+                <?php if (!empty($announcementTitle)): ?>
+                    <h2 id="pl-announcement-title" class="pl-announcement-title"><?= e($announcementTitle) ?></h2>
+                <?php endif; ?>
+
+                <?php if (!empty($announcementMessage)): ?>
+                    <div class="pl-announcement-text">
+                        <?= nl2br(e($announcementMessage)) ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($announcementLinkUrl) || !empty($announcementDismissText)): ?>
+                    <div class="pl-announcement-actions">
+                        <?php if (!empty($announcementLinkUrl)): ?>
+                            <a href="<?= e($announcementLinkUrl) ?>" class="pl-announcement-btn pl-announcement-btn--primary" id="btn-announcement-action">
+                                <?= e(!empty($announcementLinkText) ? $announcementLinkText : 'Check It Out →') ?>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (!empty($announcementDismissText)): ?>
+                            <button type="button" class="pl-announcement-btn pl-announcement-btn--dismiss" id="btn-announcement-dismiss">
+                                <?= e($announcementDismissText) ?>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
 

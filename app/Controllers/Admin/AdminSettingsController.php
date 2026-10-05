@@ -70,13 +70,13 @@ class AdminSettingsController extends Controller
             'flutterwave_secret_key' => '',
             'announcement_enabled' => '0',
             'announcement_location' => 'home',
-            'announcement_badge' => '🎉 Special Announcement',
+            'announcement_badge' => '',
             'announcement_title' => '',
             'announcement_message' => '',
             'announcement_image' => '',
-            'announcement_link_text' => 'Check It Out →',
+            'announcement_link_text' => '',
             'announcement_link_url' => '',
-            'announcement_dismiss_text' => 'Continue to Site',
+            'announcement_dismiss_text' => '',
             'announcement_updated_at' => '0',
         ];
 
@@ -150,13 +150,13 @@ class AdminSettingsController extends Controller
                 'flutterwave_secret_key' => trim($data['flutterwave_secret_key'] ?? ''),
                 'announcement_enabled' => (!empty($data['announcement_enabled']) && $data['announcement_enabled'] === '1') ? '1' : '0',
                 'announcement_location' => in_array($data['announcement_location'] ?? '', ['home', 'sitewide']) ? $data['announcement_location'] : 'home',
-                'announcement_badge' => trim($data['announcement_badge'] ?? '🎉 Special Announcement'),
+                'announcement_badge' => trim($data['announcement_badge'] ?? ''),
                 'announcement_title' => trim($data['announcement_title'] ?? ''),
                 'announcement_message' => trim($data['announcement_message'] ?? ''),
                 'announcement_image' => $currentSettings['announcement_image'] ?? '',
-                'announcement_link_text' => trim($data['announcement_link_text'] ?? 'Check It Out →'),
+                'announcement_link_text' => trim($data['announcement_link_text'] ?? ''),
                 'announcement_link_url' => trim($data['announcement_link_url'] ?? ''),
-                'announcement_dismiss_text' => trim($data['announcement_dismiss_text'] ?? 'Continue to Site'),
+                'announcement_dismiss_text' => trim($data['announcement_dismiss_text'] ?? ''),
                 'announcement_updated_at' => (string)time(),
             ];
 
