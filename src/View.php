@@ -489,6 +489,9 @@ HTML;
         // 9b. Compiling CSRF tag
         $content = str_replace('@csrf', '<?php echo csrf_field(); ?>', $content);
 
+        // 9b2. Compiling Method spoofing tag (@method('PUT'), @method('DELETE'), etc.)
+        $content = preg_replace('/@method\(\s*(["\'])(.*?)\1\s*\)/', '<?php echo method_field(\'$2\'); ?>', $content);
+
         // 9c. Compiling Isset tags
         $content = preg_replace('/@isset\(((?:[^()]*|\((?:[^()]*|\([^()]*\))*\))*)\)/', '<?php if(isset($1)): ?>', $content);
         $content = str_replace('@endisset', '<?php endif; ?>', $content);

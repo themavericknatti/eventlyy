@@ -693,7 +693,7 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     {
         $model = new static();
         $col = $column ?? $model->primaryKey();
-        $options = ['orderBy' => "`$col` DESC"];
+        $options = ['order_by' => "`$col` DESC"];
         if ($limit !== null) {
             $options['limit'] = $limit;
         }
@@ -709,7 +709,7 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     {
         $model = new static();
         $col = $column ?? $model->primaryKey();
-        $options = ['orderBy' => "`$col` ASC"];
+        $options = ['order_by' => "`$col` ASC"];
         if ($limit !== null) {
             $options['limit'] = $limit;
         }

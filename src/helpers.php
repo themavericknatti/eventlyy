@@ -207,6 +207,16 @@ if (!function_exists('csrf_field')) {
     }
 }
 
+if (!function_exists('method_field')) {
+    /**
+     * Generate an HTTP method spoofing hidden input field.
+     */
+    function method_field(string $method): string
+    {
+        return '<input type="hidden" name="_method" value="' . strtoupper($method) . '">';
+    }
+}
+
 if (!function_exists('user')) {
     /**
      * Get the currently authenticated user, or null if guest.

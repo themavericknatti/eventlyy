@@ -55,10 +55,24 @@ class Request
 
     /**
      * Get HTTP request method (e.g. 'get', 'post')
+     * Supports form method spoofing via _method hidden field for PUT/PATCH/DELETE
      */
     public function method(): string
     {
-        return strtolower($_SERVER['REQUEST_METHOD'] ?? 'get');
+        $method = strtolower($_SERVER['REQUEST_METHOD'] ?? 'get');
+
+        // Support form method spoofing: <input type="hidden" name="_method" value="PUT">
+        if ($method === 'post') {
+            $spoofed = $_POST['_method'] ?? $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? null;
+            if ($spoofed) {
+                $spoofed = strtolower($spoofed);
+                if (in_array($spoofed, ['put', 'patch', 'delete'], true)) {
+                    return $spoofed;
+                }
+            }
+        }
+
+        return $method;
     }
 
     public function isGet(): bool
@@ -69,6 +83,21 @@ class Request
     public function isPost(): bool
     {
         return $this->method() === 'post';
+    }
+
+    public function isPut(): bool
+    {
+        return $this->method() === 'put';
+    }
+
+    public function isPatch(): bool
+    {
+        return $this->method() === 'patch';
+    }
+
+    public function isDelete(): bool
+    {
+        return $this->method() === 'delete';
     }
 
     /**
@@ -87,15 +116,16 @@ class Request
     public function getBody(): array
     {
         $body = [];
+        $actualMethod = strtolower($_SERVER['REQUEST_METHOD'] ?? 'get');
 
-        if ($this->isGet()) {
+        if ($actualMethod === 'get') {
             foreach ($_GET as $key => $value) {
                 $body[$key] = $this->sanitize($value);
             }
         }
 
-        if ($this->isPost()) {
-            // Check if request is JSON
+        if ($actualMethod === 'post') {
+            // POST carries body for POST, PUT, PATCH, DELETE (via method spoofing)
             $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
             if (str_contains($contentType, 'application/json')) {
                 $rawJson = file_get_contents('php://input');
@@ -107,6 +137,28 @@ class Request
                 }
             } else {
                 foreach ($_POST as $key => $value) {
+                    if ($key === '_method') continue; // Don't include spoofing field
+                    $body[$key] = $this->sanitize($value);
+                }
+            }
+        }
+
+        // Native PUT/PATCH/DELETE (non-spoofed, e.g. from API clients)
+        if (in_array($actualMethod, ['put', 'patch', 'delete'], true)) {
+            $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+            if (str_contains($contentType, 'application/json')) {
+                $rawJson = file_get_contents('php://input');
+                $decoded = json_decode($rawJson, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $key => $value) {
+                        $body[$key] = $this->sanitize($value);
+                    }
+                }
+            } else {
+                // Parse form-encoded body from php://input for PUT/PATCH/DELETE
+                parse_str(file_get_contents('php://input'), $parsed);
+                foreach ($parsed as $key => $value) {
+                    if ($key === '_method') continue;
                     $body[$key] = $this->sanitize($value);
                 }
             }
@@ -121,15 +173,15 @@ class Request
     public function getRawBody(): array
     {
         $body = [];
+        $actualMethod = strtolower($_SERVER['REQUEST_METHOD'] ?? 'get');
 
-        if ($this->isGet()) {
+        if ($actualMethod === 'get') {
             foreach ($_GET as $key => $value) {
                 $body[$key] = $value;
             }
         }
 
-        if ($this->isPost()) {
-            // Check if request is JSON
+        if ($actualMethod === 'post') {
             $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
             if (str_contains($contentType, 'application/json')) {
                 $rawJson = file_get_contents('php://input');
@@ -141,6 +193,26 @@ class Request
                 }
             } else {
                 foreach ($_POST as $key => $value) {
+                    if ($key === '_method') continue;
+                    $body[$key] = $value;
+                }
+            }
+        }
+
+        if (in_array($actualMethod, ['put', 'patch', 'delete'], true)) {
+            $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+            if (str_contains($contentType, 'application/json')) {
+                $rawJson = file_get_contents('php://input');
+                $decoded = json_decode($rawJson, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $key => $value) {
+                        $body[$key] = $value;
+                    }
+                }
+            } else {
+                parse_str(file_get_contents('php://input'), $parsed);
+                foreach ($parsed as $key => $value) {
+                    if ($key === '_method') continue;
                     $body[$key] = $value;
                 }
             }

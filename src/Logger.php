@@ -12,7 +12,8 @@ class Logger
     private static function getLogFile(): string
     {
         if (self::$logFile === null) {
-            $logDir = Application::$ROOT_DIR . '/storage/logs';
+            $rootDir = isset(Application::$ROOT_DIR) ? Application::$ROOT_DIR : dirname(__DIR__);
+            $logDir = $rootDir . '/storage/logs';
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
@@ -58,10 +59,12 @@ class Logger
     /**
      * Log an Exception detail with stack trace.
      */
-    public static function exception(\Throwable $exception): void
+    public static function exception(\Throwable $exception, ?string $errorId = null): void
     {
+        $prefix = $errorId ? "[{$errorId}] " : '';
         $message = sprintf(
-            "Exception: %s | Message: %s | File: %s:%d | Trace:%s%s",
+            "%sException: %s | Message: %s | File: %s:%d | Trace:%s%s",
+            $prefix,
             get_class($exception),
             $exception->getMessage(),
             $exception->getFile(),

@@ -36,6 +36,45 @@ class Router
     }
 
     /**
+     * Register PUT route
+     */
+    public function put(string $path, $callback): Route
+    {
+        $this->routes['put'][$path] = $callback;
+        return new Route($this, 'put', $path, $callback);
+    }
+
+    /**
+     * Register PATCH route
+     */
+    public function patch(string $path, $callback): Route
+    {
+        $this->routes['patch'][$path] = $callback;
+        return new Route($this, 'patch', $path, $callback);
+    }
+
+    /**
+     * Register DELETE route
+     */
+    public function delete(string $path, $callback): Route
+    {
+        $this->routes['delete'][$path] = $callback;
+        return new Route($this, 'delete', $path, $callback);
+    }
+
+    /**
+     * Register a route for multiple HTTP methods
+     */
+    public function match(array $methods, string $path, $callback): Route
+    {
+        foreach ($methods as $method) {
+            $method = strtolower($method);
+            $this->routes[$method][$path] = $callback;
+        }
+        return new Route($this, $methods[0], $path, $callback);
+    }
+
+    /**
      * Register OPTIONS route
      */
     public function options(string $path, $callback): Route
