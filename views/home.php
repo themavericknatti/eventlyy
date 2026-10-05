@@ -1,4 +1,4 @@
-@layout('layouts/main')
+@extends('layouts/main')
 
 @section('title', 'Welcome to Ace PHP MVC')
 

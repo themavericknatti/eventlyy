@@ -113,6 +113,14 @@ class View
     }
 
     /**
+     * Set a section's content directly (called via compiled inline 2-argument @section directive)
+     */
+    public function setSection(string $name, string $content): void
+    {
+        $this->sections[$name] = $content;
+    }
+
+    /**
      * Close output buffer and record content for current section (called via compiled @endsection directive)
      */
     public function endSection(): void
@@ -127,9 +135,9 @@ class View
     /**
      * Output a compiled section (called via compiled @yield directive)
      */
-    public function yieldSection(string $name): string
+    public function yieldSection(string $name, string $default = ''): string
     {
-        return $this->sections[$name] ?? '';
+        return $this->sections[$name] ?? $default;
     }
 
     /**
@@ -444,17 +452,23 @@ HTML;
         // Uses balanced parentheses regex to support nested calls like @url(route('home'))
         $content = preg_replace('/@url\(((?:[^()]*|\((?:[^()]*|\([^()]*\))*\))*)\)/', '<?php echo \Ace\View::safeUrl((string)($1 ?? "")); ?>', $content);
 
-        // 3. Convert @extends('layout') -> $this->layout('layout')
-        $content = preg_replace('/@extends\(\'(.*?)\'\)/', '<?php $this->layout(\'$1\'); ?>', $content);
+        // 3. Convert @extends('layout') or @layout('layout') -> $this->layout('layout')
+        $content = preg_replace('/@(extends|layout)\(\s*(["\'])(.*?)\2\s*\)/', '<?php $this->layout(\'$3\'); ?>', $content);
 
-        // 4. Convert @section('name') -> $this->startSection('name')
-        $content = preg_replace('/@section\(\'(.*?)\'\)/', '<?php $this->startSection(\'$1\'); ?>', $content);
+        // 4a. Convert inline 2-argument @section('name', 'value') -> $this->setSection('name', 'value')
+        $content = preg_replace('/@section\(\s*(["\'])(.*?)\1\s*,\s*(["\'])(.*?)\3\s*\)/', '<?php $this->setSection(\'$2\', \'$4\'); ?>', $content);
+
+        // 4b. Convert 1-argument block @section('name') -> $this->startSection('name')
+        $content = preg_replace('/@section\(\s*(["\'])(.*?)\1\s*\)/', '<?php $this->startSection(\'$2\'); ?>', $content);
 
         // 5. Convert @endsection -> $this->endSection()
         $content = str_replace('@endsection', '<?php $this->endSection(); ?>', $content);
 
-        // 6. Convert @yield('name') -> echo $this->yieldSection('name')
-        $content = preg_replace('/@yield\(\'(.*?)\'\)/', '<?php echo $this->yieldSection(\'$1\'); ?>', $content);
+        // 6a. Convert 2-argument @yield('name', 'default') -> echo $this->yieldSection('name', 'default')
+        $content = preg_replace('/@yield\(\s*(["\'])(.*?)\1\s*,\s*(["\'])(.*?)\3\s*\)/', '<?php echo $this->yieldSection(\'$2\', \'$4\'); ?>', $content);
+
+        // 6b. Convert 1-argument @yield('name') -> echo $this->yieldSection('name')
+        $content = preg_replace('/@yield\(\s*(["\'])(.*?)\1\s*\)/', '<?php echo $this->yieldSection(\'$2\'); ?>', $content);
 
         // 7. Compiling conditional control structures (balanced parens regex for nested calls)
         $content = preg_replace('/@if\(((?:[^()]*|\((?:[^()]*|\([^()]*\))*\))*)\)/', '<?php if($1): ?>', $content);
