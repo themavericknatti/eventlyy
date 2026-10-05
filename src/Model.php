@@ -53,6 +53,53 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     protected bool $inputGuarded = true;
 
     /**
+     * Indicates if the model should be automatically timestamped (created_at, updated_at).
+     */
+    public bool $timestamps = true;
+
+    /**
+     * The name of the "created at" column.
+     */
+    public const CREATED_AT = 'created_at';
+
+    /**
+     * The name of the "updated at" column.
+     */
+    public const UPDATED_AT = 'updated_at';
+
+    /**
+     * Whether soft deletes are enabled for this model.
+     */
+    protected bool $softDelete = false;
+
+    /**
+     * The name of the "deleted at" column.
+     */
+    public const DELETED_AT = 'deleted_at';
+
+    /**
+     * Attributes that should be hidden for serialization (e.g. password, remember_token).
+     */
+    protected array $hidden = [];
+
+    /**
+     * Attributes that should be visible for serialization.
+     */
+    protected array $visible = [];
+
+    /**
+     * Execute a callback within a database transaction.
+     */
+    public static function transaction(callable $callback): mixed
+    {
+        $db = Application::$app->db;
+        if (!$db) {
+            throw new \Exception("Database connection not established.");
+        }
+        return $db->transaction($callback);
+    }
+
+    /**
      * Start a new fluent query builder instance for the model
      */
     public static function query(): QueryBuilder
@@ -74,7 +121,18 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
 
     public function __get(string $name): mixed
     {
-        return $this->attributes[$name] ?? null;
+        if (array_key_exists($name, $this->attributes)) {
+            return $this->attributes[$name];
+        }
+
+        // Dynamically resolve relationship methods if defined (e.g. $user->posts)
+        if (method_exists($this, $name)) {
+            $relation = $this->{$name}();
+            $this->attributes[$name] = $relation;
+            return $relation;
+        }
+
+        return null;
     }
 
     public function __set(string $name, mixed $value): void
@@ -84,7 +142,7 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
 
     public function __isset(string $name): bool
     {
-        return isset($this->attributes[$name]);
+        return isset($this->attributes[$name]) || method_exists($this, $name);
     }
 
     public function __unset(string $name): void
@@ -442,6 +500,28 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
             $columns = $db->getTableColumns($tableName);
         }
 
+        $pkValue = $this->{$primaryKey} ?? null;
+        $isInsert = empty($pkValue);
+
+        if (!$isInsert) {
+            $stmtExists = $db->prepare("SELECT COUNT(*) FROM `$tableName` WHERE `$primaryKey` = :pk_val");
+            $stmtExists->execute([':pk_val' => $pkValue]);
+            if ((int)$stmtExists->fetchColumn() === 0) {
+                $isInsert = true;
+            }
+        }
+
+        // Automatic timestamps management (created_at, updated_at)
+        if ($this->timestamps) {
+            $now = date('Y-m-d H:i:s');
+            if ($isInsert && in_array(static::CREATED_AT, $columns) && empty($this->attributes[static::CREATED_AT])) {
+                $this->attributes[static::CREATED_AT] = $now;
+            }
+            if (in_array(static::UPDATED_AT, $columns)) {
+                $this->attributes[static::UPDATED_AT] = $now;
+            }
+        }
+
         $saveData = [];
         foreach ($columns as $column) {
             if ($column === $primaryKey && empty($this->{$primaryKey})) {
@@ -455,17 +535,6 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         // Input Guard: sanitize values before storage
         if ($this->inputGuarded) {
             $saveData = Guard::sanitizeAttributes($saveData, $this->rawFields);
-        }
-
-        $pkValue = $this->{$primaryKey} ?? null;
-        $isInsert = empty($pkValue);
-
-        if (!$isInsert) {
-            $stmtExists = $db->prepare("SELECT COUNT(*) FROM `$tableName` WHERE `$primaryKey` = :pk_val");
-            $stmtExists->execute([':pk_val' => $pkValue]);
-            if ((int)$stmtExists->fetchColumn() === 0) {
-                $isInsert = true;
-            }
         }
 
         if ($isInsert) {
@@ -891,7 +960,37 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
      */
     public function toArray(): array
     {
-        return $this->attributes;
+        $attributes = $this->attributes;
+
+        if (!empty($this->visible)) {
+            $attributes = array_intersect_key($attributes, array_flip($this->visible));
+        }
+
+        if (!empty($this->hidden)) {
+            foreach ($this->hidden as $key) {
+                unset($attributes[$key]);
+            }
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Temporarily hide attributes from array/JSON serialization.
+     */
+    public function makeHidden(array|string $attributes): static
+    {
+        $this->hidden = array_merge($this->hidden, (array)$attributes);
+        return $this;
+    }
+
+    /**
+     * Temporarily make hidden attributes visible in array/JSON serialization.
+     */
+    public function makeVisible(array|string $attributes): static
+    {
+        $this->hidden = array_diff($this->hidden, (array)$attributes);
+        return $this;
     }
 
     /**
@@ -1017,9 +1116,31 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     }
 
     /**
-     * Active Record Delete Record
+     * Active Record Delete Record (supports soft deletes if $softDelete is enabled)
      */
     public function delete(): bool
+    {
+        $primaryKey = $this->primaryKey();
+        $pkValue = $this->{$primaryKey} ?? null;
+
+        if (empty($pkValue)) {
+            return false;
+        }
+
+        // Soft delete if enabled
+        if ($this->softDelete) {
+            $now = date('Y-m-d H:i:s');
+            $this->{static::DELETED_AT} = $now;
+            return $this->update([static::DELETED_AT => $now]);
+        }
+
+        return $this->forceDelete();
+    }
+
+    /**
+     * Permanently delete a record from the database.
+     */
+    public function forceDelete(): bool
     {
         $tableName = static::tableName();
         $primaryKey = $this->primaryKey();
@@ -1037,6 +1158,104 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         $statement = $db->prepare("DELETE FROM `$tableName` WHERE `$primaryKey` = :pk");
         $statement->bindValue(':pk', $pkValue);
         return $statement->execute();
+    }
+
+    /**
+     * Restore a soft-deleted record.
+     */
+    public function restore(): bool
+    {
+        if (!$this->softDelete) {
+            return false;
+        }
+
+        $this->{static::DELETED_AT} = null;
+        return $this->update([static::DELETED_AT => null]);
+    }
+
+    /**
+     * Check if this model instance has been soft deleted.
+     */
+    public function isTrashed(): bool
+    {
+        return !empty($this->{static::DELETED_AT});
+    }
+
+    // =========================================================================
+    // Model Relationships
+    // =========================================================================
+
+    /**
+     * Define a one-to-one relationship.
+     *
+     *   public function profile() {
+     *       return $this->hasOne(Profile::class);
+     *   }
+     */
+    public function hasOne(string $relatedClass, ?string $foreignKey = null, ?string $localKey = null): ?Model
+    {
+        $localKey = $localKey ?? $this->primaryKey();
+        $localValue = $this->attributes[$localKey] ?? $this->{$localKey} ?? null;
+
+        if ($localValue === null) {
+            return null;
+        }
+
+        if ($foreignKey === null) {
+            $shortName = strtolower((new \ReflectionClass(static::class))->getShortName());
+            $foreignKey = $shortName . '_id';
+        }
+
+        return $relatedClass::findOne([$foreignKey => $localValue]);
+    }
+
+    /**
+     * Define a one-to-many relationship.
+     *
+     *   public function posts() {
+     *       return $this->hasMany(Post::class);
+     *   }
+     */
+    public function hasMany(string $relatedClass, ?string $foreignKey = null, ?string $localKey = null): array
+    {
+        $localKey = $localKey ?? $this->primaryKey();
+        $localValue = $this->attributes[$localKey] ?? $this->{$localKey} ?? null;
+
+        if ($localValue === null) {
+            return [];
+        }
+
+        if ($foreignKey === null) {
+            $shortName = strtolower((new \ReflectionClass(static::class))->getShortName());
+            $foreignKey = $shortName . '_id';
+        }
+
+        return $relatedClass::find([$foreignKey => $localValue]);
+    }
+
+    /**
+     * Define an inverse one-to-one or one-to-many relationship.
+     *
+     *   public function user() {
+     *       return $this->belongsTo(User::class);
+     *   }
+     */
+    public function belongsTo(string $relatedClass, ?string $foreignKey = null, ?string $ownerKey = null): ?Model
+    {
+        $instance = new $relatedClass();
+        $ownerKey = $ownerKey ?? $instance->primaryKey();
+
+        if ($foreignKey === null) {
+            $shortName = strtolower((new \ReflectionClass($relatedClass))->getShortName());
+            $foreignKey = $shortName . '_id';
+        }
+
+        $foreignKeyValue = $this->attributes[$foreignKey] ?? $this->{$foreignKey} ?? null;
+        if ($foreignKeyValue === null) {
+            return null;
+        }
+
+        return $relatedClass::findOne([$ownerKey => $foreignKeyValue]);
     }
 }
 

@@ -59,6 +59,55 @@ class Database
     }
 
     /**
+     * Execute a callback within a database transaction.
+     * Automatically commits on success, rolls back on exception.
+     *
+     *   $db->transaction(function($db) {
+     *       $user = User::create(['name' => 'John']);
+     *       Role::create(['user_id' => $user->id, 'name' => 'admin']);
+     *   });
+     *
+     * @throws \Throwable Re-throws the exception after rollback
+     */
+    public function transaction(callable $callback): mixed
+    {
+        $this->beginTransaction();
+
+        try {
+            $result = $callback($this);
+            $this->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * Start a database transaction
+     */
+    public function beginTransaction(): bool
+    {
+        return $this->pdo->beginTransaction();
+    }
+
+    /**
+     * Commit the active transaction
+     */
+    public function commit(): bool
+    {
+        return $this->pdo->commit();
+    }
+
+    /**
+     * Roll back the active transaction
+     */
+    public function rollback(): bool
+    {
+        return $this->pdo->rollBack();
+    }
+
+    /**
      * Inspect MySQL table to retrieve column names dynamically
      */
     public function getTableColumns(string $table): array

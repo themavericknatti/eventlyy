@@ -28,4 +28,24 @@ class Route
         $this->router->registerName($name, $this->path);
         return $this;
     }
+
+    /**
+     * Attach middleware(s) to this route.
+     *
+     * @param mixed ...$middlewares
+     * @return $this
+     */
+    public function middleware(mixed ...$middlewares): self
+    {
+        $flattened = [];
+        foreach ($middlewares as $mw) {
+            if (is_array($mw)) {
+                $flattened = array_merge($flattened, $mw);
+            } else {
+                $flattened[] = $mw;
+            }
+        }
+        $this->router->addRouteMiddleware($this->method, $this->path, $flattened);
+        return $this;
+    }
 }
