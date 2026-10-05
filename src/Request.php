@@ -150,6 +150,16 @@ class Request
     }
 
     /**
+     * Get a specific raw, unsanitized input parameter by key
+     * Useful for rich text / WYSIWYG editor content that legitimately contains HTML
+     */
+    public function getRaw(string $key, mixed $default = null): mixed
+    {
+        $raw = $this->getRawBody();
+        return $raw[$key] ?? $default;
+    }
+
+    /**
      * Get a specific input parameter by key (sanitized)
      */
     public function get(string $key, mixed $default = null): mixed
