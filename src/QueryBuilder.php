@@ -23,24 +23,47 @@ class QueryBuilder
     }
 
     /**
-     * Add a basic where clause to the query
+     * Add a basic where clause to the query (hardened against SQL injection)
      */
     public function where(string $column, mixed $value, string $operator = '='): self
     {
+        // Whitelist safe SQL operators
+        $allowedOperators = ['=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'ILIKE', 'IS', 'IS NOT'];
+        $cleanOperator = in_array(strtoupper(trim($operator)), $allowedOperators, true) ? strtoupper(trim($operator)) : '=';
+
+        // Sanitize column name to allow only valid SQL identifiers
+        $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
+
         // Parameter placeholder name
-        $paramName = 'p_' . count($this->params) . '_' . preg_replace('/[^a-zA-Z0-9]/', '', $column);
-        $this->wheres[] = "`$column` $operator :$paramName";
+        $paramName = 'p_' . count($this->params) . '_' . preg_replace('/[^a-zA-Z0-9]/', '', $cleanColumn);
+
+        // Safely wrap identifier
+        if (str_contains($cleanColumn, '.')) {
+            [$tbl, $col] = explode('.', $cleanColumn, 2);
+            $this->wheres[] = "`$tbl`.`$col` $cleanOperator :$paramName";
+        } else {
+            $this->wheres[] = "`$cleanColumn` $cleanOperator :$paramName";
+        }
+
         $this->params[$paramName] = $value;
         return $this;
     }
 
     /**
-     * Add an order by clause
+     * Add an order by clause (hardened against SQL injection)
      */
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
-        $direction = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
-        $this->orderBy = "`$column` $direction";
+        $direction = strtoupper(trim($direction)) === 'DESC' ? 'DESC' : 'ASC';
+        $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
+
+        if (str_contains($cleanColumn, '.')) {
+            [$tbl, $col] = explode('.', $cleanColumn, 2);
+            $this->orderBy = "`$tbl`.`$col` $direction";
+        } else {
+            $this->orderBy = "`$cleanColumn` $direction";
+        }
+
         return $this;
     }
 

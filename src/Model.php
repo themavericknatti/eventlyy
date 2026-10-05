@@ -564,13 +564,31 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         $sql = "SELECT * FROM `$tableName`";
         if (!empty($where)) {
             $sql .= " WHERE ";
-            $attributes = array_keys($where);
-            $whereParts = array_map(fn($attr) => "`$attr` = :$attr", $attributes);
+            $whereParts = [];
+            foreach (array_keys($where) as $attr) {
+                $cleanAttr = preg_replace('/[^a-zA-Z0-9_.]/', '', $attr);
+                if (str_contains($cleanAttr, '.')) {
+                    [$tbl, $col] = explode('.', $cleanAttr, 2);
+                    $whereParts[] = "`$tbl`.`$col` = :$cleanAttr";
+                } else {
+                    $whereParts[] = "`$cleanAttr` = :$cleanAttr";
+                }
+            }
             $sql .= implode(' AND ', $whereParts);
         }
 
         if (!empty($options['order_by'])) {
-            $sql .= " ORDER BY " . $options['order_by'];
+            $orderParts = explode(' ', trim((string)$options['order_by']));
+            $orderCol = preg_replace('/[^a-zA-Z0-9_.]/', '', $orderParts[0]);
+            $orderDir = (isset($orderParts[1]) && strtoupper(trim($orderParts[1])) === 'DESC') ? 'DESC' : 'ASC';
+            if ($orderCol !== '') {
+                if (str_contains($orderCol, '.')) {
+                    [$tbl, $col] = explode('.', $orderCol, 2);
+                    $sql .= " ORDER BY `$tbl`.`$col` $orderDir";
+                } else {
+                    $sql .= " ORDER BY `$orderCol` $orderDir";
+                }
+            }
         }
 
         if (isset($options['limit'])) {

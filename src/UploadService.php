@@ -93,17 +93,97 @@ class UploadService
         }
 
         $filename = $file['name'];
+
+        // 1. Block null bytes and path traversal in original filename
+        if (str_contains($filename, "\0") || str_contains($filename, '/') || str_contains($filename, '\\')) {
+            return [
+                'success' => false,
+                'error' => 'Security violation: Malicious characters detected in filename.'
+            ];
+        }
+
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-        if (!empty($allowedExtensions) && !in_array($extension, $allowedExtensions)) {
+        // 2. Strict blacklist of dangerous executable and script extensions
+        $forbiddenExtensions = [
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phps', 'phar',
+            'exe', 'bat', 'cmd', 'sh', 'bash', 'bin', 'pl', 'py', 'cgi',
+            'js', 'vbs', 'html', 'htm', 'shtml', 'htaccess', 'htpasswd',
+            'ini', 'env', 'config', 'asp', 'aspx', 'jsp', 'dll', 'so'
+        ];
+
+        // Check primary extension
+        if (in_array($extension, $forbiddenExtensions, true)) {
+            return [
+                'success' => false,
+                'error' => 'Security violation: Executable file types are strictly prohibited.'
+            ];
+        }
+
+        // Check for double extension attacks (e.g. payload.php.jpg)
+        $nameParts = explode('.', strtolower($filename));
+        foreach ($nameParts as $part) {
+            if (in_array(trim($part), $forbiddenExtensions, true)) {
+                return [
+                    'success' => false,
+                    'error' => 'Security violation: Suspicious multiple file extensions detected.'
+                ];
+            }
+        }
+
+        // 3. Check allowed extensions whitelist if specified
+        if (!empty($allowedExtensions) && !in_array($extension, $allowedExtensions, true)) {
             return [
                 'success' => false,
                 'error' => 'Invalid file type. Allowed: ' . implode(', ', $allowedExtensions)
             ];
         }
 
-        // Generate unique cryptographically secure name
-        $uniqueName = bin2hex(random_bytes(8)) . '_' . time() . '.' . $extension;
+        // 4. MIME sniffing verification using fileinfo magic bytes
+        if (function_exists('finfo_open') && file_exists($file['tmp_name'])) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $detectedMime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            $imageMimes = [
+                'jpg'  => ['image/jpeg', 'image/pjpeg'],
+                'jpeg' => ['image/jpeg', 'image/pjpeg'],
+                'png'  => ['image/png'],
+                'gif'  => ['image/gif'],
+                'webp' => ['image/webp'],
+            ];
+
+            if (isset($imageMimes[$extension])) {
+                if (!in_array($detectedMime, $imageMimes[$extension], true)) {
+                    return [
+                        'success' => false,
+                        'error' => 'File content does not match the file extension (MIME spoofing detected).'
+                    ];
+                }
+
+                // Verify genuine image structure
+                if (!@getimagesize($file['tmp_name'])) {
+                    return [
+                        'success' => false,
+                        'error' => 'Corrupted or forged image file detected.'
+                    ];
+                }
+            }
+        }
+
+        // 5. Scan upload for embedded PHP tags / webshell signatures
+        if (file_exists($file['tmp_name'])) {
+            $sampleHeader = file_get_contents($file['tmp_name'], false, null, 0, 4096);
+            if ($sampleHeader !== false && preg_match('/<\?(php|=)/i', $sampleHeader)) {
+                return [
+                    'success' => false,
+                    'error' => 'Security violation: Embedded executable code detected in upload.'
+                ];
+            }
+        }
+
+        // Generate unique cryptographically secure name (user filename is never kept on disk)
+        $uniqueName = bin2hex(random_bytes(16)) . '_' . time() . '.' . $extension;
 
         // Auto-create upload directory with correct permissions
         if (!self::ensureDirectory($destinationDir)) {
