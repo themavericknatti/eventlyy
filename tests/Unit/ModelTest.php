@@ -71,4 +71,27 @@ class ModelTest extends TestCase
         $this->assertEquals('created_at', TestUserModel::CREATED_AT);
         $this->assertEquals('updated_at', TestUserModel::UPDATED_AT);
     }
+
+    public function test_force_fill_bypasses_mass_assignment(): void
+    {
+        $user = new TestUserModel();
+        $user->forceFill([
+            'id' => 999,
+            'unfillable_db_column' => 'system_generated',
+            'created_at' => '2026-01-01 00:00:00'
+        ]);
+
+        $this->assertEquals(999, $user->id);
+        $this->assertEquals('system_generated', $user->unfillable_db_column);
+        $this->assertEquals('2026-01-01 00:00:00', $user->created_at);
+    }
+
+    public function test_relationship_helpers_return_null_or_empty_when_foreign_key_missing(): void
+    {
+        $user = new TestUserModel();
+        // Since primary key is null (unpersisted model), relationships return safe empty/null values
+        $this->assertNull($user->hasOne(TestSoftModel::class));
+        $this->assertEquals([], $user->hasMany(TestSoftModel::class));
+        $this->assertNull($user->belongsTo(TestSoftModel::class));
+    }
 }

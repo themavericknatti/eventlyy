@@ -228,6 +228,17 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     }
 
     /**
+     * Force-populate model attributes from database records, bypassing mass-assignment guard.
+     */
+    public function forceFill(array $data): static
+    {
+        foreach ($data as $key => $value) {
+            $this->attributes[$key] = $value;
+        }
+        return $this;
+    }
+
+    /**
      * Perform validations defined in model rules
      */
     public function validate(): bool
@@ -614,7 +625,7 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         }
 
         $model = new static();
-        $model->loadData($record);
+        $model->forceFill($record);
         return $model;
     }
 
@@ -678,7 +689,7 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         $models = [];
         foreach ($records as $record) {
             $model = new static();
-            $model->loadData($record);
+            $model->forceFill($record);
             $models[] = $model;
         }
 

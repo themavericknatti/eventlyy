@@ -10,13 +10,18 @@ class QueryBuilder
 {
     protected string $modelClass;
     protected string $table;
+    protected string $select = '*';
+    protected array $joins = [];
     protected array $wheres = [];
     protected array $orWheres = [];
     protected array $params = [];
     protected ?string $orderBy = null;
     protected ?int $limit = null;
     protected ?int $offset = null;
-    protected string $select = '*';
+
+    protected static array $allowedOperators = [
+        '=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'ILIKE', 'IS', 'IS NOT'
+    ];
 
     public function __construct(string $modelClass)
     {
@@ -25,138 +30,148 @@ class QueryBuilder
     }
 
     /**
-     * Add a basic where clause to the query (hardened against SQL injection)
+     * Set specific columns to select.
+     * Supports 'id', 'table.column', 'table.*', etc.
      */
-    public function where(string $column, mixed $value, string $operator = '='): self
+    public function select(string ...$columns): self
     {
-        // Whitelist safe SQL operators
-        $allowedOperators = ['=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'ILIKE', 'IS', 'IS NOT'];
-        $cleanOperator = in_array(strtoupper(trim($operator)), $allowedOperators, true) ? strtoupper(trim($operator)) : '=';
+        if (empty($columns)) {
+            $this->select = '*';
+            return $this;
+        }
 
-        // Sanitize column name to allow only valid SQL identifiers
+        $cleaned = array_map([$this, 'wrapColumn'], $columns);
+        $this->select = implode(', ', $cleaned);
+        return $this;
+    }
+
+    /**
+     * Add an INNER, LEFT, or RIGHT JOIN clause.
+     */
+    public function join(string $table, string $first, string $operator, string $second, string $type = 'INNER'): self
+    {
+        $cleanTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $cleanOp = in_array(strtoupper(trim($operator)), ['=', '!=', '<>', '<', '<=', '>', '>='], true)
+            ? strtoupper(trim($operator))
+            : '=';
+
+        $firstCol = $this->wrapColumn($first);
+        $secondCol = $this->wrapColumn($second);
+
+        $joinType = strtoupper(trim($type));
+        if (!in_array($joinType, ['INNER', 'LEFT', 'RIGHT', 'CROSS'], true)) {
+            $joinType = 'INNER';
+        }
+
+        $this->joins[] = "{$joinType} JOIN `{$cleanTable}` ON {$firstCol} {$cleanOp} {$secondCol}";
+        return $this;
+    }
+
+    /**
+     * Add a LEFT JOIN clause.
+     */
+    public function leftJoin(string $table, string $first, string $operator, string $second): self
+    {
+        return $this->join($table, $first, $operator, $second, 'LEFT');
+    }
+
+    /**
+     * Add a RIGHT JOIN clause.
+     */
+    public function rightJoin(string $table, string $first, string $operator, string $second): self
+    {
+        return $this->join($table, $first, $operator, $second, 'RIGHT');
+    }
+
+    /**
+     * Add a WHERE clause. Supports both:
+     * - where('status', 'active')
+     * - where('age', '>', 21)
+     * - where('age', 21, '>') (backward-compatible)
+     */
+    public function where(string $column, mixed $arg2, mixed $arg3 = null): self
+    {
+        [$operator, $value] = $this->resolveWhereArgs(func_num_args(), $arg2, $arg3);
+
         $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
-
-        // Parameter placeholder name
         $paramName = 'p_' . count($this->params) . '_' . preg_replace('/[^a-zA-Z0-9]/', '', $cleanColumn);
 
-        // Safely wrap identifier
-        if (str_contains($cleanColumn, '.')) {
-            [$tbl, $col] = explode('.', $cleanColumn, 2);
-            $this->wheres[] = "`$tbl`.`$col` $cleanOperator :$paramName";
-        } else {
-            $this->wheres[] = "`$cleanColumn` $cleanOperator :$paramName";
-        }
-
+        $colRef = $this->wrapColumn($cleanColumn);
+        $this->wheres[] = "{$colRef} {$operator} :{$paramName}";
         $this->params[$paramName] = $value;
-        return $this;
-    }
-
-    /**
-     * Add an order by clause (hardened against SQL injection)
-     */
-    public function orderBy(string $column, string $direction = 'ASC'): self
-    {
-        $direction = strtoupper(trim($direction)) === 'DESC' ? 'DESC' : 'ASC';
-        $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
-
-        if (str_contains($cleanColumn, '.')) {
-            [$tbl, $col] = explode('.', $cleanColumn, 2);
-            $this->orderBy = "`$tbl`.`$col` $direction";
-        } else {
-            $this->orderBy = "`$cleanColumn` $direction";
-        }
 
         return $this;
     }
 
     /**
-     * Add an OR where clause
+     * Add an OR WHERE clause.
      */
-    public function orWhere(string $column, mixed $value, string $operator = '='): self
+    public function orWhere(string $column, mixed $arg2, mixed $arg3 = null): self
     {
-        $allowedOperators = ['=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'IS', 'IS NOT'];
-        $cleanOperator = in_array(strtoupper(trim($operator)), $allowedOperators, true) ? strtoupper(trim($operator)) : '=';
+        [$operator, $value] = $this->resolveWhereArgs(func_num_args(), $arg2, $arg3);
+
         $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
         $paramName = 'p_' . count($this->params) . '_' . preg_replace('/[^a-zA-Z0-9]/', '', $cleanColumn);
 
-        if (str_contains($cleanColumn, '.')) {
-            [$tbl, $col] = explode('.', $cleanColumn, 2);
-            $this->orWheres[] = "`$tbl`.`$col` $cleanOperator :$paramName";
-        } else {
-            $this->orWheres[] = "`$cleanColumn` $cleanOperator :$paramName";
-        }
-
+        $colRef = $this->wrapColumn($cleanColumn);
+        $this->orWheres[] = "{$colRef} {$operator} :{$paramName}";
         $this->params[$paramName] = $value;
+
         return $this;
     }
 
     /**
-     * Add a WHERE IN clause
+     * Add a WHERE IN clause.
      */
     public function whereIn(string $column, array $values): self
     {
         if (empty($values)) {
-            // Impossible condition — no results
             $this->wheres[] = '0 = 1';
             return $this;
         }
 
         $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
         $placeholders = [];
-        foreach ($values as $i => $val) {
-            $paramName = 'in_' . count($this->params) . '_' . $i;
+        $prefix = 'in_' . count($this->params) . '_';
+        foreach (array_values($values) as $i => $val) {
+            $paramName = $prefix . $i;
             $placeholders[] = ":$paramName";
             $this->params[$paramName] = $val;
         }
 
-        $colRef = str_contains($cleanColumn, '.')
-            ? '`' . implode('`.`', explode('.', $cleanColumn, 2)) . '`'
-            : "`$cleanColumn`";
-
+        $colRef = $this->wrapColumn($cleanColumn);
         $this->wheres[] = "$colRef IN (" . implode(', ', $placeholders) . ")";
         return $this;
     }
 
     /**
-     * Add a WHERE column IS NULL clause
+     * Add a WHERE column IS NULL clause.
      */
     public function whereNull(string $column): self
     {
-        $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
-        $colRef = str_contains($cleanColumn, '.')
-            ? '`' . implode('`.`', explode('.', $cleanColumn, 2)) . '`'
-            : "`$cleanColumn`";
-
+        $colRef = $this->wrapColumn($column);
         $this->wheres[] = "$colRef IS NULL";
         return $this;
     }
 
     /**
-     * Add a WHERE column IS NOT NULL clause
+     * Add a WHERE column IS NOT NULL clause.
      */
     public function whereNotNull(string $column): self
     {
-        $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
-        $colRef = str_contains($cleanColumn, '.')
-            ? '`' . implode('`.`', explode('.', $cleanColumn, 2)) . '`'
-            : "`$cleanColumn`";
-
+        $colRef = $this->wrapColumn($column);
         $this->wheres[] = "$colRef IS NOT NULL";
         return $this;
     }
 
     /**
-     * Add a WHERE BETWEEN clause
+     * Add a WHERE BETWEEN clause.
      */
     public function whereBetween(string $column, mixed $min, mixed $max): self
     {
-        $cleanColumn = preg_replace('/[^a-zA-Z0-9_.]/', '', $column);
+        $colRef = $this->wrapColumn($column);
         $paramMin = 'btwn_' . count($this->params) . '_min';
         $paramMax = 'btwn_' . count($this->params) . '_max';
-
-        $colRef = str_contains($cleanColumn, '.')
-            ? '`' . implode('`.`', explode('.', $cleanColumn, 2)) . '`'
-            : "`$cleanColumn`";
 
         $this->wheres[] = "$colRef BETWEEN :$paramMin AND :$paramMax";
         $this->params[$paramMin] = $min;
@@ -165,7 +180,7 @@ class QueryBuilder
     }
 
     /**
-     * Set query limit
+     * Set query limit.
      */
     public function limit(int $limit): self
     {
@@ -174,7 +189,15 @@ class QueryBuilder
     }
 
     /**
-     * Set query offset
+     * Alias for limit.
+     */
+    public function take(int $limit): self
+    {
+        return $this->limit($limit);
+    }
+
+    /**
+     * Set query offset.
      */
     public function offset(int $offset): self
     {
@@ -183,37 +206,38 @@ class QueryBuilder
     }
 
     /**
-     * Set specific columns to select
+     * Alias for offset.
      */
-    public function select(string ...$columns): self
+    public function skip(int $offset): self
     {
-        $cleaned = array_map(fn($c) => '`' . preg_replace('/[^a-zA-Z0-9_.]/', '', $c) . '`', $columns);
-        $this->select = implode(', ', $cleaned);
+        return $this->offset($offset);
+    }
+
+    /**
+     * Set ORDER BY clause.
+     */
+    public function orderBy(string $column, string $direction = 'ASC'): self
+    {
+        $direction = strtoupper(trim($direction)) === 'DESC' ? 'DESC' : 'ASC';
+        $colRef = $this->wrapColumn($column);
+        $this->orderBy = "{$colRef} {$direction}";
         return $this;
     }
 
     /**
-     * Compile and execute select statement, returning array of Model instances
+     * Build the raw SELECT SQL statement.
      */
-    public function get(): array
+    public function toSql(): string
     {
-        $db = Application::$app->db;
-        if (!$db) {
-            return [];
-        }
-
         $sql = "SELECT {$this->select} FROM `{$this->table}`";
 
-        // Build WHERE clause with AND + OR support
-        $whereParts = [];
-        if (!empty($this->wheres)) {
-            $whereParts[] = '(' . implode(' AND ', $this->wheres) . ')';
+        if (!empty($this->joins)) {
+            $sql .= ' ' . implode(' ', $this->joins);
         }
-        foreach ($this->orWheres as $orWhere) {
-            $whereParts[] = $orWhere;
-        }
-        if (!empty($whereParts)) {
-            $sql .= " WHERE " . implode(' OR ', $whereParts);
+
+        $whereClause = $this->compileWheres();
+        if ($whereClause !== '') {
+            $sql .= ' WHERE ' . $whereClause;
         }
 
         if ($this->orderBy) {
@@ -228,18 +252,40 @@ class QueryBuilder
             $sql .= " OFFSET {$this->offset}";
         }
 
-        $statement = $db->prepare($sql);
+        return $sql;
+    }
+
+    /**
+     * Get the bound query parameters.
+     */
+    public function getBindings(): array
+    {
+        return $this->params;
+    }
+
+    /**
+     * Compile and execute select statement, returning array of Model instances.
+     * Hydrates attributes with forceFill to preserve all columns.
+     */
+    public function get(): array
+    {
+        $db = Application::$app->db ?? null;
+        if (!$db) {
+            return [];
+        }
+
+        $statement = $db->prepare($this->toSql());
         foreach ($this->params as $key => $value) {
             $statement->bindValue(":$key", $value);
         }
 
         $statement->execute();
-        $records = $statement->fetchAll();
+        $records = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         $models = [];
         foreach ($records as $record) {
             $model = new $this->modelClass();
-            $model->loadData($record);
+            $model->forceFill($record);
             $models[] = $model;
         }
 
@@ -247,7 +293,7 @@ class QueryBuilder
     }
 
     /**
-     * Get first matching record or null
+     * Get first matching record or null.
      */
     public function first(): ?Model
     {
@@ -257,23 +303,21 @@ class QueryBuilder
     }
 
     /**
-     * Get the first record matching the query or throw a ModelNotFoundException.
+     * Get the first record matching query or throw ModelNotFoundException.
      *
      * @throws ModelNotFoundException
      */
     public function firstOrFail(): Model
     {
         $record = $this->first();
-
         if (!$record) {
             throw new ModelNotFoundException($this->modelClass);
         }
-
         return $record;
     }
 
     /**
-     * Find a record by primary key, or throw a ModelNotFoundException.
+     * Find a record by primary key, or throw ModelNotFoundException.
      *
      * @throws ModelNotFoundException
      */
@@ -283,35 +327,39 @@ class QueryBuilder
         $primaryKey = $tempModel->primaryKey();
 
         $record = $this->where($primaryKey, $id)->first();
-
         if (!$record) {
             throw new ModelNotFoundException($this->modelClass, $id);
         }
-
         return $record;
     }
 
     /**
-     * Get total count matching query criteria
+     * Check if any matching records exist.
+     */
+    public function exists(): bool
+    {
+        return $this->count() > 0;
+    }
+
+    /**
+     * Get total count matching query criteria.
      */
     public function count(): int
     {
-        $db = Application::$app->db;
+        $db = Application::$app->db ?? null;
         if (!$db) {
             return 0;
         }
 
         $sql = "SELECT COUNT(*) FROM `{$this->table}`";
 
-        $whereParts = [];
-        if (!empty($this->wheres)) {
-            $whereParts[] = '(' . implode(' AND ', $this->wheres) . ')';
+        if (!empty($this->joins)) {
+            $sql .= ' ' . implode(' ', $this->joins);
         }
-        foreach ($this->orWheres as $orWhere) {
-            $whereParts[] = $orWhere;
-        }
-        if (!empty($whereParts)) {
-            $sql .= " WHERE " . implode(' OR ', $whereParts);
+
+        $whereClause = $this->compileWheres();
+        if ($whereClause !== '') {
+            $sql .= ' WHERE ' . $whereClause;
         }
 
         $statement = $db->prepare($sql);
@@ -320,8 +368,130 @@ class QueryBuilder
         }
 
         $statement->execute();
-        $return = (int)$statement->fetchColumn();
-        return $return;
+        return (int)$statement->fetchColumn();
+    }
+
+    /**
+     * Update matching records with the given attributes.
+     *
+     * @param array $values Column => Value pairs
+     * @return int Number of affected rows
+     */
+    public function update(array $values): int
+    {
+        $db = Application::$app->db ?? null;
+        if (!$db || empty($values)) {
+            return 0;
+        }
+
+        $setParts = [];
+        foreach ($values as $col => $val) {
+            $cleanCol = preg_replace('/[^a-zA-Z0-9_]/', '', $col);
+            $paramName = 'upd_' . count($this->params) . '_' . $cleanCol;
+            $setParts[] = "`$cleanCol` = :$paramName";
+            $this->params[$paramName] = $val;
+        }
+
+        $sql = "UPDATE `{$this->table}` SET " . implode(', ', $setParts);
+
+        $whereClause = $this->compileWheres();
+        if ($whereClause !== '') {
+            $sql .= ' WHERE ' . $whereClause;
+        }
+
+        $statement = $db->prepare($sql);
+        foreach ($this->params as $key => $value) {
+            $statement->bindValue(":$key", $value);
+        }
+
+        $statement->execute();
+        return $statement->rowCount();
+    }
+
+    /**
+     * Delete matching records.
+     *
+     * @return int Number of affected rows
+     */
+    public function delete(): int
+    {
+        $db = Application::$app->db ?? null;
+        if (!$db) {
+            return 0;
+        }
+
+        $sql = "DELETE FROM `{$this->table}`";
+
+        $whereClause = $this->compileWheres();
+        if ($whereClause !== '') {
+            $sql .= ' WHERE ' . $whereClause;
+        }
+
+        $statement = $db->prepare($sql);
+        foreach ($this->params as $key => $value) {
+            $statement->bindValue(":$key", $value);
+        }
+
+        $statement->execute();
+        return $statement->rowCount();
+    }
+
+    // =========================================================================
+    // Internal Helpers
+    // =========================================================================
+
+    /**
+     * Wrap column or table.column with backticks.
+     */
+    public function wrapColumn(string $column): string
+    {
+        $clean = preg_replace('/[^a-zA-Z0-9_.*]/', '', trim($column));
+        if ($clean === '*') {
+            return '*';
+        }
+        if (str_contains($clean, '.')) {
+            [$tbl, $col] = explode('.', $clean, 2);
+            return $col === '*' ? "`$tbl`.*" : "`$tbl`.`$col`";
+        }
+        return "`$clean`";
+    }
+
+    /**
+     * Compile WHERE and OR WHERE conditions into SQL string.
+     */
+    protected function compileWheres(): string
+    {
+        $whereParts = [];
+        if (!empty($this->wheres)) {
+            $whereParts[] = '(' . implode(' AND ', $this->wheres) . ')';
+        }
+        foreach ($this->orWheres as $orWhere) {
+            $whereParts[] = $orWhere;
+        }
+
+        return implode(' OR ', $whereParts);
+    }
+
+    /**
+     * Flexibly parse 2-argument or 3-argument WHERE calls.
+     */
+    protected function resolveWhereArgs(int $numArgs, mixed $arg2, mixed $arg3): array
+    {
+        if ($numArgs === 2 || $arg3 === null) {
+            return ['=', $arg2];
+        }
+
+        // 3 arguments provided:
+        // Case A: where('age', '>', 21) => arg2 is operator, arg3 is value
+        if (is_string($arg2) && in_array(strtoupper(trim($arg2)), self::$allowedOperators, true)) {
+            return [strtoupper(trim($arg2)), $arg3];
+        }
+
+        // Case B: where('age', 21, '>') (backward-compatibility with older Ace calls)
+        if (is_string($arg3) && in_array(strtoupper(trim($arg3)), self::$allowedOperators, true)) {
+            return [strtoupper(trim($arg3)), $arg2];
+        }
+
+        return ['=', $arg2];
     }
 }
-
