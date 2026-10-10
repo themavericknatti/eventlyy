@@ -9,3 +9,4 @@ storage
 uploads
 todo.txt
 .phpunit.result.cache
+react-project/*
