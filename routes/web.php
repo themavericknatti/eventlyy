@@ -25,10 +25,14 @@ use App\Controllers\Host\HostSettingsController;
 use App\Controllers\Host\HostTicketController;
 use App\Controllers\Host\PromoCodeController;
 use App\Controllers\ProfileController;
+use App\Controllers\TicketController;
 
 // ==================================================
 // APPLICATION WEB ROUTES
 // ==================================================
+
+// Branded Ticket Admission QR Code Generator
+$router->get('/ticket/qr/{code}', [TicketController::class, 'qrCode']);
 
 // Home Route
 $router->get('/', [HomeController::class, 'index']);

@@ -1156,17 +1156,34 @@ if (!function_exists('pending_payouts_count')) {
 
 if (!function_exists('ticket_qr_url')) {
     /**
-     * Generate a high-contrast, scannable QR Code image URL for an admission ticket.
-     * Uses Level M error correction and white margins optimized for camera and optical gate scanners.
+     * Generate a branded, high-contrast, scannable QR Code image URL for an admission ticket.
+     * Composited on the server with the Eventlyy brand logo and Level H (30%) Error Correction.
      *
      * @param string|int $ticketCode Unique ticket code (e.g. EV-1A2B3C4D)
      * @param int $size Image dimension in pixels (default: 200)
-     * @return string Validated QR Code image URL
+     * @return string Fully-qualified QR Code image URL
      */
     function ticket_qr_url(string|int $ticketCode, int $size = 200): string
     {
         $code = trim((string)$ticketCode);
-        return "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&margin=4&ecc=M&color=0-0-0&bgcolor=255-255-255&data=" . urlencode($code);
+        if ($code === '') {
+            $code = 'UNKNOWN';
+        }
+
+        $size = max(120, min(800, $size));
+        $routePath = function_exists('route') ? route('ticket/qr/' . rawurlencode($code)) : ('/ticket/qr/' . rawurlencode($code));
+        $url = $routePath . ($size !== 200 ? "?s={$size}" : '');
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        $baseUrl = function_exists('app_base_url') ? app_base_url() : '';
+        if (!empty($baseUrl)) {
+            return rtrim($baseUrl, '/') . '/' . ltrim($url, '/');
+        }
+
+        return $url;
     }
 }
 
