@@ -90,13 +90,71 @@
     letter-spacing: -0.03em;
     color: rgb(var(--text));
     margin: 0 0 0.85rem;
-}
-
-.hm-hero__title-highlight {
-    background: linear-gradient(135deg, rgb(var(--brand)) 0%, color-mix(in srgb, rgb(var(--brand)) 60%, rgb(var(--accent))) 100%);
+    position: relative;
+    display: inline-block;
+    /* Shimmer gradient moving across the entire text */
+    background: linear-gradient(
+        110deg,
+        rgb(var(--text)) 0%,
+        rgb(var(--text)) 35%,
+        rgba(255, 255, 255, 0.98) 50%,
+        rgb(var(--text)) 65%,
+        rgb(var(--text)) 100%
+    );
+    background-size: 250% 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    animation: hmTitleGlowSweep 4.5s ease-in-out infinite;
+}
+
+:root[data-theme='dark'] .hm-hero__title {
+    background: linear-gradient(
+        110deg,
+        rgba(243, 245, 247, 0.78) 0%,
+        rgba(243, 245, 247, 0.78) 35%,
+        #ffffff 50%,
+        rgba(243, 245, 247, 0.78) 65%,
+        rgba(243, 245, 247, 0.78) 100%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hm-hero__title-highlight {
+    background: linear-gradient(
+        110deg,
+        rgb(var(--brand)) 0%,
+        color-mix(in srgb, rgb(var(--brand)) 70%, rgb(var(--accent))) 35%,
+        #86efac 50%,
+        color-mix(in srgb, rgb(var(--brand)) 70%, rgb(var(--accent))) 65%,
+        rgb(var(--brand)) 100%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 16px rgba(var(--brand), 0.35));
+    animation: hmTitleGlowSweep 4.5s ease-in-out infinite;
+}
+
+@keyframes hmTitleGlowSweep {
+    0% {
+        background-position: 120% 0;
+    }
+    100% {
+        background-position: -120% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hm-hero__title,
+    .hm-hero__title-highlight {
+        animation: none;
+        background-size: 100% 100%;
+    }
 }
 
 .hm-hero__subtitle {
