@@ -1175,6 +1175,9 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                                                 <?php elseif ($remaining <= 15): ?>
                                                     <span class="flyer-tier-tag flyer-tier-tag--low"><?= $remaining ?> left</span>
                                                 <?php endif; ?>
+                                                <?php if (!empty($tt['max_per_person'])): ?>
+                                                    <span class="flyer-tier-tag" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.35); font-size:0.7rem;">🔒 Max <?= (int)$tt['max_per_person'] ?>/person</span>
+                                                <?php endif; ?>
                                             </div>
                                             <?php if (!empty($tt['description'])): ?>
                                                 <p class="flyer-tier-desc"><?= e($tt['description']) ?></p>
@@ -1184,7 +1187,7 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                                         <div class="flyer-stepper">
                                             <button type="button" class="flyer-stepper-btn" data-action="dec" <?= $isSoldOut ? 'disabled' : '' ?> aria-label="Decrease quantity">−</button>
                                             <span class="flyer-stepper-val" aria-live="polite">0</span>
-                                            <input type="hidden" name="qty[<?= $tt['id'] ?>]" value="0" class="flyer-qty-input" data-max="<?= $isSoldOut ? 0 : ($remaining > 0 ? $remaining : 20) ?>">
+                                            <input type="hidden" name="qty[<?= $tt['id'] ?>]" value="0" class="flyer-qty-input" data-max="<?= $isSoldOut ? 0 : ($remaining > 0 ? $remaining : 20) ?>" data-max-per-person="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>">
                                             <button type="button" class="flyer-stepper-btn" data-action="inc" <?= $isSoldOut ? 'disabled' : '' ?> aria-label="Increase quantity">+</button>
                                         </div>
 
@@ -1297,6 +1300,9 @@ $encodedFlyerUrl = urlencode($flyerUrl);
             const numSpan = row.querySelector('.flyer-stepper-val');
             const input = row.querySelector('.flyer-qty-input');
             const max = parseInt(input.getAttribute('data-max'), 10) || 20;
+            const maxPP = input.getAttribute('data-max-per-person');
+            const maxPerPerson = maxPP ? parseInt(maxPP, 10) : null;
+            const effectiveMax = (maxPerPerson && maxPerPerson > 0) ? Math.min(max, maxPerPerson) : max;
 
             if (decBtn && incBtn && numSpan && input) {
                 decBtn.addEventListener('click', function () {
@@ -1311,11 +1317,13 @@ $encodedFlyerUrl = urlencode($flyerUrl);
 
                 incBtn.addEventListener('click', function () {
                     let cur = parseInt(input.value, 10) || 0;
-                    if (cur < max) {
+                    if (cur < effectiveMax) {
                         cur++;
                         input.value = cur;
                         numSpan.textContent = cur;
                         refreshOrder();
+                    } else if (maxPerPerson && maxPerPerson > 0 && cur >= maxPerPerson) {
+                        alert('Limit reached: Maximum ' + maxPerPerson + ' ticket(s) per person for this tier.');
                     }
                 });
             }

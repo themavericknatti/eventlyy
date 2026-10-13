@@ -149,6 +149,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="event-label">Total Capacity <span class="required-star">*</span></span>
                     <input type="number" name="ticket-qty[]" class="event-input" required placeholder="Quantity" min="1">
                 </label>
+                <label class="tier-admits-label event-field-group" style="margin-bottom:0;">
+                    <span class="event-label">Admits / Table Size</span>
+                    <input type="number" name="ticket-admits[]" class="event-input" value="1" min="1" placeholder="1 (e.g. 5 for Table of 5)">
+                </label>
+                <label class="tier-limit-label event-field-group" style="margin-bottom:0;">
+                    <span class="event-label">Max Per Person</span>
+                    <input type="number" name="ticket-max-per-person[]" class="event-input" value="" min="1" placeholder="Unlimited">
+                </label>
                 <div class="tier-remove-wrap">
                     <button type="button" class="remove-ticket-row-btn ticket-remove-btn" title="Remove ticket tier">
                         <span class="remove-icon">✕</span>

@@ -143,7 +143,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                             <!-- Individual Ticket Cards Loop -->
                             <?php foreach (($tickets ?? []) as $index => $t): 
                                 $tCode = $t['ticket_code'] ?? ($t['id'] ?? 'EV-' . ($index + 1));
-                                $qrSrc = ticket_qr_url($tCode, 260);
+                                $qrSrc = function_exists('ticket_qr_data_uri') ? ticket_qr_data_uri($tCode, 260) : ticket_qr_url($tCode, 260);
                                 $tPrice = (float)($t['price'] ?? 0);
                             ?>
                             <table class="ticket-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid #0B7366; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">

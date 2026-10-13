@@ -16,10 +16,37 @@ $userName = $currentUser ? $currentUser->name : '';
 $userEmail = $currentUser ? $currentUser->email : '';
 
 $selectedItems = $selectedItems ?? [];
-$subtotal = $subtotal ?? 0.0;
-if (empty($subtotal) && !empty($selectedItems) && is_iterable($selectedItems)) {
+$subtotal = 0.0;
+$totalPasses = 0;
+$attendeeSlots = [];
+
+if (!empty($selectedItems) && is_iterable($selectedItems)) {
     foreach ($selectedItems as $item) {
         $subtotal += isset($item['subtotal']) ? floatval($item['subtotal']) : 0.0;
+        $tierId = $item['ticket_type_id'];
+        $tierName = $item['name'];
+        $admits = max(1, (int)($item['admits'] ?? 1));
+        $qty = (int)$item['qty'];
+        $passesForTier = $qty * $admits;
+        $totalPasses += $passesForTier;
+
+        for ($p = 0; $p < $passesForTier; $p++) {
+            $isPrimary = (count($attendeeSlots) === 0);
+            $tierPassNum = $p + 1;
+            $slotLabel = $admits > 1
+                ? ($tierName . ' (Guest ' . $tierPassNum . ' of ' . $passesForTier . ')')
+                : ($tierName . ($qty > 1 ? ' #' . $tierPassNum : ''));
+
+            $attendeeSlots[] = [
+                'ticket_type_id' => $tierId,
+                'tier_name' => $tierName,
+                'admits' => $admits,
+                'pass_index' => $p,
+                'global_index' => count($attendeeSlots) + 1,
+                'is_primary' => $isPrimary,
+                'label' => $slotLabel
+            ];
+        }
     }
 }
 
@@ -113,24 +140,107 @@ Checkout — <?= e($eventName) ?>
                 <!-- Alert Message Block -->
                 <div class="checkout-message" id="checkout-alert-msg" style="display:none;" aria-live="polite"></div>
 
-                <!-- Attendee Input Fields -->
-                <div class="co-field-group">
-                    <label class="co-label" for="billing-name">
-                        Full Name (Ticket Holder)
-                        <span class="co-required">*</span>
-                    </label>
-                    <input type="text" name="name" id="billing-name" class="co-input" placeholder="e.g. Jane Doe" required
-                           value="<?= e($userName) ?>" autocomplete="name" />
+                <!-- Order Contact Information -->
+                <div class="co-buyer-section">
+                    <div class="co-section-title-row">
+                        <span class="co-section-badge">1</span>
+                        <h3 class="co-section-heading">Billing &amp; Order Contact</h3>
+                    </div>
+                    <p class="co-section-hint">Order confirmation, master payment receipt, and summary of all passes will be sent here.</p>
+
+                    <div class="co-buyer-fields-grid">
+                        <div class="co-field-group">
+                            <label class="co-label" for="billing-name">
+                                Full Name (Primary Buyer)
+                                <span class="co-required">*</span>
+                            </label>
+                            <input type="text" name="name" id="billing-name" class="co-input" placeholder="e.g. Jane Doe" required
+                                   value="<?= e($userName) ?>" autocomplete="name" />
+                        </div>
+
+                        <div class="co-field-group">
+                            <label class="co-label" for="billing-email">
+                                Email Address (Billing Receipt)
+                                <span class="co-required">*</span>
+                            </label>
+                            <input type="email" name="email" id="billing-email" class="co-input" placeholder="e.g. jane@example.com" required
+                                   value="<?= e($userEmail) ?>" autocomplete="email" />
+                        </div>
+                    </div>
                 </div>
 
-                <div class="co-field-group">
-                    <label class="co-label" for="billing-email">
-                        Email Address (Digital QR delivery)
-                        <span class="co-required">*</span>
-                    </label>
-                    <input type="email" name="email" id="billing-email" class="co-input" placeholder="e.g. jane@example.com" required
-                           value="<?= e($userEmail) ?>" autocomplete="email" />
-                </div>
+                <?php if ($totalPasses > 1): ?>
+                    <!-- Individual Attendee Assignments for Group / Table Tickets -->
+                    <div class="co-attendees-section" id="co-attendees-section">
+                        <div class="co-attendees-header">
+                            <div>
+                                <div class="co-section-title-row">
+                                    <span class="co-section-badge">2</span>
+                                    <h3 class="co-section-heading">
+                                        Attendee Ticket Passes (<?= $totalPasses ?> Total)
+                                    </h3>
+                                </div>
+                                <p class="co-attendees-subtitle">Enter the attendee name and email for each seat. A unique ticket code and QR pass will be issued and emailed to each person at no extra cost.</p>
+                            </div>
+                            <button type="button" id="btn-copy-buyer-to-all" class="co-copy-buyer-btn" title="Fill all tickets with primary buyer details">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>Copy Buyer to All</span>
+                            </button>
+                        </div>
+
+                        <div class="co-attendee-cards-list">
+                            <?php foreach ($attendeeSlots as $slot): ?>
+                                <div class="co-attendee-card <?= $slot['is_primary'] ? 'co-attendee-card--primary' : '' ?>" data-slot-index="<?= $slot['global_index'] ?>">
+                                    <div class="co-attendee-card__top">
+                                        <div class="co-attendee-card__info">
+                                            <span class="co-pass-badge">Pass #<?= $slot['global_index'] ?></span>
+                                            <strong class="co-pass-tier"><?= e($slot['label']) ?></strong>
+                                        </div>
+                                        <?php if ($slot['is_primary']): ?>
+                                            <span class="co-primary-tag">Ticket #1 (Primary Buyer)</span>
+                                        <?php else: ?>
+                                            <span class="co-guest-tag">Guest Pass #<?= $slot['global_index'] ?></span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="co-attendee-card__grid">
+                                        <div class="co-field-group">
+                                            <label class="co-label" for="att-name-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>">
+                                                Attendee Name <?= $slot['is_primary'] ? '<span class="co-required">*</span>' : '' ?>
+                                            </label>
+                                            <input type="text"
+                                                   name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][name]"
+                                                   id="att-name-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>"
+                                                   class="co-input att-name-input <?= $slot['is_primary'] ? 'att-primary-name' : 'att-guest-name' ?>"
+                                                   placeholder="<?= $slot['is_primary'] ? 'Primary holder full name' : 'Guest full name' ?>"
+                                                   value="<?= $slot['is_primary'] ? e($userName) : '' ?>"
+                                                   <?= $slot['is_primary'] ? 'required' : '' ?> />
+                                        </div>
+
+                                        <div class="co-field-group">
+                                            <label class="co-label" for="att-email-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>">
+                                                Email Address (Pass Delivery) <?= $slot['is_primary'] ? '<span class="co-required">*</span>' : '' ?>
+                                            </label>
+                                            <input type="email"
+                                                   name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][email]"
+                                                   id="att-email-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>"
+                                                   class="co-input att-email-input <?= $slot['is_primary'] ? 'att-primary-email' : 'att-guest-email' ?>"
+                                                   placeholder="<?= $slot['is_primary'] ? 'primary@example.com' : 'guest@example.com' ?>"
+                                                   value="<?= $slot['is_primary'] ? e($userEmail) : '' ?>"
+                                                   <?= $slot['is_primary'] ? 'required' : '' ?> />
+                                        </div>
+                                    </div>
+                                    <?php if (!$slot['is_primary']): ?>
+                                        <span class="co-attendee-hint">Leave blank to default to primary buyer</span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Free Ticket Notice Banner -->
                 <div id="free-registration-badge" class="co-free-banner" style="display:<?= $isFreeOrder ? 'flex' : 'none' ?>;">
@@ -249,6 +359,9 @@ Checkout — <?= e($eventName) ?>
                             <div class="summary-row co-ticket-row">
                                 <span class="co-ticket-row__name">
                                     <strong><?= (int)$item['qty'] ?>×</strong> <?= e($item['name']) ?>
+                                    <?php if (!empty($item['admits']) && (int)$item['admits'] > 1): ?>
+                                        <span class="co-admits-pill">👥 Admits <?= (int)$item['admits'] ?></span>
+                                    <?php endif; ?>
                                 </span>
                                 <strong class="co-ticket-row__price">
                                     <?= $item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
@@ -538,6 +651,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyPromoBtn.textContent = 'Apply';
                 console.error(err);
             });
+        });
+    }
+
+    // ── Attendee Sync & Copy Buyer ────────────────────
+    const billingName = document.getElementById('billing-name');
+    const billingEmail = document.getElementById('billing-email');
+    const primaryAttName = document.querySelector('.att-primary-name');
+    const primaryAttEmail = document.querySelector('.att-primary-email');
+    const copyBuyerBtn = document.getElementById('btn-copy-buyer-to-all');
+
+    if (billingName && primaryAttName) {
+        billingName.addEventListener('input', function() {
+            if (!primaryAttName.dataset.customized) {
+                primaryAttName.value = this.value;
+            }
+        });
+        primaryAttName.addEventListener('input', function() {
+            this.dataset.customized = 'true';
+        });
+    }
+
+    if (billingEmail && primaryAttEmail) {
+        billingEmail.addEventListener('input', function() {
+            if (!primaryAttEmail.dataset.customized) {
+                primaryAttEmail.value = this.value;
+            }
+        });
+        primaryAttEmail.addEventListener('input', function() {
+            this.dataset.customized = 'true';
+        });
+    }
+
+    if (copyBuyerBtn && billingName && billingEmail) {
+        copyBuyerBtn.addEventListener('click', function() {
+            const bName = billingName.value.trim();
+            const bEmail = billingEmail.value.trim();
+
+            if (!bName && !bEmail) {
+                alert('Please enter your primary name and email first.');
+                billingName.focus();
+                return;
+            }
+
+            document.querySelectorAll('.att-guest-name').forEach((input, idx) => {
+                input.value = bName ? `${bName} (Guest ${idx + 2})` : '';
+                input.dataset.customized = 'true';
+            });
+
+            document.querySelectorAll('.att-guest-email').forEach(input => {
+                input.value = bEmail;
+                input.dataset.customized = 'true';
+            });
+
+            const originalText = copyBuyerBtn.innerHTML;
+            copyBuyerBtn.innerHTML = '<span>✓ Copied to All</span>';
+            copyBuyerBtn.style.background = '#0B7366';
+            copyBuyerBtn.style.color = '#ffffff';
+            setTimeout(() => {
+                copyBuyerBtn.innerHTML = originalText;
+                copyBuyerBtn.style.background = '';
+                copyBuyerBtn.style.color = '';
+            }, 2000);
         });
     }
 

@@ -1171,7 +1171,7 @@ if (!function_exists('ticket_qr_url')) {
         }
 
         $size = max(120, min(800, $size));
-        $routePath = function_exists('route') ? route('ticket/qr/' . rawurlencode($code)) : ('/ticket/qr/' . rawurlencode($code));
+        $routePath = '/ticket/qr/' . rawurlencode($code);
         $url = $routePath . ($size !== 200 ? "?s={$size}" : '');
 
         if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
@@ -1184,6 +1184,26 @@ if (!function_exists('ticket_qr_url')) {
         }
 
         return $url;
+    }
+}
+
+if (!function_exists('ticket_qr_data_uri')) {
+    /**
+     * Generate an embedded Base64 Data URI for an admission ticket QR code.
+     * Guaranteed to display in all email clients without relying on external network requests.
+     *
+     * @param string|int $ticketCode Unique ticket code
+     * @param int $size Image dimension (default: 240)
+     * @return string data:image/png;base64,... URI
+     */
+    function ticket_qr_data_uri(string|int $ticketCode, int $size = 240): string
+    {
+        try {
+            $qrService = new \App\Services\TicketQrService();
+            return $qrService->getQrDataUri((string)$ticketCode, $size);
+        } catch (\Throwable $e) {
+            return ticket_qr_url($ticketCode, $size);
+        }
     }
 }
 

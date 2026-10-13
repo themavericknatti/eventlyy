@@ -62,6 +62,20 @@ class TicketQrService
     }
 
     /**
+     * Generate a self-contained Base64 Data URI (data:image/png;base64,...) of the branded QR code.
+     * Perfect for direct embedding inside HTML emails without depending on external image proxies or web access.
+     *
+     * @param string $ticketCode Unique ticket admission code
+     * @param int $size Dimension in pixels (default 240)
+     * @return string Data URI string
+     */
+    public function getQrDataUri(string $ticketCode, int $size = 240): string
+    {
+        $png = $this->generateQrPng($ticketCode, $size);
+        return 'data:image/png;base64,' . base64_encode($png);
+    }
+
+    /**
      * Fetch the raw QR code with Level H Error Correction from QR Server API.
      */
     protected function fetchBaseQrCode(string $code, int $size): ?string

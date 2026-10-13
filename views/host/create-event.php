@@ -386,7 +386,7 @@ Create Event - <?= e($siteName) ?> Host
 
 .ticket-tier-grid {
     display: grid;
-    grid-template-columns: 2.2fr 1.2fr 1.2fr auto;
+    grid-template-columns: 2.2fr 1fr 1fr 0.9fr 0.9fr auto;
     gap: 0.85rem;
     align-items: flex-end;
 }
@@ -982,6 +982,8 @@ Create Event - <?= e($siteName) ?> Host
                     $oldTicketNames = old('ticket-name', []);
                     $oldTicketPrices = old('ticket-price', []);
                     $oldTicketQtys = old('ticket-qty', []);
+                    $oldTicketAdmits = old('ticket-admits', []);
+                    $oldTicketMaxPerPerson = old('ticket-max-per-person', []);
                     if (is_array($oldTicketNames) && count($oldTicketNames) > 0):
                         foreach ($oldTicketNames as $idx => $tName):
                             if (empty($tName)) continue;
@@ -991,7 +993,7 @@ Create Event - <?= e($siteName) ?> Host
                             <div class="ticket-tier-grid">
                                 <label class="tier-name-label event-field-group" style="margin-bottom:0;">
                                     <span class="event-label">Tier Name <span class="required-star">*</span></span>
-                                    <input type="text" name="ticket-name[]" class="event-input" value="<?= e($tName) ?>" required placeholder="Tier Name (e.g. VIP, General Admission)">
+                                    <input type="text" name="ticket-name[]" class="event-input" value="<?= e($tName) ?>" required placeholder="Tier Name (e.g. VIP, Table for 5, General)">
                                 </label>
                                 <label class="tier-price-label event-field-group" style="margin-bottom:0;">
                                     <span class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></span>
@@ -1000,6 +1002,14 @@ Create Event - <?= e($siteName) ?> Host
                                 <label class="tier-qty-label event-field-group" style="margin-bottom:0;">
                                     <span class="event-label">Total Capacity <span class="required-star">*</span></span>
                                     <input type="number" name="ticket-qty[]" class="event-input" value="<?= e($oldTicketQtys[$idx] ?? '100') ?>" required placeholder="Quantity" min="1">
+                                </label>
+                                <label class="tier-admits-label event-field-group" style="margin-bottom:0;">
+                                    <span class="event-label">Admits / Table Size</span>
+                                    <input type="number" name="ticket-admits[]" class="event-input" value="<?= e($oldTicketAdmits[$idx] ?? '1') ?>" min="1" placeholder="1 (e.g. 5 for Table of 5)">
+                                </label>
+                                <label class="tier-limit-label event-field-group" style="margin-bottom:0;">
+                                    <span class="event-label">Max Per Person</span>
+                                    <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= e($oldTicketMaxPerPerson[$idx] ?? '') ?>" min="1" placeholder="Unlimited">
                                 </label>
                                 <div class="tier-remove-wrap">
                                     <button type="button" class="remove-ticket-row-btn ticket-remove-btn" title="Remove ticket tier">

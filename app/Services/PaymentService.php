@@ -51,12 +51,17 @@ class PaymentService
             $attendeeName = !empty($tx['payer_name']) ? $tx['payer_name'] : (!empty($existingTickets[0]['attendee_name']) ? $existingTickets[0]['attendee_name'] : 'Attendee');
             $attendeeEmail = !empty($tx['payer_email']) ? $tx['payer_email'] : (!empty($existingTickets[0]['attendee_email']) ? $existingTickets[0]['attendee_email'] : '');
 
+            $eventStmt = $db->prepare("SELECT * FROM events WHERE id = :event_id LIMIT 1");
+            $eventStmt->execute(['event_id' => $tx['event_id'] ?? ($existingTickets[0]['event_id'] ?? 0)]);
+            $existingEvent = $eventStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
             return [
                 'success' => true,
                 'already_completed' => true,
                 'message' => 'Transaction was already completed and fulfilled.',
                 'reference' => $reference,
                 'transaction' => $tx,
+                'event' => $existingEvent,
                 'attendee_name' => $attendeeName,
                 'attendee_email' => $attendeeEmail,
                 'total_amount' => (float)($tx['total_amount'] ?? 0),
@@ -138,6 +143,7 @@ class PaymentService
         $email = trim($orderData['attendee_email'] ?? ($tx['payer_email'] ?? ($gatewayData['customer']['email'] ?? '')));
         $userId = !empty($orderData['user_id']) ? (int)$orderData['user_id'] : (!empty($tx['user_id']) ? (int)$tx['user_id'] : null);
         $qtyMap = $orderData['qty_map'] ?? [];
+        $attendees = $orderData['attendees'] ?? [];
 
         // Fallback: If qtyMap is missing but subtotal exists, assign to the event's primary ticket type
         if (empty($qtyMap)) {
@@ -159,6 +165,34 @@ class PaymentService
         $createdTickets = [];
         $calculatedSubtotal = 0.00;
 
+        // Enforce per-person purchase limit (max_per_person) before issuing tickets
+        $buyerEmailLower = strtolower(trim($email));
+        foreach ($qtyMap as $ttId => $qty) {
+            $qty = (int)$qty;
+            if ($qty <= 0 || !isset($ticketTypesById[$ttId])) continue;
+
+            $tt = $ticketTypesById[$ttId];
+            $maxPerPerson = !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : 0;
+            if ($maxPerPerson <= 0) continue; // 0 or NULL = unlimited
+
+            $existingStmt = $db->prepare("
+                SELECT COUNT(*) FROM tickets 
+                WHERE ticket_type_id = :tt_id 
+                AND LOWER(attendee_email) = :email 
+                AND status IN ('Paid', 'Comped')
+            ");
+            $existingStmt->execute(['tt_id' => $ttId, 'email' => $buyerEmailLower]);
+            $existingCount = (int)$existingStmt->fetchColumn();
+
+            if (($existingCount + $qty) > $maxPerPerson) {
+                $remaining = max(0, $maxPerPerson - $existingCount);
+                return [
+                    'success' => false,
+                    'message' => "Purchase limit exceeded for \"{$tt['name']}\": maximum {$maxPerPerson} per person (you already have {$existingCount}, requested {$qty}, allowed {$remaining} more)."
+                ];
+            }
+        }
+
         $db->beginTransaction();
         try {
             // Generate individual ticket rows
@@ -170,10 +204,22 @@ class PaymentService
 
                 $tt = $ticketTypesById[$ttId];
                 $priceMap = $orderData['price_map'] ?? [];
-                $ticketPrice = isset($priceMap[$ttId]) ? (float)$priceMap[$ttId] : (float)$tt['price'];
+                $tierUnitPrice = isset($priceMap[$ttId]) ? (float)$priceMap[$ttId] : (float)$tt['price'];
+                $tierTotalPrice = $tierUnitPrice * $qty;
+                $admits = max(1, (int)($tt['admits'] ?? 1));
+                $totalPassesForTier = $qty * $admits;
+                $seatPrice = round($tierTotalPrice / $totalPassesForTier, 2);
 
-                for ($i = 0; $i < $qty; $i++) {
+                for ($i = 0; $i < $totalPassesForTier; $i++) {
                     $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+
+                    $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
+                    $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
+                    if (empty($attName)) $attName = $name;
+                    if (empty($attEmail)) $attEmail = $email;
+
+                    $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
+                    $typeNameDisplay = $tt['name'] . $seatLabel;
 
                     $insertStmt = $db->prepare("
                         INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, purchase_date, checked_in)
@@ -184,21 +230,23 @@ class PaymentService
                         'event_id' => $eventId,
                         'ticket_type_id' => $tt['id'],
                         'user_id' => $userId,
-                        'name' => $name,
-                        'email' => $email,
-                        'price' => $ticketPrice,
+                        'name' => $attName,
+                        'email' => $attEmail,
+                        'price' => $seatPrice,
                         'status_detail' => 'Paystack Ref: ' . $reference
                     ]);
 
                     $createdTickets[] = [
                         'ticket_code' => $ticketCode,
-                        'attendee_name' => $name,
-                        'ticket_type' => $tt['name'],
-                        'price' => $ticketPrice,
+                        'attendee_name' => $attName,
+                        'attendee_email' => $attEmail,
+                        'ticket_type' => $typeNameDisplay,
+                        'base_ticket_type' => $tt['name'],
+                        'price' => $seatPrice,
                         'status' => 'Paid',
                         'checked_in' => false
                     ];
-                    $calculatedSubtotal += $ticketPrice;
+                    $calculatedSubtotal += $seatPrice;
                 }
             }
 
@@ -297,11 +345,10 @@ class PaymentService
             ];
         }
 
-        // 3. Dispatch Ticket Confirmation Email with Organization Header & QR Code
+        // 3. Dispatch Ticket Confirmation Email with Organization Header & QR Code to primary buyer
+        $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
         if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
             try {
-                $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
-                
                 \Ace\Mail::send(
                     $email,
                     'Your Tickets for ' . $event['name'],
@@ -318,6 +365,44 @@ class PaymentService
                 );
             } catch (\Throwable $e) {
                 error_log("Failed to send ticket confirmation email to {$email}: " . $e->getMessage());
+            }
+        }
+
+        // 4. Dispatch Individual Pass Emails to Guest Attendees
+        $guestPassesByEmail = [];
+        foreach ($createdTickets as $ticket) {
+            $gEmail = strtolower(trim($ticket['attendee_email'] ?? ''));
+            if (!empty($gEmail) && filter_var($gEmail, FILTER_VALIDATE_EMAIL) && $gEmail !== strtolower($email)) {
+                $guestPassesByEmail[$gEmail][] = $ticket;
+            }
+        }
+
+        foreach ($guestPassesByEmail as $gEmail => $gTickets) {
+            // Brief pause between SMTP dispatches to prevent rate-limiting or session rejection
+            sleep(1);
+            try {
+                $gName = $gTickets[0]['attendee_name'] ?? 'Valued Guest';
+                $sent = \Ace\Mail::send(
+                    $gEmail,
+                    'Your Admission Pass for ' . $event['name'],
+                    'emails/issued_ticket',
+                    [
+                        'header_title' => 'Your Event Admission Pass',
+                        'header_subtitle' => 'Official admission pass reserved by ' . ($name ?: 'a friend'),
+                        'greeting_text' => 'An admission pass for <strong>' . e($event['name']) . '</strong> has been reserved for you by <strong>' . e($name) . '</strong>. Your scannable pass and admission details are below.',
+                        'attendee_name' => $gName,
+                        'event_name' => $event['name'],
+                        'event_date' => $formattedDate,
+                        'event_location' => $event['location'] ?? 'Venue',
+                        'payment_method' => 'Paystack Card / Bank Transfer',
+                        'tickets' => $gTickets
+                    ]
+                );
+                if (!$sent) {
+                    error_log("PaymentService: Guest ticket email to {$gEmail} failed: " . \Ace\Mail::getLastError());
+                }
+            } catch (\Throwable $e) {
+                error_log("Failed to send guest ticket email to {$gEmail}: " . $e->getMessage());
             }
         }
 

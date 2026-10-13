@@ -138,6 +138,8 @@ class UpdateEventAction
             $ticketNames = $data['ticket-name'] ?? [];
             $ticketPrices = $data['ticket-price'] ?? [];
             $ticketQtys = $data['ticket-qty'] ?? [];
+            $ticketAdmits = $data['ticket-admits'] ?? [];
+            $ticketMaxPerPerson = $data['ticket-max-per-person'] ?? [];
 
             $submittedIds = [];
 
@@ -148,6 +150,13 @@ class UpdateEventAction
                 $price = isset($ticketPrices[$index]) ? (float)$ticketPrices[$index] : 0.00;
                 $qty = isset($ticketQtys[$index]) ? (int)$ticketQtys[$index] : 0;
                 $existingId = isset($ticketIds[$index]) ? (int)$ticketIds[$index] : 0;
+                $admits = isset($ticketAdmits[$index]) && is_numeric($ticketAdmits[$index]) ? max(1, (int)$ticketAdmits[$index]) : 1;
+                $maxPerPerson = isset($ticketMaxPerPerson[$index]) && is_numeric($ticketMaxPerPerson[$index]) && (int)$ticketMaxPerPerson[$index] > 0 ? (int)$ticketMaxPerPerson[$index] : null;
+
+                // Smart detection: e.g. "Table for 5" or "Booth for 6"
+                if ($admits === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $name, $matches)) {
+                    $admits = max(1, (int)$matches[1]);
+                }
 
                 if ($existingId > 0) {
                     // Verify capacity is not reduced below existing sold/issued tickets
@@ -167,13 +176,15 @@ class UpdateEventAction
                     // Update existing ticket type
                     $stmt = $db->prepare("
                         UPDATE ticket_types 
-                        SET name = :name, price = :price, capacity = :capacity 
+                        SET name = :name, price = :price, capacity = :capacity, admits = :admits, max_per_person = :max_per_person 
                         WHERE id = :id AND event_id = :event_id
                     ");
                     $stmt->execute([
                         'name' => $name,
                         'price' => $price,
                         'capacity' => $qty,
+                        'admits' => $admits,
+                        'max_per_person' => $maxPerPerson,
                         'id' => $existingId,
                         'event_id' => $event->id
                     ]);
@@ -181,14 +192,16 @@ class UpdateEventAction
                 } else {
                     // Insert new ticket type
                     $stmt = $db->prepare("
-                        INSERT INTO ticket_types (event_id, name, price, capacity) 
-                        VALUES (:event_id, :name, :price, :capacity)
+                        INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) 
+                        VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)
                     ");
                     $stmt->execute([
                         'event_id' => $event->id,
                         'name' => $name,
                         'price' => $price,
-                        'capacity' => $qty
+                        'capacity' => $qty,
+                        'admits' => $admits,
+                        'max_per_person' => $maxPerPerson
                     ]);
                     $submittedIds[] = (int)$db->lastInsertId();
                 }

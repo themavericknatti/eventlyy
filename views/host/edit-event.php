@@ -453,7 +453,7 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
 .ticket-tier-grid {
     display: grid;
-    grid-template-columns: 2.2fr 1.2fr 1.2fr auto;
+    grid-template-columns: 2.2fr 1fr 1fr 0.9fr 0.9fr auto;
     gap: 0.85rem;
     align-items: flex-end;
 }
@@ -1034,6 +1034,14 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                     <label class="tier-qty-label event-field-group" style="margin-bottom:0;">
                                         <span class="event-label">Total Capacity <span class="required-star">*</span></span>
                                         <input type="number" name="ticket-qty[]" class="event-input" required value="<?= (int)$tt['capacity'] ?>" min="<?= $taken ?>" placeholder="Quantity">
+                                    </label>
+                                    <label class="tier-admits-label event-field-group" style="margin-bottom:0;">
+                                        <span class="event-label">Admits / Table Size</span>
+                                        <input type="number" name="ticket-admits[]" class="event-input" value="<?= max(1, (int)($tt['admits'] ?? 1)) ?>" min="1" placeholder="1 (e.g. 5 for Table of 5)">
+                                    </label>
+                                    <label class="tier-limit-label event-field-group" style="margin-bottom:0;">
+                                        <span class="event-label">Max Per Person</span>
+                                        <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>" min="1" placeholder="Unlimited">
                                     </label>
                                     <div class="tier-remove-wrap">
                                         <?php if ($taken == 0): ?>

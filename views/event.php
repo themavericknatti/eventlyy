@@ -204,10 +204,22 @@ $encodedShareUrl = urlencode($shareUrl);
                                 <div class="ep-ticket__info">
                                     <div class="ep-ticket__name-row">
                                         <h3><?= e($tt['name']) ?></h3>
+                                        <?php 
+                                            $admitsCount = max(1, (int)($tt['admits'] ?? 1));
+                                            if ($admitsCount === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $tt['name'], $mAdmits)) {
+                                                $admitsCount = max(1, (int)$mAdmits[1]);
+                                            }
+                                        ?>
+                                        <?php if ($admitsCount > 1): ?>
+                                            <span class="ep-ticket-badge" style="background:rgba(14,165,233,0.12); color:#0284c7; border:1px solid rgba(14,165,233,0.25); font-weight:700;">👥 Admits <?= $admitsCount ?></span>
+                                        <?php endif; ?>
                                         <?php if ($isSoldOut): ?>
                                             <span class="ep-ticket-badge ep-ticket-badge--soldout">Sold Out</span>
                                         <?php elseif ($remaining <= 15): ?>
                                             <span class="ep-ticket-badge ep-ticket-badge--low"><?= $remaining ?> left</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($tt['max_per_person'])): ?>
+                                            <span class="ep-ticket-badge" style="background:rgba(245,158,11,0.12); color:#d97706; border:1px solid rgba(245,158,11,0.25); font-weight:700;">🔒 Max <?= (int)$tt['max_per_person'] ?>/person</span>
                                         <?php endif; ?>
                                     </div>
                                     <?php if (!empty($tt['description'])): ?>
@@ -225,7 +237,7 @@ $encodedShareUrl = urlencode($shareUrl);
                                     <button type="button" class="qty-btn" data-action="decrease" <?= $isSoldOut ? 'disabled' : '' ?>
                                         aria-label="Decrease <?= e($tt['name']) ?> quantity">−</button>
                                     <span class="qty-value" aria-live="polite"><?= $defaultQty ?></span>
-                                    <input type="hidden" name="qty[<?= $tt['id'] ?>]" class="qty-input" value="<?= $defaultQty ?>" data-max="<?= $remaining ?>">
+                                    <input type="hidden" name="qty[<?= $tt['id'] ?>]" class="qty-input" value="<?= $defaultQty ?>" data-max="<?= $remaining ?>" data-max-per-person="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>">
                                     <button type="button" class="qty-btn" data-action="increase" <?= $isSoldOut ? 'disabled' : '' ?>
                                         aria-label="Increase <?= e($tt['name']) ?> quantity">+</button>
                                 </div>
@@ -382,6 +394,9 @@ document.addEventListener('DOMContentLoaded', function () {
         var qtyVal = row.querySelector('.qty-value');
         var qtyInput = row.querySelector('.qty-input');
         var maxCapacity = parseInt(qtyInput.getAttribute('data-max'), 10) || 99;
+        var maxPerPerson = qtyInput.getAttribute('data-max-per-person');
+        maxPerPerson = maxPerPerson ? parseInt(maxPerPerson, 10) : null;
+        var effectiveMax = (maxPerPerson && maxPerPerson > 0) ? Math.min(maxCapacity, maxPerPerson) : maxCapacity;
 
         if (decreaseBtn && increaseBtn && qtyVal && qtyInput) {
             decreaseBtn.addEventListener('click', function () {
@@ -396,11 +411,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             increaseBtn.addEventListener('click', function () {
                 var current = parseInt(qtyInput.value, 10) || 0;
-                if (current < maxCapacity) {
+                if (current < effectiveMax) {
                     current++;
                     qtyInput.value = current;
                     qtyVal.textContent = current;
                     updateSummary();
+                } else if (maxPerPerson && maxPerPerson > 0 && current >= maxPerPerson) {
+                    alert('Limit reached: Maximum ' + maxPerPerson + ' ticket(s) per person for this tier.');
                 }
             });
         }

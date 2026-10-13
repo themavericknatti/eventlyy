@@ -90,6 +90,7 @@ class CheckoutController extends Controller
             $qty = isset($qtyMap[$ttId]) ? (int)$qtyMap[$ttId] : 0;
 
             if ($qty > 0) {
+                $admits = max(1, (int)($tt['admits'] ?? 1));
                 $itemSubtotal = (float)$tt['price'] * $qty;
                 $subtotal += $itemSubtotal;
                 $selectedItems[] = [
@@ -97,6 +98,8 @@ class CheckoutController extends Controller
                     'name' => $tt['name'],
                     'price' => (float)$tt['price'],
                     'qty' => $qty,
+                    'admits' => $admits,
+                    'total_passes' => $qty * $admits,
                     'subtotal' => $itemSubtotal
                 ];
             }
@@ -212,6 +215,7 @@ class CheckoutController extends Controller
             $qty = isset($qtyMap[$ttId]) ? (int)$qtyMap[$ttId] : 0;
 
             if ($qty > 0) {
+                $admits = max(1, (int)($tt['admits'] ?? 1));
                 $itemSubtotal = (float)$tt['price'] * $qty;
                 $subtotal += $itemSubtotal;
                 $selectedItems[] = [
@@ -219,6 +223,8 @@ class CheckoutController extends Controller
                     'name' => $tt['name'],
                     'price' => (float)$tt['price'],
                     'qty' => $qty,
+                    'admits' => $admits,
+                    'total_passes' => $qty * $admits,
                     'subtotal' => $itemSubtotal
                 ];
             }
@@ -228,12 +234,15 @@ class CheckoutController extends Controller
         if (empty($selectedItems) && !empty($ticketTypes)) {
             $firstTier = $ticketTypes[0];
             $qtyMap[$firstTier['id']] = 1;
+            $admits = max(1, (int)($firstTier['admits'] ?? 1));
             $subtotal = (float)$firstTier['price'];
             $selectedItems[] = [
                 'ticket_type_id' => $firstTier['id'],
                 'name' => $firstTier['name'],
                 'price' => (float)$firstTier['price'],
                 'qty' => 1,
+                'admits' => $admits,
+                'total_passes' => 1 * $admits,
                 'subtotal' => $subtotal
             ];
         }
@@ -345,6 +354,39 @@ class CheckoutController extends Controller
             return;
         }
 
+        // Enforce per-person purchase limit (max_per_person) set by the host
+        $buyerEmailLower = strtolower($email);
+        foreach ($ticketTypes as $tt) {
+            $qty = isset($qtyMap[$tt['id']]) ? (int)$qtyMap[$tt['id']] : 0;
+            if ($qty <= 0) continue;
+
+            $maxPerPerson = !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : 0;
+            if ($maxPerPerson <= 0) continue; // 0 or NULL = unlimited
+
+            // Count how many tickets of this type the buyer email already owns
+            $existingStmt = $db->prepare("
+                SELECT COUNT(*) FROM tickets 
+                WHERE ticket_type_id = :tt_id 
+                AND LOWER(attendee_email) = :email 
+                AND status IN ('Paid', 'Comped')
+            ");
+            $existingStmt->execute(['tt_id' => $tt['id'], 'email' => $buyerEmailLower]);
+            $existingCount = (int)$existingStmt->fetchColumn();
+
+            if (($existingCount + $qty) > $maxPerPerson) {
+                $remaining = max(0, $maxPerPerson - $existingCount);
+                $tierName = $tt['name'];
+                if ($existingCount > 0) {
+                    $msg = "You already have {$existingCount} ticket(s) for \"{$tierName}\". Maximum allowed is {$maxPerPerson} per person. You can purchase up to {$remaining} more.";
+                } else {
+                    $msg = "Maximum {$maxPerPerson} ticket(s) per person for \"{$tierName}\". Please reduce your quantity.";
+                }
+                Application::$app->session->setFlash('error', $msg);
+                redirect('/checkout/' . $eventId);
+                return;
+            }
+        }
+
         // Check and apply promo code
         $promoCode = strtoupper(trim($data['promo_code'] ?? ''));
         $discountAmount = 0.00;
@@ -395,19 +437,56 @@ class CheckoutController extends Controller
             }
         }
 
+        // Normalize attendee data into structured list per ticket type
+        $rawAttendees = $data['attendees'] ?? [];
+        $normalizedAttendees = [];
+        foreach ($ticketTypes as $tt) {
+            $ttId = $tt['id'];
+            $qty = isset($qtyMap[$ttId]) ? (int)$qtyMap[$ttId] : 0;
+            if ($qty <= 0) continue;
+            $admits = max(1, (int)($tt['admits'] ?? 1));
+            $totalPassesForTier = $qty * $admits;
+
+            for ($i = 0; $i < $totalPassesForTier; $i++) {
+                $attName = '';
+                $attEmail = '';
+                if (isset($rawAttendees[$ttId][$i])) {
+                    $attName = trim($rawAttendees[$ttId][$i]['name'] ?? '');
+                    $attEmail = trim($rawAttendees[$ttId][$i]['email'] ?? '');
+                } elseif (isset($rawAttendees[$i])) {
+                    $attName = trim($rawAttendees[$i]['name'] ?? '');
+                    $attEmail = trim($rawAttendees[$i]['email'] ?? '');
+                }
+
+                if (empty($attName)) {
+                    $attName = $name;
+                }
+                if (empty($attEmail)) {
+                    $attEmail = $email;
+                }
+
+                $normalizedAttendees[$ttId][] = [
+                    'name' => $attName,
+                    'email' => $attEmail,
+                    'seat_number' => $i + 1,
+                    'total_seats' => $totalPassesForTier
+                ];
+            }
+        }
+
         // ── Direct Free Ticket Issuance (0 or 0.00 total) ───────
         // Free tickets bypass Paystack and all external payment gateways entirely!
         if ($totalPaid <= 0.00) {
-            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode);
+            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
         }
 
         // ── Paystack Payment Gateway ────────────────────────────
         if ($paymentMethod === 'paystack') {
-            return $this->initializePaystack($event, $name, $email, $totalPaid, $qtyMap, $promoCode, $discountAmount, $refCode);
+            return $this->initializePaystack($event, $name, $email, $totalPaid, $qtyMap, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
         }
 
         // ── Direct / Fallback (Stripe/Flutterwave placeholder) ──
-        return $this->issueTicketsDirectly($event, $name, $email, $paymentMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode);
+        return $this->issueTicketsDirectly($event, $name, $email, $paymentMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
     }
 
     /**
@@ -477,7 +556,7 @@ class CheckoutController extends Controller
     /**
      * Initialize Paystack Transaction and redirect user to Paystack hosted checkout.
      */
-    private function initializePaystack(array $event, string $name, string $email, float $totalAmount, array $qtyMap, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null)
+    private function initializePaystack(array $event, string $name, string $email, float $totalAmount, array $qtyMap, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null, array $attendees = [])
     {
         try {
             $paystack = new PaystackService();
@@ -529,6 +608,7 @@ class CheckoutController extends Controller
                 'subtotal' => $subtotal,
                 'qty_map' => $qtyMap,
                 'price_map' => $priceMap,
+                'attendees' => $attendees,
                 'reference' => $reference,
                 'pass_fee' => !empty($event['pass_fee']),
                 'promo_code' => $promoCode,
@@ -751,7 +831,7 @@ class CheckoutController extends Controller
     /**
      * Direct ticket issuance for non-gateway payments (Stripe placeholder, etc.)
      */
-    private function issueTicketsDirectly(array $event, string $name, string $email, string $paymentMethod, array $qtyMap, array $ticketTypes, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null)
+    private function issueTicketsDirectly(array $event, string $name, string $email, string $paymentMethod, array $qtyMap, array $ticketTypes, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null, array $attendees = [])
     {
         $db = Application::$app->db->pdo;
         $eventId = $event['id'];
@@ -770,9 +850,20 @@ class CheckoutController extends Controller
                 if ($qty > 0) {
                     $itemSubtotal = (float)$tt['price'] * $qty;
                     $subtotal += $itemSubtotal;
+                    $admits = max(1, (int)($tt['admits'] ?? 1));
+                    $totalPassesForTier = $qty * $admits;
+                    $seatPrice = round($itemSubtotal / $totalPassesForTier, 2);
 
-                    for ($i = 0; $i < $qty; $i++) {
+                    for ($i = 0; $i < $totalPassesForTier; $i++) {
                         $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+
+                        $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
+                        $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
+                        if (empty($attName)) $attName = $name;
+                        if (empty($attEmail)) $attEmail = $email;
+
+                        $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
+                        $typeNameDisplay = $tt['name'] . $seatLabel;
 
                         $insertStmt = $db->prepare("
                             INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, purchase_date)
@@ -783,15 +874,18 @@ class CheckoutController extends Controller
                             'event_id' => $eventId,
                             'ticket_type_id' => $ttId,
                             'user_id' => $userId,
-                            'name' => $name,
-                            'email' => $email,
-                            'price' => $tt['price']
+                            'name' => $attName,
+                            'email' => $attEmail,
+                            'price' => $seatPrice
                         ]);
 
                         $createdTickets[] = [
                             'ticket_code' => $ticketCode,
-                            'ticket_type' => $tt['name'],
-                            'price' => (float)$tt['price']
+                            'attendee_name' => $attName,
+                            'attendee_email' => $attEmail,
+                            'ticket_type' => $typeNameDisplay,
+                            'base_ticket_type' => $tt['name'],
+                            'price' => $seatPrice
                         ];
                     }
                 }
@@ -863,7 +957,8 @@ class CheckoutController extends Controller
 
             $db->commit();
 
-            // Send confirmation email
+            // Send confirmation email to primary buyer
+            $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
             try {
                 \Ace\Mail::send(
                     $email,
@@ -872,15 +967,53 @@ class CheckoutController extends Controller
                     [
                         'attendee_name' => $name,
                         'event_name' => $event['name'],
-                        'event_date' => date('D, M d, Y • g:i A', strtotime($event['date'])),
-                        'event_location' => $event['location'],
+                        'event_date' => $formattedDate,
+                        'event_location' => $event['location'] ?? 'Venue TBA',
                         'payment_method' => $paymentMethodStr,
                         'total_amount' => $totalPaid,
                         'tickets' => $createdTickets
                     ]
                 );
             } catch (\Exception $mailEx) {
-                error_log("Failed to send ticket confirmation email: " . $mailEx->getMessage());
+                error_log("Failed to send ticket confirmation email to buyer {$email}: " . $mailEx->getMessage());
+            }
+
+            // Dispatch individual passes to distinct guest attendee emails
+            $guestPassesByEmail = [];
+            foreach ($createdTickets as $ticket) {
+                $gEmail = strtolower(trim($ticket['attendee_email'] ?? ''));
+                if (!empty($gEmail) && filter_var($gEmail, FILTER_VALIDATE_EMAIL) && $gEmail !== strtolower($email)) {
+                    $guestPassesByEmail[$gEmail][] = $ticket;
+                }
+            }
+
+            foreach ($guestPassesByEmail as $gEmail => $gTickets) {
+                // Brief pause between SMTP dispatches to prevent rate-limiting or session rejection
+                sleep(1);
+                try {
+                    $gName = $gTickets[0]['attendee_name'] ?? 'Valued Guest';
+                    $sent = \Ace\Mail::send(
+                        $gEmail,
+                        'Your Admission Pass for ' . $event['name'],
+                        'emails/issued_ticket',
+                        [
+                            'header_title' => 'Your Event Admission Pass',
+                            'header_subtitle' => 'Official admission pass reserved by ' . ($name ?: 'a friend'),
+                            'greeting_text' => 'An admission pass for <strong>' . e($event['name']) . '</strong> has been reserved for you by <strong>' . e($name) . '</strong>. Your scannable pass and admission details are below.',
+                            'attendee_name' => $gName,
+                            'event_name' => $event['name'],
+                            'event_date' => $formattedDate,
+                            'event_location' => $event['location'] ?? 'Venue TBA',
+                            'payment_method' => $paymentMethodStr,
+                            'tickets' => $gTickets
+                        ]
+                    );
+                    if (!$sent) {
+                        error_log("CheckoutController: Failed to send admission pass email to guest {$gEmail}: " . \Ace\Mail::getLastError());
+                    }
+                } catch (\Exception $mailEx) {
+                    error_log("Failed to send admission pass email to guest {$gEmail}: " . $mailEx->getMessage());
+                }
             }
 
             Application::$app->session->set('order_success', [

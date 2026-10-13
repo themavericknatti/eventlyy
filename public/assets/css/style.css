@@ -13580,3 +13580,238 @@ button[type="submit"]:disabled,
     padding: 0.75rem;
   }
 }
+
+/* ═══ Multi-Attendee Group & Table Passes ═══ */
+.co-buyer-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(var(--muted), 0.12);
+}
+
+.co-section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.35rem;
+}
+
+.co-section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0B7366;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.co-section-heading {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: rgb(var(--text));
+  margin: 0;
+}
+
+.co-section-hint {
+  font-size: 0.82rem;
+  color: rgb(var(--muted));
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+
+.co-buyer-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .co-buyer-fields-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+.co-attendees-section {
+  margin: 0 0 1.25rem;
+  padding: 1.5rem;
+  background: rgba(var(--muted), 0.04);
+  border: 1.5px solid rgba(var(--muted), 0.14);
+  border-radius: 18px;
+}
+
+.co-attendees-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(var(--muted), 0.1);
+  flex-wrap: wrap;
+}
+
+.co-attendees-title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: rgb(var(--text));
+  margin: 0 0 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.co-attendees-subtitle {
+  font-size: 0.84rem;
+  color: rgb(var(--muted));
+  margin: 0;
+  line-height: 1.45;
+}
+
+.co-copy-buyer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(var(--muted), 0.1);
+  color: rgb(var(--text));
+  border: 1px solid rgba(var(--muted), 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.co-copy-buyer-btn:hover {
+  background: #0B7366;
+  color: #ffffff;
+  border-color: #0B7366;
+}
+
+.co-attendee-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.co-attendee-card {
+  background: rgb(var(--card));
+  border: 1.5px solid rgba(var(--muted), 0.12);
+  border-radius: 14px;
+  padding: 1.15rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease;
+}
+
+.co-attendee-card--primary {
+  border-color: #0B7366;
+  background: rgba(11, 115, 102, 0.02);
+}
+
+.co-attendee-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.co-attendee-card__info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.co-pass-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(var(--muted), 0.1);
+  color: rgb(var(--text));
+}
+
+.co-pass-tier {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+}
+
+.co-primary-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0B7366;
+  background: rgba(11, 115, 102, 0.1);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.co-guest-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(var(--muted));
+  background: rgba(var(--muted), 0.08);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.co-attendee-card__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .co-attendee-card__grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+.co-attendee-hint {
+  display: block;
+  font-size: 0.76rem;
+  color: rgb(var(--muted));
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+.co-admits-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0B7366;
+  background: rgba(11, 115, 102, 0.1);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+:root[data-theme='dark'] .co-attendees-section {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .co-attendee-card {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .co-attendee-card--primary {
+  border-color: #0B7366;
+  background: rgba(11, 115, 102, 0.08);
+}
+
