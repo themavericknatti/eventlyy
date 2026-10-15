@@ -16,7 +16,7 @@
     <?php $siteLogo = site_setting('site_logo'); ?>
     <?php if (!empty($siteLogo)): ?>
         <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e(site_setting('site_title', 'Eventlyy')) ?> home">
-            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" style="max-height: 36px; max-width: 140px; object-fit: contain; border-radius: 8px;" />
+            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" />
         </a>
     <?php else: ?>
         <?php $siteTitle = site_setting('site_title', 'Eventlyy'); ?>

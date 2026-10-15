@@ -1,4 +1,4 @@
-/*
+﻿/*
 ========================================================
  Project: Eventlyy
  File: style.css
@@ -10,7 +10,7 @@
 ========================================================
 */
 
-/* ── Self-hosted fonts ───────────────────────────────── */
+/* â”€â”€ Self-hosted fonts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @font-face {
   font-family: 'Plus Jakarta Sans';
   font-style: normal;
@@ -184,7 +184,7 @@ a:focus {
   text-decoration: none
 }
 
-/* Brand logo — premium circular mark with effects */
+/* Brand logo -- modern, responsive mark with perfect image fitting & elegant fallback */
 .brand,
 .brand-footer {
   position: relative;
@@ -192,108 +192,121 @@ a:focus {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  transition: transform var(--duration-med) var(--ease-spring), filter var(--duration-med) var(--ease-out);
+  transition: transform var(--duration-med) var(--ease-spring), opacity var(--duration-fast) var(--ease-out);
+  max-width: 100%;
 }
 
 .brand:hover,
 .brand:focus-visible {
-  transform: translateY(-2px) scale(1.1);
-  filter: brightness(1.08)
+  transform: translateY(-1px);
 }
 
+/* Custom Image Logo Fit */
+.brand.brand-custom-logo,
+.brand-footer.brand-custom-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(48px, 6vw, 64px);
+  max-width: clamp(170px, 26vw, 260px);
+  overflow: hidden;
+}
+
+.brand.brand-custom-logo::after,
+.brand-footer.brand-custom-logo::after {
+  display: none !important;
+}
+
+.brand.brand-custom-logo img,
+.brand-footer.brand-custom-logo img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 7px;
+  transition: filter var(--duration-fast) var(--ease-out);
+}
+
+.brand.brand-custom-logo:hover img,
+.brand-footer.brand-custom-logo:hover img {
+  filter: brightness(1.05);
+}
+
+/* Fallback lettermark circle (e.g., bold cursive italic 'E') */
 .brand-letter {
   position: relative;
   z-index: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: clamp(38px, 4.2vw, 46px);
-  height: clamp(38px, 4.2vw, 46px);
+  width: clamp(42px, 4.8vw, 50px);
+  height: clamp(42px, 4.8vw, 50px);
   border-radius: 50%;
-  font-family: var(--font-brand);
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', 'Brush Script MT', cursive, serif;
   font-style: italic;
-  font-weight: 400;
-  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 3.2vw, 2.2rem);
+  letter-spacing: -0.04em;
   line-height: 1;
+  padding-right: 2px;
   color: #fff;
-  background: linear-gradient(135deg, rgb(var(--brand)) 0%, rgb(var(--accent)) 60%, rgb(var(--brand)) 100%);
-  background-size: 200% 200%;
-  animation: brand-gradient-shift 4s ease-in-out infinite, brand-breathe 3s ease-in-out infinite;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, rgb(var(--brand)) 0%, color-mix(in srgb, rgb(var(--brand)) 65%, rgb(var(--accent))) 60%, rgb(var(--accent)) 100%);
   box-shadow:
-    0 4px 18px rgba(var(--brand), 0.3),
-    0 1px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    0 4px 16px rgba(var(--brand), 0.32),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
   transition: box-shadow var(--duration-med) var(--ease-out), transform var(--duration-med) var(--ease-spring);
   overflow: hidden;
-  isolation: isolate;
+  user-select: none;
 }
 
-/* Shimmer sweep overlay */
-.brand-letter::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(105deg,
-      transparent 35%,
-      rgba(255, 255, 255, 0.25) 45%,
-      rgba(255, 255, 255, 0.35) 50%,
-      rgba(255, 255, 255, 0.25) 55%,
-      transparent 65%);
-  transform: translateX(-120%);
-  animation: brand-shimmer 3.5s var(--ease-out) infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Rotating gradient ring */
+/* Subtle static glow ring (no spinning effect) */
 .brand::after,
 .brand-footer::after {
   content: '';
   position: absolute;
-  inset: -3px;
+  inset: -2px;
   border-radius: 50%;
-  background: conic-gradient(from 0deg,
-      rgb(var(--brand)),
-      rgb(var(--accent)),
-      rgb(var(--info)),
-      rgb(var(--brand)));
-  animation: brand-ring-spin 6s linear infinite;
-  z-index: -1;
-  opacity: 0.6;
+  background: linear-gradient(135deg, rgba(var(--brand), 0.5), rgba(var(--accent), 0.35));
+  z-index: 0;
+  opacity: 0.45;
   transition: opacity var(--duration-med) var(--ease-out), inset var(--duration-med) var(--ease-out);
 }
 
 .brand:hover::after,
 .brand:focus-visible::after,
 .brand-footer:hover::after {
-  opacity: 1;
+  opacity: 0.9;
+  inset: -3px;
 }
 
 .brand:hover .brand-letter,
 .brand:focus-visible .brand-letter {
   box-shadow:
-    0 6px 28px rgba(var(--brand), 0.45),
-    0 0 0 3px rgba(var(--brand), 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.25);
+    0 6px 20px rgba(var(--brand), 0.42),
+    0 0 0 2px rgba(var(--brand), 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.35);
 }
 
-/* Dark mode: slightly brighter inner glow */
+/* Dark mode: calibrated inner glow */
 :root[data-theme='dark'] .brand-letter {
   box-shadow:
-    0 4px 20px rgba(var(--brand), 0.35),
+    0 4px 18px rgba(var(--brand), 0.35),
     0 1px 4px rgba(0, 0, 0, 0.25),
-    inset 0 1px 2px rgba(255, 255, 255, 0.12);
+    inset 0 1px 2px rgba(255, 255, 255, 0.18);
 }
 
 :root[data-theme='dark'] .brand:hover .brand-letter {
   box-shadow:
-    0 6px 32px rgba(var(--brand), 0.5),
-    0 0 0 3px rgba(var(--brand), 0.18),
+    0 6px 24px rgba(var(--brand), 0.48),
+    0 0 0 2px rgba(var(--brand), 0.22),
     0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 2px rgba(255, 255, 255, 0.18);
+    inset 0 1px 2px rgba(255, 255, 255, 0.25);
 }
 
 .brand-footer {
@@ -302,68 +315,23 @@ a:focus {
 }
 
 .brand-footer .brand-letter {
-  width: 34px;
-  height: 34px;
-  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  font-size: 1.35rem;
 }
 
 .brand-footer::after {
-  inset: -2px
-}
-
-@keyframes brand-gradient-shift {
-
-  0%,
-  100% {
-    background-position: 0% 50%
-  }
-
-  50% {
-    background-position: 100% 50%
-  }
-}
-
-@keyframes brand-breathe {
-
-  0%,
-  100% {
-    transform: scale(1)
-  }
-
-  50% {
-    transform: scale(1.03)
-  }
-}
-
-@keyframes brand-shimmer {
-  0% {
-    transform: translateX(-120%)
-  }
-
-  30%,
-  100% {
-    transform: translateX(120%)
-  }
-}
-
-@keyframes brand-ring-spin {
-  to {
-    transform: rotate(360deg)
-  }
+  inset: -2px;
 }
 
 @media(prefers-reduced-motion:reduce) {
   .brand-letter {
-    animation: none
-  }
-
-  .brand-letter::before {
-    animation: none
+    animation: none;
   }
 
   .brand::after,
   .brand-footer::after {
-    animation: none
+    animation: none;
   }
 }
 
@@ -820,7 +788,7 @@ a:focus {
   }
 }
 
-/* ─── Hero: full-width waving flag / current background wrapper ─────────────────────────────── */
+/* â”€â”€â”€ Hero: full-width waving flag / current background wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .hero-wrapper-fullwidth {
   position: relative;
   width: 100vw;
@@ -879,7 +847,7 @@ a:focus {
   opacity: 0.65;
 }
 
-/* Pure GPU composited translate3d keyframes — zero vector path rasterization on scroll */
+/* Pure GPU composited translate3d keyframes â€” zero vector path rasterization on scroll */
 @keyframes flag-ripple-1 {
   0% {
     transform: translate3d(0, 0, 0);
@@ -1000,7 +968,7 @@ a:focus {
   z-index: 1;
 }
 
-/* ─── Hero h1: animated text shine ────────────────────── */
+/* â”€â”€â”€ Hero h1: animated text shine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .hero-inner h1 {
   background: linear-gradient(120deg, rgb(var(--text)) 0%, rgb(var(--text)) 30%, rgb(var(--brand)) 48%, rgb(var(--accent)) 55%, rgb(var(--text)) 70%, rgb(var(--text)) 100%);
   background-size: 300% auto;
@@ -1010,12 +978,12 @@ a:focus {
   animation: fade-up var(--duration-slow) var(--ease-out) 140ms both, text-shine 6s linear 1s infinite;
 }
 
-/* ─── Hero eyebrow: pulse badge ────────────────────────── */
+/* â”€â”€â”€ Hero eyebrow: pulse badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .hero-eyebrow {
   animation: fade-up var(--duration-slow) var(--ease-out) 80ms both, badge-pulse 2.8s ease-in-out 1.2s infinite
 }
 
-/* ─── Hero image: floating ─────────────────────────────── */
+/* â”€â”€â”€ Hero image: floating â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .hero-image-wrapper {
   animation: float 7s var(--ease-out) infinite
 }
@@ -1026,11 +994,11 @@ a:focus {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Mobile Responsive Hero Section Optimizations
    Maximizes screen utilization, eliminates wasted margins,
    and creates bold, punchy, accessible mobile typography.
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 768px) {
   .hero-wrapper-fullwidth {
     position: relative;
@@ -1137,7 +1105,7 @@ a:focus {
   }
 }
 
-/* ─── Scroll reveal system ──────────────────────────────── */
+/* â”€â”€â”€ Scroll reveal system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .reveal {
   opacity: 0;
   transform: translateY(32px);
@@ -1202,7 +1170,7 @@ a:focus {
 }
 
 
-/* ─── Event items: reveal on scroll ─────────────────────── */
+/* â”€â”€â”€ Event items: reveal on scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .event-item.reveal {
   opacity: 0;
   transform: translateY(20px);
@@ -1214,27 +1182,27 @@ a:focus {
   transform: translateY(0)
 }
 
-/* ─── Section headings: reveal underline grows in ─────── */
+/* â”€â”€â”€ Section headings: reveal underline grows in â”€â”€â”€â”€â”€â”€â”€ */
 .categories h2::after,
 .featured-events h2::after,
 .event-listing h2::after {
   transition: width 0.5s var(--ease-out) 0.2s
 }
 
-/* ─── Brand logo: hover ring expand ────────────────── */
+/* â”€â”€â”€ Brand logo: hover ring expand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .brand:hover::after,
 .brand-footer:hover::after {
-  animation: brand-ring-spin 2s linear infinite;
+  /* ring spin removed */
   opacity: 1;
   inset: -4px;
 }
 
-/* ─── Page body: smooth entrance ────────────────────────── */
+/* â”€â”€â”€ Page body: smooth entrance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body {
   animation: fade-up 0.4s var(--ease-out) backwards
 }
 
-/* ─── Legal page */
+/* â”€â”€â”€ Legal page */
 .legal-page {
   padding: 2rem 0 3rem
 }
@@ -2043,7 +2011,7 @@ body {
   border-color: transparent
 }
 
-/* Modal form elements — match .form-card styling */
+/* Modal form elements â€” match .form-card styling */
 .modal-body label {
   display: grid;
   gap: .5rem;
@@ -2918,7 +2886,7 @@ body {
 }
 
 .detail-list li:before {
-  content: "•";
+  content: "â€¢";
   position: absolute;
   left: 0;
   top: .25rem;
@@ -3953,7 +3921,7 @@ body {
   margin-top: 0.5rem;
 }
 
-/* ── Auth Responsive Breakpoints ── */
+/* â”€â”€ Auth Responsive Breakpoints â”€â”€ */
 @media (max-width: 950px) {
   .auth-split {
     grid-template-columns: 1fr;
@@ -4232,7 +4200,7 @@ body {
   background: #dc2626;
 }
 
-/* ═══ Mobile Form & Ticket Responsiveness ═══ */
+/* â•â•â• Mobile Form & Ticket Responsiveness â•â•â• */
 @media (max-width: 850px) {
   .field-grid,
   .contact-row,
@@ -4831,7 +4799,7 @@ textarea.invalid,
   transform: translateX(-50%) !important;
 }
 
-/* ─── 2.2px Hollow Glowing Rainbow Border Ring (Zero Color Inside) ─── */
+/* â”€â”€â”€ 2.2px Hollow Glowing Rainbow Border Ring (Zero Color Inside) â”€â”€â”€ */
 .bottom-nav::before {
   content: '';
   position: absolute;
@@ -5400,7 +5368,7 @@ select {
 
 /* footer for legal pages */
 /* ================================================================
-   DYNAMIC FOOTER — PREMIUM FLUID DESIGN
+   DYNAMIC FOOTER â€” PREMIUM FLUID DESIGN
    ================================================================ */
 
 .footer {
@@ -5968,7 +5936,7 @@ select {
   min-width: 120px
 }
 
-/* ── Ticket Display Card ── */
+/* â”€â”€ Ticket Display Card â”€â”€ */
 @keyframes ticketSlideIn {
   from {
     opacity: 0;
@@ -7564,7 +7532,7 @@ select {
   }
 }
 
-/* ─── Web App Enhancements ────────────────────────────── */
+/* â”€â”€â”€ Web App Enhancements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Allow native mobile pull-to-refresh gesture */
 html,
@@ -7572,7 +7540,7 @@ body {
   overscroll-behavior-y: auto;
 }
 
-/* ── Global Custom Scrollbar (Desktop only) ─────────── */
+/* â”€â”€ Global Custom Scrollbar (Desktop only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 /* Firefox */
 html {
   scrollbar-width: auto;
@@ -7607,7 +7575,7 @@ html {
   background: transparent;
 }
 
-/* Dark mode — smooth black track with refined emerald thumb */
+/* Dark mode â€” smooth black track with refined emerald thumb */
 :root[data-theme="dark"] {
   scrollbar-color: rgb(var(--brand)) rgba(255, 255, 255, 0.06);
 }
@@ -7628,7 +7596,7 @@ html {
   box-shadow: 0 0 12px rgba(var(--brand), 0.5);
 }
 
-/* Hide scrollbar on mobile & tablet — users swipe instead */
+/* Hide scrollbar on mobile & tablet â€” users swipe instead */
 @media (max-width: 768px) {
   html {
     scrollbar-width: none;
@@ -7718,9 +7686,9 @@ select::-ms-expand {
   display: none !important;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Admin Users Page
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Stats Row */
 .admin-users-stats {
@@ -8198,14 +8166,14 @@ select::-ms-expand {
   justify-content: flex-end;
 }
 
-/* ─── Responsive: Tablet ─────────────────── */
+/* â”€â”€â”€ Responsive: Tablet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 900px) {
   .admin-users-stats {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* ─── Responsive: Mobile ─────────────────── */
+/* â”€â”€â”€ Responsive: Mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 640px) {
   .admin-users-stats {
     grid-template-columns: 1fr;
@@ -8275,9 +8243,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Profile Page
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Profile Header Card */
 .profile-header-card {
@@ -8457,7 +8425,7 @@ select::-ms-expand {
   border-top: 1px solid rgba(var(--muted), 0.08);
 }
 
-/* ─── Profile Events List ───────────────────── */
+/* â”€â”€â”€ Profile Events List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .profile-events-list {
   display: flex;
   flex-direction: column;
@@ -8551,7 +8519,7 @@ select::-ms-expand {
   flex-shrink: 0;
 }
 
-/* ─── Profile Responsive ────────────────────── */
+/* â”€â”€â”€ Profile Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Tablet */
 @media (max-width: 900px) {
@@ -8643,9 +8611,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Auth Pages Extension
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .auth-top-bar {
   display: flex;
@@ -8815,9 +8783,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    About Page
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .about-values-grid {
   display: grid;
@@ -8909,11 +8877,11 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
-   Admin Teams — Responsive Fixes
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Admin Teams â€” Responsive Fixes
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Tablet & Mobile: ≤900px — switch table to cards */
+/* Tablet & Mobile: â‰¤900px â€” switch table to cards */
 @media (max-width: 900px) {
   .au-table-wrap {
     display: none !important;
@@ -8945,7 +8913,7 @@ select::-ms-expand {
   }
 }
 
-/* Small tablet: ≤768px — compact stat cards */
+/* Small tablet: â‰¤768px â€” compact stat cards */
 @media (max-width: 768px) {
   .admin-users-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -8968,7 +8936,7 @@ select::-ms-expand {
   }
 }
 
-/* Mobile: ≤500px — full single-column stack */
+/* Mobile: â‰¤500px â€” full single-column stack */
 @media (max-width: 500px) {
   .admin-users-stats {
     grid-template-columns: 1fr;
@@ -9072,9 +9040,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Support Page
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Card action link */
 .support-card-link {
@@ -9093,7 +9061,7 @@ select::-ms-expand {
   gap: 0.65rem;
 }
 
-/* ─── Get Involved Grid ─── */
+/* â”€â”€â”€ Get Involved Grid â”€â”€â”€ */
 .support-involve-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -9185,7 +9153,7 @@ select::-ms-expand {
   transform: translateY(-2px);
 }
 
-/* ─── FAQ Accordion ─── */
+/* â”€â”€â”€ FAQ Accordion â”€â”€â”€ */
 .support-faq-list {
   max-width: 760px;
   margin: 0 auto;
@@ -9237,7 +9205,7 @@ select::-ms-expand {
 }
 
 .support-faq-item[open] summary::after {
-  content: "−";
+  content: "âˆ’";
   transform: rotate(180deg);
 }
 
@@ -9256,7 +9224,7 @@ select::-ms-expand {
   line-height: 1.65;
 }
 
-/* ─── Contact Grid ─── */
+/* â”€â”€â”€ Contact Grid â”€â”€â”€ */
 .support-contact-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -9308,7 +9276,7 @@ select::-ms-expand {
   color: rgb(var(--muted));
 }
 
-/* ─── Support Page Responsive ─── */
+/* â”€â”€â”€ Support Page Responsive â”€â”€â”€ */
 
 @media (max-width: 900px) {
   .support-involve-grid {
@@ -9367,9 +9335,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Backend / PHP Alerts & Messages
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .alert {
   display: flex;
   align-items: flex-start;
@@ -9763,7 +9731,7 @@ select::-ms-expand {
   border-radius: 3px;
 }
 
-/* ── Premium Date & Time Picker ─────────────────────── */
+/* â”€â”€ Premium Date & Time Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .picker-wrapper {
   position: relative;
   display: flex;
@@ -9910,7 +9878,7 @@ select::-ms-expand {
   }
 }
 
-/* ── Eventlyy Flatpickr Theme ───────────────────────── */
+/* â”€â”€ Eventlyy Flatpickr Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 /* Container & overall shape */
 .evently-flatpickr.flatpickr-calendar {
   background: rgb(var(--card));
@@ -10152,7 +10120,7 @@ select::-ms-expand {
   border-top-color: rgb(var(--brand));
 }
 
-/* ── Flatpickr Dark Mode ────────────────────────────── */
+/* â”€â”€ Flatpickr Dark Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root[data-theme="dark"] .evently-flatpickr.flatpickr-calendar {
   background: rgb(var(--card));
   border-color: rgba(var(--muted), 0.18);
@@ -10324,7 +10292,7 @@ select::-ms-expand {
   }
 }
 
-/* ── Member Profile My Tickets Styles ────────────────────── */
+/* â”€â”€ Member Profile My Tickets Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .my-tickets-list {
   display: flex;
   flex-direction: column;
@@ -10440,7 +10408,7 @@ select::-ms-expand {
   transform: translateY(-1px);
 }
 
-/* ── Responsive rules for Profile Tickets (Tablet & Mobile) ─ */
+/* â”€â”€ Responsive rules for Profile Tickets (Tablet & Mobile) â”€ */
 @media (max-width: 768px) {
   .my-ticket-header {
     padding: 1rem 1.15rem;
@@ -10495,7 +10463,7 @@ select::-ms-expand {
   }
 }
 
-/* ── Print styles for printable digital ticket pass ───────── */
+/* â”€â”€ Print styles for printable digital ticket pass â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media print {
   body.printing-ticket * {
     visibility: hidden !important;
@@ -10589,9 +10557,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
-   Host Promo Codes — Responsive Layout
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Host Promo Codes â€” Responsive Layout
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Page-level 2-column grid */
 .promo-page-grid {
@@ -10728,14 +10696,14 @@ select::-ms-expand {
   margin-top: 0.25rem;
 }
 
-/* ── Tablet: ≤900px ── stack to single column, keep table */
+/* â”€â”€ Tablet: â‰¤900px â”€â”€ stack to single column, keep table */
 @media (max-width: 900px) {
   .promo-page-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* ── Mobile: ≤680px ── swap table for cards, stack form rows */
+/* â”€â”€ Mobile: â‰¤680px â”€â”€ swap table for cards, stack form rows */
 @media (max-width: 680px) {
   .promo-table-wrap {
     display: none !important;
@@ -10760,9 +10728,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Admin Revenue Reports & Charts
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Revenue Reports Grid */
 .revenue-reports-grid {
@@ -10893,7 +10861,7 @@ select::-ms-expand {
   max-width: 100% !important;
 }
 
-/* ── Tablet: ≤900px ── */
+/* â”€â”€ Tablet: â‰¤900px â”€â”€ */
 @media (max-width: 900px) {
   .revenue-reports-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -10908,7 +10876,7 @@ select::-ms-expand {
   }
 }
 
-/* ── Mobile: ≤600px ── */
+/* â”€â”€ Mobile: â‰¤600px â”€â”€ */
 @media (max-width: 600px) {
   .revenue-reports-grid {
     grid-template-columns: 1fr;
@@ -10934,7 +10902,7 @@ select::-ms-expand {
   }
 }
 
-/* ─── Admin Event Detail Responsive Action Links ─────────────────────── */
+/* â”€â”€â”€ Admin Event Detail Responsive Action Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .event-detail-page-hero {
   display: flex;
   justify-content: space-between;
@@ -11110,7 +11078,7 @@ select::-ms-expand {
   }
 }
 
-/* ─── Spread-Out Colorful Host CTA Section ─────────────────────────────── */
+/* â”€â”€â”€ Spread-Out Colorful Host CTA Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .home-cta-section {
   position: relative;
   overflow: hidden;
@@ -11238,9 +11206,9 @@ select::-ms-expand {
   color: rgb(var(--brand));
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Home Page Mobile Experience: Chips, Carousel, Events, CTA
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 768px) {
   /* Popular Categories */
   .categories {
@@ -11382,7 +11350,7 @@ select::-ms-expand {
   }
 }
 
-/* ─── Hero Trust Badges Bar ─────────────────────────────── */
+/* â”€â”€â”€ Hero Trust Badges Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .hero-trust-bar {
   display: flex;
   align-items: center;
@@ -11456,7 +11424,7 @@ select::-ms-expand {
   }
 }
 
-/* ─── Scroll-To-Top Floating Button ─────────────────────────────── */
+/* â”€â”€â”€ Scroll-To-Top Floating Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .scroll-to-top-btn {
   position: fixed;
   bottom: 2rem;
@@ -11502,9 +11470,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Admin & Host Settings Responsive Layouts
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .admin-settings-layout {
   display: grid;
   gap: 1.5rem;
@@ -11612,9 +11580,9 @@ select::-ms-expand {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Button Loading Spinners & Full-Page Processing Overlay
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .btn-spinner {
   display: inline-block;
   width: 18px;
@@ -11915,7 +11883,7 @@ button[type="submit"]:disabled,
    Refactored Event Detail Page Styles (.ep-*)
    ========================================================================== */
 
-/* ── Hero Section ────────────────────────────────────────────────────────── */
+/* â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ep-hero {
   display: grid;
   grid-template-columns: 1.3fr 0.95fr;
@@ -12103,7 +12071,7 @@ button[type="submit"]:disabled,
   word-break: break-word;
 }
 
-/* ── Sidebar Event Card ─────────────────────────────────────────────────── */
+/* â”€â”€ Sidebar Event Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ep-sidebar-card {
   border-radius: 24px;
   overflow: hidden;
@@ -12298,7 +12266,7 @@ button[type="submit"]:disabled,
   transform: translateY(-1px);
 }
 
-/* ── Completed Banner ────────────────────────────────────────────────────── */
+/* â”€â”€ Completed Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ep-completed-banner {
   background: rgba(var(--card), 0.9);
   border: 1.5px solid rgba(var(--muted), 0.2);
@@ -12350,7 +12318,7 @@ button[type="submit"]:disabled,
   box-shadow: 0 14px 28px rgba(var(--brand), 0.3);
 }
 
-/* ── Tickets Section ─────────────────────────────────────────────────────── */
+/* â”€â”€ Tickets Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ep-tickets {
   display: grid;
   grid-template-columns: 1.35fr 0.9fr;
@@ -12546,7 +12514,7 @@ button[type="submit"]:disabled,
   color: #10b981;
 }
 
-/* ── Order Summary Sidebar ──────────────────────────────────────────────── */
+/* â”€â”€ Order Summary Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ep-summary {
   position: sticky;
   top: 5.5rem;
@@ -12653,7 +12621,7 @@ button[type="submit"]:disabled,
   box-shadow: none !important;
 }
 
-/* ── About This Event Section ───────────────────────────────────────────── */
+/* â”€â”€ About This Event Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ep-about {
   margin: 2.5rem 0 4rem;
   padding: 2.25rem;
@@ -12723,7 +12691,7 @@ button[type="submit"]:disabled,
 }
 
 .ep-highlights li::before {
-  content: "✓";
+  content: "âœ“";
   position: absolute;
   left: 0;
   top: 0.18rem;
@@ -12739,7 +12707,7 @@ button[type="submit"]:disabled,
   justify-content: center;
 }
 
-/* ── Dark Mode Overrides for Event Detail (.ep-*) ───────────────────────── */
+/* â”€â”€ Dark Mode Overrides for Event Detail (.ep-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root[data-theme='dark'] .ep-meta__item {
   background: rgba(var(--card), 0.8);
   border-color: rgba(255, 255, 255, 0.08);
@@ -12789,7 +12757,7 @@ button[type="submit"]:disabled,
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ── Responsive Design for Event Detail (.ep-*) ─────────────────────────── */
+/* â”€â”€ Responsive Design for Event Detail (.ep-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 960px) {
   .ep-hero {
     grid-template-columns: 1fr;
@@ -12915,7 +12883,7 @@ button[type="submit"]:disabled,
    Refactored Checkout Page Styles (.co-*)
    ========================================================================== */
 
-/* ── Header & Navigation ─────────────────────────────────────────────────── */
+/* â”€â”€ Header & Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .co-header {
   margin: 1.5rem 0 2rem;
   display: flex;
@@ -12995,7 +12963,7 @@ button[type="submit"]:disabled,
   margin: 0;
 }
 
-/* ── Checkout Grid Layout ────────────────────────────────────────────────── */
+/* â”€â”€ Checkout Grid Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .co-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
@@ -13219,7 +13187,7 @@ button[type="submit"]:disabled,
   line-height: 1.45;
 }
 
-/* ── Order Summary Sidebar (.co-summary-*) ──────────────────────────────── */
+/* â”€â”€ Order Summary Sidebar (.co-summary-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .co-summary-section {
   position: sticky;
   top: 5.5rem;
@@ -13471,7 +13439,7 @@ button[type="submit"]:disabled,
   margin: 0;
 }
 
-/* ── Dark Mode Support for Checkout (.co-*) ─────────────────────────────── */
+/* â”€â”€ Dark Mode Support for Checkout (.co-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root[data-theme='dark'] .co-card,
 :root[data-theme='dark'] .co-summary-card {
   background: rgb(var(--card));
@@ -13502,7 +13470,7 @@ button[type="submit"]:disabled,
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* ── Responsive Design for Checkout (.co-*) ─────────────────────────────── */
+/* â”€â”€ Responsive Design for Checkout (.co-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 960px) {
   .co-grid {
     grid-template-columns: 1fr;
@@ -13581,7 +13549,7 @@ button[type="submit"]:disabled,
   }
 }
 
-/* ═══ Multi-Attendee Group & Table Passes ═══ */
+/* â•â•â• Multi-Attendee Group & Table Passes â•â•â• */
 .co-buyer-section {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;

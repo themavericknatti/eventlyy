@@ -22,6 +22,10 @@ if ($staffSession) {
     $staffAssignments = $teamService->getStaffAssignments($staffSession['id']);
 }
 
+$siteTitle   = site_setting('site_title', 'Eventlyy');
+$siteLogo    = site_setting('site_logo');
+$firstLetter = strtoupper(mb_substr($siteTitle, 0, 1));
+
 // Role badge & short name helper
 $roleSlug = strtolower($activeRole['slug'] ?? '');
 $fullRoleName = $activeRole['name'] ?? 'Staff';
@@ -96,17 +100,29 @@ if (str_contains($roleSlug, 'scanner') || str_contains($roleSlug, 'security')) {
         flex-shrink: 0;
     }
 
+    .team-brand-img {
+        height: clamp(34px, 4.5vw, 42px);
+        max-width: clamp(120px, 20vw, 180px);
+        object-fit: contain;
+        display: block;
+        border-radius: 6px;
+    }
+
     .team-brand-badge-icon {
         width: 30px;
         height: 30px;
-        border-radius: 8px;
+        border-radius: 50%;
         background: linear-gradient(135deg, rgb(var(--brand)), #10b981);
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 800;
-        font-size: 0.9rem;
+        font-family: 'Instrument Serif', Georgia, 'Times New Roman', 'Brush Script MT', cursive, serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 1.25rem;
+        line-height: 1;
+        padding-right: 1px;
         box-shadow: 0 2px 8px rgba(var(--brand), 0.3);
         flex-shrink: 0;
     }
@@ -471,7 +487,7 @@ if (str_contains($roleSlug, 'scanner') || str_contains($roleSlug, 'security')) {
         .team-brand-badge-icon {
             width: 28px;
             height: 28px;
-            font-size: 0.82rem;
+            font-size: 1.15rem;
         }
     }
 </style>
@@ -480,8 +496,12 @@ if (str_contains($roleSlug, 'scanner') || str_contains($roleSlug, 'security')) {
     <div class="team-navbar-container">
         <!-- Brand & Event Context (desktop: logo + text + switcher) -->
         <div class="team-navbar-brand">
-            <a href="<?= route('/teams') ?>" class="team-brand-logo">
-                <span class="team-brand-badge-icon">E</span>
+            <a href="<?= route('/teams') ?>" class="team-brand-logo <?= !empty($siteLogo) ? 'team-brand-logo--has-image' : '' ?>">
+                <?php if (!empty($siteLogo)): ?>
+                    <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" class="team-brand-img" />
+                <?php else: ?>
+                    <span class="team-brand-badge-icon"><?= e($firstLetter) ?></span>
+                <?php endif; ?>
                 <span class="team-brand-text">Workstation</span>
             </a>
 

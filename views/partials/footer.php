@@ -49,8 +49,8 @@ $restOfTitle = mb_substr($siteTitle, 1);
         <div class="footer-section footer-brand-col">
             <div class="footer-brand-row">
                 <?php if (!empty($siteLogo)): ?>
-                    <a href="{{ route('/') }}" class="brand footer-brand-icon" aria-label="<?= e($siteTitle) ?> home">
-                        <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" style="max-height: 28px; max-width: 100px; object-fit: contain; border-radius: 6px;" />
+                    <a href="{{ route('/') }}" class="brand footer-brand-icon brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
+                        <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" />
                     </a>
                 <?php else: ?>
                     <a href="{{ route('/') }}" class="brand footer-brand-icon" aria-label="<?= e($siteTitle) ?> home"><span class="brand-letter"><?= e($firstLetter) ?></span></a>

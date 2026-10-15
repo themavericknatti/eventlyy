@@ -80,22 +80,26 @@ Staff Workstation Portal — <?= e($siteTitle) ?>
 }
 
 .tm-auth-brand-logo {
-    max-height: 24px;
-    max-width: 90px;
+    max-height: 38px;
+    max-width: 140px;
     object-fit: contain;
 }
 
 .tm-auth-brand-letter {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     background: linear-gradient(135deg, rgb(var(--brand)), #10b981);
     color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    font-size: 0.85rem;
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', 'Brush Script MT', cursive, serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding-right: 1px;
 }
 
 .tm-auth-brand-title {

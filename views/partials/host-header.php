@@ -20,7 +20,7 @@
     ?>
     <?php if (!empty($siteLogo)): ?>
         <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
-            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" style="max-height: 36px; max-width: 140px; object-fit: contain; border-radius: 8px;" />
+            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" />
         </a>
     <?php else: ?>
         <a href="{{ route('/') }}" class="brand" aria-label="<?= e($siteTitle) ?> home"><span class="brand-letter"><?= e(strtoupper(mb_substr($siteTitle, 0, 1))) ?></span></a>
