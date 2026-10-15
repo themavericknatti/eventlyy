@@ -549,12 +549,16 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
                     Prev
                 </a>
 
-                <?php for ($p = 1; $p <= $total_pages; $p++):
-                    $queryParams['page'] = $p;
-                    $pUrl = '?' . http_build_query($queryParams);
-                ?>
-                    <a href="<?= $pUrl ?>" class="au-page-num <?= $p === $current_page ? 'active' : '' ?>"><?= $p ?></a>
-                <?php endfor; ?>
+                <?php foreach (pagination_range($current_page, $total_pages) as $p):
+                    if ($p === '...'): ?>
+                        <span class="au-page-ellipsis" aria-hidden="true">&hellip;</span>
+                    <?php else:
+                        $queryParams['page'] = $p;
+                        $pUrl = '?' . http_build_query($queryParams);
+                    ?>
+                        <a href="<?= $pUrl ?>" class="au-page-num <?= $p === $current_page ? 'active' : '' ?>"><?= $p ?></a>
+                    <?php endif;
+                endforeach; ?>
 
                 <a href="<?= $current_page < $total_pages ? $nextUrl : '#' ?>" class="au-page-btn <?= $current_page >= $total_pages ? 'disabled' : '' ?>">
                     Next

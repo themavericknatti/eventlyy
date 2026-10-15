@@ -75,6 +75,9 @@
                                     <td style="padding: 16px 18px;">
                                         <div style="font-size: 15px; font-weight: 700; color: #991b1b; margin-bottom: 8px;">Refund Breakdown</div>
                                         <div style="font-size: 13.5px; color: #7f1d1d; margin-bottom: 4px;">📅 <strong>Event:</strong> <?= e($event_name ?? '') ?></div>
+                                        <?php if (!empty($ticket_type)): ?>
+                                        <div style="font-size: 13.5px; color: #7f1d1d; margin-bottom: 4px;">🎟️ <strong>Ticket:</strong> <?= e($ticket_type) ?><?= !empty($ticket_code) ? ' (#' . e($ticket_code) . ')' : '' ?></div>
+                                        <?php endif; ?>
                                         <div style="font-size: 13.5px; color: #7f1d1d; margin-bottom: 4px;">💳 <strong>Refund Amount:</strong> <?= e(get_currency_symbol()) ?><?= number_format($refund_amount ?? 0, 2) ?></div>
                                         <div style="font-size: 13.5px; color: #7f1d1d;">🔖 <strong>Transaction Ref:</strong> <?= e($reference ?? '') ?></div>
                                     </td>

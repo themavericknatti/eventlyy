@@ -1340,18 +1340,7 @@
                 };
 
                 // Smart pagination window
-                $range = [];
-                $delta = 2;
-                $left = max(1, $page - $delta);
-                $right = min($totalPages, $page + $delta);
-
-                for ($i = 1; $i <= $totalPages; $i++) {
-                    if ($i == 1 || $i == $totalPages || ($i >= $left && $i <= $right)) {
-                        $range[] = $i;
-                    } elseif (empty($range) || end($range) !== '...') {
-                        $range[] = '...';
-                    }
-                }
+                $range = pagination_range($page, $totalPages);
             ?>
             <nav class="hm-pagination" aria-label="Events pagination">
                 <?php if ($page > 1): ?>

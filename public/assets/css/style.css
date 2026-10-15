@@ -1,4 +1,4 @@
-﻿/*
+/*
 ========================================================
  Project: Eventlyy
  File: style.css
@@ -10,7 +10,7 @@
 ========================================================
 */
 
-/* â”€â”€ Self-hosted fonts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Self-hosted fonts ───────────────────────────────── */
 @font-face {
   font-family: 'Plus Jakarta Sans';
   font-style: normal;
@@ -788,7 +788,7 @@ a:focus {
   }
 }
 
-/* â”€â”€â”€ Hero: full-width waving flag / current background wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Hero: full-width waving flag / current background wrapper ─────────────────────────────── */
 .hero-wrapper-fullwidth {
   position: relative;
   width: 100vw;
@@ -847,7 +847,7 @@ a:focus {
   opacity: 0.65;
 }
 
-/* Pure GPU composited translate3d keyframes â€” zero vector path rasterization on scroll */
+/* Pure GPU composited translate3d keyframes — zero vector path rasterization on scroll */
 @keyframes flag-ripple-1 {
   0% {
     transform: translate3d(0, 0, 0);
@@ -968,7 +968,7 @@ a:focus {
   z-index: 1;
 }
 
-/* â”€â”€â”€ Hero h1: animated text shine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Hero h1: animated text shine ────────────────────── */
 .hero-inner h1 {
   background: linear-gradient(120deg, rgb(var(--text)) 0%, rgb(var(--text)) 30%, rgb(var(--brand)) 48%, rgb(var(--accent)) 55%, rgb(var(--text)) 70%, rgb(var(--text)) 100%);
   background-size: 300% auto;
@@ -978,12 +978,12 @@ a:focus {
   animation: fade-up var(--duration-slow) var(--ease-out) 140ms both, text-shine 6s linear 1s infinite;
 }
 
-/* â”€â”€â”€ Hero eyebrow: pulse badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Hero eyebrow: pulse badge ────────────────────────── */
 .hero-eyebrow {
   animation: fade-up var(--duration-slow) var(--ease-out) 80ms both, badge-pulse 2.8s ease-in-out 1.2s infinite
 }
 
-/* â”€â”€â”€ Hero image: floating â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Hero image: floating ─────────────────────────────── */
 .hero-image-wrapper {
   animation: float 7s var(--ease-out) infinite
 }
@@ -994,11 +994,11 @@ a:focus {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════
    Mobile Responsive Hero Section Optimizations
    Maximizes screen utilization, eliminates wasted margins,
    and creates bold, punchy, accessible mobile typography.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .hero-wrapper-fullwidth {
     position: relative;
@@ -1105,7 +1105,7 @@ a:focus {
   }
 }
 
-/* â”€â”€â”€ Scroll reveal system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Scroll reveal system ──────────────────────────────── */
 .reveal {
   opacity: 0;
   transform: translateY(32px);
@@ -1170,7 +1170,7 @@ a:focus {
 }
 
 
-/* â”€â”€â”€ Event items: reveal on scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Event items: reveal on scroll ─────────────────────── */
 .event-item.reveal {
   opacity: 0;
   transform: translateY(20px);
@@ -1182,14 +1182,14 @@ a:focus {
   transform: translateY(0)
 }
 
-/* â”€â”€â”€ Section headings: reveal underline grows in â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Section headings: reveal underline grows in ─────── */
 .categories h2::after,
 .featured-events h2::after,
 .event-listing h2::after {
   transition: width 0.5s var(--ease-out) 0.2s
 }
 
-/* â”€â”€â”€ Brand logo: hover ring expand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Brand logo: hover ring expand ────────────────── */
 .brand:hover::after,
 .brand-footer:hover::after {
   /* ring spin removed */
@@ -1197,12 +1197,12 @@ a:focus {
   inset: -4px;
 }
 
-/* â”€â”€â”€ Page body: smooth entrance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Page body: smooth entrance ────────────────────────── */
 body {
   animation: fade-up 0.4s var(--ease-out) backwards
 }
 
-/* â”€â”€â”€ Legal page */
+/* ─── Legal page */
 .legal-page {
   padding: 2rem 0 3rem
 }
@@ -2011,7 +2011,7 @@ body {
   border-color: transparent
 }
 
-/* Modal form elements â€” match .form-card styling */
+/* Modal form elements — match .form-card styling */
 .modal-body label {
   display: grid;
   gap: .5rem;
@@ -2886,7 +2886,7 @@ body {
 }
 
 .detail-list li:before {
-  content: "â€¢";
+  content: "•";
   position: absolute;
   left: 0;
   top: .25rem;
@@ -3921,7 +3921,7 @@ body {
   margin-top: 0.5rem;
 }
 
-/* â”€â”€ Auth Responsive Breakpoints â”€â”€ */
+/* ── Auth Responsive Breakpoints ── */
 @media (max-width: 950px) {
   .auth-split {
     grid-template-columns: 1fr;
@@ -4200,7 +4200,7 @@ body {
   background: #dc2626;
 }
 
-/* â•â•â• Mobile Form & Ticket Responsiveness â•â•â• */
+/* ═══ Mobile Form & Ticket Responsiveness ═══ */
 @media (max-width: 850px) {
   .field-grid,
   .contact-row,
@@ -4657,7 +4657,9 @@ textarea.invalid,
   transform: none !important;
 }
 
-.page-ellipsis {
+.page-ellipsis,
+.page-dots,
+.pf-page-dots {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4799,7 +4801,7 @@ textarea.invalid,
   transform: translateX(-50%) !important;
 }
 
-/* â”€â”€â”€ 2.2px Hollow Glowing Rainbow Border Ring (Zero Color Inside) â”€â”€â”€ */
+/* ─── 2.2px Hollow Glowing Rainbow Border Ring (Zero Color Inside) ─── */
 .bottom-nav::before {
   content: '';
   position: absolute;
@@ -5368,7 +5370,7 @@ select {
 
 /* footer for legal pages */
 /* ================================================================
-   DYNAMIC FOOTER â€” PREMIUM FLUID DESIGN
+   DYNAMIC FOOTER — PREMIUM FLUID DESIGN
    ================================================================ */
 
 .footer {
@@ -5936,7 +5938,7 @@ select {
   min-width: 120px
 }
 
-/* â”€â”€ Ticket Display Card â”€â”€ */
+/* ── Ticket Display Card ── */
 @keyframes ticketSlideIn {
   from {
     opacity: 0;
@@ -7532,7 +7534,7 @@ select {
   }
 }
 
-/* â”€â”€â”€ Web App Enhancements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Web App Enhancements ────────────────────────────── */
 
 /* Allow native mobile pull-to-refresh gesture */
 html,
@@ -7540,7 +7542,7 @@ body {
   overscroll-behavior-y: auto;
 }
 
-/* â”€â”€ Global Custom Scrollbar (Desktop only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Global Custom Scrollbar (Desktop only) ─────────── */
 /* Firefox */
 html {
   scrollbar-width: auto;
@@ -7575,7 +7577,7 @@ html {
   background: transparent;
 }
 
-/* Dark mode â€” smooth black track with refined emerald thumb */
+/* Dark mode — smooth black track with refined emerald thumb */
 :root[data-theme="dark"] {
   scrollbar-color: rgb(var(--brand)) rgba(255, 255, 255, 0.06);
 }
@@ -7596,7 +7598,7 @@ html {
   box-shadow: 0 0 12px rgba(var(--brand), 0.5);
 }
 
-/* Hide scrollbar on mobile & tablet â€” users swipe instead */
+/* Hide scrollbar on mobile & tablet — users swipe instead */
 @media (max-width: 768px) {
   html {
     scrollbar-width: none;
@@ -7686,9 +7688,9 @@ select::-ms-expand {
   display: none !important;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    Admin Users Page
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 
 /* Stats Row */
 .admin-users-stats {
@@ -8166,14 +8168,14 @@ select::-ms-expand {
   justify-content: flex-end;
 }
 
-/* â”€â”€â”€ Responsive: Tablet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Responsive: Tablet ─────────────────── */
 @media (max-width: 900px) {
   .admin-users-stats {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* â”€â”€â”€ Responsive: Mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Responsive: Mobile ─────────────────── */
 @media (max-width: 640px) {
   .admin-users-stats {
     grid-template-columns: 1fr;
@@ -8243,9 +8245,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    Profile Page
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 
 /* Profile Header Card */
 .profile-header-card {
@@ -8425,7 +8427,7 @@ select::-ms-expand {
   border-top: 1px solid rgba(var(--muted), 0.08);
 }
 
-/* â”€â”€â”€ Profile Events List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Profile Events List ───────────────────── */
 .profile-events-list {
   display: flex;
   flex-direction: column;
@@ -8519,7 +8521,7 @@ select::-ms-expand {
   flex-shrink: 0;
 }
 
-/* â”€â”€â”€ Profile Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Profile Responsive ────────────────────── */
 
 /* Tablet */
 @media (max-width: 900px) {
@@ -8611,9 +8613,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    Auth Pages Extension
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 
 .auth-top-bar {
   display: flex;
@@ -8783,9 +8785,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    About Page
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 
 .about-values-grid {
   display: grid;
@@ -8877,11 +8879,11 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   Admin Teams â€” Responsive Fixes
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   Admin Teams — Responsive Fixes
+   ═══════════════════════════════════════════ */
 
-/* Tablet & Mobile: â‰¤900px â€” switch table to cards */
+/* Tablet & Mobile: ≤900px — switch table to cards */
 @media (max-width: 900px) {
   .au-table-wrap {
     display: none !important;
@@ -8913,7 +8915,7 @@ select::-ms-expand {
   }
 }
 
-/* Small tablet: â‰¤768px â€” compact stat cards */
+/* Small tablet: ≤768px — compact stat cards */
 @media (max-width: 768px) {
   .admin-users-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -8936,7 +8938,7 @@ select::-ms-expand {
   }
 }
 
-/* Mobile: â‰¤500px â€” full single-column stack */
+/* Mobile: ≤500px — full single-column stack */
 @media (max-width: 500px) {
   .admin-users-stats {
     grid-template-columns: 1fr;
@@ -9040,9 +9042,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    Support Page
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 
 /* Card action link */
 .support-card-link {
@@ -9061,7 +9063,7 @@ select::-ms-expand {
   gap: 0.65rem;
 }
 
-/* â”€â”€â”€ Get Involved Grid â”€â”€â”€ */
+/* ─── Get Involved Grid ─── */
 .support-involve-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -9153,7 +9155,7 @@ select::-ms-expand {
   transform: translateY(-2px);
 }
 
-/* â”€â”€â”€ FAQ Accordion â”€â”€â”€ */
+/* ─── FAQ Accordion ─── */
 .support-faq-list {
   max-width: 760px;
   margin: 0 auto;
@@ -9205,7 +9207,7 @@ select::-ms-expand {
 }
 
 .support-faq-item[open] summary::after {
-  content: "âˆ’";
+  content: "−";
   transform: rotate(180deg);
 }
 
@@ -9224,7 +9226,7 @@ select::-ms-expand {
   line-height: 1.65;
 }
 
-/* â”€â”€â”€ Contact Grid â”€â”€â”€ */
+/* ─── Contact Grid ─── */
 .support-contact-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -9276,7 +9278,7 @@ select::-ms-expand {
   color: rgb(var(--muted));
 }
 
-/* â”€â”€â”€ Support Page Responsive â”€â”€â”€ */
+/* ─── Support Page Responsive ─── */
 
 @media (max-width: 900px) {
   .support-involve-grid {
@@ -9335,9 +9337,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    Backend / PHP Alerts & Messages
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 .alert {
   display: flex;
   align-items: flex-start;
@@ -9731,7 +9733,7 @@ select::-ms-expand {
   border-radius: 3px;
 }
 
-/* â”€â”€ Premium Date & Time Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Premium Date & Time Picker ─────────────────────── */
 .picker-wrapper {
   position: relative;
   display: flex;
@@ -9878,7 +9880,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€ Eventlyy Flatpickr Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Eventlyy Flatpickr Theme ───────────────────────── */
 /* Container & overall shape */
 .evently-flatpickr.flatpickr-calendar {
   background: rgb(var(--card));
@@ -10120,7 +10122,7 @@ select::-ms-expand {
   border-top-color: rgb(var(--brand));
 }
 
-/* â”€â”€ Flatpickr Dark Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Flatpickr Dark Mode ────────────────────────────── */
 :root[data-theme="dark"] .evently-flatpickr.flatpickr-calendar {
   background: rgb(var(--card));
   border-color: rgba(var(--muted), 0.18);
@@ -10292,7 +10294,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€ Member Profile My Tickets Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Member Profile My Tickets Styles ────────────────────── */
 .my-tickets-list {
   display: flex;
   flex-direction: column;
@@ -10408,7 +10410,7 @@ select::-ms-expand {
   transform: translateY(-1px);
 }
 
-/* â”€â”€ Responsive rules for Profile Tickets (Tablet & Mobile) â”€ */
+/* ── Responsive rules for Profile Tickets (Tablet & Mobile) ─ */
 @media (max-width: 768px) {
   .my-ticket-header {
     padding: 1rem 1.15rem;
@@ -10463,7 +10465,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€ Print styles for printable digital ticket pass â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Print styles for printable digital ticket pass ───────── */
 @media print {
   body.printing-ticket * {
     visibility: hidden !important;
@@ -10557,9 +10559,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   Host Promo Codes â€” Responsive Layout
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   Host Promo Codes — Responsive Layout
+   ═══════════════════════════════════════════ */
 
 /* Page-level 2-column grid */
 .promo-page-grid {
@@ -10696,14 +10698,14 @@ select::-ms-expand {
   margin-top: 0.25rem;
 }
 
-/* â”€â”€ Tablet: â‰¤900px â”€â”€ stack to single column, keep table */
+/* ── Tablet: ≤900px ── stack to single column, keep table */
 @media (max-width: 900px) {
   .promo-page-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* â”€â”€ Mobile: â‰¤680px â”€â”€ swap table for cards, stack form rows */
+/* ── Mobile: ≤680px ── swap table for cards, stack form rows */
 @media (max-width: 680px) {
   .promo-table-wrap {
     display: none !important;
@@ -10728,9 +10730,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    Admin Revenue Reports & Charts
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 
 /* Revenue Reports Grid */
 .revenue-reports-grid {
@@ -10861,7 +10863,7 @@ select::-ms-expand {
   max-width: 100% !important;
 }
 
-/* â”€â”€ Tablet: â‰¤900px â”€â”€ */
+/* ── Tablet: ≤900px ── */
 @media (max-width: 900px) {
   .revenue-reports-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -10876,7 +10878,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€ Mobile: â‰¤600px â”€â”€ */
+/* ── Mobile: ≤600px ── */
 @media (max-width: 600px) {
   .revenue-reports-grid {
     grid-template-columns: 1fr;
@@ -10902,7 +10904,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€â”€ Admin Event Detail Responsive Action Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Admin Event Detail Responsive Action Links ─────────────────────── */
 .event-detail-page-hero {
   display: flex;
   justify-content: space-between;
@@ -11078,7 +11080,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€â”€ Spread-Out Colorful Host CTA Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Spread-Out Colorful Host CTA Section ─────────────────────────────── */
 .home-cta-section {
   position: relative;
   overflow: hidden;
@@ -11206,9 +11208,9 @@ select::-ms-expand {
   color: rgb(var(--brand));
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════
    Home Page Mobile Experience: Chips, Carousel, Events, CTA
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   /* Popular Categories */
   .categories {
@@ -11350,7 +11352,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€â”€ Hero Trust Badges Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Hero Trust Badges Bar ─────────────────────────────── */
 .hero-trust-bar {
   display: flex;
   align-items: center;
@@ -11424,7 +11426,7 @@ select::-ms-expand {
   }
 }
 
-/* â”€â”€â”€ Scroll-To-Top Floating Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Scroll-To-Top Floating Button ─────────────────────────────── */
 .scroll-to-top-btn {
   position: fixed;
   bottom: 2rem;
@@ -11470,9 +11472,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════
    Admin & Host Settings Responsive Layouts
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════ */
 .admin-settings-layout {
   display: grid;
   gap: 1.5rem;
@@ -11580,9 +11582,9 @@ select::-ms-expand {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════
    Button Loading Spinners & Full-Page Processing Overlay
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════ */
 .btn-spinner {
   display: inline-block;
   width: 18px;
@@ -11883,7 +11885,7 @@ button[type="submit"]:disabled,
    Refactored Event Detail Page Styles (.ep-*)
    ========================================================================== */
 
-/* â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Hero Section ────────────────────────────────────────────────────────── */
 .ep-hero {
   display: grid;
   grid-template-columns: 1.3fr 0.95fr;
@@ -12071,7 +12073,7 @@ button[type="submit"]:disabled,
   word-break: break-word;
 }
 
-/* â”€â”€ Sidebar Event Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sidebar Event Card ─────────────────────────────────────────────────── */
 .ep-sidebar-card {
   border-radius: 24px;
   overflow: hidden;
@@ -12266,7 +12268,7 @@ button[type="submit"]:disabled,
   transform: translateY(-1px);
 }
 
-/* â”€â”€ Completed Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Completed Banner ────────────────────────────────────────────────────── */
 .ep-completed-banner {
   background: rgba(var(--card), 0.9);
   border: 1.5px solid rgba(var(--muted), 0.2);
@@ -12318,7 +12320,7 @@ button[type="submit"]:disabled,
   box-shadow: 0 14px 28px rgba(var(--brand), 0.3);
 }
 
-/* â”€â”€ Tickets Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Tickets Section ─────────────────────────────────────────────────────── */
 .ep-tickets {
   display: grid;
   grid-template-columns: 1.35fr 0.9fr;
@@ -12514,7 +12516,7 @@ button[type="submit"]:disabled,
   color: #10b981;
 }
 
-/* â”€â”€ Order Summary Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Order Summary Sidebar ──────────────────────────────────────────────── */
 .ep-summary {
   position: sticky;
   top: 5.5rem;
@@ -12621,7 +12623,7 @@ button[type="submit"]:disabled,
   box-shadow: none !important;
 }
 
-/* â”€â”€ About This Event Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── About This Event Section ───────────────────────────────────────────── */
 .ep-about {
   margin: 2.5rem 0 4rem;
   padding: 2.25rem;
@@ -12691,7 +12693,7 @@ button[type="submit"]:disabled,
 }
 
 .ep-highlights li::before {
-  content: "âœ“";
+  content: "✓";
   position: absolute;
   left: 0;
   top: 0.18rem;
@@ -12707,7 +12709,7 @@ button[type="submit"]:disabled,
   justify-content: center;
 }
 
-/* â”€â”€ Dark Mode Overrides for Event Detail (.ep-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Dark Mode Overrides for Event Detail (.ep-*) ───────────────────────── */
 :root[data-theme='dark'] .ep-meta__item {
   background: rgba(var(--card), 0.8);
   border-color: rgba(255, 255, 255, 0.08);
@@ -12757,7 +12759,7 @@ button[type="submit"]:disabled,
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* â”€â”€ Responsive Design for Event Detail (.ep-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Responsive Design for Event Detail (.ep-*) ─────────────────────────── */
 @media (max-width: 960px) {
   .ep-hero {
     grid-template-columns: 1fr;
@@ -12883,7 +12885,7 @@ button[type="submit"]:disabled,
    Refactored Checkout Page Styles (.co-*)
    ========================================================================== */
 
-/* â”€â”€ Header & Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Header & Navigation ─────────────────────────────────────────────────── */
 .co-header {
   margin: 1.5rem 0 2rem;
   display: flex;
@@ -12963,7 +12965,7 @@ button[type="submit"]:disabled,
   margin: 0;
 }
 
-/* â”€â”€ Checkout Grid Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Checkout Grid Layout ────────────────────────────────────────────────── */
 .co-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
@@ -13187,7 +13189,7 @@ button[type="submit"]:disabled,
   line-height: 1.45;
 }
 
-/* â”€â”€ Order Summary Sidebar (.co-summary-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Order Summary Sidebar (.co-summary-*) ──────────────────────────────── */
 .co-summary-section {
   position: sticky;
   top: 5.5rem;
@@ -13439,7 +13441,7 @@ button[type="submit"]:disabled,
   margin: 0;
 }
 
-/* â”€â”€ Dark Mode Support for Checkout (.co-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Dark Mode Support for Checkout (.co-*) ─────────────────────────────── */
 :root[data-theme='dark'] .co-card,
 :root[data-theme='dark'] .co-summary-card {
   background: rgb(var(--card));
@@ -13470,7 +13472,7 @@ button[type="submit"]:disabled,
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* â”€â”€ Responsive Design for Checkout (.co-*) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Responsive Design for Checkout (.co-*) ─────────────────────────────── */
 @media (max-width: 960px) {
   .co-grid {
     grid-template-columns: 1fr;
@@ -13549,7 +13551,7 @@ button[type="submit"]:disabled,
   }
 }
 
-/* â•â•â• Multi-Attendee Group & Table Passes â•â•â• */
+/* ═══ Multi-Attendee Group & Table Passes ═══ */
 .co-buyer-section {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;

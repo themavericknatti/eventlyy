@@ -114,27 +114,57 @@ document.addEventListener('DOMContentLoaded', function () {
         renderPaginationButtons(totalPages);
     }
 
+    function getPaginationRange(current, total, delta = 2) {
+        if (total <= 1) return total === 1 ? [1] : [];
+        current = Math.max(1, Math.min(current, total));
+        let left = Math.max(1, current - delta);
+        let right = Math.min(total, current + delta);
+        if (left <= 3) left = 1;
+        if (right >= total - 2) right = total;
+
+        const range = [];
+        for (let i = 1; i <= total; i++) {
+            if (i === 1 || i === total || (i >= left && i <= right)) {
+                range.push(i);
+            } else if (range.length === 0 || range[range.length - 1] !== '...') {
+                range.push('...');
+            }
+        }
+        return range;
+    }
+
     function renderPaginationButtons(totalPages) {
         if (pageNumbersContainer) {
             pageNumbersContainer.innerHTML = '';
         }
 
-        for (let i = 1; i <= totalPages; i++) {
-            const pageBtn = document.createElement('button');
-            pageBtn.className = 'page-button';
-            if (i === currentPage) {
-                pageBtn.setAttribute('aria-current', 'true');
+        const range = getPaginationRange(currentPage, totalPages);
+        range.forEach(item => {
+            if (item === '...') {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'page-dots';
+                ellipsis.innerHTML = '&hellip;';
+                ellipsis.setAttribute('aria-hidden', 'true');
+                if (pageNumbersContainer) {
+                    pageNumbersContainer.appendChild(ellipsis);
+                }
+            } else {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'page-button';
+                if (item === currentPage) {
+                    pageBtn.setAttribute('aria-current', 'true');
+                }
+                pageBtn.textContent = item;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = item;
+                    render();
+                    scrollToContainer();
+                });
+                if (pageNumbersContainer) {
+                    pageNumbersContainer.appendChild(pageBtn);
+                }
             }
-            pageBtn.textContent = i;
-            pageBtn.addEventListener('click', () => {
-                currentPage = i;
-                render();
-                scrollToContainer();
-            });
-            if (pageNumbersContainer) {
-                pageNumbersContainer.appendChild(pageBtn);
-            }
-        }
+        });
 
         // Update Prev / Next button states
         if (prevBtn) prevBtn.disabled = currentPage === 1;

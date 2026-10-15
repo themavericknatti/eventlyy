@@ -221,11 +221,15 @@ Communications Center - Admin
 
         <?php if ($totalPages > 1): ?>
             <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap;">
-                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                    <a href="/admin/communications?page=<?= $p ?>" style="padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $p === $currentPage ? 'background: rgb(var(--brand)); color: #fff;' : 'background: rgba(var(--muted), 0.08); color: rgb(var(--text));' ?>">
-                        <?= $p ?>
-                    </a>
-                <?php endfor; ?>
+                <?php foreach (pagination_range($currentPage, $totalPages) as $p): ?>
+                    <?php if ($p === '...'): ?>
+                        <span style="display:inline-flex; align-items:center; padding:0 0.35rem; color:rgb(var(--muted)); font-weight:700;" aria-hidden="true">&hellip;</span>
+                    <?php else: ?>
+                        <a href="/admin/communications?page=<?= $p ?>" style="padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $p === $currentPage ? 'background: rgb(var(--brand)); color: #fff;' : 'background: rgba(var(--muted), 0.08); color: rgb(var(--text));' ?>">
+                            <?= $p ?>
+                        </a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
     <?php endif; ?>

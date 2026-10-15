@@ -1579,3 +1579,43 @@ if (!function_exists('parse_guest_socials')) {
     }
 }
 
+if (!function_exists('pagination_range')) {
+    /**
+     * Generate an array of page numbers and ellipses ('...') for smart pagination.
+     *
+     * @param int $currentPage Current active page
+     * @param int $totalPages Total number of pages
+     * @param int $delta Number of pages to show before and after current page
+     * @return array Array containing integer page numbers and '...' strings
+     */
+    function pagination_range(int $currentPage, int $totalPages, int $delta = 2): array
+    {
+        if ($totalPages <= 1) {
+            return $totalPages === 1 ? [1] : [];
+        }
+
+        $currentPage = max(1, min($currentPage, $totalPages));
+        $left = max(1, $currentPage - $delta);
+        $right = min($totalPages, $currentPage + $delta);
+
+        // When close to the edges, avoid single-number ellipsis gaps
+        if ($left <= 3) {
+            $left = 1;
+        }
+        if ($right >= $totalPages - 2) {
+            $right = $totalPages;
+        }
+
+        $range = [];
+        for ($i = 1; $i <= $totalPages; $i++) {
+            if ($i === 1 || $i === $totalPages || ($i >= $left && $i <= $right)) {
+                $range[] = $i;
+            } elseif (empty($range) || end($range) !== '...') {
+                $range[] = '...';
+            }
+        }
+
+        return $range;
+    }
+}
+

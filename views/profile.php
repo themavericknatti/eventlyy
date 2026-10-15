@@ -1789,13 +1789,15 @@ Profile &amp; Account Settings — Eventlyy
                             <span class="pf-page-btn disabled">&laquo; Prev</span>
                         <?php endif; ?>
 
-                        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                            <?php if ($p == $ticketPage): ?>
+                        <?php foreach (pagination_range($ticketPage, $totalPages) as $p): ?>
+                            <?php if ($p === '...'): ?>
+                                <span class="pf-page-dots" aria-hidden="true">&hellip;</span>
+                            <?php elseif ($p == $ticketPage): ?>
                                 <span class="pf-page-btn active"><?= $p ?></span>
                             <?php else: ?>
                                 <a href="/profile?ticket_page=<?= $p ?>&tab=tickets" class="pf-page-btn"><?= $p ?></a>
                             <?php endif; ?>
-                        <?php endfor; ?>
+                        <?php endforeach; ?>
 
                         <?php if ($ticketPage < $totalPages): ?>
                             <a href="/profile?ticket_page=<?= $ticketPage + 1 ?>&tab=tickets" class="pf-page-btn">Next &raquo;</a>

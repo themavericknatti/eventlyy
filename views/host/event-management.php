@@ -689,13 +689,15 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                             <button class="page-button" disabled>← Prev</button>
                         <?php endif; ?>
 
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <?php if ($i === $page): ?>
-                                <button class="page-button" aria-current="true"><?= $i ?></button>
+                        <?php foreach (pagination_range($page, $totalPages) as $pNum): ?>
+                            <?php if ($pNum === '...'): ?>
+                                <span class="page-dots" aria-hidden="true">&hellip;</span>
+                            <?php elseif ($pNum === $page): ?>
+                                <button class="page-button" aria-current="true"><?= $pNum ?></button>
                             <?php else: ?>
-                                <a href="?tab=attendees&page=<?= $i ?>&search=<?= urlencode($search ?? '') ?>#tab-attendees" class="page-button" data-page="<?= $i ?>"><?= $i ?></a>
+                                <a href="?tab=attendees&page=<?= $pNum ?>&search=<?= urlencode($search ?? '') ?>#tab-attendees" class="page-button" data-page="<?= $pNum ?>"><?= $pNum ?></a>
                             <?php endif; ?>
-                        <?php endfor; ?>
+                        <?php endforeach; ?>
 
                         <?php if ($page < $totalPages): ?>
                             <a href="?tab=attendees&page=<?= $page + 1 ?>&search=<?= urlencode($search ?? '') ?>#tab-attendees" class="page-button" data-page="<?= $page + 1 ?>">Next →</a>
@@ -2377,6 +2379,18 @@ if (result.success &amp;&amp; result.authorization_url) {
         justify-content: center;
         gap: 0.35rem;
         width: 100%;
+    }
+    .page-dots {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 38px;
+        padding: 0 0.35rem;
+        color: rgb(var(--muted));
+        font-weight: 700;
+        font-size: 0.95rem;
+        user-select: none;
     }
 }
 

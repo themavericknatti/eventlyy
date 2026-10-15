@@ -301,7 +301,9 @@ class HostTicketController extends Controller
                 $upTrx->execute(['trx_id' => $transaction['id']]);
             }
 
-            // Send Refund Confirmation Email
+            $refundRef = !empty($transaction['reference']) ? $transaction['reference'] : ('TKT-' . $ticket['id']);
+
+            // 1. Send Refund Confirmation Email to Attendee
             try {
                 \Ace\Mail::send(
                     $ticket['attendee_email'],
@@ -311,11 +313,38 @@ class HostTicketController extends Controller
                         'attendee_name' => $ticket['attendee_name'],
                         'event_name' => $ticket['event_name'],
                         'refund_amount' => (float)$ticket['price'],
-                        'reference' => $ticket['id']
+                        'reference' => $refundRef,
+                        'ticket_code' => $ticket['id'],
+                        'ticket_type' => $ticket['ticket_type'] ?? 'Standard Admission'
                     ]
                 );
             } catch (\Exception $mailEx) {
                 error_log("Failed to send refund email: " . $mailEx->getMessage());
+            }
+
+            // 2. Send Refund Alert Email to Event Host
+            if (!empty($ticket['host_email'])) {
+                try {
+                    \Ace\Mail::send(
+                        $ticket['host_email'],
+                        'Ticket Refund Notice - ' . $ticket['event_name'],
+                        'emails/host_ticket_refund',
+                        [
+                            'host_name' => $ticket['host_name'] ?? 'Organizer',
+                            'event_name' => $ticket['event_name'],
+                            'event_id' => $ticket['event_id'],
+                            'attendee_name' => $ticket['attendee_name'],
+                            'attendee_email' => $ticket['attendee_email'],
+                            'ticket_code' => $ticket['id'],
+                            'ticket_type' => $ticket['ticket_type'] ?? 'Standard Admission',
+                            'refund_amount' => (float)$ticket['price'],
+                            'reference' => $refundRef,
+                            'refund_date' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                } catch (\Exception $hostMailEx) {
+                    error_log("Failed to send host refund alert email: " . $hostMailEx->getMessage());
+                }
             }
 
             $msg = 'Ticket refunded successfully and email notification sent.' . $paystackNote;

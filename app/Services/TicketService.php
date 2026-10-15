@@ -13,10 +13,12 @@ class TicketService
     {
         $db = Application::$app->db->pdo;
         $stmt = $db->prepare("
-            SELECT t.*, tt.name as ticket_type, e.name as event_name, e.date as event_date, e.organizer_id
+            SELECT t.*, tt.name as ticket_type, e.name as event_name, e.date as event_date, e.organizer_id,
+                   u.name as host_name, u.email as host_email
             FROM tickets t
             INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
             INNER JOIN events e ON t.event_id = e.id
+            LEFT JOIN users u ON e.organizer_id = u.id
             WHERE t.id = :id
         ");
         $stmt->execute(['id' => $ticketId]);

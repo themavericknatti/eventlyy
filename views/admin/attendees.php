@@ -278,13 +278,15 @@ Admin Attendees Directory - Deduplicated Contact Records
             </span>
         <?php endif; ?>
 
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-            <?php if ($i === $page): ?>
-                <span class="au-page-num active" aria-current="page"><?= $i ?></span>
+        <?php foreach (pagination_range($page, $totalPages) as $pNum): ?>
+            <?php if ($pNum === '...'): ?>
+                <span class="au-page-ellipsis" aria-hidden="true">&hellip;</span>
+            <?php elseif ($pNum === $page): ?>
+                <span class="au-page-num active" aria-current="page"><?= $pNum ?></span>
             <?php else: ?>
-                <a href="?page=<?= $i ?>&q=<?= urlencode($search ?? '') ?>&type=<?= urlencode($type ?? '') ?>&event_id=<?= urlencode($eventId ?? '') ?>" class="au-page-num"><?= $i ?></a>
+                <a href="?page=<?= $pNum ?>&q=<?= urlencode($search ?? '') ?>&type=<?= urlencode($type ?? '') ?>&event_id=<?= urlencode($eventId ?? '') ?>" class="au-page-num"><?= $pNum ?></a>
             <?php endif; ?>
-        <?php endfor; ?>
+        <?php endforeach; ?>
 
         <?php if ($page < $totalPages): ?>
             <a href="?page=<?= $page + 1 ?>&q=<?= urlencode($search ?? '') ?>&type=<?= urlencode($type ?? '') ?>&event_id=<?= urlencode($eventId ?? '') ?>" class="au-page-btn">
