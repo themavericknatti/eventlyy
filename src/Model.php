@@ -1076,13 +1076,23 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     }
 
     /**
-     * Paginate queries, returning metadata and records
+     * Paginate queries, returning a responsive Paginator instance (compatible with array access)
      */
-    public static function paginate(int $perPage = 15, int $page = 1, array $where = [], array $options = []): array
+    public static function paginate(int $perPage = 15, ?int $page = null, array $where = [], array $options = []): Paginator
     {
+        $pageName = $options['pageName'] ?? $options['page_name'] ?? 'page';
+        if ($page === null) {
+            $req = Application::$app->request ?? null;
+            $rawPage = $req ? $req->get($pageName, 1) : ($_GET[$pageName] ?? 1);
+            $page = is_numeric($rawPage) ? (int)$rawPage : 1;
+        }
+
         $total = static::count($where);
         $lastPage = (int)ceil($total / $perPage);
-        $page = max(1, min($page, $lastPage === 0 ? 1 : $lastPage));
+        if ($lastPage < 1) {
+            $lastPage = 1;
+        }
+        $page = max(1, min($page, $lastPage));
         $offset = ($page - 1) * $perPage;
 
         $options['limit'] = $perPage;
@@ -1090,15 +1100,9 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
 
         $data = static::find($where, $options);
 
-        return [
-            'data' => $data,
-            'total' => $total,
-            'per_page' => $perPage,
-            'current_page' => $page,
-            'last_page' => $lastPage,
-            'next_page' => $page < $lastPage ? $page + 1 : null,
-            'prev_page' => $page > 1 ? $page - 1 : null,
-        ];
+        return new Paginator($data, $total, $perPage, $page, array_merge($options, [
+            'pageName' => $pageName,
+        ]));
     }
 
     /**

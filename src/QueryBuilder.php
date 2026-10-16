@@ -293,6 +293,37 @@ class QueryBuilder
     }
 
     /**
+     * Paginate the query results across multiple pages.
+     *
+     * @param int $perPage Number of items per page
+     * @param int|null $page Current page number (null to auto-detect from request)
+     * @param string $pageName Query parameter name for page number
+     * @return Paginator
+     */
+    public function paginate(int $perPage = 15, ?int $page = null, string $pageName = 'page'): Paginator
+    {
+        if ($page === null) {
+            $req = Application::$app->request ?? null;
+            $rawPage = $req ? $req->get($pageName, 1) : ($_GET[$pageName] ?? 1);
+            $page = is_numeric($rawPage) ? (int)$rawPage : 1;
+        }
+
+        $page = max(1, $page);
+
+        // Calculate total count before applying limit/offset
+        $total = $this->count();
+
+        // Apply limit and offset for this page
+        $this->limit($perPage)->offset(($page - 1) * $perPage);
+
+        $items = $this->get();
+
+        return new Paginator($items, $total, $perPage, $page, [
+            'pageName' => $pageName,
+        ]);
+    }
+
+    /**
      * Get first matching record or null.
      */
     public function first(): ?Model

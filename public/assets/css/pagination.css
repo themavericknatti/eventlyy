@@ -1,0 +1,227 @@
+/**
+ * Ace Framework - Responsive Pagination Styles
+ * Supports Desktop, Tablet, and Mobile screens
+ */
+
+:root {
+    --ace-pg-primary: #6366f1;
+    --ace-pg-primary-hover: #4f46e5;
+    --ace-pg-primary-text: #ffffff;
+    --ace-pg-bg: #1e293b;
+    --ace-pg-surface: #0f172a;
+    --ace-pg-border: #334155;
+    --ace-pg-border-hover: #6366f1;
+    --ace-pg-text: #e2e8f0;
+    --ace-pg-text-muted: #94a3b8;
+    --ace-pg-disabled: #64748b;
+    --ace-pg-radius: 0.5rem;
+    --ace-pg-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light theme overrides */
+[data-theme="light"], .light-theme {
+    --ace-pg-primary: #4f46e5;
+    --ace-pg-primary-hover: #4338ca;
+    --ace-pg-primary-text: #ffffff;
+    --ace-pg-bg: #ffffff;
+    --ace-pg-surface: #f8fafc;
+    --ace-pg-border: #e2e8f0;
+    --ace-pg-border-hover: #4f46e5;
+    --ace-pg-text: #1e293b;
+    --ace-pg-text-muted: #64748b;
+    --ace-pg-disabled: #94a3b8;
+}
+
+.ace-pagination {
+    width: 100%;
+    margin: 1.5rem 0;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.ace-pagination *, .ace-pagination *::before, .ace-pagination *::after {
+    box-sizing: border-box;
+}
+
+.ace-pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--ace-pg-surface);
+    border: 1px solid var(--ace-pg-border);
+    border-radius: var(--ace-pg-radius);
+}
+
+.ace-pagination-info {
+    font-size: 0.875rem;
+    color: var(--ace-pg-text-muted);
+    line-height: 1.5;
+}
+
+.ace-pagination-highlight {
+    font-weight: 600;
+    color: var(--ace-pg-text);
+}
+
+.ace-pagination-nav {
+    display: flex;
+    align-items: center;
+}
+
+.ace-pagination-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.ace-pagination-item {
+    display: inline-flex;
+}
+
+.ace-pagination-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.65rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ace-pg-text);
+    background: var(--ace-pg-bg);
+    border: 1px solid var(--ace-pg-border);
+    border-radius: var(--ace-pg-radius);
+    text-decoration: none;
+    transition: var(--ace-pg-transition);
+    cursor: pointer;
+    user-select: none;
+}
+
+a.ace-pagination-link:hover {
+    color: var(--ace-pg-primary-text);
+    background: var(--ace-pg-primary);
+    border-color: var(--ace-pg-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+a.ace-pagination-link:active {
+    transform: translateY(0);
+}
+
+.ace-pagination-item.is-active .ace-pagination-link {
+    color: var(--ace-pg-primary-text);
+    background: var(--ace-pg-primary);
+    border-color: var(--ace-pg-primary);
+    font-weight: 700;
+    cursor: default;
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+}
+
+.ace-pagination-item.is-disabled .ace-pagination-link {
+    color: var(--ace-pg-disabled);
+    background: transparent;
+    border-color: transparent;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.ace-pagination-dots .ace-pagination-link {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ace-pg-disabled);
+    cursor: default;
+}
+
+/* Dedicated Mobile View - Hidden by default on Desktop and Tablet */
+.ace-pagination-mobile {
+    display: none;
+}
+
+.ace-pagination-mobile-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ace-pg-text);
+    background: var(--ace-pg-bg);
+    border: 1px solid var(--ace-pg-border);
+    border-radius: var(--ace-pg-radius);
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+    min-height: 2.5rem;
+}
+
+a.ace-pagination-mobile-btn:hover {
+    background: var(--ace-pg-primary);
+    color: var(--ace-pg-primary-text);
+    border-color: var(--ace-pg-primary);
+}
+
+.ace-pagination-mobile-btn.is-disabled {
+    color: var(--ace-pg-disabled);
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: transparent;
+    background: transparent;
+}
+
+.ace-pagination-mobile-status {
+    font-size: 0.875rem;
+    color: var(--ace-pg-text-muted);
+}
+
+.ace-pagination-mobile-status strong {
+    color: var(--ace-pg-text);
+}
+
+/* Tablet Screen Adjustments (481px to 768px) */
+@media (max-width: 768px) {
+    .ace-pagination-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.75rem;
+        padding: 1rem 0.75rem;
+    }
+    .ace-pagination-list {
+        justify-content: center;
+    }
+    .ace-pagination-item .ace-pagination-link {
+        min-width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Mobile Screen Adjustments (<= 480px) */
+@media (max-width: 480px) {
+    .ace-pagination-nav {
+        display: none;
+    }
+    .ace-pagination-mobile {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .ace-pagination-info {
+        width: 100%;
+        text-align: center;
+        font-size: 0.8rem;
+        order: 2;
+    }
+    .ace-pagination-mobile {
+        order: 1;
+    }
+}

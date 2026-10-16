@@ -528,6 +528,16 @@ HTML;
         // 9g. Compiling Toasts tag
         $content = str_replace('@toasts', '<?php echo \Ace\View::renderToasts(); ?>', $content);
 
+        // 9h. Compiling Paginate tag (@paginate($items), @paginate($items, ['theme' => 'tailwind']))
+        $content = preg_replace_callback(
+            '/@paginate\(((?:[^()]*|\((?:[^()]*|\([^()]*\))*\))*)\)/',
+            function ($matches) {
+                $args = trim($matches[1] ?? '');
+                return "<?php echo paginate_links({$args}); ?>";
+            },
+            $content
+        );
+
         // 10. Compiling Includes (balanced parens regex to support nested expressions in params)
         $content = preg_replace_callback(
             '/@include\(\s*(["\'])(.*?)\1\s*(?:,\s*((?:[^()]*|\((?:[^()]*|\([^()]*\))*\))*))?\s*\)/s',

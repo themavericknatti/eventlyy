@@ -99,6 +99,66 @@ if (!function_exists('view')) {
     }
 }
 
+if (!function_exists('paginate_links')) {
+    /**
+     * Render pagination HTML links for a Paginator instance or array.
+     *
+     * @param mixed $paginator Paginator instance or array with pagination data
+     * @param array $options Styling and display options (theme, classes, styles, etc.)
+     * @return string
+     */
+    function paginate_links(mixed $paginator, array $options = []): string
+    {
+        if ($paginator instanceof \Ace\Paginator) {
+            return $paginator->render($options);
+        }
+        if (is_array($paginator)) {
+            $items = $paginator['data'] ?? $paginator['items'] ?? [];
+            $total = $paginator['total'] ?? count($items);
+            $perPage = $paginator['per_page'] ?? count($items);
+            $currentPage = $paginator['current_page'] ?? 1;
+            $p = new \Ace\Paginator($items, $total, $perPage, $currentPage, $options);
+            return $p->render($options);
+        }
+        return '';
+    }
+}
+
+if (!function_exists('paginator')) {
+    /**
+     * Create a new Paginator instance.
+     *
+     * @param array $items Items on current page
+     * @param int $total Total items in dataset
+     * @param int $perPage Items per page
+     * @param int|null $currentPage Current page (null to auto-detect from request)
+     * @param array $options Extra options (path, pageName, query, etc.)
+     * @return \Ace\Paginator
+     */
+    function paginator(array $items, int $total, int $perPage = 15, ?int $currentPage = null, array $options = []): \Ace\Paginator
+    {
+        return new \Ace\Paginator($items, $total, $perPage, $currentPage, $options);
+    }
+}
+
+if (!function_exists('request')) {
+    /**
+     * Get the request instance or an input item from the request.
+     *
+     * @param string|null $key
+     * @param mixed $default
+     * @return mixed
+     */
+    function request(?string $key = null, mixed $default = null): mixed
+    {
+        $request = Application::$app->request ?? null;
+        if ($key === null) {
+            return $request;
+        }
+        return $request ? $request->get($key, $default) : $default;
+    }
+}
+
 if (!function_exists('redirect')) {
     /**
      * Redirect to a given URL path with optional status code and session flash data.

@@ -118,6 +118,79 @@ Views are located in `views/` and support layouts, sections, components, and aut
 - `upload('avatars/pic.jpg')` - Generates user upload URL path.
 - `csrf_field()` - Emits a secure CSRF token input tag.
 - `redirect('/login')` - Safely redirects requests.
+- `paginator($items, $total, $perPage)` - Creates a Paginator instance.
+- `paginate_links($paginator, $options)` - Renders responsive pagination display.
+
+---
+
+## 📄 Responsive Pagination System
+
+Ace includes an out-of-the-box responsive pagination system designed for all screen sizes (Desktop, Tablet, and Mobile).
+
+### 1. Paginating Data in Controllers
+```php
+// Active Record Model pagination
+$users = User::paginate(15);
+
+// Query Builder pagination
+$articles = Article::query()
+    ->where('status', 'published')
+    ->orderBy('created_at', 'DESC')
+    ->paginate(10);
+
+// Custom Array pagination
+$paginator = paginator($customList, $totalCount, 10);
+
+return view('users/index', ['users' => $users]);
+```
+
+### 2. Rendering in Views
+```blade
+<!-- Blade directive -->
+@paginate($users)
+
+<!-- Or method call -->
+{!! $users->links() !!}
+```
+
+### 3. Responsive Screen Adaptability
+- **Desktop (>= 768px)**: Displays full pagination controls, item count info (*"Showing 1 to 15 of 120 results"*), first/last shortcuts, and smart sliding window numbers with ellipses (`1 2 ... 5 6 7 ... 20`).
+- **Tablet (481px - 768px)**: Balanced touch-friendly padding (40px touch targets) with centered wrapping.
+- **Mobile (<= 480px)**: Automatically switches to a streamlined thumb-friendly Prev/Next bar with a page status pill (*"Page 2 of 8"*) to prevent clutter and horizontal overflow.
+
+### 4. Customizing Classes, Styles & Themes
+Developers can use the defaults or customize completely:
+
+```blade
+{{-- 1. Using Default Theme with Custom Accent Colors --}}
+{!! $users->links([
+    'styles' => [
+        'primary' => '#10b981', // emerald green accent
+        'bg'      => '#1e293b',
+        'border'  => '#334155',
+    ]
+]) !!}
+
+{{-- 2. Bootstrap 5 Theme --}}
+{!! $users->links(['theme' => 'bootstrap', 'size' => 'sm']) !!}
+
+{{-- 3. Tailwind CSS Theme --}}
+{!! $users->links(['theme' => 'tailwind']) !!}
+
+{{-- 4. Custom CSS Classes --}}
+{!! $users->links([
+    'with_styles' => false, // omit inline styles if using custom CSS
+    'classes' => [
+        'wrapper'   => 'my-pagination-box',
+        'link'      => 'page-btn',
+        'active'    => 'is-active',
+        'disabled'  => 'is-disabled',
+        'info'      => 'text-muted text-sm',
+    ]
+]) !!}
+```
+
+A standalone stylesheet is also available at `public/assets/css/pagination.css`.
 
 ---
 
