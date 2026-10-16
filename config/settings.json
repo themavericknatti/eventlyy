@@ -2,7 +2,7 @@
     "site_title": "Eventlyy",
     "site_description": "Discover and book amazing events near you.",
     "site_logo": "img\/branding\/d79d5df5b3ef0d98_1792052864.png",
-    "site_favicon": "img\/branding\/55860b8eb3e5d9fe_1792053358.png",
+    "site_favicon": "img\/branding\/933dccf0bd5666fb_1792111031.png",
     "support_email": "support@eventlyy.com",
     "maintenance_mode": "no",
     "enabled_gateways": [
@@ -42,5 +42,5 @@
     "announcement_link_text": "Check It Out \u2192",
     "announcement_link_url": "eventlyy.test",
     "announcement_dismiss_text": "Continue to Site",
-    "announcement_updated_at": "1792053358"
+    "announcement_updated_at": "1792111031"
 }
