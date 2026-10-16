@@ -27,7 +27,7 @@ $app = null;
 try {
     $app = new Application($rootDir, $config);
 } catch (\Throwable $e) {
-    if (in_array($command, ['migrate', 'migrate:rollback', 'migrate:status', 'db:seed'])) {
+    if (in_array($command, ['migrate', 'migrate:rollback', 'migrate:status', 'db:seed', 'make:apikey', 'apikey:list', 'apikey:revoke'])) {
         echo "❌ Database Error: " . $e->getMessage() . "\n\n";
         exit(1);
     }
@@ -500,6 +500,95 @@ switch ($command) {
         passthru("\"{$phpunitBin}\" {$extraArgs}");
         break;
 
+    case 'make:apikey':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the API key name. e.g. php ace make:apikey \"React Frontend\"\n\n";
+            exit(1);
+        }
+
+        $expiresAt = null;
+        $permissions = ['*'];
+
+        foreach (array_slice($args, 3) as $arg) {
+            if (str_starts_with($arg, '--expires=')) {
+                $days = (int) substr($arg, 10);
+                if ($days > 0) {
+                    $expiresAt = date('Y-m-d H:i:s', strtotime("+{$days} days"));
+                }
+            }
+            if (str_starts_with($arg, '--permissions=')) {
+                $rawPerms = substr($arg, 14);
+                $permissions = array_filter(array_map('trim', explode(',', $rawPerms)));
+            }
+        }
+
+        try {
+            $keyData = \Ace\ApiKey::generate($name, $permissions, $expiresAt);
+            echo "🔑 API Key Generated Successfully!\n";
+            echo "------------------------------------------\n";
+            echo "  Name:        " . $keyData['name'] . "\n";
+            echo "  Prefix:      " . $keyData['prefix'] . "\n";
+            echo "  Key:         " . $keyData['plain_key'] . "\n";
+            echo "  Permissions: " . json_encode($keyData['permissions']) . "\n";
+            echo "  Expires:     " . ($keyData['expires_at'] ?? 'Never') . "\n";
+            echo "------------------------------------------\n";
+            echo "⚠️  IMPORTANT: Copy and save this key now. You will NOT be able to view it again!\n";
+            echo "   Use in frontend (React/Next/Nuxt) via:\n";
+            echo "   Authorization: Bearer " . $keyData['plain_key'] . "\n";
+            echo "   OR X-Api-Key: " . $keyData['plain_key'] . "\n\n";
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
+    case 'apikey:list':
+        echo "📋 Registered API Keys:\n";
+        echo "------------------------------------------------------------------------------------------------------\n";
+        try {
+            $keys = \Ace\ApiKey::all();
+            if (empty($keys)) {
+                echo "  No API keys found. Generate one with: php ace make:apikey \"App Name\"\n\n";
+            } else {
+                printf("  %-4s | %-20s | %-10s | %-8s | %-20s | %-20s\n", 'ID', 'Name', 'Prefix', 'Status', 'Last Used', 'Expires');
+                echo "  " . str_repeat('-', 94) . "\n";
+                foreach ($keys as $k) {
+                    $status = (int)$k['is_active'] === 1 ? 'Active' : 'Revoked';
+                    $lastUsed = $k['last_used_at'] ?? 'Never';
+                    $expires = $k['expires_at'] ?? 'Never';
+                    printf("  %-4s | %-20s | %-10s | %-8s | %-20s | %-20s\n", 
+                        $k['id'], 
+                        substr($k['name'], 0, 20), 
+                        $k['prefix'], 
+                        $status, 
+                        $lastUsed, 
+                        $expires
+                    );
+                }
+                echo "\n";
+            }
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
+    case 'apikey:revoke':
+        $prefix = $args[2] ?? null;
+        if (!$prefix) {
+            echo "❌ Error: Please specify the API key prefix to revoke. e.g. php ace apikey:revoke a1b2c3d4\n\n";
+            exit(1);
+        }
+        try {
+            if (\Ace\ApiKey::revoke($prefix)) {
+                echo "✅ API Key with prefix '{$prefix}' has been revoked (deactivated).\n\n";
+            } else {
+                echo "⚠️  No active API key found with prefix '{$prefix}'.\n\n";
+            }
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
     case 'help':
     default:
         echo "Available Commands:\n";
@@ -517,6 +606,9 @@ switch ($command) {
         echo "  make:service <Name>      Generates a Service class for domain business logic.\n";
         echo "  make:repository <Name>   Generates a Repository class for data access abstraction.\n";
         echo "  make:request <Name>      Generates a FormRequest class for validated request input.\n";
+        echo "  make:apikey <Name>       Generates a secure API key for frontends (React/Next/Nuxt).\n";
+        echo "  apikey:list              Lists all registered API keys.\n";
+        echo "  apikey:revoke <prefix>   Deactivates an API key by prefix.\n";
         echo "  make:middleware <Name>   Generates a boilerplate Middleware class.\n";
         echo "  make:action <Name>       Generates an Action class for single-purpose business logic.\n";
         echo "  make:event <Name>        Generates an Event class.\n";

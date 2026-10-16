@@ -29,6 +29,7 @@
 16. [CLI Commands](#16-cli-commands)
 17. [Naming Conventions](#17-naming-conventions)
 18. [Enterprise Example: Full Feature](#18-enterprise-example-full-feature)
+19. [API-First Development & Frontend Integration](#19-api-first-development--frontend-integration)
 
 ---
 
@@ -74,6 +75,7 @@ project-root/
 │   └── Listeners/              # Event listener classes
 ├── config/
 │   ├── app.php                 # Application configuration
+│   ├── cors.php                # Cross-Origin Resource Sharing (React/Next/Nuxt)
 │   ├── database.php            # Database configuration
 │   └── settings.json           # Dynamic runtime settings
 ├── migrations/                 # Database schema migrations
@@ -84,7 +86,8 @@ project-root/
 │   ├── .htaccess               # URL rewrite rules
 │   └── index.php               # Single entry point (front controller)
 ├── routes/
-│   └── web.php                 # All HTTP route definitions
+│   ├── web.php                 # Web routes (HTML views)
+│   └── api.php                 # API routes (/api prefix, CORS, API key auth)
 ├── src/                        # Core Ace Framework source (DO NOT MODIFY)
 ├── storage/                    # Logs, compiled views cache
 ├── tests/                      # PHPUnit test suites
@@ -838,7 +841,9 @@ class AdminMiddleware extends Middleware
 **Built-in Middleware:**
 - `AuthMiddleware` — Redirects guests to login
 - `GuestMiddleware` — Redirects authenticated users away
-- `CsrfMiddleware` — Validates CSRF tokens
+- `CsrfMiddleware` — Validates CSRF tokens (automatically bypassed for `/api/*` routes)
+- `CorsMiddleware` — Handles CORS headers and OPTIONS preflights for frontend clients
+- `ApiKeyMiddleware` — Validates API keys from `Authorization: Bearer` or `X-Api-Key` headers
 - `RateLimitMiddleware` — Throttles requests
 - `SecurityHeadersMiddleware` — Sets security HTTP headers
 
@@ -912,6 +917,9 @@ php ace migrate:status       # Show migration status
 | `php ace make:service <Name>` | Generate Service |
 | `php ace make:repository <Name>` | Generate Repository |
 | `php ace make:request <Name>` | Generate FormRequest |
+| `php ace make:apikey <Name>` | Generate secure API key for frontend (React/Next/Nuxt) |
+| `php ace apikey:list` | List all registered API keys |
+| `php ace apikey:revoke <prefix>` | Deactivate an API key by prefix |
 | `php ace make:middleware <Name>` | Generate Middleware |
 | `php ace make:action <Name>` | Generate Action |
 | `php ace make:event <Name>` | Generate Event |
@@ -1013,6 +1021,287 @@ views/
 5. ProductService applies business logic → ProductRepository@create
 6. ProductRepository uses Product Model → INSERT INTO products
 7. Controller redirects to /products with success flash message
+```
+
+---
+
+## 19. API-First Development & Frontend Integration
+
+Ace provides first-class support for **API-first project development**, enabling frontend frameworks like **React, Next.js, Nuxt.js, and Vue** to communicate securely with the Ace backend via **API keys**.
+
+### Architecture of API-First in Ace
+
+```
+Frontend (React / Next.js / Nuxt.js)
+  │
+  │  HTTP Request + Headers:
+  │  Authorization: Bearer <api_key>   (or X-Api-Key: <api_key>)
+  │
+  ▼
+public/index.php
+  │
+  ▼
+routes/api.php  (auto-prefixed with /api)
+  │
+  ├── CorsMiddleware          (Handles Access-Control headers & OPTIONS preflight)
+  ├── ApiKeyMiddleware        (Authenticates API key from database, checks expiry/status)
+  │                           (Bypasses CSRF verification automatically for /api/*)
+  ▼
+Controller (orchestrates request)
+  │
+  ├── FormRequest / validate()  (Returns 422 JSON on validation failure)
+  ├── Service                   (Domain business logic)
+  ├── Repository                (Data access abstraction)
+  └── Model                     (Database mapping)
+  │
+  ▼
+Response ($this->success(), $this->error(), or $this->json())
+```
+
+### 1. Generating API Keys
+
+Use the Ace CLI to generate secure, cryptographically random 64-character API keys:
+
+```bash
+# Generate key for React app
+php ace make:apikey "React Frontend"
+
+# Generate key with specific permissions and 90-day expiry
+php ace make:apikey "Next.js App" --expires=90 --permissions=events:read,tickets:create
+
+# List all registered keys
+php ace apikey:list
+
+# Revoke an API key by prefix
+php ace apikey:revoke a1b2c3d4
+```
+
+> **Security**: The raw key is displayed **once** in the CLI upon generation. Only a SHA-256 hash is stored in the database.
+
+### 2. Defining API Routes (`routes/api.php`)
+
+All routes in `routes/api.php` are automatically:
+- Prefixed with `/api`
+- Protected with CORS headers
+- CSRF-exempt
+- Stateless (no sessions)
+
+```php
+<?php
+
+/** @var \Ace\Router $router */
+
+use App\Controllers\Api\EventController;
+use App\Controllers\Api\TicketController;
+
+// Public health check (unauthenticated)
+$router->get('/health', fn() => json_encode(['status' => 'ok', 'time' => date('Y-m-d H:i:s')]));
+
+// Authenticated API group (protected by ApiKeyMiddleware)
+$router->group('', function($router) {
+    // Events endpoints: /api/events
+    $router->get('/events', [EventController::class, 'index']);
+    $router->get('/events/{id}', [EventController::class, 'show']);
+    $router->post('/events', [EventController::class, 'store']);
+    $router->put('/events/{id}', [EventController::class, 'update']);
+    $router->delete('/events/{id}', [EventController::class, 'destroy']);
+
+    // Tickets endpoints: /api/tickets
+    $router->post('/tickets/book', [TicketController::class, 'book']);
+}, [\Ace\Middlewares\ApiKeyMiddleware::class]);
+
+// Versioned API group: /api/v1/*
+$router->group('/v1', function($router) {
+    $router->get('/events', [EventController::class, 'index']);
+}, [\Ace\Middlewares\ApiKeyMiddleware::class]);
+```
+
+### 3. Connecting Frontend Frameworks
+
+#### A. React (Vite / CRA)
+
+In your React app `.env`:
+```env
+VITE_API_URL=http://localhost:8000/api
+VITE_API_KEY=your_generated_64_character_api_key
+```
+
+API Client utility (`src/api/client.js`):
+```javascript
+const API_URL = import.meta.env.VITE_API_URL;
+const API_KEY = import.meta.env.VITE_API_KEY;
+
+export async function apiClient(endpoint, options = {}) {
+  const { headers, ...customConfig } = options;
+
+  const config = {
+    method: options.method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+      // Or alternatively: 'X-Api-Key': API_KEY,
+      ...headers,
+    },
+    ...customConfig,
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, config);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'API request failed');
+  }
+
+  return data;
+}
+
+// Example usage in a component:
+// const events = await apiClient('/events');
+// const newEvent = await apiClient('/events', { method: 'POST', body: JSON.stringify(formData) });
+```
+
+#### B. Next.js (App Router)
+
+In your Next.js `.env.local`:
+```env
+ACE_API_URL=http://localhost:8000/api
+ACE_API_KEY=your_generated_64_character_api_key
+```
+
+Server Component (`app/events/page.tsx`):
+```typescript
+async function getEvents() {
+  const res = await fetch(`${process.env.ACE_API_URL}/events`, {
+    headers: {
+      'Authorization': `Bearer ${process.env.ACE_API_KEY}`,
+      'Accept': 'application/json',
+    },
+    next: { revalidate: 60 },
+  });
+
+  if (!res.ok) throw new Error('Failed to fetch events');
+  const result = await res.json();
+  return result.data;
+}
+
+export default async function EventsPage() {
+  const events = await getEvents();
+  return (
+    <div>
+      {events.map((event: any) => (
+        <div key={event.id}>
+          <h2>{event.title}</h2>
+          <p>{event.description}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+#### C. Nuxt.js 3
+
+In your `nuxt.config.ts`:
+```typescript
+export default defineNuxtConfig({
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.ACE_API_URL || 'http://localhost:8000/api',
+      apiKey: process.env.ACE_API_KEY,
+    }
+  }
+});
+```
+
+Composable (`composables/useAceApi.ts`):
+```typescript
+export const useAceApi = () => {
+  const config = useRuntimeConfig();
+
+  const fetchApi = async <T>(endpoint: string, options = {}) => {
+    return await $fetch<T>(`${config.public.apiUrl}${endpoint}`, {
+      headers: {
+        'Authorization': `Bearer ${config.public.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      ...options,
+    });
+  };
+
+  return { fetchApi };
+};
+```
+
+### 4. CORS Configuration (`config/cors.php`)
+
+Configure allowed origins for local development and production frontends in `.env`:
+
+```env
+# Allow local React, Next.js, and Nuxt development ports:
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:8080
+CORS_ALLOWED_METHODS=GET,POST,PUT,PATCH,DELETE,OPTIONS
+CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Api-Key,X-Requested-With,Accept
+CORS_MAX_AGE=86400
+CORS_ALLOW_CREDENTIALS=false
+```
+
+### 5. Accessing API Key in Controllers
+
+When `ApiKeyMiddleware` authenticates a request, the key information is available directly on `$request`:
+
+```php
+namespace App\Controllers\Api;
+
+use Ace\Controller;
+use Ace\Request;
+
+class EventController extends Controller
+{
+    public function index(Request $request): void
+    {
+        // Access authenticated API key information:
+        $keyName = $request->apiKeyName();          // e.g. "React Frontend"
+        $keyRecord = $request->apiKey();            // Full record array
+        
+        // Permission checking:
+        if (!$request->hasPermission('events:read')) {
+            $this->error('Forbidden. Missing events:read permission.', 403);
+            return;
+        }
+
+        $events = $this->eventService->getAll();
+        $this->success('Events retrieved', $events);
+    }
+}
+```
+
+### 6. Standardized API Response Format
+
+Always return consistent JSON from API controllers:
+
+```json
+// Success Response: $this->success('Events retrieved', $data)
+{
+  "status": "success",
+  "message": "Events retrieved",
+  "data": [ ... ]
+}
+
+// Error Response: $this->error('Event not found', 404)
+{
+  "status": "error",
+  "message": "Event not found",
+  "errors": []
+}
+
+// Validation Failure Response (Automatic 422 from FormRequest / $this->validate())
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "title": ["The title field is required."],
+    "price": ["This field must be a number."]
+  }
+}
 ```
 
 ---

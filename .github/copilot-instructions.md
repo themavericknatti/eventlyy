@@ -17,4 +17,10 @@ Request → Route → Middleware → Controller → Validate → Service → Rep
 ## When creating a feature, ALWAYS generate:
 1. Migration  2. Model  3. Repository  4. Service  5. FormRequest  6. Controller  7. Routes  8. Views
 
+## API-First Development & Frontend Integration:
+- Define API routes in `routes/api.php` (auto `/api` prefix, CORS enabled, CSRF bypassed).
+- Frontends (React/Next/Nuxt) authenticate via API keys (`Authorization: Bearer <key>` or `X-Api-Key`).
+- Generate keys: `php ace make:apikey "React App"`.
+- Middleware: `Ace\Middlewares\CorsMiddleware`, `Ace\Middlewares\ApiKeyMiddleware`.
+
 ## Full Reference: GUIDE.md

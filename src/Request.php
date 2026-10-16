@@ -5,6 +5,50 @@ namespace Ace;
 class Request
 {
     /**
+     * The validated API key record (set by ApiKeyMiddleware)
+     */
+    protected ?array $apiKeyRecord = null;
+
+    /**
+     * Store the validated API key record.
+     * Called by ApiKeyMiddleware after successful validation.
+     */
+    public function setApiKey(array $record): void
+    {
+        $this->apiKeyRecord = $record;
+    }
+
+    /**
+     * Get the validated API key record.
+     *
+     * @return array|null The key record or null if not an API request
+     */
+    public function apiKey(): ?array
+    {
+        return $this->apiKeyRecord;
+    }
+
+    /**
+     * Get the API key name (convenience method).
+     */
+    public function apiKeyName(): ?string
+    {
+        return $this->apiKeyRecord['name'] ?? null;
+    }
+
+    /**
+     * Check if the authenticated API key has a specific permission.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        if (!$this->apiKeyRecord) {
+            return false;
+        }
+
+        return \Ace\ApiKey::hasPermission($this->apiKeyRecord, $permission);
+    }
+
+    /**
      * Get the relative request path, stripping base subdirectories and query params
      */
     public function getPath(): string

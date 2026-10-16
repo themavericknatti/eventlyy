@@ -69,5 +69,16 @@ if ($app->db) {
 $router = $app->router;
 require_once $rootDir . '/routes/web.php';
 
+// Load API routes (auto-prefixed with /api, CORS + API key middleware applied)
+$apiRoutesFile = $rootDir . '/routes/api.php';
+if (file_exists($apiRoutesFile)) {
+    $router->group('/api', function ($router) use ($rootDir, $apiRoutesFile) {
+        // Apply CORS middleware to all API routes
+        $router->group('', function ($router) use ($apiRoutesFile) {
+            require_once $apiRoutesFile;
+        }, [\Ace\Middlewares\CorsMiddleware::class]);
+    });
+}
+
 // Run the Application
 $app->run();

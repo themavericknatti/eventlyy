@@ -59,5 +59,17 @@ Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
 - Web: `return $this->render('view', $params)` or `$this->redirect($url, 302, $flash)`
 - API: `$this->json($data)` or `$this->success($msg)` or `$this->error($msg, 422)`
 
+## API-First Development & Frontend Integration
+- API routes live in `routes/api.php` (auto-prefixed with `/api`, CORS enabled, CSRF bypassed)
+- Frontends (React, Next.js, Nuxt.js) authenticate via API keys:
+  - Header: `Authorization: Bearer <key>` OR `X-Api-Key: <key>`
+  - Generate keys via CLI: `php ace make:apikey "React App"`
+  - List keys: `php ace apikey:list`
+  - Revoke key: `php ace apikey:revoke <prefix>`
+- Middleware:
+  - `Ace\Middlewares\CorsMiddleware` handles CORS for React/Next/Nuxt frontends
+  - `Ace\Middlewares\ApiKeyMiddleware` validates keys from DB, checks expiry/status
+- In controllers: `$request->apiKey()`, `$request->apiKeyName()`, `$request->hasPermission('perm')`
+
 ## For Full Reference
 Read: GUIDE.md (in project root)

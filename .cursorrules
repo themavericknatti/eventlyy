@@ -18,7 +18,8 @@ MANDATORY RULES:
 
 Naming: UserController, UserService, UserRepository, StoreUserRequest, User (model).
 File paths: app/Controllers/, app/Services/, app/Repositories/, app/Requests/, app/Models/, views/.
-Routes: routes/web.php.
-CLI: php ace make:controller|model|service|repository|request|middleware|migration|seeder <Name>.
+Routes: routes/web.php (web), routes/api.php (API first with CORS and API keys).
+CLI: php ace make:controller|model|service|repository|request|apikey|middleware|migration|seeder <Name>.
+API Auth: Authorization: Bearer <key> or X-Api-Key: <key>. Generate keys with php ace make:apikey <Name>.
 
 Full documentation: GUIDE.md

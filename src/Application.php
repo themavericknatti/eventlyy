@@ -248,6 +248,11 @@ class Application
         exit;
     }
 
+    /**
+     * Whether the current request is an API request (/api/* path)
+     */
+    public bool $isApiRequest = false;
+
     public function run(): void
     {
         ob_start();
@@ -255,10 +260,18 @@ class Application
             // Check for maintenance mode
             $this->checkMaintenanceMode();
 
+            // Determine if this is an API request
+            $path = $this->request->getPath();
+            $this->isApiRequest = str_starts_with($path, '/api/') || $path === '/api';
+
             // Run global middlewares
             (new \Ace\Middlewares\SecurityHeadersMiddleware())->execute('');
             (new \Ace\Middlewares\RateLimitMiddleware())->execute('');
-            (new \Ace\Middlewares\CsrfMiddleware())->execute('');
+
+            // Skip CSRF verification for API routes (they use API key auth instead)
+            if (!$this->isApiRequest) {
+                (new \Ace\Middlewares\CsrfMiddleware())->execute('');
+            }
 
             echo $this->router->resolve();
             ob_end_flush();

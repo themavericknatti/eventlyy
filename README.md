@@ -34,10 +34,14 @@ Your app will be live at `http://127.0.0.1:8000`!
 ```text
 ├── app/
 │   ├── Controllers/       # Application Controllers
+│   ├── Services/          # Domain Business Logic Layer
+│   ├── Repositories/      # Data Access Abstraction Layer
+│   ├── Requests/          # FormRequest Validation Classes
 │   ├── Middlewares/       # Custom Middlewares
 │   └── Models/            # ActiveRecord Models
 ├── config/
 │   ├── app.php            # App configuration
+│   ├── cors.php           # CORS settings (React / Next / Nuxt)
 │   ├── database.php       # Database configuration
 │   └── settings.json      # Dynamic settings
 ├── migrations/            # Database schema migrations
@@ -47,7 +51,8 @@ Your app will be live at `http://127.0.0.1:8000`!
 │   ├── .htaccess          # Production URL rewrites
 │   └── index.php          # Single application entry point
 ├── routes/
-│   └── web.php            # Application HTTP routes
+│   ├── web.php            # Web HTTP routes (HTML views)
+│   └── api.php            # API routes (/api prefix, CORS, API key auth)
 ├── src/                   # Core Ace Framework source code
 ├── storage/               # Logs and compiled view cache
 ├── .env.example           # Environment template
@@ -65,9 +70,15 @@ Ace includes a built-in CLI tool to streamline development:
 | Command | Description |
 | :--- | :--- |
 | `php ace serve` | Starts the built-in development server (default port 8000) |
-| `php ace serve --port=8080` | Starts dev server on a custom port |
-| `php ace make:controller <Name>` | Generates a boilerplate Controller in `app/Controllers/` |
+| `php ace test` | Runs the full PHPUnit test suite |
+| `php ace make:controller <Name>` | Generates a Controller in `app/Controllers/` |
 | `php ace make:model <Name>` | Generates an ActiveRecord Model in `app/Models/` |
+| `php ace make:service <Name>` | Generates a Service class in `app/Services/` |
+| `php ace make:repository <Name>` | Generates a Repository in `app/Repositories/` |
+| `php ace make:request <Name>` | Generates a FormRequest class in `app/Requests/` |
+| `php ace make:apikey <Name>` | Generates secure API key for frontends (React/Next/Nuxt) |
+| `php ace apikey:list` | Lists all registered API keys |
+| `php ace apikey:revoke <prefix>` | Deactivates an API key by prefix |
 | `php ace make:middleware <Name>` | Generates a Middleware in `app/Middlewares/` |
 | `php ace make:migration <name>` | Generates a timestamped migration in `migrations/` |
 | `php ace migrate` | Runs all pending database migrations |
