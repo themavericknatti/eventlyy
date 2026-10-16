@@ -1,0 +1,63 @@
+# Ace PHP MVC Framework — AI Coding Instructions
+#
+# This file instructs AI assistants (GitHub Copilot, Cursor, Antigravity,
+# ChatGPT, Claude, etc.) on how to generate code for this project.
+# AI agents MUST read GUIDE.md for the full architecture reference.
+
+## Framework Identity
+- Name: Ace PHP MVC Framework
+- Namespace: Core = `Ace\`, App = `App\`
+- PHP Version: >= 8.2
+- Pattern: MVC + Service Layer + Repository Pattern
+
+## MANDATORY Architecture Rules
+1. **NEVER put business logic in Controllers.** Controllers only orchestrate.
+2. **NEVER put database queries in Controllers or Services.** Only Repositories query the database.
+3. **ALWAYS validate user input** before passing to Services. Use `$this->validate()` or FormRequest classes.
+4. **ALWAYS use the layered flow**: Controller → Service → Repository → Model.
+5. **ALWAYS use proper naming**: `UserController`, `UserService`, `UserRepository`, `StoreUserRequest`, `User` (model).
+
+## File Locations
+- Controllers:   `app/Controllers/{Name}Controller.php`
+- Models:        `app/Models/{Name}.php`
+- Services:      `app/Services/{Name}Service.php`
+- Repositories:  `app/Repositories/{Name}Repository.php`
+- FormRequests:  `app/Requests/{Action}{Name}Request.php`
+- Middleware:    `app/Middlewares/{Name}Middleware.php`
+- Migrations:    `migrations/m_{timestamp}_{description}.php`
+- Views:         `views/{feature}/{action}.php`
+- Routes:        `routes/web.php`
+
+## Code Generation Checklist
+When asked to create a feature, generate ALL of these:
+- [ ] Migration (if new table needed)
+- [ ] Model (`app/Models/`)
+- [ ] Repository (`app/Repositories/`)
+- [ ] Service (`app/Services/`)
+- [ ] FormRequest(s) (`app/Requests/`)
+- [ ] Controller (`app/Controllers/`)
+- [ ] Routes (`routes/web.php`)
+- [ ] Views (`views/{feature}/`)
+
+## View Template Syntax
+- Use `{{ $var }}` for escaped output
+- Use `{!! $html !!}` for raw output
+- Use `@extends('layouts/main')` for layout inheritance
+- Use `@section('content')` ... `@endsection` for sections
+- Use `@foreach`, `@if`, `@else`, `@endif` for control flow
+- Use `@csrf` in all forms
+- Use `@method('PUT')` or `@method('DELETE')` for method spoofing
+- Use `@error('field')` ... `@enderror` for validation errors
+- Use `@paginate($collection)` for pagination
+- Use `@url(route('name'))` for safe URLs in href attributes
+- Use `old('field')` to repopulate form fields after validation failure
+
+## Validation Syntax
+Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
+
+## Response Patterns
+- Web: `return $this->render('view', $params)` or `$this->redirect($url, 302, $flash)`
+- API: `$this->json($data)` or `$this->success($msg)` or `$this->error($msg, 422)`
+
+## For Full Reference
+Read: GUIDE.md (in project root)

@@ -244,6 +244,95 @@ switch ($command) {
         echo "✅ Created Listener: app/Listeners/{$name}.php\n\n";
         break;
 
+    case 'make:service':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the service name. e.g. php ace make:service OrderService\n\n";
+            exit(1);
+        }
+
+        $name = ucfirst($name);
+        if (!str_ends_with($name, 'Service')) {
+            $name .= 'Service';
+        }
+
+        $servicesDir = $rootDir . '/app/Services';
+        if (!is_dir($servicesDir)) {
+            mkdir($servicesDir, 0755, true);
+        }
+
+        $filePath = $servicesDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Service '{$name}' already exists.\n\n";
+            exit(1);
+        }
+
+        $template = "<?php\n\nnamespace App\Services;\n\nuse Ace\Service;\n\nclass {$name} extends Service\n{\n    public function __construct(\n        // Inject repositories or dependencies here\n    ) {}\n\n    // Implement domain business methods here\n}\n";
+
+        file_put_contents($filePath, $template);
+        echo "✅ Created Service: app/Services/{$name}.php\n\n";
+        break;
+
+    case 'make:repository':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the repository name. e.g. php ace make:repository UserRepository\n\n";
+            exit(1);
+        }
+
+        $name = ucfirst($name);
+        if (!str_ends_with($name, 'Repository')) {
+            $name .= 'Repository';
+        }
+
+        $baseModel = substr($name, 0, -10); // Strip 'Repository'
+
+        $reposDir = $rootDir . '/app/Repositories';
+        if (!is_dir($reposDir)) {
+            mkdir($reposDir, 0755, true);
+        }
+
+        $filePath = $reposDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Repository '{$name}' already exists.\n\n";
+            exit(1);
+        }
+
+        $template = "<?php\n\nnamespace App\Repositories;\n\nuse Ace\Repository;\nuse App\Models\\{$baseModel};\n\nclass {$name} extends Repository\n{\n    protected string \$modelClass = {$baseModel}::class;\n\n    // Add custom model-specific queries or data access methods here\n}\n";
+
+        file_put_contents($filePath, $template);
+        echo "✅ Created Repository: app/Repositories/{$name}.php\n\n";
+        break;
+
+    case 'make:request':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the request name. e.g. php ace make:request StoreUserRequest\n\n";
+            exit(1);
+        }
+
+        $name = ucfirst($name);
+        if (!str_ends_with($name, 'Request')) {
+            $name .= 'Request';
+        }
+
+        $requestsDir = $rootDir . '/app/Requests';
+        if (!is_dir($requestsDir)) {
+            mkdir($requestsDir, 0755, true);
+        }
+
+        $filePath = $requestsDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Request '{$name}' already exists.\n\n";
+            exit(1);
+        }
+
+        $template = "<?php\n\nnamespace App\Requests;\n\nuse Ace\FormRequest;\n\nclass {$name} extends FormRequest\n{\n    public function authorize(): bool\n    {\n        return true;\n    }\n\n    public function rules(): array\n    {\n        return [\n            // Define validation rules (e.g. 'email' => 'required|email|max:255')\n        ];\n    }\n\n    public function messages(): array\n    {\n        return [\n            // Custom error messages (optional)\n        ];\n    }\n}\n";
+
+        file_put_contents($filePath, $template);
+        echo "✅ Created FormRequest: app/Requests/{$name}.php\n\n";
+        break;
+
     case 'make:seeder':
         $name = $args[2] ?? null;
         if (!$name) {
@@ -425,6 +514,9 @@ switch ($command) {
         echo "  make:migration <name>    Generates a boilerplate timestamped migration file.\n";
         echo "  make:controller <Name>   Generates a boilerplate Controller class.\n";
         echo "  make:model <Name>        Generates a boilerplate Active Record Model class.\n";
+        echo "  make:service <Name>      Generates a Service class for domain business logic.\n";
+        echo "  make:repository <Name>   Generates a Repository class for data access abstraction.\n";
+        echo "  make:request <Name>      Generates a FormRequest class for validated request input.\n";
         echo "  make:middleware <Name>   Generates a boilerplate Middleware class.\n";
         echo "  make:action <Name>       Generates an Action class for single-purpose business logic.\n";
         echo "  make:event <Name>        Generates an Event class.\n";

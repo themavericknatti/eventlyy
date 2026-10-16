@@ -1,0 +1,24 @@
+# Ace PHP MVC Framework — Cursor AI Rules
+# Read GUIDE.md for the full architecture reference.
+
+You are working on a PHP MVC application built with the Ace Framework.
+
+Architecture: MVC + Service Layer + Repository Pattern.
+Namespace: Core = Ace\, Application = App\.
+PHP version: >= 8.2.
+
+MANDATORY RULES:
+1. Controllers NEVER contain business logic or database queries. They only orchestrate.
+2. Services contain business logic. They call Repositories, never the database directly.
+3. Repositories contain all database queries. They use Models.
+4. All user input MUST be validated before reaching Services. Use $this->validate() or FormRequest classes.
+5. The standard data flow is: Controller → Validate → Service → Repository → Model.
+6. Views use Blade-like template syntax: {{ }}, @if, @foreach, @extends, @section, @csrf, @error, @paginate.
+7. When creating any feature, generate: Migration, Model, Repository, Service, FormRequest, Controller, Routes, and Views.
+
+Naming: UserController, UserService, UserRepository, StoreUserRequest, User (model).
+File paths: app/Controllers/, app/Services/, app/Repositories/, app/Requests/, app/Models/, views/.
+Routes: routes/web.php.
+CLI: php ace make:controller|model|service|repository|request|middleware|migration|seeder <Name>.
+
+Full documentation: GUIDE.md
