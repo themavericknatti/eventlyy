@@ -120,8 +120,20 @@ Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
 - CLI: `php ace idempotency:purge`
 - Helper: `idempotency()` returns `Ace\IdempotencyManager`
 
+## Multi-Gateway Payments & Webhook Idempotency
+- Config: `config/payment.php` (default driver, per-gateway credentials, idempotency settings)
+- Drivers: `paystack`, `flutterwave`, `stripe`, `crypto` (NOWPayments / Coinbase Commerce)
+- Interface: `Ace\Payments\PaymentGatewayInterface` — `getName()`, `isConfigured()`, `initialize()`, `verify()`, `verifyWebhookSignature()`
+- Manager: `Ace\Payments\PaymentManager` — Driver factory, idempotent init/webhook
+- Facade: `Ace\Payment` — Static proxy (`Payment::driver('stripe')`, `Payment::initialize(...)`)
+- Helper: `payment(?string $driver)` returns `PaymentManager` or specific `PaymentGatewayInterface`
+- Idempotent Init: `payment()->idempotentInitialize($key, $email, $amount, $callbackUrl)` — prevents double charges
+- Idempotent Webhook: `payment()->idempotentWebhook($eventId, fn() => ...)` — prevents double-crediting
+- Custom Drivers: `payment()->extend('momo', fn() => new MoMoGateway())`
+- Paystack extras: `createTransferRecipient()`, `initiateTransfer()` for bank payouts
+- All gateways forward `Idempotency-Key` headers to upstream APIs (Stripe, Paystack) for native dedup
+- Webhook HMAC verification: Paystack (SHA512), Flutterwave (hash match), Stripe (SHA256+timestamp), Crypto (SHA512/SHA256)
+
 ## For Full Reference
 Read: GUIDE.md (in project root)
-
-
 

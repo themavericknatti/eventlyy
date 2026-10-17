@@ -1711,3 +1711,172 @@ php ace idempotency:purge
 
 
 
+
+## 25. Multi-Gateway Payments & Webhook Idempotency
+
+Ace ships with a unified multi-gateway payment system supporting **Paystack**, **Flutterwave**, **Stripe**, and **Cryptocurrency** (NOWPayments / Coinbase Commerce) out of the box — all with built-in idempotency protection to prevent duplicate charges or double-crediting accounts.
+
+### Configuration
+
+All gateway credentials live in `config/payment.php`. Set the following `.env` keys:
+
+```bash
+# Default driver
+PAYMENT_DEFAULT_DRIVER=paystack
+
+# Paystack
+PAYSTACK_PUBLIC_KEY=pk_test_xxx
+PAYSTACK_SECRET_KEY=sk_test_xxx
+
+# Flutterwave
+FLW_PUBLIC_KEY=FLWPUBK_TEST-xxx
+FLW_SECRET_KEY=FLWSECK_TEST-xxx
+FLW_SECRET_HASH=your_webhook_secret_hash
+
+# Stripe
+STRIPE_PUBLIC_KEY=pk_test_xxx
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# Cryptocurrency (NOWPayments / Coinbase)
+CRYPTO_PROVIDER=nowpayments   # or "coinbase"
+CRYPTO_API_KEY=xxx
+CRYPTO_IPN_SECRET=xxx
+```
+
+### Quick Start — Using the `payment()` Helper
+
+```php
+// Initialize a Paystack payment (default driver)
+$result = payment()->initialize(
+    email: 'customer@example.com',
+    amount: 5000.00,
+    callbackUrl: url('/payment/callback'),
+);
+// Redirect: $result['checkout_url']
+
+// Verify a transaction
+$verification = payment()->verify($reference);
+if ($verification['status'] === 'success') {
+    // Credit the user's account
+}
+```
+
+### Switching Gateways
+
+```php
+// Use Stripe
+$result = payment('stripe')->initialize('user@app.com', 29.99, url('/callback'));
+
+// Use Flutterwave
+$result = payment('flutterwave')->initialize('user@app.com', 5000, url('/callback'));
+
+// Use Crypto (NOWPayments)
+$result = payment('crypto')->initialize('user@app.com', 100.0, url('/callback'), null, [
+    'pay_currency' => 'BTC',
+    'price_currency' => 'USD',
+]);
+```
+
+### Static Facade Syntax
+
+```php
+use Ace\Payment;
+
+$result = Payment::driver('stripe')->initialize('user@app.com', 29.99, url('/callback'));
+$status = Payment::verify($reference);
+```
+
+### Idempotent Payment Initialization
+
+Prevents duplicate charges when the client retries (network timeout, browser refresh, etc.):
+
+```php
+// Same idempotency key = same checkout session returned, never a double charge
+$result = payment()->idempotentInitialize(
+    idempotencyKey: $request->header('Idempotency-Key'),
+    email: 'customer@example.com',
+    amount: 5000.00,
+    callbackUrl: url('/payment/callback'),
+);
+
+if ($result['_idempotent_replay'] ?? false) {
+    // This was a cached replay, not a new transaction
+}
+```
+
+### Idempotent Webhook Processing
+
+Prevents double-crediting accounts when payment gateways retry webhooks:
+
+```php
+// In your webhook controller:
+public function handlePaystackWebhook()
+{
+    $payload = file_get_contents('php://input');
+    $signature = $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] ?? '';
+
+    if (!payment('paystack')->verifyWebhookSignature($payload, $signature)) {
+        return response()->json(['error' => 'Invalid signature'], 403);
+    }
+
+    $event = json_decode($payload, true);
+    $eventId = $event['data']['reference'];
+
+    $result = payment()->idempotentWebhook($eventId, function() use ($event) {
+        // This closure only executes ONCE per unique event
+        $verification = payment()->verify($event['data']['reference']);
+        if ($verification['status'] === 'success') {
+            // Credit user balance, issue ticket, fulfill order...
+            return ['credited' => true, 'amount' => $verification['amount']];
+        }
+        return ['credited' => false];
+    });
+
+    // $result['replayed'] === true means this webhook was already processed
+    return response()->json(['ok' => true]);
+}
+```
+
+### Paystack Transfers / Payouts
+
+```php
+$paystack = payment('paystack');
+
+// Create a transfer recipient
+$recipient = $paystack->createTransferRecipient(
+    name: 'John Doe',
+    accountNumber: '0123456789',
+    bankCode: '058', // GTBank
+);
+
+// Initiate a payout
+$transfer = $paystack->initiateTransfer(
+    amount: 50000.00,
+    recipientCode: $recipient['recipient_code'],
+    reason: 'Event host payout',
+);
+```
+
+### Custom Gateway Drivers
+
+Register your own payment gateway at runtime:
+
+```php
+payment()->extend('momo', function() {
+    return new MoMoGateway();
+});
+
+$result = payment('momo')->initialize('user@app.com', 500, url('/callback'));
+```
+
+### Webhook Signature Verification by Provider
+
+| Gateway      | Header                       | Algorithm     |
+|--------------|------------------------------|---------------|
+| Paystack     | `X-Paystack-Signature`       | HMAC-SHA512   |
+| Flutterwave  | `verif-hash`                 | Secret Hash   |
+| Stripe       | `Stripe-Signature`           | HMAC-SHA256   |
+| NOWPayments  | `x-nowpayments-sig`          | HMAC-SHA512   |
+| Coinbase     | `X-CC-Webhook-Signature`     | HMAC-SHA256   |
+

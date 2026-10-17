@@ -1794,3 +1794,24 @@ if (!function_exists('dispatch')) {
     }
 }
 
+if (!function_exists('payment')) {
+    /**
+     * Get the payment manager instance or a specific payment gateway driver.
+     *
+     * @param string|null $driver 'paystack', 'flutterwave', 'stripe', 'crypto', or null for manager
+     * @return \Ace\Payments\PaymentManager|\Ace\Payments\PaymentGatewayInterface
+     */
+    function payment(?string $driver = null): \Ace\Payments\PaymentManager|\Ace\Payments\PaymentGatewayInterface
+    {
+        static $manager = null;
+        if ($manager === null) {
+            $manager = new \Ace\Payments\PaymentManager();
+        }
+
+        if ($driver !== null) {
+            return $manager->driver($driver);
+        }
+
+        return $manager;
+    }
+}

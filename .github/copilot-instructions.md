@@ -120,8 +120,18 @@ Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
 - CLI: `php ace idempotency:purge`
 - Helper: `idempotency()` returns `Ace\IdempotencyManager`
 
+## Multi-Gateway Payments & Webhook Idempotency
+- Config: `config/payment.php` (default driver, per-gateway credentials, idempotency settings)
+- Drivers: `paystack`, `flutterwave`, `stripe`, `crypto` (NOWPayments / Coinbase Commerce)
+- Interface: `Ace\Payments\PaymentGatewayInterface` — unified contract for all gateways
+- Manager: `Ace\Payments\PaymentManager` — driver factory with idempotent init/webhook
+- Facade: `Ace\Payment` — static proxy (`Payment::driver('stripe')`, `Payment::initialize(...)`)
+- Helper: `payment(?string $driver)` returns `PaymentManager` or specific gateway
+- Idempotent Init: `payment()->idempotentInitialize($key, ...)` — prevents double charges
+- Idempotent Webhook: `payment()->idempotentWebhook($eventId, fn() => ...)` — prevents double-crediting
+- Custom Drivers: `payment()->extend('momo', fn() => new MoMoGateway())`
+- All gateways forward `Idempotency-Key` headers to upstream APIs for native dedup
+
 ## For Full Reference
 Read: GUIDE.md (in project root)
-
-
 

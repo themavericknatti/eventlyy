@@ -45,7 +45,7 @@ class IdempotencyMiddleware extends Middleware
         $response = Application::$app->response;
 
         // Idempotency applies primarily to mutation methods (POST, PUT, PATCH, DELETE)
-        $method = strtoupper($request->getMethod());
+        $method = strtoupper($request->method());
         if (in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
             return;
         }
