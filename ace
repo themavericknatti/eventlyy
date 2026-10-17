@@ -775,10 +775,22 @@ switch ($command) {
         }
         break;
 
+    case 'idempotency:purge':
+        echo "🧹 Purging expired idempotency keys...\n";
+        try {
+            $manager = new \Ace\IdempotencyManager();
+            $purged = $manager->purgeExpired();
+            echo "✅ Successfully purged {$purged} expired idempotency keys.\n\n";
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
     case 'tinker':
         $shell = new \Ace\ConsoleShell($app);
         $shell->start();
         break;
+
 
     case 'help':
     default:
@@ -808,6 +820,7 @@ switch ($command) {
         echo "  queue:failed             Lists all permanently failed background jobs.\n";
         echo "  queue:retry <id|all>     Retries failed jobs back into the active queue.\n";
         echo "  queue:clear [queue]      Clears pending jobs from the queue.\n";
+        echo "  idempotency:purge        Deletes expired idempotency keys from the database.\n";
         echo "  make:middleware <Name>   Generates a boilerplate Middleware class.\n";
         echo "  make:action <Name>       Generates an Action class for single-purpose business logic.\n";
         echo "  make:event <Name>        Generates an Event class.\n";

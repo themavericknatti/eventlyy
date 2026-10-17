@@ -110,7 +110,18 @@ Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
 - CLI: `php ace make:template <name>`
 - Critical: Switching templates MUST NEVER touch or reset authentication, customer carts, or business data.
 
+## API Idempotency & Mutation Deduplication
+- Middleware: `Ace\Middlewares\IdempotencyMiddleware`
+- Header: `Idempotency-Key` or `X-Idempotency-Key` (UUID)
+- Behavior: Caches responses (24h) for identical method + path + payload; replays with `Idempotent-Replayed: true`
+- Concurrent requests receive 409 Conflict with `Retry-After: 2`
+- Reused keys with modified payloads receive 422 Unprocessable Entity
+- Tables: `idempotency_keys` (via migration `m2026_01_01_000004_create_idempotency_keys_table.php`)
+- CLI: `php ace idempotency:purge`
+- Helper: `idempotency()` returns `Ace\IdempotencyManager`
+
 ## For Full Reference
 Read: GUIDE.md (in project root)
+
 
 

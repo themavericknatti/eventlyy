@@ -34,8 +34,10 @@
 21. [ActiveRecord Relationships](#21-activerecord-relationships)
 22. [Interactive Console (Tinker)](#22-interactive-console-tinker)
 23. [Multi-Template Presentation Layer](#23-multi-template-presentation-layer)
+24. [API Idempotency & Mutation Deduplication](#24-api-idempotency--mutation-deduplication)
 
 ---
+
 
 
 ## 1. Architecture Overview
@@ -1660,5 +1662,52 @@ Generate a new visual template scaffold with one command:
 ```bash
 php ace make:template modern
 ```
+
+---
+
+## 24. API Idempotency & Mutation Deduplication
+
+Ace implements **Stripe-standard Idempotency-Key support** for mutation endpoints (`POST`, `PUT`, `PATCH`, `DELETE`). This prevents duplicate transactions, accidental double-orders, and payment collisions caused by network retries or client double-submits.
+
+### How It Works
+
+1. Client sends an HTTP mutation with the `Idempotency-Key` or `X-Idempotency-Key` header (typically a UUIDv4):
+   ```http
+   POST /api/orders HTTP/1.1
+   Host: example.com
+   Authorization: Bearer ace_key_...
+   Idempotency-Key: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+   Content-Type: application/json
+
+   {"plan_id": 12, "amount": 99.00}
+   ```
+2. **First Request**: The `IdempotencyMiddleware` locks the key as `pending`, hashes the request method, URI, and JSON payload, runs your controller/service, captures the HTTP response (status + body), and stores it for 24 hours.
+3. **Subsequent Retries**: If the same key arrives with the exact same payload, the controller is **not re-executed**. The cached response is replayed immediately with the header `Idempotent-Replayed: true`.
+4. **Concurrent Requests**: If two threads send the same key simultaneously, the second receives `409 Conflict` (`Retry-After: 2`) until the first completes.
+5. **Payload Mismatch Protection**: If an attacker or client re-uses an existing key with a different payload (e.g. altered amount), Ace rejects it with `422 Unprocessable Entity`.
+
+### Route Registration
+
+Apply `IdempotencyMiddleware` to sensitive mutation endpoints in `routes/api.php` or `routes/web.php`:
+
+```php
+use Ace\Middlewares\ApiKeyMiddleware;
+use Ace\Middlewares\IdempotencyMiddleware;
+
+// Require idempotency on payment/order routes
+$router->post('/api/orders', [OrderController::class, 'store'], [
+    ApiKeyMiddleware::class,
+    IdempotencyMiddleware::class,
+]);
+```
+
+### CLI Maintenance
+
+Purge expired idempotency keys from the database (ideal for recurring cron jobs):
+
+```bash
+php ace idempotency:purge
+```
+
 
 

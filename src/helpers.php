@@ -152,6 +152,20 @@ if (!function_exists('template_asset')) {
     }
 }
 
+if (!function_exists('idempotency')) {
+    /**
+     * Get the IdempotencyManager instance or execute a callback with idempotency guarantee.
+     *
+     * Example:
+     *   $result = idempotency()->check($key, $scope, $hash);
+     */
+    function idempotency(): \Ace\IdempotencyManager
+    {
+        return new \Ace\IdempotencyManager();
+    }
+}
+
+
 
 if (!function_exists('paginate_links')) {
     /**
