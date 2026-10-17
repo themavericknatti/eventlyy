@@ -13,6 +13,11 @@ class Controller
     protected array $middlewares = [];
 
     /**
+     * Active visual template override for this controller
+     */
+    protected ?string $template = null;
+
+    /**
      * Set layout template for the controller
      */
     public function setLayout(string $layout): void
@@ -21,12 +26,32 @@ class Controller
     }
 
     /**
-     * Render a view from the controller
+     * Set explicit visual template override for this controller
      */
-    public function render(string $view, array $params = []): string
+    public function setTemplate(?string $template): self
     {
+        $this->template = $template;
+        if (isset(Application::$app->templates)) {
+            Application::$app->templates->setOverride($template);
+        }
+        return $this;
+    }
+
+    /**
+     * Render a view from the controller
+     *
+     * @param string $view View name
+     * @param array $params Data parameters
+     * @param string|null $template Optional explicit template override for this view render
+     */
+    public function render(string $view, array $params = [], ?string $template = null): string
+    {
+        if ($template !== null && isset(Application::$app->templates)) {
+            Application::$app->templates->setOverride($template);
+        }
         return Application::$app->router->renderView($view, $params);
     }
+
 
     /**
      * Register route middleware on the controller

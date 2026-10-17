@@ -99,6 +99,18 @@ Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
 - Auto-aliases all `app/Models/*.php` classes to root namespace
 - Supports: PHP expressions, Model queries, Queue ops, math, arrays
 
+## Multi-Template Presentation Layer
+- Config: `config/templates.php` (enabled, default, strategy, available, fallback, allow_overrides)
+- Policies: `session` (Policy A), `visit` (Policy B), `persistent` (Policy C), `random` (Policy D), `fixed` (Policy E)
+- Views structure: `views/templates/{template_name}/{view}.php`
+- Fallback hierarchy: Template-specific view → Fallback template view → Shared root `views/{view}.php`
+- Directives: `@activeTemplate`, `@template('name') ... @endtemplate`, `@templateAsset('path')`
+- Helpers: `active_template()`, `template('name')`, `template_asset('path')`, `view($view, $params, $template)`
+- Controller override: `$this->render($view, $params, $template)` or `$this->setTemplate($template)`
+- CLI: `php ace make:template <name>`
+- Critical: Switching templates MUST NEVER touch or reset authentication, customer carts, or business data.
+
 ## For Full Reference
 Read: GUIDE.md (in project root)
+
 

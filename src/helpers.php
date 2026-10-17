@@ -92,12 +92,66 @@ if (!function_exists('get_currency_symbol')) {
 if (!function_exists('view')) {
     /**
      * Render a view template.
+     *
+     * @param string $view View name (e.g. 'shop.products.index')
+     * @param array $params Data passed to the view
+     * @param string|null $template Optional explicit template override
      */
-    function view(string $view, array $params = []): string
+    function view(string $view, array $params = [], ?string $template = null): string
     {
+        if ($template !== null && isset(Application::$app->templates)) {
+            Application::$app->templates->setOverride($template);
+        }
         return Application::$app->view->render($view, $params);
     }
 }
+
+if (!function_exists('template')) {
+    /**
+     * Get the TemplateManager instance or the active template name.
+     */
+    function template(?string $name = null): mixed
+    {
+        $manager = Application::$app->templates ?? null;
+        if (!$manager) {
+            return $name ?: 'minimal';
+        }
+        if ($name !== null) {
+            $manager->set($name);
+            return $manager;
+        }
+        return $manager;
+    }
+}
+
+if (!function_exists('active_template')) {
+    /**
+     * Get the active visual template identifier.
+     */
+    function active_template(): string
+    {
+        $manager = Application::$app->templates ?? null;
+        return $manager ? $manager->resolve() : 'minimal';
+    }
+}
+
+if (!function_exists('template_asset')) {
+    /**
+     * Generate URL for an asset specific to the active visual template.
+     * Looks up /assets/templates/{active}/{path} or falls back to /assets/{path}.
+     */
+    function template_asset(string $path): string
+    {
+        $active = active_template();
+        $cleanPath = ltrim($path, '/');
+        $templateAssetPath = Application::$ROOT_DIR . '/public/assets/templates/' . $active . '/' . $cleanPath;
+        if (file_exists($templateAssetPath)) {
+            return asset('assets/templates/' . $active . '/' . $cleanPath);
+        }
+        return asset($cleanPath);
+    }
+}
+
 
 if (!function_exists('paginate_links')) {
     /**

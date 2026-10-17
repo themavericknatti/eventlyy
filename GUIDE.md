@@ -33,8 +33,10 @@
 20. [Background Job Queue](#20-background-job-queue)
 21. [ActiveRecord Relationships](#21-activerecord-relationships)
 22. [Interactive Console (Tinker)](#22-interactive-console-tinker)
+23. [Multi-Template Presentation Layer](#23-multi-template-presentation-layer)
 
 ---
+
 
 ## 1. Architecture Overview
 
@@ -1541,4 +1543,122 @@ Goodbye!
 - **Error handling**: Exceptions are caught gracefully with file/line info.
 - **Commands**: `exit`/`quit`/`q` to leave, `clear`/`cls` to clear screen.
 - **Full framework boot**: Database, config, helpers, and all services are available.
+
+---
+
+## 23. Multi-Template Presentation Layer
+
+The **Multi-Template Layer** allows a single Ace application to render multiple visual designs (e.g. `minimal`, `premium`, `creative`) using the exact same underlying controllers, services, repositories, database models, carts, and authentication state.
+
+Switching templates changes **only the presentation**; no session data, authentication credentials, customer shopping cart, or backend business logic is touched or reset.
+
+### Directory Structure
+
+Templates integrate cleanly with the existing `views/` directory:
+
+```text
+views/
+├── templates/
+│   ├── minimal/
+│   │   ├── layouts/
+│   │   │   └── main.php
+│   │   └── shop/
+│   │       └── index.php
+│   ├── premium/
+│   │   ├── layouts/
+│   │   │   └── main.php
+│   │   └── shop/
+│   │       └── index.php
+│   └── creative/
+│       ├── layouts/
+│       │   └── main.php
+│       └── shop/
+│           └── index.php
+├── layouts/
+│   └── main.php          (Shared fallback layout)
+├── shop/
+│   └── index.php         (Shared fallback view)
+└── home.php
+```
+
+### View Resolution Order
+
+When `TEMPLATES_ENABLED=true`:
+1. **Active Template View**: `views/templates/{active}/{view}.php`
+2. **Fallback Template View**: `views/templates/{fallback}/{view}.php` (if distinct from active)
+3. **Shared / Root View**: `views/{view}.php`
+
+If a template only customizes certain pages (e.g. storefront), all other views (admin panels, auth pages, errors) automatically fall back to standard root views without duplicating code.
+
+### Configuration (`config/templates.php`)
+
+```php
+return [
+    'enabled' => env('TEMPLATES_ENABLED', true),
+    'default' => 'minimal',
+    'strategy' => 'session', // 'session', 'visit', 'persistent', 'random', or 'fixed'
+    'available' => [
+        'minimal',
+        'premium',
+        'creative',
+    ],
+    'fallback' => 'minimal',
+    'allow_overrides' => true,
+    'allow_customer_selection' => false,
+];
+```
+
+### Supported Selection Policies
+
+| Policy | Strategy Identifier | Description |
+|---|---|---|
+| **Policy A** | `session` | Assigned once per new session; stable across requests for that session. |
+| **Policy B** | `visit` | Assigned per visit; uses a 30-minute inactivity cookie to track navigation. |
+| **Policy C** | `persistent` | Retained across sessions via 1-year first-party cookie or user account preference. |
+| **Policy D** | `random` | Random selection per request (useful for testing layouts; preserves all data). |
+| **Policy E** | `fixed` | Always uses the configured `default` template. |
+
+### Controller & View API
+
+Controllers don't need to know which template is active:
+
+```php
+class ProductController extends Controller
+{
+    public function index(): string
+    {
+        $products = $this->productService->getAll();
+        $cart = $this->cartService->getCart();
+
+        // Standard render call — automatically routed through active template!
+        return view('shop.products.index', [
+            'products' => $products,
+            'cart' => $cart,
+        ]);
+    }
+
+    // Optional: Explicit template override for a specific action/landing page
+    public function specialLanding(): string
+    {
+        return $this->render('promo', ['data' => $data], 'creative');
+    }
+}
+```
+
+### Blade Directives & Helpers
+
+- `@activeTemplate` — outputs the current active template identifier (e.g. `minimal`).
+- `@template('creative') ... @endtemplate` — conditional block rendered only under a specific template.
+- `@templateAsset('css/theme.css')` — loads template-specific asset or falls back to shared asset.
+- `active_template()` — returns active template string.
+- `template('premium')` — switches or inspects `TemplateManager`.
+
+### CLI Generator
+
+Generate a new visual template scaffold with one command:
+
+```bash
+php ace make:template modern
+```
+
 

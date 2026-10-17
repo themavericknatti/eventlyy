@@ -15,6 +15,7 @@ class Application
     public Router $router;
     public Session $session;
     public View $view;
+    public TemplateManager $templates;
     public ?Database $db = null;
     public ?Model $user = null;
     public array $config = [];
@@ -43,12 +44,21 @@ class Application
         // Load env variables
         $this->loadEnv($rootDir . '/.env');
 
+        // Template configuration
+        $templatesConfig = $this->config['templates'] ?? [];
+        $templatesConfigFile = $rootDir . '/config/templates.php';
+        if (empty($templatesConfig) && file_exists($templatesConfigFile)) {
+            $templatesConfig = require $templatesConfigFile;
+        }
+        $this->templates = new TemplateManager($templatesConfig);
+
         // Core component instances
         $this->request = new Request();
         $this->response = new Response();
         $this->session = new Session();
-        $this->view = new View(self::$ROOT_DIR . '/views', self::$ROOT_DIR . '/storage/views');
+        $this->view = new View(self::$ROOT_DIR . '/views', self::$ROOT_DIR . '/storage/views', $this->templates);
         $this->router = new Router($this->request, $this->response);
+
 
         // Database connection if configured
         $dbConfig = $this->config['db'] ?? [

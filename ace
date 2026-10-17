@@ -369,6 +369,36 @@ switch ($command) {
         echo "✅ Created Layout: views/layouts/{$name}.php (Framework: {$framework})\n\n";
         break;
 
+    case 'make:template':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the template name. e.g. php ace make:template modern\n\n";
+            exit(1);
+        }
+
+        $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($name));
+        $templateDir = $rootDir . '/views/templates/' . $cleanName;
+        $layoutsDir = $templateDir . '/layouts';
+
+        if (is_dir($templateDir)) {
+            echo "⚠️  Template '{$cleanName}' already exists in views/templates/{$cleanName}.\n\n";
+            exit(1);
+        }
+
+        mkdir($layoutsDir, 0755, true);
+
+        // Boilerplate template layout
+        $layoutContent = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>@yield('title', 'Ace - " . ucfirst($cleanName) . " Template')</title>\n    @css\n    @yield('style')\n</head>\n<body class=\"template-{$cleanName}\">\n    <header class=\"template-header p-4 border-b\">\n        <div class=\"container mx-auto flex justify-between items-center\">\n            <h1 class=\"text-xl font-bold\">Ace Storefront (" . ucfirst($cleanName) . ")</h1>\n            <span class=\"text-sm text-gray-500\">Active Template: @activeTemplate</span>\n        </div>\n    </header>\n    <main class=\"container mx-auto py-8\">\n        @yield('content')\n    </main>\n    @toasts\n    @yield('script')\n</body>\n</html>\n";
+
+        file_put_contents($layoutsDir . '/main.php', $layoutContent);
+
+        echo "✅ Created Visual Template: views/templates/{$cleanName}/\n";
+        echo "   ├── layouts/\n";
+        echo "   │   └── main.php\n";
+        echo "   Register in config/templates.php 'available' array to activate.\n\n";
+        break;
+
+
     case 'make:job':
         $name = $args[2] ?? null;
         if (!$name) {
@@ -770,6 +800,7 @@ switch ($command) {
         echo "  make:request <Name>      Generates a FormRequest class for validated request input.\n";
         echo "  make:job <Name>          Generates a Background Job class extending Ace\\Job.\n";
         echo "  make:layout <Name>       Generates a layout template (--framework=tailwind|bootstrap).\n";
+        echo "  make:template <name>     Generates a new visual presentation template directory.\n";
         echo "  make:apikey <Name>       Generates a secure API key for frontends (React/Next/Nuxt).\n";
         echo "  apikey:list              Lists all registered API keys.\n";
         echo "  apikey:revoke <prefix>   Deactivates an API key by prefix.\n";

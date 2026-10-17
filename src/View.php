@@ -8,15 +8,59 @@ class View
 {
     private string $viewsDir;
     private string $cacheDir;
+    private ?TemplateManager $templates = null;
     private array $sections = [];
     private ?string $currentSection = null;
     private ?string $layout = null;
     private array $componentStack = [];
 
-    public function __construct(string $viewsDir, string $cacheDir)
+    public function __construct(string $viewsDir, string $cacheDir, ?TemplateManager $templates = null)
     {
         $this->viewsDir = $viewsDir;
         $this->cacheDir = $cacheDir;
+        $this->templates = $templates;
+    }
+
+    /**
+     * Resolve view file path with multi-template layer support.
+     * 
+     * Lookup Order:
+     * 1. Active template specific view: views/templates/{active}/{view}.php
+     * 2. Fallback template view: views/templates/{fallback}/{view}.php (if different from active)
+     * 3. Root/Shared view: views/{view}.php
+     */
+    public function resolveViewFile(string $view): ?string
+    {
+        // Sanitize view name against path traversal
+        $cleanView = str_replace(['..', "\0"], '', $view);
+        $cleanView = ltrim($cleanView, '/\\');
+
+        if ($this->templates && $this->templates->isEnabled()) {
+            $activeTemplate = $this->templates->resolve();
+
+            // 1. Check active template directory
+            $templateView = $this->viewsDir . '/templates/' . $activeTemplate . '/' . $cleanView . '.php';
+            if (file_exists($templateView)) {
+                return $templateView;
+            }
+
+            // 2. Check fallback template directory (if different)
+            $fallback = $this->templates->getFallback();
+            if ($fallback !== $activeTemplate) {
+                $fallbackView = $this->viewsDir . '/templates/' . $fallback . '/' . $cleanView . '.php';
+                if (file_exists($fallbackView)) {
+                    return $fallbackView;
+                }
+            }
+        }
+
+        // 3. Fallback to standard views directory
+        $standardView = $this->viewsDir . '/' . $cleanView . '.php';
+        if (file_exists($standardView)) {
+            return $standardView;
+        }
+
+        return null;
     }
 
     /**
@@ -39,8 +83,8 @@ class View
         $this->currentSection = null;
         $this->layout = null;
 
-        $viewFile = $this->viewsDir . '/' . $view . '.php';
-        if (!file_exists($viewFile)) {
+        $viewFile = $this->resolveViewFile($view);
+        if (!$viewFile) {
             throw new Exception("View template '$view' not found.", 404);
         }
 
@@ -64,8 +108,8 @@ class View
 
         // If layout was set via `@extends('layout')` directive inside the view file
         if ($this->layout) {
-            $layoutFile = $this->viewsDir . '/' . $this->layout . '.php';
-            if (!file_exists($layoutFile)) {
+            $layoutFile = $this->resolveViewFile($this->layout);
+            if (!$layoutFile) {
                 throw new Exception("Layout '{$this->layout}' specified in '$view' not found.", 500);
             }
 
@@ -145,14 +189,32 @@ class View
      */
     public function include(string $view, array $params = []): string
     {
-        $viewFile = $this->viewsDir . '/' . $view . '.php';
-        if (!file_exists($viewFile)) {
+        $viewFile = $this->resolveViewFile($view);
+        if (!$viewFile) {
             throw new Exception("Included view template '$view' not found.", 404);
         }
 
         $compiledViewFile = $this->compile($viewFile);
         return $this->renderSubView($compiledViewFile, $params);
     }
+
+    /**
+     * Get the attached TemplateManager instance
+     */
+    public function getTemplates(): ?TemplateManager
+    {
+        return $this->templates;
+    }
+
+    /**
+     * Set or replace the TemplateManager instance
+     */
+    public function setTemplates(?TemplateManager $templates): self
+    {
+        $this->templates = $templates;
+        return $this;
+    }
+
 
     /**
      * Render compiled sub-view file inside an isolated scope
@@ -605,6 +667,13 @@ HTML;
         $content = str_replace('@bootstrap', '<?php echo \Ace\View::renderBootstrap(); ?>', $content);
         $content = preg_replace('/@css\(\s*(["\'])(.*?)\1\s*\)/', '<?php echo \Ace\View::renderCssFramework(\'$2\'); ?>', $content);
         $content = str_replace('@css', '<?php echo \Ace\View::renderCssFramework(); ?>', $content);
+
+        // 9j. Compiling Multi-Template directives
+        $content = str_replace('@activeTemplate', '<?php echo active_template(); ?>', $content);
+        $content = preg_replace('/@templateAsset\(\s*(["\'])(.*?)\1\s*\)/', '<?php echo template_asset(\'$2\'); ?>', $content);
+        $content = preg_replace('/@template\(\s*(["\'])(.*?)\1\s*\)/', '<?php if(active_template() === \'$2\'): ?>', $content);
+        $content = str_replace('@endtemplate', '<?php endif; ?>', $content);
+
 
         // 10. Compiling Includes (balanced parens regex to support nested expressions in params)
         $content = preg_replace_callback(
