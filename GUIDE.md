@@ -30,6 +30,9 @@
 17. [Naming Conventions](#17-naming-conventions)
 18. [Enterprise Example: Full Feature](#18-enterprise-example-full-feature)
 19. [API-First Development & Frontend Integration](#19-api-first-development--frontend-integration)
+20. [Background Job Queue](#20-background-job-queue)
+21. [ActiveRecord Relationships](#21-activerecord-relationships)
+22. [Interactive Console (Tinker)](#22-interactive-console-tinker)
 
 ---
 
@@ -1324,3 +1327,218 @@ Always return consistent JSON from API controllers:
 > this layered architecture. Generate Services, Repositories, FormRequests, and
 > proper Views — even if the user only asks for "a CRUD page". The framework is
 > designed for enterprise scale and consistency.
+
+---
+
+## 20. Background Job Queue
+
+Ace includes a **database-backed asynchronous job queue** for offloading
+long-running tasks (emails, image processing, reports) to background workers.
+No Redis or external daemons required — pure PHP + PDO.
+
+### Creating a Job
+
+```bash
+php ace make:job SendWelcomeEmail
+```
+
+This generates `app/Jobs/SendWelcomeEmailJob.php`:
+
+```php
+<?php
+namespace App\Jobs;
+
+use Ace\Job;
+
+class SendWelcomeEmailJob extends Job
+{
+    public function handle(): void
+    {
+        $userId = $this->data['user_id'];
+        // Send welcome email...
+    }
+
+    // Optional: called if job fails after all retries
+    public function failed(?\Throwable $e = null): void
+    {
+        // Log or notify about the failure
+    }
+}
+```
+
+### Dispatching Jobs
+
+```php
+use App\Jobs\SendWelcomeEmailJob;
+use Ace\Queue;
+
+// Static dispatch (recommended)
+SendWelcomeEmailJob::dispatch(['user_id' => 42]);
+
+// Delayed dispatch (60 seconds)
+SendWelcomeEmailJob::dispatchLater(60, ['user_id' => 42]);
+
+// Direct Queue::push()
+Queue::push(SendWelcomeEmailJob::class, ['user_id' => 42]);
+
+// Global helper
+dispatch(SendWelcomeEmailJob::class, ['user_id' => 42]);
+```
+
+### Running the Queue Worker
+
+```bash
+# Default: processes 'default' queue
+php ace queue:work
+
+# With options
+php ace queue:work --queue=emails --sleep=5 --tries=5 --stop-when-empty
+```
+
+### Queue Management Commands
+
+| Command                       | Description                                      |
+|-------------------------------|--------------------------------------------------|
+| `php ace make:job <Name>`     | Generate a new background Job class              |
+| `php ace queue:work`          | Start processing queued jobs                     |
+| `php ace queue:failed`        | List all permanently failed jobs                 |
+| `php ace queue:retry <id>`    | Retry a specific failed job                      |
+| `php ace queue:retry all`     | Retry all failed jobs                            |
+| `php ace queue:clear [queue]` | Delete all pending jobs from a queue             |
+
+### Migration
+
+Run `php ace migrate` — the `m2026_01_01_000003_create_jobs_table.php`
+migration creates both `jobs` and `failed_jobs` tables automatically.
+
+### Sync Mode
+
+Set `QUEUE_DRIVER=sync` in `.env` to execute jobs immediately (useful for
+development and testing). When no database is configured, jobs also run synchronously.
+
+---
+
+## 21. ActiveRecord Relationships
+
+Ace models support four relationship types via fluent **Relation** objects
+that wrap the QueryBuilder for chainable, lazy-loaded queries.
+
+### Defining Relationships
+
+```php
+use Ace\Model;
+use Ace\Relations\HasOne;
+use Ace\Relations\HasMany;
+use Ace\Relations\BelongsTo;
+use Ace\Relations\BelongsToMany;
+
+class User extends Model
+{
+    // One-to-One: User has one Profile
+    public function profile(): HasOne
+    {
+        return $this->hasOne(Profile::class);
+        // Convention: profiles.user_id → users.id
+    }
+
+    // One-to-Many: User has many Posts
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+        // Convention: posts.user_id → users.id
+    }
+
+    // Many-to-Many: User has many Roles via pivot table
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'role_user');
+        // Pivot: role_user.user_id, role_user.role_id
+    }
+}
+
+class Post extends Model
+{
+    // Inverse: Post belongs to a User
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+        // Convention: posts.user_id → users.id
+    }
+}
+```
+
+### Usage
+
+```php
+// Property access — executes query and caches result
+$user->profile;  // Profile|null
+$user->posts;    // array of Post
+$user->roles;    // array of Role
+
+// Method call — returns Relation for chaining
+$user->posts()->where('status', 'published')->orderBy('id', 'DESC')->get();
+$user->roles()->where('name', 'admin')->first();
+
+// Many-to-Many pivot operations
+$user->roles()->attach($roleId);
+$user->roles()->detach($roleId);
+$user->roles()->sync([1, 2, 3]);
+```
+
+### Convention Defaults
+
+| Relationship    | Foreign Key Convention        | Local Key |
+|-----------------|-------------------------------|-----------|
+| `hasOne`        | `{model}_id` on related table | `id`      |
+| `hasMany`       | `{model}_id` on related table | `id`      |
+| `belongsTo`     | `{related}_id` on this table  | `id`      |
+| `belongsToMany` | `{model}_id` on pivot table   | `id`      |
+
+All keys are customizable via method parameters.
+
+---
+
+## 22. Interactive Console (Tinker)
+
+Ace includes an interactive **REPL** (Read-Eval-Print Loop) console for
+live debugging, database queries, and quick prototyping — similar to Laravel's Tinker.
+
+### Starting the Console
+
+```bash
+php ace tinker
+```
+
+### Example Session
+
+```
+💬 Ace Interactive Console (Tinker)
+--------------------------------------------------------
+>>> 1 + 1
+=> 2
+
+>>> "Hello " . "World"
+=> 'Hello World'
+
+>>> User::count()
+=> 42
+
+>>> User::first()
+=> App\Models\User {"id":1,"name":"John","email":"john@example.com"}
+
+>>> Queue::size()
+=> 3
+
+>>> exit
+Goodbye!
+```
+
+### Features
+
+- **Auto-aliases**: All `app/Models/*.php` classes are aliased to root namespace
+  (`User` instead of `App\Models\User`).
+- **Model pretty-printing**: Model instances are displayed as class name + JSON.
+- **Error handling**: Exceptions are caught gracefully with file/line info.
+- **Commands**: `exit`/`quit`/`q` to leave, `clear`/`cls` to clear screen.
+- **Full framework boot**: Database, config, helpers, and all services are available.
+

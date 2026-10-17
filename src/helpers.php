@@ -1709,3 +1709,20 @@ if (!function_exists('collect')) {
         return new \Ace\Collection($items);
     }
 }
+
+if (!function_exists('dispatch')) {
+    /**
+     * Dispatch a background job onto the queue.
+     *
+     * @param string $jobClass FQCN of the job class extending \Ace\Job
+     * @param array $data Payload data passed to the job
+     * @param string $queue Target queue name (default 'default')
+     * @param int $delay Delay in seconds
+     * @return int|bool
+     */
+    function dispatch(string $jobClass, array $data = [], string $queue = 'default', int $delay = 0): int|bool
+    {
+        return \Ace\Queue::push($jobClass, $data, $queue, $delay);
+    }
+}
+

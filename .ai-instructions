@@ -74,5 +74,31 @@ Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
   - `Ace\Middlewares\ApiKeyMiddleware` validates keys from DB, checks expiry/status
 - In controllers: `$request->apiKey()`, `$request->apiKeyName()`, `$request->hasPermission('perm')`
 
+## Background Job Queue
+- Create jobs: `php ace make:job SendWelcomeEmail` → `app/Jobs/SendWelcomeEmailJob.php`
+- Jobs extend `Ace\Job`, implement `handle()`, optionally override `failed()`
+- Dispatch: `SendWelcomeEmailJob::dispatch(['user_id' => 42])`
+- Delayed: `SendWelcomeEmailJob::dispatchLater(60, $data)`
+- Helper: `dispatch(SendWelcomeEmailJob::class, $data)`
+- Worker: `php ace queue:work --queue=default --sleep=3 --tries=3`
+- Manage: `php ace queue:failed`, `queue:retry <id|all>`, `queue:clear`
+- Tables: `jobs` and `failed_jobs` (via migration `m2026_01_01_000003_create_jobs_table.php`)
+- Sync mode: set `QUEUE_DRIVER=sync` in `.env` for immediate execution
+
+## ActiveRecord Relationships
+- `$this->hasOne(Related::class)` → one-to-one (returns `Ace\Relations\HasOne`)
+- `$this->hasMany(Related::class)` → one-to-many (returns `Ace\Relations\HasMany`)
+- `$this->belongsTo(Related::class)` → inverse (returns `Ace\Relations\BelongsTo`)
+- `$this->belongsToMany(Related::class, 'pivot_table')` → many-to-many (returns `Ace\Relations\BelongsToMany`)
+- Property access: `$user->posts` — executes query and caches result
+- Method access: `$user->posts()->where('status', 'active')->get()` — fluent chain
+- Pivot: `$user->roles()->attach($id)`, `detach($id)`, `sync([1,2,3])`
+
+## Interactive Console (Tinker)
+- `php ace tinker` — starts interactive REPL with full framework boot
+- Auto-aliases all `app/Models/*.php` classes to root namespace
+- Supports: PHP expressions, Model queries, Queue ops, math, arrays
+
 ## For Full Reference
 Read: GUIDE.md (in project root)
+

@@ -180,7 +180,21 @@ class QueryBuilder
     }
 
     /**
+     * Add a raw WHERE clause.
+     */
+    public function whereRaw(string $sql, array $bindings = []): self
+    {
+        $this->wheres[] = $sql;
+        foreach ($bindings as $key => $val) {
+            $paramName = is_string($key) ? ltrim($key, ':') : 'raw_' . count($this->params) . '_' . $key;
+            $this->params[$paramName] = $val;
+        }
+        return $this;
+    }
+
+    /**
      * Set query limit.
+
      */
     public function limit(int $limit): self
     {

@@ -128,11 +128,17 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
         // Dynamically resolve relationship methods if defined (e.g. $user->posts)
         if (method_exists($this, $name)) {
             $relation = $this->{$name}();
+            if ($relation instanceof \Ace\Relations\Relation) {
+                $results = $relation->getResults();
+                $this->attributes[$name] = $results;
+                return $results;
+            }
             $this->attributes[$name] = $relation;
             return $relation;
         }
 
         return null;
+
     }
 
     public function __set(string $name, mixed $value): void
@@ -1203,74 +1209,68 @@ abstract class Model implements \ArrayAccess, \IteratorAggregate, \JsonSerializa
     /**
      * Define a one-to-one relationship.
      *
-     *   public function profile() {
+     * Example:
+     *   public function profile(): HasOne {
      *       return $this->hasOne(Profile::class);
      *   }
      */
-    public function hasOne(string $relatedClass, ?string $foreignKey = null, ?string $localKey = null): ?Model
+    public function hasOne(string $relatedClass, ?string $foreignKey = null, ?string $localKey = null): \Ace\Relations\HasOne
     {
-        $localKey = $localKey ?? $this->primaryKey();
-        $localValue = $this->attributes[$localKey] ?? $this->{$localKey} ?? null;
-
-        if ($localValue === null) {
-            return null;
-        }
-
-        if ($foreignKey === null) {
-            $shortName = strtolower((new \ReflectionClass(static::class))->getShortName());
-            $foreignKey = $shortName . '_id';
-        }
-
-        return $relatedClass::findOne([$foreignKey => $localValue]);
+        return new \Ace\Relations\HasOne($this, $relatedClass, $foreignKey, $localKey);
     }
 
     /**
      * Define a one-to-many relationship.
      *
-     *   public function posts() {
+     * Example:
+     *   public function posts(): HasMany {
      *       return $this->hasMany(Post::class);
      *   }
      */
-    public function hasMany(string $relatedClass, ?string $foreignKey = null, ?string $localKey = null): array
+    public function hasMany(string $relatedClass, ?string $foreignKey = null, ?string $localKey = null): \Ace\Relations\HasMany
     {
-        $localKey = $localKey ?? $this->primaryKey();
-        $localValue = $this->attributes[$localKey] ?? $this->{$localKey} ?? null;
-
-        if ($localValue === null) {
-            return [];
-        }
-
-        if ($foreignKey === null) {
-            $shortName = strtolower((new \ReflectionClass(static::class))->getShortName());
-            $foreignKey = $shortName . '_id';
-        }
-
-        return $relatedClass::find([$foreignKey => $localValue]);
+        return new \Ace\Relations\HasMany($this, $relatedClass, $foreignKey, $localKey);
     }
 
     /**
      * Define an inverse one-to-one or one-to-many relationship.
      *
-     *   public function user() {
+     * Example:
+     *   public function user(): BelongsTo {
      *       return $this->belongsTo(User::class);
      *   }
      */
-    public function belongsTo(string $relatedClass, ?string $foreignKey = null, ?string $ownerKey = null): ?Model
+    public function belongsTo(string $relatedClass, ?string $foreignKey = null, ?string $ownerKey = null): \Ace\Relations\BelongsTo
     {
-        $instance = new $relatedClass();
-        $ownerKey = $ownerKey ?? $instance->primaryKey();
+        return new \Ace\Relations\BelongsTo($this, $relatedClass, $foreignKey, $ownerKey);
+    }
 
-        if ($foreignKey === null) {
-            $shortName = strtolower((new \ReflectionClass($relatedClass))->getShortName());
-            $foreignKey = $shortName . '_id';
-        }
-
-        $foreignKeyValue = $this->attributes[$foreignKey] ?? $this->{$foreignKey} ?? null;
-        if ($foreignKeyValue === null) {
-            return null;
-        }
-
-        return $relatedClass::findOne([$ownerKey => $foreignKeyValue]);
+    /**
+     * Define a many-to-many relationship via a pivot table.
+     *
+     * Example:
+     *   public function roles(): BelongsToMany {
+     *       return $this->belongsToMany(Role::class, 'role_user');
+     *   }
+     */
+    public function belongsToMany(
+        string $relatedClass,
+        ?string $pivotTable = null,
+        ?string $foreignPivotKey = null,
+        ?string $relatedPivotKey = null,
+        ?string $parentKey = null,
+        ?string $relatedKey = null
+    ): \Ace\Relations\BelongsToMany {
+        return new \Ace\Relations\BelongsToMany(
+            $this,
+            $relatedClass,
+            $pivotTable,
+            $foreignPivotKey,
+            $relatedPivotKey,
+            $parentKey,
+            $relatedKey
+        );
     }
 }
+
 

@@ -369,6 +369,36 @@ switch ($command) {
         echo "✅ Created Layout: views/layouts/{$name}.php (Framework: {$framework})\n\n";
         break;
 
+    case 'make:job':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the job name. e.g. php ace make:job SendWelcomeEmailJob\n\n";
+            exit(1);
+        }
+
+        $name = ucfirst($name);
+        if (!str_ends_with($name, 'Job')) {
+            $name .= 'Job';
+        }
+
+        $jobsDir = $rootDir . '/app/Jobs';
+        if (!is_dir($jobsDir)) {
+            mkdir($jobsDir, 0755, true);
+        }
+
+        $filePath = $jobsDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Job '{$name}' already exists.\n\n";
+            exit(1);
+        }
+
+        $template = "<?php\n\nnamespace App\Jobs;\n\nuse Ace\Job;\n\nclass {$name} extends Job\n{\n    /**\n     * Execute the background job logic.\n     */\n    public function handle(): void\n    {\n        // Access payload via \$this->data\n    }\n}\n";
+
+        file_put_contents($filePath, $template);
+        echo "✅ Created Job: app/Jobs/{$name}.php\n\n";
+        break;
+
+
     case 'make:seeder':
         $name = $args[2] ?? null;
         if (!$name) {
@@ -625,11 +655,107 @@ switch ($command) {
         }
         break;
 
+    case 'queue:work':
+        $queueName = 'default';
+        $sleepTime = 3;
+        $maxAttempts = 3;
+        $stopWhenEmpty = false;
+
+        foreach (array_slice($args, 2) as $arg) {
+            if (str_starts_with($arg, '--queue=')) {
+                $queueName = substr($arg, 8);
+            }
+            if (str_starts_with($arg, '--sleep=')) {
+                $sleepTime = (int) substr($arg, 8);
+            }
+            if (str_starts_with($arg, '--tries=')) {
+                $maxAttempts = (int) substr($arg, 8);
+            }
+            if ($arg === '--stop-when-empty') {
+                $stopWhenEmpty = true;
+            }
+        }
+
+        try {
+            $worker = new \Ace\QueueWorker();
+            $worker->work($queueName, $sleepTime, $maxAttempts, $stopWhenEmpty);
+        } catch (\Throwable $e) {
+            echo "❌ Worker Fatal Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
+    case 'queue:failed':
+        echo "📋 Failed Background Jobs:\n";
+        echo "------------------------------------------------------------------------------------------------------\n";
+        try {
+            $failedJobs = \Ace\Queue::failed();
+            if (empty($failedJobs)) {
+                echo "  🎉 No failed jobs! The queue is clean.\n\n";
+            } else {
+                printf("  %-4s | %-12s | %-30s | %-20s\n", 'ID', 'Queue', 'Job Class', 'Failed At');
+                echo "  " . str_repeat('-', 74) . "\n";
+                foreach ($failedJobs as $fj) {
+                    $payload = json_decode($fj['payload'], true);
+                    $jobName = $payload['job'] ?? 'Unknown';
+                    printf("  %-4s | %-12s | %-30s | %-20s\n",
+                        $fj['id'],
+                        $fj['queue'],
+                        substr($jobName, 0, 30),
+                        $fj['failed_at']
+                    );
+                    echo "    Exception: " . substr(strtok($fj['exception'], "\n"), 0, 70) . "\n";
+                }
+                echo "\n  Use `php ace queue:retry <id|all>` to re-dispatch.\n\n";
+            }
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
+    case 'queue:retry':
+        $target = $args[2] ?? null;
+        if (!$target) {
+            echo "❌ Error: Specify a failed job ID or 'all'. e.g. php ace queue:retry 1 OR php ace queue:retry all\n\n";
+            exit(1);
+        }
+
+        try {
+            if ($target === 'all') {
+                $retried = \Ace\Queue::retryAll();
+                echo "🔄 Retried {$retried} failed jobs back into active queue.\n\n";
+            } else {
+                if (\Ace\Queue::retry($target)) {
+                    echo "🔄 Job #{$target} retried and queued for execution.\n\n";
+                } else {
+                    echo "⚠️  Failed job #{$target} not found.\n\n";
+                }
+            }
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
+    case 'queue:clear':
+        $qName = $args[2] ?? 'default';
+        try {
+            $cleared = \Ace\Queue::clear($qName);
+            echo "🧹 Cleared {$cleared} pending jobs from queue '{$qName}'.\n\n";
+        } catch (\Throwable $e) {
+            echo "❌ Error: " . $e->getMessage() . "\n\n";
+        }
+        break;
+
+    case 'tinker':
+        $shell = new \Ace\ConsoleShell($app);
+        $shell->start();
+        break;
+
     case 'help':
     default:
         echo "Available Commands:\n";
         echo "  serve                    Starts the local development server (like artisan serve).\n";
         echo "  test                     Runs the PHPUnit test suite.\n";
+        echo "  tinker                   Starts the interactive PHP REPL console.\n";
         echo "  down [--secret=token]    Puts application into maintenance mode.\n";
         echo "  up                       Brings application out of maintenance mode.\n";
         echo "  migrate                  Runs database schemas migrations.\n";
@@ -642,10 +768,15 @@ switch ($command) {
         echo "  make:service <Name>      Generates a Service class for domain business logic.\n";
         echo "  make:repository <Name>   Generates a Repository class for data access abstraction.\n";
         echo "  make:request <Name>      Generates a FormRequest class for validated request input.\n";
+        echo "  make:job <Name>          Generates a Background Job class extending Ace\\Job.\n";
         echo "  make:layout <Name>       Generates a layout template (--framework=tailwind|bootstrap).\n";
         echo "  make:apikey <Name>       Generates a secure API key for frontends (React/Next/Nuxt).\n";
         echo "  apikey:list              Lists all registered API keys.\n";
         echo "  apikey:revoke <prefix>   Deactivates an API key by prefix.\n";
+        echo "  queue:work               Processes pending jobs (--queue=default --sleep=3 --tries=3).\n";
+        echo "  queue:failed             Lists all permanently failed background jobs.\n";
+        echo "  queue:retry <id|all>     Retries failed jobs back into the active queue.\n";
+        echo "  queue:clear [queue]      Clears pending jobs from the queue.\n";
         echo "  make:middleware <Name>   Generates a boilerplate Middleware class.\n";
         echo "  make:action <Name>       Generates an Action class for single-purpose business logic.\n";
         echo "  make:event <Name>        Generates an Event class.\n";
@@ -655,4 +786,5 @@ switch ($command) {
         echo "  help                     Shows this help manual.\n\n";
         break;
 }
+
 

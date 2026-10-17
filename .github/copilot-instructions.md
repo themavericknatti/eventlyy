@@ -1,26 +1,104 @@
 # Ace PHP MVC Framework — AI Coding Instructions
 #
-# This file instructs GitHub Copilot and similar AI assistants on how to
-# generate code for this project. Read GUIDE.md for the full reference.
+# This file instructs AI assistants (GitHub Copilot, Cursor, Antigravity,
+# ChatGPT, Claude, etc.) on how to generate code for this project.
+# AI agents MUST read GUIDE.md for the full architecture reference.
 
-## Architecture: MVC + Service + Repository
-- Controllers orchestrate only. No business logic, no DB queries.
-- Services contain business logic. No DB queries, no rendering.
-- Repositories contain all DB queries. No logic, no rendering.
-- Models map to tables. Define fillable, hidden, rules, relationships.
-- Views use Blade-like syntax: {{ }}, @if, @foreach, @extends, @section.
-- Zero npm CSS: use @tailwind or @bootstrap, or extend layouts/tailwind or layouts/bootstrap.
+## Framework Identity
+- Name: Ace PHP MVC Framework
+- Namespace: Core = `Ace\`, App = `App\`
+- PHP Version: >= 8.2
+- Pattern: MVC + Service Layer + Repository Pattern
 
-## Mandatory Data Flow
-Request → Route → Middleware → Controller → Validate → Service → Repository → Model → Response
+## MANDATORY Architecture Rules
+1. **NEVER put business logic in Controllers.** Controllers only orchestrate.
+2. **NEVER put database queries in Controllers or Services.** Only Repositories query the database.
+3. **ALWAYS validate user input** before passing to Services. Use `$this->validate()` or FormRequest classes.
+4. **ALWAYS use the layered flow**: Controller → Service → Repository → Model.
+5. **ALWAYS use proper naming**: `UserController`, `UserService`, `UserRepository`, `StoreUserRequest`, `User` (model).
 
-## When creating a feature, ALWAYS generate:
-1. Migration  2. Model  3. Repository  4. Service  5. FormRequest  6. Controller  7. Routes  8. Views
+## File Locations
+- Controllers:   `app/Controllers/{Name}Controller.php`
+- Models:        `app/Models/{Name}.php`
+- Services:      `app/Services/{Name}Service.php`
+- Repositories:  `app/Repositories/{Name}Repository.php`
+- FormRequests:  `app/Requests/{Action}{Name}Request.php`
+- Middleware:    `app/Middlewares/{Name}Middleware.php`
+- Migrations:    `migrations/m_{timestamp}_{description}.php`
+- Views:         `views/{feature}/{action}.php`
+- Routes:        `routes/web.php`
 
-## API-First Development & Frontend Integration:
-- Define API routes in `routes/api.php` (auto `/api` prefix, CORS enabled, CSRF bypassed).
-- Frontends (React/Next/Nuxt) authenticate via API keys (`Authorization: Bearer <key>` or `X-Api-Key`).
-- Generate keys: `php ace make:apikey "React App"`.
-- Middleware: `Ace\Middlewares\CorsMiddleware`, `Ace\Middlewares\ApiKeyMiddleware`.
+## Code Generation Checklist
+When asked to create a feature, generate ALL of these:
+- [ ] Migration (if new table needed)
+- [ ] Model (`app/Models/`)
+- [ ] Repository (`app/Repositories/`)
+- [ ] Service (`app/Services/`)
+- [ ] FormRequest(s) (`app/Requests/`)
+- [ ] Controller (`app/Controllers/`)
+- [ ] Routes (`routes/web.php`)
+- [ ] Views (`views/{feature}/`)
 
-## Full Reference: GUIDE.md
+## View Template Syntax
+- Use `{{ $var }}` for escaped output
+- Use `{!! $html !!}` for raw output
+- Use `@extends('layouts/main')` for layout inheritance
+- Use `@section('content')` ... `@endsection` for sections
+- Use `@foreach`, `@if`, `@else`, `@endif` for control flow
+- Use `@csrf` in all forms
+- Use `@method('PUT')` or `@method('DELETE')` for method spoofing
+- Use `@error('field')` ... `@enderror` for validation errors
+- Use `@paginate($collection)` for pagination
+- Use `@url(route('name'))` for safe URLs in href attributes
+- Use `@tailwind` or `@extends('layouts/tailwind')` for zero-npm Tailwind CSS
+- Use `@bootstrap` or `@extends('layouts/bootstrap')` for zero-npm Bootstrap 5
+- Use `@css` to load the framework configured in .env (CSS_FRAMEWORK=tailwind|bootstrap)
+- Use `old('field')` to repopulate form fields after validation failure
+
+## Validation Syntax
+Rules use pipe-separated strings: `'required|email|max:255|unique:users,email'`
+
+## Response Patterns
+- Web: `return $this->render('view', $params)` or `$this->redirect($url, 302, $flash)`
+- API: `$this->json($data)` or `$this->success($msg)` or `$this->error($msg, 422)`
+
+## API-First Development & Frontend Integration
+- API routes live in `routes/api.php` (auto-prefixed with `/api`, CORS enabled, CSRF bypassed)
+- Frontends (React, Next.js, Nuxt.js) authenticate via API keys:
+  - Header: `Authorization: Bearer <key>` OR `X-Api-Key: <key>`
+  - Generate keys via CLI: `php ace make:apikey "React App"`
+  - List keys: `php ace apikey:list`
+  - Revoke key: `php ace apikey:revoke <prefix>`
+- Middleware:
+  - `Ace\Middlewares\CorsMiddleware` handles CORS for React/Next/Nuxt frontends
+  - `Ace\Middlewares\ApiKeyMiddleware` validates keys from DB, checks expiry/status
+- In controllers: `$request->apiKey()`, `$request->apiKeyName()`, `$request->hasPermission('perm')`
+
+## Background Job Queue
+- Create jobs: `php ace make:job SendWelcomeEmail` → `app/Jobs/SendWelcomeEmailJob.php`
+- Jobs extend `Ace\Job`, implement `handle()`, optionally override `failed()`
+- Dispatch: `SendWelcomeEmailJob::dispatch(['user_id' => 42])`
+- Delayed: `SendWelcomeEmailJob::dispatchLater(60, $data)`
+- Helper: `dispatch(SendWelcomeEmailJob::class, $data)`
+- Worker: `php ace queue:work --queue=default --sleep=3 --tries=3`
+- Manage: `php ace queue:failed`, `queue:retry <id|all>`, `queue:clear`
+- Tables: `jobs` and `failed_jobs` (via migration `m2026_01_01_000003_create_jobs_table.php`)
+- Sync mode: set `QUEUE_DRIVER=sync` in `.env` for immediate execution
+
+## ActiveRecord Relationships
+- `$this->hasOne(Related::class)` → one-to-one (returns `Ace\Relations\HasOne`)
+- `$this->hasMany(Related::class)` → one-to-many (returns `Ace\Relations\HasMany`)
+- `$this->belongsTo(Related::class)` → inverse (returns `Ace\Relations\BelongsTo`)
+- `$this->belongsToMany(Related::class, 'pivot_table')` → many-to-many (returns `Ace\Relations\BelongsToMany`)
+- Property access: `$user->posts` — executes query and caches result
+- Method access: `$user->posts()->where('status', 'active')->get()` — fluent chain
+- Pivot: `$user->roles()->attach($id)`, `detach($id)`, `sync([1,2,3])`
+
+## Interactive Console (Tinker)
+- `php ace tinker` — starts interactive REPL with full framework boot
+- Auto-aliases all `app/Models/*.php` classes to root namespace
+- Supports: PHP expressions, Model queries, Queue ops, math, arrays
+
+## For Full Reference
+Read: GUIDE.md (in project root)
+

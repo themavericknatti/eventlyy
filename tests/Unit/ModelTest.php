@@ -88,10 +88,28 @@ class ModelTest extends TestCase
 
     public function test_relationship_helpers_return_null_or_empty_when_foreign_key_missing(): void
     {
+        // Null out db so QueryBuilder returns empty results without hitting real tables
+        $originalDb = null;
+        if (isset(\Ace\Application::$app)) {
+            $originalDb = \Ace\Application::$app->db;
+            \Ace\Application::$app->db = null;
+        }
+
         $user = new TestUserModel();
-        // Since primary key is null (unpersisted model), relationships return safe empty/null values
-        $this->assertNull($user->hasOne(TestSoftModel::class));
-        $this->assertEquals([], $user->hasMany(TestSoftModel::class));
-        $this->assertNull($user->belongsTo(TestSoftModel::class));
+        // With no primary key value, relations add "0 = 1" constraint — results are empty/null
+        $this->assertNull($user->hasOne(TestSoftModel::class)->getResults());
+        $this->assertEquals([], $user->hasMany(TestSoftModel::class)->getResults());
+        $this->assertNull($user->belongsTo(TestSoftModel::class)->getResults());
+
+        // Relationships return fluent Relation objects for method queries
+        $this->assertInstanceOf(\Ace\Relations\HasOne::class, $user->hasOne(TestSoftModel::class));
+        $this->assertInstanceOf(\Ace\Relations\HasMany::class, $user->hasMany(TestSoftModel::class));
+        $this->assertInstanceOf(\Ace\Relations\BelongsTo::class, $user->belongsTo(TestSoftModel::class));
+
+        if (isset(\Ace\Application::$app)) {
+            \Ace\Application::$app->db = $originalDb;
+        }
     }
 }
+
+
