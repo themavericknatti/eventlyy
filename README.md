@@ -76,6 +76,7 @@ Ace includes a built-in CLI tool to streamline development:
 | `php ace make:service <Name>` | Generates a Service class in `app/Services/` |
 | `php ace make:repository <Name>` | Generates a Repository in `app/Repositories/` |
 | `php ace make:request <Name>` | Generates a FormRequest class in `app/Requests/` |
+| `php ace make:layout <Name>` | Generates a layout template (`--framework=tailwind\|bootstrap`) |
 | `php ace make:apikey <Name>` | Generates secure API key for frontends (React/Next/Nuxt) |
 | `php ace apikey:list` | Lists all registered API keys |
 | `php ace apikey:revoke <prefix>` | Deactivates an API key by prefix |
@@ -131,6 +132,47 @@ Views are located in `views/` and support layouts, sections, components, and aut
 - `redirect('/login')` - Safely redirects requests.
 - `paginator($items, $total, $perPage)` - Creates a Paginator instance.
 - `paginate_links($paginator, $options)` - Renders responsive pagination display.
+- `css_framework()` - Renders the configured CSS framework CDN tags.
+- `tailwind_cdn()` - Renders the official Tailwind CSS Play CDN script tag.
+- `bootstrap_cdn()` - Renders the official Bootstrap 5.3 CDN tags.
+
+---
+
+## 🎨 Zero-NPM Custom CSS Frameworks (Tailwind CSS & Bootstrap 5)
+
+Ace provides built-in support for **Tailwind CSS** and **Bootstrap 5** with **zero npm packages, zero Node.js setup, and zero build step required**. Simply use template directives or ready-made layouts:
+
+### 1. Template Directives
+```html
+<head>
+    <!-- Use Tailwind CSS instantly -->
+    @tailwind
+
+    <!-- OR use Bootstrap 5 instantly -->
+    @bootstrap
+
+    <!-- OR load the framework configured in your .env (CSS_FRAMEWORK=tailwind|bootstrap) -->
+    @css
+</head>
+```
+
+### 2. Ready-to-Use Layouts
+```html
+<!-- In any view: extend the Tailwind layout -->
+@extends('layouts/tailwind')
+
+<!-- OR extend the Bootstrap layout -->
+@extends('layouts/bootstrap')
+```
+
+### 3. Generate Custom Layouts
+```bash
+# Generate a Tailwind layout
+php ace make:layout admin --framework=tailwind
+
+# Generate a Bootstrap layout
+php ace make:layout admin --framework=bootstrap
+```
 
 ---
 

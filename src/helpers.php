@@ -159,6 +159,44 @@ if (!function_exists('request')) {
     }
 }
 
+if (!function_exists('css_framework')) {
+    /**
+     * Render the configured or specified CSS framework CDN tags.
+     * Supports 'tailwind', 'bootstrap', or 'none'. Zero npm required.
+     *
+     * @param string|null $framework Framework name ('tailwind', 'bootstrap', or null for default)
+     * @return string
+     */
+    function css_framework(?string $framework = null): string
+    {
+        return \Ace\View::renderCssFramework($framework);
+    }
+}
+
+if (!function_exists('tailwind_cdn')) {
+    /**
+     * Render the official Tailwind CSS Play CDN script tag.
+     *
+     * @return string
+     */
+    function tailwind_cdn(): string
+    {
+        return \Ace\View::renderTailwind();
+    }
+}
+
+if (!function_exists('bootstrap_cdn')) {
+    /**
+     * Render the official Bootstrap 5.3 CSS and JS Bundle CDN tags.
+     *
+     * @return string
+     */
+    function bootstrap_cdn(): string
+    {
+        return \Ace\View::renderBootstrap();
+    }
+}
+
 if (!function_exists('redirect')) {
     /**
      * Redirect to a given URL path with optional status code and session flash data.

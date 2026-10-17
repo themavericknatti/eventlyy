@@ -50,6 +50,9 @@ When asked to create a feature, generate ALL of these:
 - Use `@error('field')` ... `@enderror` for validation errors
 - Use `@paginate($collection)` for pagination
 - Use `@url(route('name'))` for safe URLs in href attributes
+- Use `@tailwind` or `@extends('layouts/tailwind')` for zero-npm Tailwind CSS
+- Use `@bootstrap` or `@extends('layouts/bootstrap')` for zero-npm Bootstrap 5
+- Use `@css` to load the framework configured in .env (CSS_FRAMEWORK=tailwind|bootstrap)
 - Use `old('field')` to repopulate form fields after validation failure
 
 ## Validation Syntax

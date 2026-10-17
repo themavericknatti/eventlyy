@@ -8,8 +8,8 @@
 - Services contain business logic. No DB queries, no rendering.
 - Repositories contain all DB queries. No logic, no rendering.
 - Models map to tables. Define fillable, hidden, rules, relationships.
-- FormRequests validate input. Define rules(), authorize(), messages().
 - Views use Blade-like syntax: {{ }}, @if, @foreach, @extends, @section.
+- Zero npm CSS: use @tailwind or @bootstrap, or extend layouts/tailwind or layouts/bootstrap.
 
 ## Mandatory Data Flow
 Request → Route → Middleware → Controller → Validate → Service → Repository → Model → Response

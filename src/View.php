@@ -344,6 +344,66 @@ HTML;
     }
 
     /**
+     * Render the configured or specified CSS framework CDN tags.
+     * Supports 'tailwind', 'bootstrap', or 'none'.
+     * Automatically adjusts Paginator theme to match!
+     */
+    public static function renderCssFramework(?string $framework = null): string
+    {
+        if ($framework === null) {
+            $framework = strtolower((string)($_ENV['CSS_FRAMEWORK'] ?? (isset(Application::$app) ? (Application::$app->config['css_framework'] ?? 'tailwind') : 'tailwind')));
+        }
+
+        return match (strtolower(trim($framework))) {
+            'tailwind', 'tailwindcss' => static::renderTailwind(),
+            'bootstrap', 'bootstrap5', 'bs' => static::renderBootstrap(),
+            default => '',
+        };
+    }
+
+    /**
+     * Render Tailwind CSS Play CDN script tag and set Paginator to Tailwind.
+     */
+    public static function renderTailwind(): string
+    {
+        if (class_exists(Paginator::class)) {
+            Paginator::useTailwind();
+        }
+        return '<script src="https://cdn.tailwindcss.com"></script>';
+    }
+
+    /**
+     * Render Bootstrap 5.3 CSS and JS Bundle CDN tags and set Paginator to Bootstrap.
+     */
+    public static function renderBootstrap(): string
+    {
+        if (class_exists(Paginator::class)) {
+            Paginator::useBootstrap();
+        }
+        return '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">' . "\n"
+             . '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>';
+    }
+
+    /**
+     * Render Bootstrap 5.3 CSS-only tag.
+     */
+    public static function renderBootstrapCss(): string
+    {
+        if (class_exists(Paginator::class)) {
+            Paginator::useBootstrap();
+        }
+        return '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">';
+    }
+
+    /**
+     * Render Bootstrap 5.3 JS-only Bundle tag.
+     */
+    public static function renderBootstrapJs(): string
+    {
+        return '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>';
+    }
+
+    /**
      * Compile template file if modified, returning path to cached compiled script
      */
     private function compile(string $filePath): string
@@ -537,6 +597,14 @@ HTML;
             },
             $content
         );
+
+        // 9i. Compiling CSS Framework tags (Zero npm, loaded via official CDN)
+        $content = str_replace('@tailwind', '<?php echo \Ace\View::renderTailwind(); ?>', $content);
+        $content = str_replace('@bootstrapCss', '<?php echo \Ace\View::renderBootstrapCss(); ?>', $content);
+        $content = str_replace('@bootstrapJs', '<?php echo \Ace\View::renderBootstrapJs(); ?>', $content);
+        $content = str_replace('@bootstrap', '<?php echo \Ace\View::renderBootstrap(); ?>', $content);
+        $content = preg_replace('/@css\(\s*(["\'])(.*?)\1\s*\)/', '<?php echo \Ace\View::renderCssFramework(\'$2\'); ?>', $content);
+        $content = str_replace('@css', '<?php echo \Ace\View::renderCssFramework(); ?>', $content);
 
         // 10. Compiling Includes (balanced parens regex to support nested expressions in params)
         $content = preg_replace_callback(

@@ -689,11 +689,25 @@ Views live in `views/` and use a **Blade-like template syntax** compiled to PHP.
 | `@toasts` | Render toast notifications | `@toasts` |
 | `@paginate($var)` | Render pagination links | `@paginate($users)` |
 | `@url(expr)` | Safe URL output | `@url(route('home'))` |
+| `@tailwind` | Tailwind CSS CDN (Zero npm) | `@tailwind` |
+| `@bootstrap` | Bootstrap 5.3 CSS + JS Bundle (Zero npm) | `@bootstrap` |
+| `@bootstrapCss` | Bootstrap 5.3 CSS only | `@bootstrapCss` |
+| `@bootstrapJs` | Bootstrap 5.3 JS only | `@bootstrapJs` |
+| `@css` | Load configured framework from .env | `@css` or `@css('tailwind')` |
 | `@component('name')` | Start component | `@component('components/modal')` |
 | `@endcomponent` | End component | |
 | `@slot('name')` | Named slot content | `@slot('footer')` |
 | `@endslot` | End slot | |
 | `@@` | Escape literal @ | Renders as `@` |
+
+### Zero-NPM Custom CSS Frameworks (Tailwind & Bootstrap)
+
+Ace requires **no Node.js, npm, or build step** for frontend styling:
+- **Tailwind CSS**: Use `@tailwind` or `@extends('layouts/tailwind')`. Works instantly via the official Tailwind Play CDN.
+- **Bootstrap 5**: Use `@bootstrap` or `@extends('layouts/bootstrap')`. Works instantly via the official Bootstrap 5 CDN.
+- **Auto-Configured**: Set `CSS_FRAMEWORK=tailwind` or `CSS_FRAMEWORK=bootstrap` in `.env`.
+- **Automatic Pagination Sync**: When `@tailwind` or `@bootstrap` is used, `@paginate` automatically switches to match that framework's design!
+- **Generate Layouts**: `php ace make:layout admin --framework=tailwind`
 
 ### View Example
 

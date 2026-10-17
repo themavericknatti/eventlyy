@@ -1084,6 +1084,22 @@ HTML;
     }
 
     /**
+     * Get the current default pagination theme.
+     */
+    public static function getDefaultTheme(): string
+    {
+        return static::$defaultTheme;
+    }
+
+    /**
+     * Set the default pagination theme.
+     */
+    public static function setDefaultTheme(string $theme): void
+    {
+        static::$defaultTheme = $theme;
+    }
+
+    /**
      * Configure whether default CSS should be rendered.
      */
     public static function useStyles(bool $use = true): void

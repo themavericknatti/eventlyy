@@ -333,6 +333,42 @@ switch ($command) {
         echo "✅ Created FormRequest: app/Requests/{$name}.php\n\n";
         break;
 
+    case 'make:layout':
+        $name = $args[2] ?? null;
+        if (!$name) {
+            echo "❌ Error: Please specify the layout name. e.g. php ace make:layout admin [--framework=tailwind|bootstrap]\n\n";
+            exit(1);
+        }
+
+        $framework = 'tailwind';
+        foreach (array_slice($args, 3) as $arg) {
+            if (str_starts_with($arg, '--framework=')) {
+                $framework = strtolower(substr($arg, 12));
+            }
+        }
+
+        $layoutsDir = $rootDir . '/views/layouts';
+        if (!is_dir($layoutsDir)) {
+            mkdir($layoutsDir, 0755, true);
+        }
+
+        $name = strtolower(str_replace('.php', '', $name));
+        $filePath = $layoutsDir . "/{$name}.php";
+        if (file_exists($filePath)) {
+            echo "❌ Error: Layout 'views/layouts/{$name}.php' already exists.\n\n";
+            exit(1);
+        }
+
+        if ($framework === 'bootstrap') {
+            $template = "<!DOCTYPE html>\n<html lang=\"en\" data-bs-theme=\"dark\">\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>@yield('title', 'Ace Application')</title>\n    @bootstrap\n    @yield('style')\n</head>\n<body>\n    <main class=\"container py-4\">\n        @yield('content')\n    </main>\n    @toasts\n    @yield('script')\n</body>\n</html>\n";
+        } else {
+            $template = "<!DOCTYPE html>\n<html lang=\"en\" class=\"h-full bg-slate-900 text-slate-100\">\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>@yield('title', 'Ace Application')</title>\n    @tailwind\n    @yield('style')\n</head>\n<body class=\"min-h-full flex flex-col\">\n    <main class=\"flex-grow max-w-7xl mx-auto px-4 py-8 w-full\">\n        @yield('content')\n    </main>\n    @toasts\n    @yield('script')\n</body>\n</html>\n";
+        }
+
+        file_put_contents($filePath, $template);
+        echo "✅ Created Layout: views/layouts/{$name}.php (Framework: {$framework})\n\n";
+        break;
+
     case 'make:seeder':
         $name = $args[2] ?? null;
         if (!$name) {
@@ -606,6 +642,7 @@ switch ($command) {
         echo "  make:service <Name>      Generates a Service class for domain business logic.\n";
         echo "  make:repository <Name>   Generates a Repository class for data access abstraction.\n";
         echo "  make:request <Name>      Generates a FormRequest class for validated request input.\n";
+        echo "  make:layout <Name>       Generates a layout template (--framework=tailwind|bootstrap).\n";
         echo "  make:apikey <Name>       Generates a secure API key for frontends (React/Next/Nuxt).\n";
         echo "  apikey:list              Lists all registered API keys.\n";
         echo "  apikey:revoke <prefix>   Deactivates an API key by prefix.\n";

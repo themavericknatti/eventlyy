@@ -13,13 +13,14 @@ MANDATORY RULES:
 3. Repositories contain all database queries. They use Models.
 4. All user input MUST be validated before reaching Services. Use $this->validate() or FormRequest classes.
 5. The standard data flow is: Controller → Validate → Service → Repository → Model.
-6. Views use Blade-like template syntax: {{ }}, @if, @foreach, @extends, @section, @csrf, @error, @paginate.
-7. When creating any feature, generate: Migration, Model, Repository, Service, FormRequest, Controller, Routes, and Views.
+6. Views use Blade-like template syntax: {{ }}, @if, @foreach, @extends, @section, @csrf, @error, @paginate, @tailwind, @bootstrap, @css.
+7. Zero npm required for CSS: use @tailwind or @bootstrap, or extend layouts/tailwind or layouts/bootstrap.
+8. When creating any feature, generate: Migration, Model, Repository, Service, FormRequest, Controller, Routes, and Views.
 
 Naming: UserController, UserService, UserRepository, StoreUserRequest, User (model).
 File paths: app/Controllers/, app/Services/, app/Repositories/, app/Requests/, app/Models/, views/.
 Routes: routes/web.php (web), routes/api.php (API first with CORS and API keys).
-CLI: php ace make:controller|model|service|repository|request|apikey|middleware|migration|seeder <Name>.
+CLI: php ace make:controller|model|service|repository|request|layout|apikey|middleware|migration|seeder <Name>.
 API Auth: Authorization: Bearer <key> or X-Api-Key: <key>. Generate keys with php ace make:apikey <Name>.
 
 Full documentation: GUIDE.md

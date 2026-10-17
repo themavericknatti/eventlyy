@@ -14,6 +14,11 @@ $rootDir = ROOT_DIR;
  */
 $envFile = $rootDir . '/.env';
 
+// Auto-create .env from .env.example on fresh install if missing
+if (!file_exists($envFile) && file_exists($rootDir . '/.env.example')) {
+    @copy($rootDir . '/.env.example', $envFile);
+}
+
 if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
@@ -60,9 +65,13 @@ $config = array_merge($appConfig, ['db' => $dbConfig]);
 // Instantiate Application
 $app = new Application($rootDir, $config);
 
-// Run database migrations
+// Run database migrations (silently skip on initial boot if database is not reachable yet)
 if ($app->db) {
-    $app->db->runMigrations();
+    try {
+        $app->db->runMigrations();
+    } catch (\Throwable $e) {
+        // Silently continue so initial static page displays without crashing
+    }
 }
 
 // Load application routes
