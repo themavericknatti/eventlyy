@@ -1,5 +1,5 @@
 {
-    "name": "ace-core/ace",
+    "name": "acephp/ace",
     "description": "A lightweight, high-performance PHP 8.2+ MVC framework with Active Record, Multi-Template system, Queue Worker, unified Payments, and API Idempotency.",
     "keywords": [
         "framework",
