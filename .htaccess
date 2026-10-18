@@ -5,12 +5,12 @@
     Options -Indexes
 
     # Block access to hidden files and sensitive project files
-    <FilesMatch "^(\.env|\.env\..*|composer\.json|composer\.lock|package\.json|package-lock\.json|todo\.txt|ace)$">
+    <FilesMatch "^(\.env|\.env\..*|composer\.json|composer\.lock|package\.json|package-lock\.json|ace)$">
         Require all denied
     </FilesMatch>
 
     # Protect internal application directories from direct HTTP access
-    RewriteRule ^(app|config|migrations|src|storage|views|vendor|cgi-bin)/ - [F,L,NC]
+    RewriteRule ^(app|config|migrations|src|storage|views|vendor)/ - [F,L,NC]
 
     # Serve static assets and uploads directly from public/
     RewriteRule ^assets/(.*)$ public/assets/$1 [L]

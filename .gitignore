@@ -1,11 +1,9 @@
 vendor/*
 scratch/*
 storage/*
+!storage/**/.gitkeep
 .env
 composer.lock
-todo.md
 public/uploads/*
-storage
-uploads
-todo.txt
+!public/uploads/**/.gitkeep
 .phpunit.result.cache
