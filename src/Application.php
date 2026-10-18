@@ -6,6 +6,8 @@ use Exception;
 
 class Application
 {
+    public const VERSION = '1.0.0';
+
     public static string $ROOT_DIR;
     public static Application $app;
     

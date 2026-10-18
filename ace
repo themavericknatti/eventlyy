@@ -15,8 +15,9 @@ $rootDir = __DIR__;
 $args = $argv;
 $command = $args[1] ?? 'help';
 
-echo "\n✨ Mini PHP MVC - Ace CLI Command Runner\n";
-echo "==========================================\n";
+$version = \Ace\Application::VERSION;
+echo "\n✨ Ace PHP MVC Framework v{$version} - CLI Command Runner\n";
+echo "=========================================================\n";
 
 // Boot up basic app variables
 $appConfig = require_once $rootDir . '/config/app.php';
@@ -827,7 +828,15 @@ switch ($command) {
         echo "  make:listener <Name>     Generates an Event Listener class.\n";
         echo "  make:seeder <Name>       Generates a boilerplate Seeder class.\n";
         echo "  view:clear               Wipes all cached, compiled view templates.\n";
+        echo "  version, -V              Displays the framework version.\n";
         echo "  help                     Shows this help manual.\n\n";
+        break;
+
+    case 'version':
+    case '-v':
+    case '-V':
+    case '--version':
+        echo "Ace PHP MVC Framework version " . \Ace\Application::VERSION . "\n\n";
         break;
 }
 
