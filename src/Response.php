@@ -13,6 +13,15 @@ class Response
     }
 
     /**
+     * Fluent alias for setStatusCode
+     */
+    public function status(int $code): self
+    {
+        $this->setStatusCode($code);
+        return $this;
+    }
+
+    /**
      * Set HTTP response header
      */
     public function setHeader(string $name, string $value): void
@@ -20,6 +29,15 @@ class Response
         if (!headers_sent()) {
             header("$name: $value");
         }
+    }
+
+    /**
+     * Fluent alias for setHeader
+     */
+    public function header(string $name, string $value): self
+    {
+        $this->setHeader($name, $value);
+        return $this;
     }
 
     /**

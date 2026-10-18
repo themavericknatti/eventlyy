@@ -98,6 +98,14 @@ class Request
     }
 
     /**
+     * Alias for getPath()
+     */
+    public function path(): string
+    {
+        return $this->getPath();
+    }
+
+    /**
      * Get HTTP request method (e.g. 'get', 'post')
      * Supports form method spoofing via _method hidden field for PUT/PATCH/DELETE
      */
@@ -117,6 +125,14 @@ class Request
         }
 
         return $method;
+    }
+
+    /**
+     * Alias for method() to match PSR-7 / Symfony conventions
+     */
+    public function getMethod(): string
+    {
+        return $this->method();
     }
 
     public function isGet(): bool

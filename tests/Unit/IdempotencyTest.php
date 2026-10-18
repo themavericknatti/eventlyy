@@ -194,4 +194,56 @@ class IdempotencyTest extends TestCase
     {
         $this->assertInstanceOf(IdempotencyManager::class, idempotency());
     }
+
+    // =========================================================================
+    // 6. Full IdempotencyMiddleware Execution Tests
+    // =========================================================================
+
+    public function test_middleware_bypasses_get_requests(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/products';
+
+        $middleware = new IdempotencyMiddleware();
+        // Should execute cleanly without error or DB interaction
+        $middleware->execute('index');
+        $this->assertTrue(true);
+    }
+
+    public function test_middleware_executes_on_post_and_registers_lock(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/api/checkout';
+        $_SERVER['HTTP_IDEMPOTENCY_KEY'] = 'test_key_req_100';
+        $_POST = ['amount' => 500];
+
+        $startLevel = ob_get_level();
+        $middleware = new IdempotencyMiddleware();
+        $middleware->execute('checkout');
+
+        // Verify key was recorded as pending in DB
+        $stmt = $this->pdo->query("SELECT * FROM idempotency_keys WHERE idempotency_key = 'test_key_req_100'");
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $this->assertNotEmpty($record);
+        $this->assertEquals('pending', $record['status']);
+
+        // Clean up only buffers opened during test
+        while (ob_get_level() > $startLevel) {
+            ob_end_clean();
+        }
+        unset($_SERVER['HTTP_IDEMPOTENCY_KEY'], $_POST['amount']);
+    }
+
+    public function test_request_methods_aliases_match(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/api/v1/users';
+
+        $request = Application::$app->request;
+        $this->assertEquals('post', $request->method());
+        $this->assertEquals('post', $request->getMethod());
+        $this->assertEquals('/api/v1/users', $request->path());
+        $this->assertEquals('/api/v1/users', $request->getPath());
+    }
 }
