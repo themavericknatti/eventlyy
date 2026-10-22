@@ -1040,6 +1040,133 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ─── Modern 3D Perspective, Physics Tilt & Progressive Loading ─── */
+.perspective-stage {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+}
+
+.hm-hero-3d {
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+    will-change: transform;
+}
+
+.hm-hero-3d:hover {
+    box-shadow: 0 24px 60px -15px rgba(var(--brand), 0.22), 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.card-3d, .hm-card, .hm-featured-card {
+    transform-style: preserve-3d;
+    position: relative;
+    will-change: transform;
+    backface-visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s ease;
+}
+
+/* Dynamic Specular Sheen Glare */
+.card-glare {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 5;
+    opacity: 0;
+    background: radial-gradient(circle 300px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.28), transparent 75%);
+    transition: opacity 0.3s ease;
+}
+
+:root[data-theme='dark'] .card-glare {
+    background: radial-gradient(circle 300px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.15), transparent 70%);
+}
+
+.card-3d:hover .card-glare,
+.hm-card:hover .card-glare,
+.hm-featured-card:hover .card-glare {
+    opacity: 1;
+}
+
+/* 3D Elevated Inner Elements */
+.hm-card:hover .hm-card-badge-top-left {
+    transform: translateZ(16px);
+}
+.hm-card:hover .hm-card-price-badge {
+    transform: translateZ(18px);
+}
+.hm-card:hover .hm-card-title {
+    transform: translateZ(10px);
+}
+
+/* ─── Scroll-Driven 3D Depth Entrance ──────────────────────── */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: perspective(1000px) translateY(24px) rotateX(4deg) scale(0.98);
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+.reveal-on-scroll.revealed {
+    opacity: 1;
+    transform: perspective(1000px) translateY(0) rotateX(0deg) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+    .card-3d, .hm-card, .hm-featured-card {
+        transform: none !important;
+    }
+    .card-glare {
+        display: none !important;
+    }
+}
+
+/* ─── Progressive Blur-Up Lazy Loading ─────────────────────── */
+.progressive-img-wrap {
+    position: relative;
+    overflow: hidden;
+    background: rgba(var(--muted), 0.08);
+}
+
+.progressive-img-wrap img {
+    opacity: 0;
+    filter: blur(14px);
+    transform: scale(1.04);
+    transition: opacity 0.4s ease-out, filter 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.progressive-img-wrap img.is-loaded {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+}
+
+.progressive-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(var(--muted), 0.04) 25%, rgba(var(--muted), 0.12) 50%, rgba(var(--muted), 0.04) 75%);
+    background-size: 200% 100%;
+    animation: progressiveShimmer 1.8s infinite;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.progressive-img-wrap.has-loaded .progressive-skeleton {
+    opacity: 0;
+}
+
+@keyframes progressiveShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 </style>
 @endsection
 
@@ -1047,7 +1174,8 @@
 <div class="hm-wrapper">
 
     <!-- ═══ Hero Section ═══ -->
-    <header class="hm-hero">
+    <div class="perspective-stage">
+        <header class="hm-hero hm-hero-3d">
         <div class="hm-hero__content">
             <span class="hm-eyebrow">
                 <span class="icon">✨</span> Discover &bull; Experience &bull; Celebrate
@@ -1111,10 +1239,11 @@
                 <div class="hm-trust-item"><span class="icon">⭐</span> 4.9/5 Organizer Rating</div>
             </div>
         </div>
-    </header>
+        </header>
+    </div>
 
     <!-- ═══ Popular Categories Navigation ═══ -->
-    <section class="hm-categories-section">
+    <section class="hm-categories-section reveal-on-scroll">
         <div class="hm-section-title-wrap">
             <div>
                 <h2 class="hm-section-heading">Explore by Category</h2>
@@ -1155,7 +1284,7 @@
         $hasFeatured = !empty($featuredEvents) && count($featuredEvents) > 1;
     ?>
     <?php if ($hasFeatured && !$isFiltered): ?>
-        <section class="hm-featured-section">
+        <section class="hm-featured-section reveal-on-scroll">
             <div class="hm-featured-carousel" id="carousel">
                 <div class="hm-section-title-wrap" style="margin-bottom: 0.85rem;">
                     <div>
@@ -1176,9 +1305,11 @@
                         $feDate = date('M d, Y', strtotime($fe['date']));
                     ?>
                         <a href="<?= $feUrl ?>" class="hm-featured-card-link event-card-link">
-                            <article class="hm-featured-card">
-                                <div class="hm-featured-img-wrap">
-                                    <img src="<?= e($feImg) ?>" alt="<?= e($fe['name']) ?>" class="hm-featured-img" loading="lazy">
+                            <article class="hm-featured-card card-3d">
+                                <div class="card-glare"></div>
+                                <div class="hm-featured-img-wrap progressive-img-wrap">
+                                    <div class="progressive-skeleton"></div>
+                                    <img src="<?= e($feImg) ?>" alt="<?= e($fe['name']) ?>" class="hm-featured-img" loading="lazy" decoding="async">
                                 </div>
                                 <div class="hm-featured-meta">
                                     <div class="hm-featured-tags">
@@ -1233,7 +1364,7 @@
             $headingNote = 'Showing upcoming ' . strtolower(e($category)) . ' experiences.';
         }
     ?>
-    <section class="hm-events-section" id="events-section">
+    <section class="hm-events-section reveal-on-scroll" id="events-section">
         <div class="hm-section-title-wrap">
             <div>
                 <h2 class="hm-section-heading"><?= $headingTitle ?></h2>
@@ -1281,9 +1412,11 @@
                     $minPrice = isset($ev['min_price']) && $ev['min_price'] !== null ? format_price($ev['min_price']) : 'Free';
                     $evDate = date('M d, Y • g:i A', strtotime($ev['date']));
                 ?>
-                    <article class="hm-card">
-                        <div class="hm-card-thumb-wrap">
-                            <img src="<?= e($evImg) ?>" alt="<?= e($ev['name']) ?>" class="hm-card-thumb" loading="lazy">
+                    <article class="hm-card card-3d reveal-on-scroll">
+                        <div class="card-glare"></div>
+                        <div class="hm-card-thumb-wrap progressive-img-wrap">
+                            <div class="progressive-skeleton"></div>
+                            <img src="<?= e($evImg) ?>" alt="<?= e($ev['name']) ?>" class="hm-card-thumb" loading="lazy" decoding="async">
                             <span class="hm-card-badge-top-left"><?= e($ev['category'] ?? 'Event') ?></span>
                             <span class="hm-card-price-badge"><?= $minPrice ?></span>
                         </div>
@@ -1369,7 +1502,7 @@
     </section>
 
     <!-- ═══ Host / Organizer Callout ═══ -->
-    <section class="hm-cta">
+    <section class="hm-cta reveal-on-scroll">
         <div class="hm-cta-content">
             <span class="hm-cta-badge">
                 ✨ Host &amp; Organizer Hub

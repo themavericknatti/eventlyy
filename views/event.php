@@ -36,6 +36,124 @@ $encodedShareUrl = urlencode($shareUrl);
 <?= e($event->name) ?> - Eventlyy
 @endsection
 
+@section('style')
+<style>
+/* ─── Event Page 3D Perspective & Depth System ──────────────── */
+.ep-hero {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+}
+
+.card-3d, .ep-sidebar-card, .ep-ticket-item, .ep-details__card {
+    transform-style: preserve-3d;
+    position: relative;
+    will-change: transform;
+    backface-visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s ease;
+}
+
+.ep-sidebar-card {
+    box-shadow: 0 16px 45px -10px rgba(0, 0, 0, 0.12), 0 0 25px rgba(var(--brand), 0.08);
+}
+
+.ep-sidebar-card:hover {
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.22), 0 0 35px rgba(var(--brand), 0.18);
+    border-color: rgba(var(--brand), 0.45);
+}
+
+/* Dynamic Specular Sheen Glare */
+.card-glare {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 5;
+    opacity: 0;
+    background: radial-gradient(circle 320px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.25), transparent 75%);
+    transition: opacity 0.3s ease;
+}
+
+:root[data-theme='dark'] .card-glare {
+    background: radial-gradient(circle 320px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.12), transparent 70%);
+}
+
+.ep-sidebar-card:hover .card-glare,
+.card-3d:hover .card-glare {
+    opacity: 1;
+}
+
+/* ─── Scroll-Driven 3D Depth Entrance ──────────────────────── */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: perspective(1000px) translateY(24px) rotateX(4deg) scale(0.98);
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+.reveal-on-scroll.revealed {
+    opacity: 1;
+    transform: perspective(1000px) translateY(0) rotateX(0deg) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+    .card-3d, .ep-sidebar-card {
+        transform: none !important;
+    }
+    .card-glare {
+        display: none !important;
+    }
+}
+
+/* ─── Progressive Blur-Up Image Loading ─────────────────────── */
+.progressive-img-wrap {
+    position: relative;
+    overflow: hidden;
+    background: rgba(var(--muted), 0.08);
+}
+
+.progressive-img-wrap img {
+    opacity: 0;
+    filter: blur(14px);
+    transform: scale(1.04);
+    transition: opacity 0.4s ease-out, filter 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.progressive-img-wrap img.is-loaded {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+}
+
+.progressive-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(var(--muted), 0.04) 25%, rgba(var(--muted), 0.12) 50%, rgba(var(--muted), 0.04) 75%);
+    background-size: 200% 100%;
+    animation: progressiveShimmer 1.8s infinite;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.progressive-img-wrap.has-loaded .progressive-skeleton {
+    opacity: 0;
+}
+
+@keyframes progressiveShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+</style>
+@endsection
+
 @section('content')
 
 <!-- ═══ Event Hero ═══ -->
@@ -96,10 +214,12 @@ $encodedShareUrl = urlencode($shareUrl);
     </div>
 
     <!-- Event Image & Organizer Sidebar -->
-    <aside class="ep-sidebar-card">
-        <div class="ep-image" id="event-image-container" title="Click to view full image">
+    <aside class="ep-sidebar-card card-3d">
+        <div class="card-glare"></div>
+        <div class="ep-image progressive-img-wrap" id="event-image-container" title="Click to view full image">
+            <div class="progressive-skeleton"></div>
             <div class="ep-image__blur" style="background-image: url('<?= e($eventImg) ?>');"></div>
-            <img src="<?= e($eventImg) ?>" alt="<?= e($event->name) ?>" class="ep-image__full" id="event-image-main" />
+            <img src="<?= e($eventImg) ?>" alt="<?= e($event->name) ?>" class="ep-image__full" id="event-image-main" fetchpriority="high" loading="eager" decoding="async" />
         </div>
         <div class="ep-card-body">
             <!-- Organizer Info -->
@@ -160,7 +280,7 @@ $encodedShareUrl = urlencode($shareUrl);
 
 <!-- ═══ Recurring Series Occurrence Switcher ═══ -->
 <?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
-    <div class="ep-series-switcher" style="margin-bottom: 2rem; background: var(--card, #1e293b); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 16px; padding: 1.25rem 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+    <div class="ep-series-switcher reveal-on-scroll" style="margin-bottom: 2rem; background: var(--card, #1e293b); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 16px; padding: 1.25rem 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
                 <span style="font-size: 1.3rem;">📅</span>
@@ -227,7 +347,7 @@ $encodedShareUrl = urlencode($shareUrl);
             <input type="hidden" name="ref" value="<?= e($refCode ?? ($_GET['ref'] ?? '')) ?>" />
         <?php endif; ?>
 
-        <section class="ep-tickets">
+        <section class="ep-tickets reveal-on-scroll">
             <div class="ep-tickets__main">
                 <div class="ep-tickets__header">
                     <h2>
@@ -328,7 +448,7 @@ $encodedShareUrl = urlencode($shareUrl);
 <?php endif; ?>
 
 <!-- ═══ About This Event ═══ -->
-<section class="ep-about" id="about-event">
+<section class="ep-about reveal-on-scroll" id="about-event">
     <h2>About This Event</h2>
     <div class="ep-description"><?= e($event->description) ?></div>
 

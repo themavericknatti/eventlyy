@@ -253,3 +253,145 @@
     });
   }
 })();
+
+/* ════════════════════════════════════════════════════════════
+   High-Performance 3D Depth, Tilt, & Progressive Image System
+   - Zero-dependency, GPU-accelerated (transform3d)
+   - 60/120fps requestAnimationFrame scheduling
+   - Respects prefers-reduced-motion & touch battery
+   ════════════════════════════════════════════════════════════ */
+(function init3DDepthSystem() {
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+
+  // 1. Reveal-on-Scroll 3D Perspective Transitions
+  const revealElements = document.querySelectorAll('.reveal-on-scroll');
+  if (revealElements.length > 0) {
+    if (prefersReduced || !('IntersectionObserver' in window)) {
+      revealElements.forEach(el => el.classList.add('revealed'));
+    } else {
+      const revealObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.08,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      revealElements.forEach(el => revealObserver.observe(el));
+    }
+  }
+
+  // 2. Hero 3D Scroll Parallax (Homepage)
+  const hero3D = document.querySelector('.hm-hero-3d');
+  if (hero3D && !prefersReduced) {
+    let ticking = false;
+    const maxScroll = 600;
+
+    function updateHeroScroll() {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      if (scrollY <= maxScroll) {
+        // Subtle tilt: as user scrolls down, hero angles slightly backwards in 3D
+        const progress = Math.min(scrollY / maxScroll, 1);
+        const rotateX = progress * 7; // max 7 deg back-pitch
+        const translateY = scrollY * 0.18; // slight depth lag
+        hero3D.style.transform = `rotateX(${rotateX}deg) translateY(${translateY}px)`;
+      } else {
+        hero3D.style.transform = '';
+      }
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHeroScroll);
+        ticking = true;
+      }
+    }, { passive: true });
+  }
+
+  // 3. Physics 3D Tilt on Hover with Specular Glare Sheen
+  if (isFinePointer && !prefersReduced) {
+    const cards = document.querySelectorAll('.card-3d');
+
+    cards.forEach(card => {
+      let bounds = null;
+      let rafId = null;
+
+      function onPointerEnter() {
+        bounds = card.getBoundingClientRect();
+      }
+
+      function onPointerMove(e) {
+        if (!bounds) bounds = card.getBoundingClientRect();
+
+        const x = e.clientX - bounds.left;
+        const y = e.clientY - bounds.top;
+
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          const width = bounds.width;
+          const height = bounds.height;
+
+          // Max rotation: 7 degrees for subtle elegant depth
+          const rotateY = ((x / width) - 0.5) * 14;
+          const rotateX = ((y / height) - 0.5) * -14;
+
+          card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px)`;
+
+          // Specular glare positioning
+          const percentX = ((x / width) * 100).toFixed(1);
+          const percentY = ((y / height) * 100).toFixed(1);
+          card.style.setProperty('--glare-x', `${percentX}%`);
+          card.style.setProperty('--glare-y', `${percentY}%`);
+        });
+      }
+
+      function onPointerLeave() {
+        if (rafId) cancelAnimationFrame(rafId);
+        card.style.transform = '';
+        bounds = null;
+      }
+
+      card.addEventListener('pointerenter', onPointerEnter, { passive: true });
+      card.addEventListener('pointermove', onPointerMove, { passive: true });
+      card.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    });
+  }
+
+  // 4. Progressive Blur-Up Image Loading
+  function initProgressiveImages() {
+    const imgWrappers = document.querySelectorAll('.progressive-img-wrap');
+    imgWrappers.forEach(wrap => {
+      const img = wrap.querySelector('img');
+      if (!img) return;
+
+      function markLoaded() {
+        img.classList.add('is-loaded');
+        wrap.classList.add('has-loaded');
+      }
+
+      if (img.complete && img.naturalWidth !== 0) {
+        markLoaded();
+      } else {
+        img.addEventListener('load', markLoaded, { once: true });
+        img.addEventListener('error', () => {
+          // Gracefully unhide even on error so alt text / placeholder can render
+          wrap.classList.add('has-loaded');
+          img.classList.add('is-loaded');
+        }, { once: true });
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProgressiveImages);
+  } else {
+    initProgressiveImages();
+  }
+})();
+
