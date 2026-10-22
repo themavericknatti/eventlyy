@@ -74,6 +74,73 @@ class UpdateEventAction
 
         $flyerPageEnabled = !empty($data['flyer_page_enabled']) ? 1 : 0;
 
+        // Recurrence parameters & conversion check
+        $wasRecurring = !empty($event->is_recurring) && !empty($event->recurrence_group_id);
+        $convertRecurring = !$wasRecurring && !empty($data['is_recurring']);
+
+        $occurrences = [];
+        $recurrenceGroupId = $event->recurrence_group_id ?? null;
+        $totalOccurrences = $event->recurrence_count ?? null;
+        $recurrenceType = $event->recurrence_type ?? 'none';
+        $recurrenceInterval = $event->recurrence_interval ?? 1;
+        $recurrenceEndDate = $event->recurrence_end_date ?? null;
+        $isRecurring = $event->is_recurring ?? 0;
+        $recurrenceSequence = $event->recurrence_sequence ?? 1;
+
+        if ($convertRecurring) {
+            $recType = in_array($data['recurrence_type'] ?? '', ['daily', 'weekly', 'biweekly', 'monthly']) 
+                ? $data['recurrence_type'] 
+                : 'weekly';
+            $recInterval = max(1, min(52, (int)($data['recurrence_interval'] ?? 1)));
+            $recEndType = $data['recurrence_end_type'] ?? 'count';
+            $recCount = isset($data['recurrence_count']) && is_numeric($data['recurrence_count']) 
+                ? max(2, min(52, (int)$data['recurrence_count'])) 
+                : 4;
+            $recEndDate = !empty($data['recurrence_end_date']) ? date('Y-m-d 23:59:59', strtotime($data['recurrence_end_date'])) : null;
+
+            try {
+                $startDateObj = new \DateTime($dateTimeStr);
+                $occurrences[] = $startDateObj->format('Y-m-d H:i:s');
+                $maxOccurrences = 52;
+                $targetCount = ($recEndType === 'count') ? $recCount : $maxOccurrences;
+                $currentDate = clone $startDateObj;
+
+                for ($i = 2; $i <= $targetCount; $i++) {
+                    if ($recType === 'daily') {
+                        $currentDate->modify("+{$recInterval} day");
+                    } elseif ($recType === 'weekly') {
+                        $currentDate->modify("+{$recInterval} week");
+                    } elseif ($recType === 'biweekly') {
+                        $weeks = $recInterval * 2;
+                        $currentDate->modify("+{$weeks} week");
+                    } elseif ($recType === 'monthly') {
+                        $currentDate->modify("+{$recInterval} month");
+                    }
+
+                    if ($recEndType === 'date' && $recEndDate) {
+                        if ($currentDate->getTimestamp() > strtotime($recEndDate)) {
+                            break;
+                        }
+                    }
+
+                    $occurrences[] = $currentDate->format('Y-m-d H:i:s');
+                }
+
+                $calcTotal = count($occurrences);
+                if ($calcTotal > 1) {
+                    $isRecurring = 1;
+                    $recurrenceType = $recType;
+                    $recurrenceInterval = $recInterval;
+                    $recurrenceEndDate = $recEndDate;
+                    $totalOccurrences = $calcTotal;
+                    $recurrenceGroupId = 'REC-' . strtoupper(bin2hex(random_bytes(6)));
+                    $recurrenceSequence = 1;
+                }
+            } catch (\Exception $e) {
+                // Ignore schedule generation errors and proceed as non-recurring
+            }
+        }
+
         $eventData = [
             'name' => $eventName ?: $event->name,
             'description' => $data['event_description'] ?? $event->description,
@@ -84,7 +151,14 @@ class UpdateEventAction
             'slug' => $slug,
             'custom_url' => $customUrl,
             'flyer_page_enabled' => $flyerPageEnabled,
-            'image' => $imagePath
+            'image' => $imagePath,
+            'is_recurring' => $isRecurring,
+            'recurrence_type' => $recurrenceType,
+            'recurrence_interval' => $recurrenceInterval,
+            'recurrence_end_date' => $recurrenceEndDate,
+            'recurrence_count' => $totalOccurrences,
+            'recurrence_group_id' => $recurrenceGroupId,
+            'recurrence_sequence' => $recurrenceSequence
         ];
 
         $event->loadData($eventData);
@@ -109,6 +183,13 @@ class UpdateEventAction
                     custom_url = :custom_url,
                     flyer_page_enabled = :flyer_page_enabled,
                     image = :image,
+                    is_recurring = :is_recurring,
+                    recurrence_type = :recurrence_type,
+                    recurrence_interval = :recurrence_interval,
+                    recurrence_end_date = :recurrence_end_date,
+                    recurrence_count = :recurrence_count,
+                    recurrence_group_id = :recurrence_group_id,
+                    recurrence_sequence = :recurrence_sequence,
                     updated_at = NOW()
                 WHERE id = :id
             ");
@@ -124,6 +205,13 @@ class UpdateEventAction
                 'custom_url' => $event->custom_url,
                 'flyer_page_enabled' => $flyerPageEnabled,
                 'image' => $event->image,
+                'is_recurring' => $isRecurring,
+                'recurrence_type' => $recurrenceType,
+                'recurrence_interval' => $recurrenceInterval,
+                'recurrence_end_date' => $recurrenceEndDate,
+                'recurrence_count' => $totalOccurrences,
+                'recurrence_group_id' => $recurrenceGroupId,
+                'recurrence_sequence' => $recurrenceSequence,
                 'id' => $event->id
             ]);
 
@@ -135,7 +223,7 @@ class UpdateEventAction
 
             // Propagate changes to future occurrences if requested
             $recurrenceUpdateScope = $data['recurrence_update_scope'] ?? 'this_only';
-            if ($recurrenceUpdateScope === 'all_future' && !empty($event->recurrence_group_id)) {
+            if ($wasRecurring && $recurrenceUpdateScope === 'all_future' && !empty($event->recurrence_group_id)) {
                 $futureStmt = $db->prepare("
                     UPDATE events 
                     SET name = :name, 
@@ -260,6 +348,78 @@ class UpdateEventAction
                     'phone' => trim($guestPhones[$index] ?? ''),
                     'social' => trim($guestSocials[$index] ?? '')
                 ]);
+            }
+
+            // 5. If converted to recurring series, spawn future occurrences (seq 2..N)
+            if ($convertRecurring && count($occurrences) > 1) {
+                // Fetch current ticket types for cloning
+                $currTicketsStmt = $db->prepare("SELECT name, price, capacity, admits, max_per_person FROM ticket_types WHERE event_id = :event_id");
+                $currTicketsStmt->execute(['event_id' => $event->id]);
+                $clonableTickets = $currTicketsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+                // Fetch current guests for cloning
+                $currGuestsStmt = $db->prepare("SELECT name, role, phone, social FROM event_guests WHERE event_id = :event_id");
+                $currGuestsStmt->execute(['event_id' => $event->id]);
+                $clonableGuests = $currGuestsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+                for ($seq = 2; $seq <= $totalOccurrences; $seq++) {
+                    $occDate = $occurrences[$seq - 1];
+                    $dateObj = new \DateTime($occDate);
+                    $dateSuffix = $dateObj->format('Y-m-d');
+                    $occSlug = generate_event_slug(($eventName ?: $event->name) . '-' . $dateSuffix);
+                    $occCustomUrl = $this->ensureUniqueSlugExcludingCurrent($customUrl . '-' . $dateSuffix, 0);
+
+                    $occEvent = new Event();
+                    $occEventData = [
+                        'name' => $eventName ?: $event->name,
+                        'description' => $data['event_description'] ?? $event->description,
+                        'category' => $category,
+                        'date' => $occDate,
+                        'location' => $location,
+                        'organizer_id' => $event->organizer_id,
+                        'status' => 'published',
+                        'pass_fee' => $passFee,
+                        'slug' => $occSlug,
+                        'custom_url' => $occCustomUrl,
+                        'flyer_page_enabled' => $flyerPageEnabled,
+                        'image' => $imagePath,
+                        'is_recurring' => 1,
+                        'recurrence_type' => $recurrenceType,
+                        'recurrence_interval' => $recurrenceInterval,
+                        'recurrence_end_date' => $recurrenceEndDate,
+                        'recurrence_count' => $totalOccurrences,
+                        'recurrence_group_id' => $recurrenceGroupId,
+                        'recurrence_sequence' => $seq
+                    ];
+
+                    $occEvent->loadData($occEventData);
+                    if ($occEvent->save()) {
+                        // Clone ticket types
+                        foreach ($clonableTickets as $tRow) {
+                            $stmt = $db->prepare("INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)");
+                            $stmt->execute([
+                                'event_id' => $occEvent->id,
+                                'name' => $tRow['name'],
+                                'price' => $tRow['price'],
+                                'capacity' => $tRow['capacity'],
+                                'admits' => $tRow['admits'],
+                                'max_per_person' => $tRow['max_per_person']
+                            ]);
+                        }
+
+                        // Clone special guests
+                        foreach ($clonableGuests as $gRow) {
+                            $stmt = $db->prepare("INSERT INTO event_guests (event_id, name, role, phone, social) VALUES (:event_id, :name, :role, :phone, :social)");
+                            $stmt->execute([
+                                'event_id' => $occEvent->id,
+                                'name' => $gRow['name'],
+                                'role' => $gRow['role'],
+                                'phone' => $gRow['phone'],
+                                'social' => $gRow['social']
+                            ]);
+                        }
+                    }
+                }
             }
 
             $db->commit();
