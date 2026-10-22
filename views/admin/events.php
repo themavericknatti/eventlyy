@@ -212,7 +212,14 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                                     <a href="{{ route('admin/events/{id}', ['id' => $ev['id']]) }}" style="color:var(--text); text-decoration:none; font-weight:700; font-size:0.95rem;" onmouseover="this.style.color='rgb(var(--brand))'" onmouseout="this.style.color='var(--text)'">
                                         <?= e($ev['name']) ?> ↗
                                     </a>
-                                    <span class="au-card-email"><?= e($ev['category'] ?? 'Event') ?></span>
+                                    <div style="display:flex; align-items:center; gap:0.4rem; margin-top:2px;">
+                                        <span class="au-card-email"><?= e($ev['category'] ?? 'Event') ?></span>
+                                        <?php if (!empty($ev['is_recurring'])): ?>
+                                            <span style="font-size:0.68rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); padding:0.1rem 0.4rem; border-radius:4px;" title="Occurrence #<?= e($ev['recurrence_sequence'] ?? 1) ?> of <?= e($ev['recurrence_count'] ?? '') ?>">
+                                                🔄 #<?= e($ev['recurrence_sequence'] ?? 1) ?>/<?= e($ev['recurrence_count'] ?? '') ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         </td>
@@ -322,7 +329,14 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                             <a href="{{ route('admin/events/{id}', ['id' => $ev['id']]) }}" style="color:var(--text); text-decoration:none; font-weight:700; font-size:0.95rem;">
                                 <?= e($ev['name']) ?> ↗
                             </a>
-                            <span class="au-card-email"><?= e($ev['category'] ?? 'Event') ?> • <?= e($ev['organizer_email']) ?></span>
+                            <div style="display:flex; align-items:center; gap:0.4rem; margin-top:2px;">
+                                <span class="au-card-email"><?= e($ev['category'] ?? 'Event') ?> • <?= e($ev['organizer_email']) ?></span>
+                                <?php if (!empty($ev['is_recurring'])): ?>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); padding:0.1rem 0.4rem; border-radius:4px;">
+                                        🔄 #<?= e($ev['recurrence_sequence'] ?? 1) ?>/<?= e($ev['recurrence_count'] ?? '') ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <span class="<?= $evStatusClass ?>"><?= $evStatusLabel ?></span>
@@ -405,6 +419,12 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="delete" />
             <input type="hidden" name="event_id" id="delete-event-id" value="" />
+            <div style="margin: 0.85rem 0; padding: 0.75rem 1rem; background: rgba(239, 68, 68, 0.06); border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.3); text-align: left;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; color: #dc2626; font-weight: 600;">
+                    <input type="checkbox" name="delete_series" value="1">
+                    <span>Delete entire recurring series (if this is a recurring event)</span>
+                </label>
+            </div>
             <div class="modal-actions">
                 <button type="button" class="admin-action-btn" id="delete-cancel-btn">Cancel</button>
                 <button type="submit" class="admin-action-btn danger">Yes, Delete Event</button>

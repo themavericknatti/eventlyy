@@ -974,19 +974,37 @@ class HostEventController extends Controller
 
         // Check 2: Event must have NO ticket payments from attendees (unless admin override)
         $db = Application::$app->db->pdo;
-        $stmt = $db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status IN ('Paid', 'Comped')");
-        $stmt->execute(['event_id' => $event->id]);
-        $paidTicketsCount = (int)$stmt->fetchColumn();
+        $deleteSeries = !empty($request->getBody()['delete_series']);
 
-        if ($paidTicketsCount > 0 && !$isAdmin) {
-            Application::$app->session->setFlash('error', 'This event cannot be deleted because ticket payments have already been received from attendees.');
-            return back();
+        if ($deleteSeries && !empty($event->recurrence_group_id)) {
+            $stmt = $db->prepare("
+                SELECT COUNT(*) FROM tickets t 
+                INNER JOIN events e ON t.event_id = e.id 
+                WHERE e.recurrence_group_id = :gid AND t.status IN ('Paid', 'Comped')
+            ");
+            $stmt->execute(['gid' => $event->recurrence_group_id]);
+            $paidTicketsCount = (int)$stmt->fetchColumn();
+
+            if ($paidTicketsCount > 0 && !$isAdmin) {
+                Application::$app->session->setFlash('error', 'The series cannot be deleted because ticket payments have already been received for one or more occurrences.');
+                return back();
+            }
+        } else {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status IN ('Paid', 'Comped')");
+            $stmt->execute(['event_id' => $event->id]);
+            $paidTicketsCount = (int)$stmt->fetchColumn();
+
+            if ($paidTicketsCount > 0 && !$isAdmin) {
+                Application::$app->session->setFlash('error', 'This event cannot be deleted because ticket payments have already been received from attendees.');
+                return back();
+            }
         }
 
         // Perform event deletion and cleanup associated tables and images via DeleteEventAction
         $deleteAction = new \App\Actions\DeleteEventAction();
-        if ($deleteAction->execute($event->id, $isAdmin ? null : $user->id)) {
-            Application::$app->session->setFlash('success', 'Event "' . $event->name . '" was successfully deleted.');
+        if ($deleteAction->execute($event->id, $isAdmin ? null : $user->id, $deleteSeries)) {
+            $msg = $deleteSeries ? 'Recurring event series was successfully deleted.' : 'Event "' . $event->name . '" was successfully deleted.';
+            Application::$app->session->setFlash('success', $msg);
         } else {
             Application::$app->session->setFlash('error', 'Failed to delete event.');
         }

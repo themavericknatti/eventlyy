@@ -119,11 +119,25 @@ class EventController extends Controller
         $guestStmt->execute(['event_id' => $internalId]);
         $eventGuests = $guestStmt->fetchAll() ?: [];
 
+        // Fetch recurring occurrences if this is a recurring series
+        $recurringOccurrences = [];
+        if (!empty($event['is_recurring']) && !empty($event['recurrence_group_id'])) {
+            $recStmt = $db->prepare("
+                SELECT id, name, date, custom_url, slug, recurrence_sequence, status
+                FROM events
+                WHERE recurrence_group_id = :gid
+                ORDER BY date ASC, recurrence_sequence ASC
+            ");
+            $recStmt->execute(['gid' => $event['recurrence_group_id']]);
+            $recurringOccurrences = $recStmt->fetchAll() ?: [];
+        }
+
         return $this->render('event', [
             'title' => $event['name'] . ' - Evently',
             'event' => (object)$event,
             'ticketTypes' => $ticketTypes,
             'eventGuests' => $eventGuests,
+            'recurringOccurrences' => $recurringOccurrences,
             'refCode' => $refCode
         ]);
     }

@@ -72,7 +72,7 @@ class UpdateEventAction
 
         $category = trim($data['event_category'] ?? $data['category'] ?? $event->category ?? 'Concerts');
 
-        $flyerPageEnabled = isset($data['flyer_page_enabled']) ? (!empty($data['flyer_page_enabled']) ? 1 : 0) : ($event->flyer_page_enabled ?? 0);
+        $flyerPageEnabled = !empty($data['flyer_page_enabled']) ? 1 : 0;
 
         $eventData = [
             'name' => $eventName ?: $event->name,
@@ -133,6 +133,35 @@ class UpdateEventAction
                 return false;
             }
 
+            // Propagate changes to future occurrences if requested
+            $recurrenceUpdateScope = $data['recurrence_update_scope'] ?? 'this_only';
+            if ($recurrenceUpdateScope === 'all_future' && !empty($event->recurrence_group_id)) {
+                $futureStmt = $db->prepare("
+                    UPDATE events 
+                    SET name = :name, 
+                        description = :description, 
+                        category = :category,
+                        location = :location, 
+                        pass_fee = :pass_fee,
+                        flyer_page_enabled = :flyer_page_enabled,
+                        image = :image,
+                        updated_at = NOW()
+                    WHERE recurrence_group_id = :group_id 
+                      AND recurrence_sequence > :current_sequence
+                ");
+                $futureStmt->execute([
+                    'name' => $event->name,
+                    'description' => $event->description,
+                    'category' => $event->category,
+                    'location' => $event->location,
+                    'pass_fee' => $event->pass_fee,
+                    'flyer_page_enabled' => $flyerPageEnabled,
+                    'image' => $event->image,
+                    'group_id' => $event->recurrence_group_id,
+                    'current_sequence' => (int)($event->recurrence_sequence ?? 1)
+                ]);
+            }
+
             // 3. Process Ticket Types update / insertion
             $ticketIds = $data['ticket-id'] ?? [];
             $ticketNames = $data['ticket-name'] ?? [];
@@ -149,37 +178,28 @@ class UpdateEventAction
 
                 $price = isset($ticketPrices[$index]) ? (float)$ticketPrices[$index] : 0.00;
                 $qty = isset($ticketQtys[$index]) ? (int)$ticketQtys[$index] : 0;
-                $existingId = isset($ticketIds[$index]) ? (int)$ticketIds[$index] : 0;
                 $admits = isset($ticketAdmits[$index]) && is_numeric($ticketAdmits[$index]) ? max(1, (int)$ticketAdmits[$index]) : 1;
                 $maxPerPerson = isset($ticketMaxPerPerson[$index]) && is_numeric($ticketMaxPerPerson[$index]) && (int)$ticketMaxPerPerson[$index] > 0 ? (int)$ticketMaxPerPerson[$index] : null;
 
-                // Smart detection: e.g. "Table for 5" or "Booth for 6"
+                // Auto-detect table/booth capacity if admits wasn't manually set
                 if ($admits === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $name, $matches)) {
                     $admits = max(1, (int)$matches[1]);
                 }
 
-                if ($existingId > 0) {
-                    // Verify capacity is not reduced below existing sold/issued tickets
-                    $takenStmt = $db->prepare("
-                        SELECT COUNT(*) FROM tickets 
-                        WHERE ticket_type_id = :id AND status IN ('Paid', 'Comped')
-                    ");
-                    $takenStmt->execute(['id' => $existingId]);
-                    $takenCount = (int)$takenStmt->fetchColumn();
+                $existingId = $ticketIds[$index] ?? null;
 
-                    if ($qty < $takenCount) {
-                        $db->rollBack();
-                        $event->addError('id', "Capacity for ticket tier '{$name}' cannot be reduced below {$takenCount} (the number of tickets already sold or issued).");
-                        return false;
-                    }
-
-                    // Update existing ticket type
-                    $stmt = $db->prepare("
+                if ($existingId && is_numeric($existingId)) {
+                    // Update existing tier
+                    $updateTierStmt = $db->prepare("
                         UPDATE ticket_types 
-                        SET name = :name, price = :price, capacity = :capacity, admits = :admits, max_per_person = :max_per_person 
+                        SET name = :name, 
+                            price = :price, 
+                            capacity = :capacity, 
+                            admits = :admits, 
+                            max_per_person = :max_per_person 
                         WHERE id = :id AND event_id = :event_id
                     ");
-                    $stmt->execute([
+                    $updateTierStmt->execute([
                         'name' => $name,
                         'price' => $price,
                         'capacity' => $qty,
@@ -188,14 +208,14 @@ class UpdateEventAction
                         'id' => $existingId,
                         'event_id' => $event->id
                     ]);
-                    $submittedIds[] = $existingId;
+                    $submittedIds[] = (int)$existingId;
                 } else {
-                    // Insert new ticket type
-                    $stmt = $db->prepare("
+                    // Create newly added tier
+                    $insertTierStmt = $db->prepare("
                         INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) 
                         VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)
                     ");
-                    $stmt->execute([
+                    $insertTierStmt->execute([
                         'event_id' => $event->id,
                         'name' => $name,
                         'price' => $price,

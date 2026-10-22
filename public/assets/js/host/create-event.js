@@ -559,4 +559,136 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         themeObserver.observe(document.documentElement, { attributes: true });
     }
+
+    // ── Recurrence Settings Handler ─────────────────────────
+    const recurringToggle = document.getElementById('is-recurring-toggle');
+    const recurrencePanel = document.getElementById('recurrence-options-panel');
+    const recurrenceType = document.getElementById('recurrence-type');
+    const recurrenceInterval = document.getElementById('recurrence-interval');
+    const recurrenceIntervalUnit = document.getElementById('recurrence-interval-unit');
+    const recurrenceEndType = document.getElementById('recurrence-end-type');
+    const groupCount = document.getElementById('group-recurrence-count');
+    const groupEndDate = document.getElementById('group-recurrence-end-date');
+    const recurrenceCount = document.getElementById('recurrence-count');
+    const recurrenceEndDate = document.getElementById('recurrence-end-date');
+    const previewText = document.getElementById('recurrence-preview-text');
+
+    if (recurringToggle && recurrencePanel) {
+        let recEndPicker = null;
+        if (typeof flatpickr !== 'undefined' && recurrenceEndDate) {
+            recEndPicker = flatpickr(recurrenceEndDate, {
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'F j, Y',
+                minDate: 'today',
+                disableMobile: true,
+                animate: true,
+                monthSelectorType: 'dropdown',
+                prevArrow: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+                nextArrow: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+                onReady: function (selectedDates, dateStr, instance) {
+                    instance.calendarContainer.classList.add('evently-flatpickr');
+                },
+                onChange: function () {
+                    updateRecurrencePreview();
+                }
+            });
+        }
+
+        recurringToggle.addEventListener('change', () => {
+            recurrencePanel.style.display = recurringToggle.checked ? 'block' : 'none';
+            if (recurringToggle.checked) {
+                updateRecurrencePreview();
+            }
+        });
+
+        function updateUnitLabel() {
+            if (!recurrenceType || !recurrenceIntervalUnit) return;
+            const type = recurrenceType.value;
+            if (type === 'daily') {
+                recurrenceIntervalUnit.textContent = 'day(s)';
+            } else if (type === 'weekly' || type === 'biweekly') {
+                recurrenceIntervalUnit.textContent = type === 'biweekly' ? 'cycle(s) (2 wks each)' : 'week(s)';
+            } else if (type === 'monthly') {
+                recurrenceIntervalUnit.textContent = 'month(s)';
+            }
+        }
+
+        function updateEndConditionFields() {
+            if (!recurrenceEndType) return;
+            const isDate = recurrenceEndType.value === 'date';
+            if (groupCount) groupCount.style.display = isDate ? 'none' : 'block';
+            if (groupEndDate) groupEndDate.style.display = isDate ? 'block' : 'none';
+        }
+
+        function updateRecurrencePreview() {
+            if (!previewText) return;
+            const eventDateVal = document.getElementById('event-date')?.value;
+            if (!eventDateVal) {
+                previewText.textContent = 'Select an initial event date above to view the schedule preview.';
+                return;
+            }
+
+            const type = recurrenceType?.value || 'weekly';
+            const interval = parseInt(recurrenceInterval?.value, 10) || 1;
+            const endType = recurrenceEndType?.value || 'count';
+            const count = parseInt(recurrenceCount?.value, 10) || 4;
+            const endDateVal = recurrenceEndDate?.value;
+
+            const typeNames = {
+                daily: interval === 1 ? 'daily' : `every ${interval} days`,
+                weekly: interval === 1 ? 'weekly' : `every ${interval} weeks`,
+                biweekly: `every ${interval * 2} weeks`,
+                monthly: interval === 1 ? 'monthly' : `every ${interval} months`
+            };
+
+            const typeLabel = typeNames[type] || 'weekly';
+
+            if (endType === 'count') {
+                previewText.innerHTML = `Repeats <strong>${typeLabel}</strong> for a total of <strong>${count} occurrences</strong> starting ${eventDateVal}.`;
+            } else if (endDateVal) {
+                previewText.innerHTML = `Repeats <strong>${typeLabel}</strong> starting ${eventDateVal} until <strong>${endDateVal}</strong>.`;
+            } else {
+                previewText.innerHTML = `Repeats <strong>${typeLabel}</strong> starting ${eventDateVal}. Please pick an end date.`;
+            }
+        }
+
+        if (recurrenceType) {
+            recurrenceType.addEventListener('change', () => {
+                updateUnitLabel();
+                updateRecurrencePreview();
+            });
+        }
+
+        if (recurrenceInterval) {
+            recurrenceInterval.addEventListener('input', updateRecurrencePreview);
+        }
+
+        if (recurrenceEndType) {
+            recurrenceEndType.addEventListener('change', () => {
+                updateEndConditionFields();
+                updateRecurrencePreview();
+            });
+        }
+
+        if (recurrenceCount) {
+            recurrenceCount.addEventListener('input', updateRecurrencePreview);
+        }
+
+        const initialDateInput = document.getElementById('event-date');
+        if (initialDateInput) {
+            initialDateInput.addEventListener('change', () => {
+                if (recEndPicker) {
+                    recEndPicker.set('minDate', initialDateInput.value);
+                }
+                updateRecurrencePreview();
+            });
+        }
+
+        updateUnitLabel();
+        updateEndConditionFields();
+        if (recurringToggle.checked) {
+            updateRecurrencePreview();
+        }
+    }
 });

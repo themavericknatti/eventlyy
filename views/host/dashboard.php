@@ -1035,6 +1035,13 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                 </div>
                 <div class="event-card-content">
                     <h3>{{ $event['name'] }}</h3>
+                    <?php if (!empty($event['is_recurring'])): ?>
+                        <div style="margin-bottom: 0.4rem;">
+                            <span style="display:inline-flex; align-items:center; gap:0.25rem; font-size:0.72rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:6px; padding:0.15rem 0.5rem;" title="Recurring series occurrence <?= e($event['recurrence_sequence'] ?? 1) ?> of <?= e($event['recurrence_count'] ?? '') ?>">
+                                🔄 Recurring (#<?= e($event['recurrence_sequence'] ?? 1) ?>/<?= e($event['recurrence_count'] ?? '') ?> &bull; <?= ucfirst(e($event['recurrence_type'] ?? 'Series')) ?>)
+                            </span>
+                        </div>
+                    <?php endif; ?>
                     <?php if (!empty($isAdmin) && !$isOwnEvent): ?>
                         <div style="display:inline-flex; align-items:center; gap:0.35rem; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.18); color:#6366f1; font-size:0.75rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:6px; margin-bottom:0.35rem; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                             <span style="font-size:0.8rem;">👤</span>

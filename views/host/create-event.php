@@ -829,6 +829,76 @@ Create Event - <?= e($siteName) ?> Host
                     </div>
                 </div>
 
+                <!-- Recurrence Settings -->
+                <div class="setting-card" style="margin-bottom: 1.5rem; border: 1.5px dashed rgba(var(--brand), 0.35); background: rgba(var(--brand), 0.03); border-radius: 12px; padding: 1.1rem 1.25rem;">
+                    <label class="setting-card-label" style="margin: 0; cursor: pointer;">
+                        <input type="checkbox" id="is-recurring-toggle" name="is_recurring" value="1" <?= !empty(old('is_recurring')) ? 'checked' : '' ?> class="setting-checkbox">
+                        <div style="flex: 1;">
+                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                                <span>🔄</span> Repeat Event (Recurring Series)
+                            </strong>
+                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
+                                Automatically generate linked occurrences with independent ticket pools for daily, weekly, bi-weekly, or monthly dates.
+                            </small>
+                        </div>
+                    </label>
+
+                    <div id="recurrence-options-panel" style="display: <?= !empty(old('is_recurring')) ? 'block' : 'none' ?>; margin-top: 1.15rem; padding-top: 1.15rem; border-top: 1px solid rgba(var(--brand), 0.15);">
+                        <div class="event-grid-3" style="margin-bottom: 1rem;">
+                            <div class="event-field-group">
+                                <label class="event-label" for="recurrence-type">Frequency</label>
+                                <select id="recurrence-type" name="recurrence_type" class="event-select">
+                                    <option value="weekly" <?= old('recurrence_type') === 'weekly' ? 'selected' : '' ?>>Weekly</option>
+                                    <option value="biweekly" <?= old('recurrence_type') === 'biweekly' ? 'selected' : '' ?>>Every 2 Weeks (Bi-weekly)</option>
+                                    <option value="monthly" <?= old('recurrence_type') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
+                                    <option value="daily" <?= old('recurrence_type') === 'daily' ? 'selected' : '' ?>>Daily</option>
+                                </select>
+                            </div>
+
+                            <div class="event-field-group">
+                                <label class="event-label" for="recurrence-interval">Repeat Every</label>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="number" id="recurrence-interval" name="recurrence_interval" class="event-input" min="1" max="52" value="<?= e(old('recurrence_interval', '1')) ?>" style="width: 80px;">
+                                    <span id="recurrence-interval-unit" style="font-size: 0.85rem; color: rgb(var(--muted));">week(s)</span>
+                                </div>
+                            </div>
+
+                            <div class="event-field-group">
+                                <label class="event-label" for="recurrence-end-type">End Condition</label>
+                                <select id="recurrence-end-type" name="recurrence_end_type" class="event-select">
+                                    <option value="count" <?= old('recurrence_end_type') !== 'date' ? 'selected' : '' ?>>After set occurrences</option>
+                                    <option value="date" <?= old('recurrence_end_type') === 'date' ? 'selected' : '' ?>>On a specific date</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="event-grid-2" style="align-items: flex-end; margin-bottom: 1rem;">
+                            <div class="event-field-group" id="group-recurrence-count">
+                                <label class="event-label" for="recurrence-count">Total Occurrences (2 to 52)</label>
+                                <input type="number" id="recurrence-count" name="recurrence_count" class="event-input" min="2" max="52" value="<?= e(old('recurrence_count', '4')) ?>" placeholder="e.g. 4">
+                            </div>
+
+                            <div class="event-field-group" id="group-recurrence-end-date" style="display: <?= old('recurrence_end_type') === 'date' ? 'block' : 'none' ?>;">
+                                <label class="event-label" for="recurrence-end-date">Repeat Until Date</label>
+                                <div class="picker-wrapper">
+                                    <svg class="picker-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                    <input type="text" id="recurrence-end-date" name="recurrence_end_date" class="event-input" value="<?= e(old('recurrence_end_date', '')) ?>" placeholder="Select end date" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="recurrence-preview-box" style="padding: 0.75rem 1rem; background: rgba(var(--brand), 0.08); border-radius: 10px; font-size: 0.82rem; color: rgb(var(--text)); display: flex; align-items: center; gap: 0.6rem;">
+                            <span style="font-size: 1.1rem;">🗓️</span>
+                            <span id="recurrence-preview-text">Configure schedule above to preview recurring occurrences.</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="event-grid-3">
                     <div class="event-field-group">
                         <label class="event-label" for="event-category">
@@ -1184,17 +1254,18 @@ Create Event - <?= e($siteName) ?> Host
 
                 <!-- Dedicated Flyer Page -->
                 <div class="setting-card setting-card--flyer">
-                    <label class="setting-card-label">
-                        <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= old('flyer_page_enabled', '1') ? 'checked' : '' ?> class="setting-checkbox">
-                        <div>
+                    <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
+                        <input type="hidden" name="flyer_page_enabled" value="0">
+                        <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty(old('flyer_page_enabled', '')) ? 'checked' : '' ?> class="setting-checkbox">
+                        <label for="flyer-page-enabled" style="cursor: pointer; user-select: none; flex: 1; margin: 0;">
                             <strong style="color:#6366f1; font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
                                 <span>🎨</span> Enable dedicated visual flyer landing page (<code>/f/event-slug</code>)
                             </strong>
                             <small class="event-help-text" style="display:block; margin-top:0.25rem;">
                                 Creates an immersive, artwork-centered ticket booth with a short link. Perfect for linking directly in Instagram bio, TikTok, and WhatsApp broadcasts.
                             </small>
-                        </div>
-                    </label>
+                        </label>
+                    </div>
                 </div>
             </div>
 

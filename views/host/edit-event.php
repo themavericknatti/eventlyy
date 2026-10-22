@@ -897,6 +897,33 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     </div>
                 </div>
 
+                <?php if (!empty($event->is_recurring) && !empty($event->recurrence_group_id)): ?>
+                <!-- Recurring Series Scope Box -->
+                <div class="setting-card" style="margin-bottom: 1.5rem; border: 1.5px solid rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.04); border-radius: 12px; padding: 1.15rem 1.25rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                        <span style="font-size: 1.3rem;">🔄</span>
+                        <div style="flex: 1;">
+                            <strong style="color: rgb(var(--text)); font-size: 0.95rem; display: block;">
+                                Recurring Event Series (Occurrence #<?= e($event->recurrence_sequence ?? 1) ?> of <?= e($event->recurrence_count ?? 'multiple') ?> &bull; <?= ucfirst(e($event->recurrence_type ?? 'recurring')) ?>)
+                            </strong>
+                            <p style="margin: 0.25rem 0 0.85rem; font-size: 0.82rem; color: rgb(var(--muted));">
+                                Choose how you want edits to apply across occurrences in this series:
+                            </p>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.88rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="radio" name="recurrence_update_scope" value="this_only" checked>
+                                    <span><strong>Update this occurrence only</strong> (does not modify other dates in this series)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="radio" name="recurrence_update_scope" value="all_future">
+                                    <span><strong>Update this and all future occurrences</strong> (propagates details, location, and artwork to upcoming occurrences)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="event-grid-3">
                     <div class="event-field-group">
                         <label class="event-label" for="event-category">
@@ -1104,17 +1131,18 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
                 <!-- Dedicated Flyer Page -->
                 <div class="setting-card setting-card--flyer">
-                    <label class="setting-card-label">
-                        <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty($event->flyer_page_enabled) ? 'checked' : '' ?> class="setting-checkbox">
-                        <div>
+                    <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
+                        <input type="hidden" name="flyer_page_enabled" value="0">
+                        <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty(old('flyer_page_enabled', $event->flyer_page_enabled ?? 0)) ? 'checked' : '' ?> class="setting-checkbox">
+                        <label for="flyer-page-enabled" style="cursor: pointer; user-select: none; flex: 1; margin: 0;">
                             <strong style="color:#6366f1; font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
                                 <span>🎨</span> Dedicated flyer landing page enabled (<code><?= e(event_flyer_url($event)) ?></code>)
                             </strong>
                             <small class="event-help-text" style="display:block; margin-top:0.25rem;">
                                 Provides an immersive artwork-background ticket booth with a short link. Perfect for linking directly in Instagram bio, TikTok, and WhatsApp broadcasts.
                             </small>
-                        </div>
-                    </label>
+                        </label>
+                    </div>
                 </div>
             </div>
 

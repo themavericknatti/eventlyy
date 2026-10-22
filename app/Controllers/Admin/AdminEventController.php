@@ -60,6 +60,7 @@ class AdminEventController extends Controller
     {
         $data = $request->getBody();
         $eventId = $data['event_id'] ?? '';
+        $deleteSeries = !empty($data['delete_series']);
 
         if (!$eventId) {
             Application::$app->session->setFlash('error', 'Event ID is missing.');
@@ -67,8 +68,9 @@ class AdminEventController extends Controller
         }
 
         // Delete the event via DeleteEventAction
-        if ($this->deleteEventAction->execute($eventId)) {
-            Application::$app->session->setFlash('success', 'Event deleted successfully!');
+        if ($this->deleteEventAction->execute($eventId, null, $deleteSeries)) {
+            $msg = $deleteSeries ? 'Recurring event series deleted successfully!' : 'Event deleted successfully!';
+            Application::$app->session->setFlash('success', $msg);
         } else {
             Application::$app->session->setFlash('error', 'Failed to delete event.');
         }

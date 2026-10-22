@@ -150,6 +150,12 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         ?>
                         <span class="mgmt-countdown-pill">⏱️ <?= $countdownText ?></span>
                     <?php endif; ?>
+
+                    <?php if (!empty($event->is_recurring)): ?>
+                        <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.65rem; border-radius:20px; font-size:0.75rem; font-weight:700; background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3);">
+                            🔄 Recurring Series (Occurrence #<?= e($event->recurrence_sequence ?? 1) ?> of <?= e($event->recurrence_count ?? 'multiple') ?> &bull; <?= ucfirst(e($event->recurrence_type ?? 'Series')) ?>)
+                        </span>
+                    <?php endif; ?>
                 </div>
 
                 <h1 class="mgmt-event-title"><?= e($event->name) ?></h1>
@@ -1001,15 +1007,27 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
                 <?php if ($canDelete): ?>
                     <div style="padding:1rem; background:rgba(239,68,68,0.06); border-radius:12px; border:1px dashed rgba(239,68,68,0.3);">
-                        <strong style="font-size:0.88rem; color:#dc2626; display:block; margin-bottom:0.25rem;">Delete This Event</strong>
-                        <p style="margin:0 0 0.75rem; font-size:0.78rem; color:rgb(var(--muted));">Once deleted, all event details, custom URLs, and draft tiers will be permanently removed.</p>
+                        <strong style="font-size:0.88rem; color:#dc2626; display:block; margin-bottom:0.25rem;">Delete Event</strong>
+                        <p style="margin:0 0 0.75rem; font-size:0.78rem; color:rgb(var(--muted));">Once deleted, event details, custom URLs, and draft tiers will be permanently removed.</p>
                         
-                        <form method="POST" action="{{ route('host/event/delete/' . $event->id) }}" onsubmit="return confirm('⚠️ ARE YOU ABSOLUTELY SURE?\n\nThis will permanently delete <?= addslashes($event->name) ?>. This action cannot be undone.');">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="admin-action-btn danger" style="padding:0.6rem 1.25rem; font-weight:800; border-radius:10px; cursor:pointer;">
-                                🗑️ Delete Event
-                            </button>
-                        </form>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center;">
+                            <form method="POST" action="{{ route('host/event/delete/' . $event->id) }}" onsubmit="return confirm('⚠️ ARE YOU ABSOLUTELY SURE?\n\nThis will permanently delete this occurrence (<?= addslashes($event->name) ?>). This action cannot be undone.');">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="admin-action-btn danger" style="padding:0.6rem 1.25rem; font-weight:800; border-radius:10px; cursor:pointer;">
+                                    🗑️ Delete This Occurrence Only
+                                </button>
+                            </form>
+
+                            <?php if (!empty($event->is_recurring) && !empty($event->recurrence_group_id)): ?>
+                            <form method="POST" action="{{ route('host/event/delete/' . $event->id) }}" onsubmit="return confirm('⚠️ DANGER: DELETE ENTIRE SERIES?\n\nThis will permanently delete ALL occurrences in this recurring series. This action cannot be undone.');">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="delete_series" value="1">
+                                <button type="submit" class="admin-action-btn danger" style="background:#7f1d1d; border-color:#991b1b; padding:0.6rem 1.25rem; font-weight:800; border-radius:10px; cursor:pointer;" title="Delete all occurrences in this recurring series">
+                                    💥 Delete Entire Recurring Series
+                                </button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php else: ?>
                     <div style="padding:0.85rem 1rem; background:rgba(var(--muted),0.06); border-radius:12px; font-size:0.82rem; color:rgb(var(--muted)); line-height:1.45;">

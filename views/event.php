@@ -53,6 +53,11 @@ $encodedShareUrl = urlencode($shareUrl);
                 <span class="ep-badge ep-badge--today">⚡ Happening Today</span>
             <?php endif; ?>
             <span class="ep-badge ep-badge--category"><?= e($event->category ?? 'Event') ?></span>
+            <?php if (!empty($event->is_recurring)): ?>
+                <span class="ep-badge ep-badge--recurring" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
+                    🔄 Recurring Series (<?= ucfirst(e($event->recurrence_type ?? 'Event')) ?>)
+                </span>
+            <?php endif; ?>
             <?php if (!empty($event->flyer_page_enabled)): ?>
                 <a href="<?= e(event_flyer_url($event)) ?>" class="ep-badge ep-badge--flyer" title="View immersive flyer">
                     🎨 Flyer View
@@ -152,6 +157,58 @@ $encodedShareUrl = urlencode($shareUrl);
         </div>
     </aside>
 </section>
+
+<!-- ═══ Recurring Series Occurrence Switcher ═══ -->
+<?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
+    <div class="ep-series-switcher" style="margin-bottom: 2rem; background: var(--card, #1e293b); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 16px; padding: 1.25rem 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.3rem;">📅</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: rgb(var(--text));">
+                        Event Series Dates
+                    </h3>
+                    <p style="margin: 0; font-size: 0.82rem; color: rgb(var(--muted));">
+                        This event takes place on multiple dates. Select a date below to view tickets and details:
+                    </p>
+                </div>
+            </div>
+            <span style="font-size: 0.8rem; padding: 0.25rem 0.65rem; border-radius: 20px; background: rgba(99, 102, 241, 0.12); color: #818cf8; font-weight: 600;">
+                <?= count($recurringOccurrences) ?> Dates Available
+            </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">
+            <?php foreach ($recurringOccurrences as $occ): 
+                $occTime = strtotime($occ['date']);
+                $isCurrentOcc = ($occ['id'] == $event->id);
+                $occPast = ($occTime + (event_completion_hours() * 3600)) < time();
+                $occUrl = event_url((object)$occ);
+            ?>
+                <a href="<?= e($occUrl) ?>" style="display: block; text-decoration: none; padding: 0.75rem 1rem; border-radius: 12px; transition: all 0.2s ease; border: 1.5px solid <?= $isCurrentOcc ? 'var(--brand, #4f46e5)' : 'rgba(255,255,255,0.08)' ?>; background: <?= $isCurrentOcc ? 'rgba(99, 102, 241, 0.12)' : 'rgba(var(--card), 0.5)' ?>; color: inherit;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: <?= $isCurrentOcc ? 'var(--brand, #818cf8)' : 'rgb(var(--muted))' ?>;">
+                            Occurrence #<?= e($occ['recurrence_sequence'] ?? 1) ?>
+                        </span>
+                        <?php if ($isCurrentOcc): ?>
+                            <span style="font-size: 0.7rem; background: var(--brand, #4f46e5); color: #fff; padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 700;">Selected</span>
+                        <?php elseif ($occPast): ?>
+                            <span style="font-size: 0.7rem; background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 0.15rem 0.45rem; border-radius: 6px;">Concluded</span>
+                        <?php else: ?>
+                            <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.15rem 0.45rem; border-radius: 6px;">Upcoming</span>
+                        <?php endif; ?>
+                    </div>
+                    <strong style="display: block; font-size: 0.92rem; color: rgb(var(--text)); margin-bottom: 0.15rem;">
+                        <?= date('D, M j, Y', $occTime) ?>
+                    </strong>
+                    <span style="font-size: 0.8rem; color: rgb(var(--muted));">
+                        ⏰ <?= date('g:i A', $occTime) ?>
+                    </span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
 
 <!-- ═══ Tickets or Completed Banner ═══ -->
 <?php if ($isCompleted): ?>
