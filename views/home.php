@@ -644,10 +644,18 @@
     transform: scale(1.05);
 }
 
-.hm-card-badge-top-left {
+.hm-card-badges-top-left {
     position: absolute;
     top: 0.75rem;
     left: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-start;
+    z-index: 2;
+}
+
+.hm-card-badge-top-left {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -658,6 +666,23 @@
     border-radius: 8px;
     letter-spacing: 0.03em;
     text-transform: uppercase;
+}
+
+.hm-card-badge-recurring {
+    background: rgba(99, 102, 241, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .hm-card-price-badge {
@@ -1314,6 +1339,9 @@
                                 <div class="hm-featured-meta">
                                     <div class="hm-featured-tags">
                                         <span class="hm-tag hm-tag--brand"><?= e($fe['category'] ?? 'Event') ?></span>
+                                        <?php if (!empty($fe['is_recurring'])): ?>
+                                            <span class="hm-tag" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4);">🔄 Recurring</span>
+                                        <?php endif; ?>
                                         <?php if (!empty($fe['is_featured'])): ?>
                                             <span class="hm-tag hm-tag--featured">⭐ Featured</span>
                                         <?php endif; ?>
@@ -1417,7 +1445,12 @@
                         <div class="hm-card-thumb-wrap progressive-img-wrap">
                             <div class="progressive-skeleton"></div>
                             <img src="<?= e($evImg) ?>" alt="<?= e($ev['name']) ?>" class="hm-card-thumb" loading="lazy" decoding="async">
-                            <span class="hm-card-badge-top-left"><?= e($ev['category'] ?? 'Event') ?></span>
+                            <div class="hm-card-badges-top-left">
+                                <span class="hm-card-badge-top-left"><?= e($ev['category'] ?? 'Event') ?></span>
+                                <?php if (!empty($ev['is_recurring'])): ?>
+                                    <span class="hm-card-badge-recurring" title="Recurring event series">🔄 Recurring</span>
+                                <?php endif; ?>
+                            </div>
                             <span class="hm-card-price-badge"><?= $minPrice ?></span>
                         </div>
 

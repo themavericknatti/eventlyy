@@ -151,6 +151,170 @@ $encodedShareUrl = urlencode($shareUrl);
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
+
+/* ─── Recurring Series Dropdown Switcher ─── */
+.ep-series-switcher-box {
+    margin-bottom: 2rem;
+    background: var(--card, #1e293b);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ep-series-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.ep-series-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ep-series-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.ep-series-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: rgb(var(--text));
+    letter-spacing: -0.01em;
+}
+
+.ep-series-subtitle {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: rgb(var(--muted));
+}
+
+.ep-series-badge {
+    font-size: 0.78rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    font-weight: 600;
+}
+
+.ep-series-current-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    color: rgb(var(--text));
+    margin-bottom: 1rem;
+}
+
+.ep-series-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #818cf8;
+    box-shadow: 0 0 6px #818cf8;
+    flex-shrink: 0;
+}
+
+.ep-series-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.ep-series-select-wrap {
+    position: relative;
+    flex: 1 1 320px;
+}
+
+.ep-series-select {
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid rgba(99, 102, 241, 0.35);
+    background: rgba(var(--card), 0.95);
+    color: rgb(var(--text));
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: all 0.2s ease;
+}
+
+:root[data-theme='dark'] .ep-series-select {
+    background: #0f172a;
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.ep-series-select:focus {
+    outline: none;
+    border-color: var(--brand, #4f46e5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.ep-series-select-arrow {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #818cf8;
+    display: flex;
+    align-items: center;
+}
+
+.ep-series-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.72rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    background: rgba(var(--card), 0.7);
+    color: rgb(var(--text));
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.ep-series-nav-btn:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #818cf8;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+    .ep-series-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .ep-series-select-wrap {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+    .ep-series-nav-btn {
+        justify-content: center;
+        width: 100%;
+    }
+}
 </style>
 @endsection
 
@@ -172,9 +336,9 @@ $encodedShareUrl = urlencode($shareUrl);
             <?php endif; ?>
             <span class="ep-badge ep-badge--category"><?= e($event->category ?? 'Event') ?></span>
             <?php if (!empty($event->is_recurring)): ?>
-                <span class="ep-badge ep-badge--recurring" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
-                    🔄 Recurring Series (<?= ucfirst(e($event->recurrence_type ?? 'Event')) ?>)
-                </span>
+                <a href="#series-date-selector" class="ep-badge ep-badge--recurring" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); text-decoration: none; cursor: pointer;" title="View all dates in this recurring series">
+                    🔄 Recurring Series (<?= ucfirst(e($event->recurrence_type ?? 'Event')) ?>)<?= !empty($recurringOccurrences) && count($recurringOccurrences) > 1 ? ' • ' . count($recurringOccurrences) . ' Dates ▾' : '' ?>
+                </a>
             <?php endif; ?>
             <?php if (!empty($event->flyer_page_enabled)): ?>
                 <a href="<?= e(event_flyer_url($event)) ?>" class="ep-badge ep-badge--flyer" title="View immersive flyer">
@@ -279,53 +443,83 @@ $encodedShareUrl = urlencode($shareUrl);
 </section>
 
 <!-- ═══ Recurring Series Occurrence Switcher ═══ -->
-<?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
-    <div class="ep-series-switcher reveal-on-scroll" style="margin-bottom: 2rem; background: var(--card, #1e293b); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 16px; padding: 1.25rem 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <span style="font-size: 1.3rem;">📅</span>
+<?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): 
+    $currentIndex = 0;
+    $prevOcc = null;
+    $nextOcc = null;
+    foreach ($recurringOccurrences as $idx => $occ) {
+        if ($occ['id'] == $event->id) {
+            $currentIndex = $idx;
+            $prevOcc = $recurringOccurrences[$idx - 1] ?? null;
+            $nextOcc = $recurringOccurrences[$idx + 1] ?? null;
+            break;
+        }
+    }
+?>
+    <div class="ep-series-switcher-box reveal-on-scroll" id="series-date-selector">
+        <div class="ep-series-header">
+            <div class="ep-series-title-wrap">
+                <span class="ep-series-icon">📅</span>
                 <div>
-                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: rgb(var(--text));">
+                    <h3 class="ep-series-title">
                         Event Series Dates
                     </h3>
-                    <p style="margin: 0; font-size: 0.82rem; color: rgb(var(--muted));">
-                        This event takes place on multiple dates. Select a date below to view tickets and details:
+                    <p class="ep-series-subtitle">
+                        This event takes place on multiple dates. Choose a date to view tickets and details:
                     </p>
                 </div>
             </div>
-            <span style="font-size: 0.8rem; padding: 0.25rem 0.65rem; border-radius: 20px; background: rgba(99, 102, 241, 0.12); color: #818cf8; font-weight: 600;">
+            <span class="ep-series-badge">
                 <?= count($recurringOccurrences) ?> Dates Available
             </span>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">
-            <?php foreach ($recurringOccurrences as $occ): 
-                $occTime = strtotime($occ['date']);
-                $isCurrentOcc = ($occ['id'] == $event->id);
-                $occPast = ($occTime + (event_completion_hours() * 3600)) < time();
-                $occUrl = event_url((object)$occ);
-            ?>
-                <a href="<?= e($occUrl) ?>" style="display: block; text-decoration: none; padding: 0.75rem 1rem; border-radius: 12px; transition: all 0.2s ease; border: 1.5px solid <?= $isCurrentOcc ? 'var(--brand, #4f46e5)' : 'rgba(255,255,255,0.08)' ?>; background: <?= $isCurrentOcc ? 'rgba(99, 102, 241, 0.12)' : 'rgba(var(--card), 0.5)' ?>; color: inherit;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                        <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: <?= $isCurrentOcc ? 'var(--brand, #818cf8)' : 'rgb(var(--muted))' ?>;">
-                            Occurrence #<?= e($occ['recurrence_sequence'] ?? 1) ?>
-                        </span>
-                        <?php if ($isCurrentOcc): ?>
-                            <span style="font-size: 0.7rem; background: var(--brand, #4f46e5); color: #fff; padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 700;">Selected</span>
-                        <?php elseif ($occPast): ?>
-                            <span style="font-size: 0.7rem; background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 0.15rem 0.45rem; border-radius: 6px;">Concluded</span>
-                        <?php else: ?>
-                            <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.15rem 0.45rem; border-radius: 6px;">Upcoming</span>
-                        <?php endif; ?>
-                    </div>
-                    <strong style="display: block; font-size: 0.92rem; color: rgb(var(--text)); margin-bottom: 0.15rem;">
-                        <?= date('D, M j, Y', $occTime) ?>
-                    </strong>
-                    <span style="font-size: 0.8rem; color: rgb(var(--muted));">
-                        ⏰ <?= date('g:i A', $occTime) ?>
-                    </span>
+        <div class="ep-series-current-pill">
+            <span class="ep-series-dot"></span>
+            <span>Currently Viewing: <strong>Occurrence #<?= e($event->recurrence_sequence ?? ($currentIndex + 1)) ?></strong> &bull; <?= $eventDate ? date('l, M j, Y • g:i A', $eventDate) : 'Date TBA' ?></span>
+        </div>
+
+        <div class="ep-series-controls">
+            <?php if ($prevOcc): ?>
+                <a href="<?= e(event_url((object)$prevOcc)) ?>" class="ep-series-nav-btn ep-series-nav-btn--prev" title="Switch to previous occurrence (<?= date('M d', strtotime($prevOcc['date'])) ?>)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    <span>Prev Date</span>
                 </a>
-            <?php endforeach; ?>
+            <?php endif; ?>
+
+            <div class="ep-series-select-wrap">
+                <select id="series-occurrence-select" class="ep-series-select" aria-label="Select event date and occurrence">
+                    <?php foreach ($recurringOccurrences as $occ): 
+                        $occTime = strtotime($occ['date']);
+                        $isCurrentOcc = ($occ['id'] == $event->id);
+                        $occPast = ($occTime + (event_completion_hours() * 3600)) < time();
+                        $occUrl = event_url((object)$occ);
+                        
+                        $label = 'Occurrence #' . ($occ['recurrence_sequence'] ?? 1) . ' — ' . date('D, M j, Y • g:i A', $occTime);
+                        if ($isCurrentOcc) {
+                            $label .= ' (Current Selection)';
+                        } elseif ($occPast) {
+                            $label .= ' (Concluded)';
+                        } else {
+                            $label .= ' (Upcoming)';
+                        }
+                    ?>
+                        <option value="<?= e($occUrl) ?>" <?= $isCurrentOcc ? 'selected' : '' ?>>
+                            <?= e($label) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="ep-series-select-arrow" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+
+            <?php if ($nextOcc): ?>
+                <a href="<?= e(event_url((object)$nextOcc)) ?>" class="ep-series-nav-btn ep-series-nav-btn--next" title="Switch to next occurrence (<?= date('M d', strtotime($nextOcc['date'])) ?>)">
+                    <span>Next Date</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 <?php endif; ?>
@@ -681,6 +875,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && lightboxModal.style.display === 'flex') closeLightbox();
+        });
+    }
+
+    /* ── Recurring Series Date Switcher ── */
+    var seriesSelect = document.getElementById('series-occurrence-select');
+    if (seriesSelect) {
+        seriesSelect.addEventListener('change', function () {
+            if (this.value) {
+                window.location.href = this.value;
+            }
         });
     }
 

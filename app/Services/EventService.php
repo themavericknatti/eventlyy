@@ -13,7 +13,24 @@ class EventService
     public function getPublicEvents(string $search = '', string $location = '', string $category = '', int $page = 1, int $limit = 6): array
     {
         $db = Application::$app->db->pdo;
-        $conditions = ["e.status = 'published'", "e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR"];
+        $completionHours = event_completion_hours();
+        $conditions = [
+            "e.status = 'published'",
+            "e.date >= NOW() - INTERVAL {$completionHours} HOUR",
+            "(
+                e.recurrence_group_id IS NULL 
+                OR e.recurrence_group_id = ''
+                OR e.id = (
+                    SELECT sub.id 
+                    FROM events sub 
+                    WHERE sub.recurrence_group_id = e.recurrence_group_id 
+                      AND sub.status = 'published'
+                      AND sub.date >= NOW() - INTERVAL {$completionHours} HOUR
+                    ORDER BY sub.date ASC, sub.recurrence_sequence ASC, sub.id ASC
+                    LIMIT 1
+                )
+            )"
+        ];
         $params = [];
 
         if (!empty($search)) {
@@ -106,6 +123,7 @@ class EventService
     public function getFeaturedEvents(int $limit = 5): array
     {
         $db = Application::$app->db->pdo;
+        $completionHours = event_completion_hours();
         $stmt = $db->prepare("
             SELECT e.*, 
                    u.name as organizer_name,
@@ -131,7 +149,21 @@ class EventService
                 FROM event_reviews 
                 GROUP BY event_id
             ) r ON r.event_id = e.id
-            WHERE e.status = 'published' AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
+            WHERE e.status = 'published' 
+              AND e.date >= NOW() - INTERVAL {$completionHours} HOUR
+              AND (
+                  e.recurrence_group_id IS NULL 
+                  OR e.recurrence_group_id = ''
+                  OR e.id = (
+                      SELECT sub.id 
+                      FROM events sub 
+                      WHERE sub.recurrence_group_id = e.recurrence_group_id 
+                        AND sub.status = 'published'
+                        AND sub.date >= NOW() - INTERVAL {$completionHours} HOUR
+                      ORDER BY sub.date ASC, sub.recurrence_sequence ASC, sub.id ASC
+                      LIMIT 1
+                  )
+              )
             ORDER BY e.is_featured DESC, tickets_sold DESC, avg_rating DESC, e.date ASC
             LIMIT :limit
         ");
