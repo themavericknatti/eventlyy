@@ -161,7 +161,7 @@ class HostController extends Controller
                 SELECT e.id, e.name, e.pass_fee,
                        SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) as net_sales
                 FROM events e
-                INNER JOIN tickets t ON e.id = t.event_id AND t.status IN ('Paid', 'Comped')
+                INNER JOIN tickets t ON e.id = t.event_id AND t.status = 'Paid'
                     AND (t.is_issued = 0 OR t.is_issued IS NULL)
                 WHERE e.organizer_id = :org_id
                   AND e.status = 'published'
@@ -174,7 +174,7 @@ class HostController extends Controller
                 SELECT e.id, e.name, e.pass_fee,
                        SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) as net_sales
                 FROM events e
-                INNER JOIN tickets t ON e.id = t.event_id AND t.status IN ('Paid', 'Comped')
+                INNER JOIN tickets t ON e.id = t.event_id AND t.status = 'Paid'
                     AND (t.is_issued = 0 OR t.is_issued IS NULL)
                 WHERE e.organizer_id = :org_id
                   AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . event_completion_hours() . " HOUR))

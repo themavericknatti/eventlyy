@@ -603,7 +603,223 @@ try {
 </section>
 
 <!-- ════════════════════════════════════════════════════════════════
-     8. SYSTEM FINANCIAL AUDIT LOG STREAM
+     8. REAL-TIME ATTENDEE TICKET PURCHASES & ACTIVITY FEED
+     ════════════════════════════════════════════════════════════════ -->
+<section class="form-card ticket-activity-section" style="border-radius:22px; padding:1.5rem; margin-bottom: 2rem;">
+    <div class="au-table-header audit-header-row" style="margin-bottom:1.25rem; border-bottom:1px solid rgba(var(--muted),0.08); padding-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <h2 style="margin:0; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:0.4rem;">
+                    <span>🎟️</span> Real-Time Attendee Ticket Purchases
+                </h2>
+                <span class="badge-live-pulse" style="font-size:0.75rem; font-weight:700; background:rgba(16, 185, 129, 0.12); color:#10b981; padding:0.2rem 0.55rem; border-radius:12px; display:inline-flex; align-items:center; gap:0.35rem;">
+                    <span style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block; animation:pulseGlow 1.5s infinite;"></span>
+                    Live Feed
+                </span>
+                <?php if (($today_tickets ?? 0) > 0): ?>
+                    <span style="font-size:0.75rem; font-weight:800; background:rgba(99, 102, 241, 0.12); color:#6366f1; padding:0.2rem 0.55rem; border-radius:12px;">
+                        <?= (int)$today_tickets ?> purchased today
+                    </span>
+                <?php endif; ?>
+            </div>
+            <p class="section-note" style="margin:0.25rem 0 0; font-size:0.82rem;">Super-admin visibility into incoming ticket orders, buyer information, and check-in status.</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <input type="text" id="ticketPurchasesSearch" placeholder="🔍 Search attendee, event, or code..." class="audit-search-box">
+            <a href="{{ route('admin/attendees') }}" class="admin-action-btn primary" style="font-size:0.82rem; padding:0.45rem 0.95rem; border-radius:10px; font-weight:700; text-decoration:none;">
+                Attendee Directory (<?= number_format($total_tickets ?? 0) ?>) →
+            </a>
+        </div>
+    </div>
+
+    <!-- Desktop & Tablet Table (displayed on screens > 768px) -->
+    <div class="au-table-wrap ticket-stream-table-wrap">
+        <table class="au-table" id="ticketPurchasesTable">
+            <thead>
+                <tr>
+                    <th>Ticket Code</th>
+                    <th>Attendee / Buyer</th>
+                    <th>Event</th>
+                    <th>Tier</th>
+                    <th>Amount Paid</th>
+                    <th>Status</th>
+                    <th>Gate Check-In</th>
+                    <th>Purchased</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($recent_ticket_purchases)): ?>
+                    <tr><td colspan="8" style="padding:2.5rem; text-align:center; color:rgb(var(--muted));">No ticket purchases recorded yet.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($recent_ticket_purchases as $tkt): 
+                        $hue = (crc32($tkt['attendee_email'] ?? $tkt['id']) % 260) + 100;
+                        $initials = strtoupper(substr($tkt['attendee_name'] ?: 'A', 0, 2));
+                        $isPaid = ($tkt['status'] === 'Paid');
+                        $isComped = ($tkt['status'] === 'Comped');
+                        $isCancelled = ($tkt['status'] === 'Cancelled');
+                        $statusClass = $isPaid ? 'au-status--active' : ($isComped ? 'au-role--host' : ($isCancelled ? 'au-status--suspended' : 'au-status--unverified'));
+                        $isCheckedIn = !empty($tkt['checked_in']);
+                        $ticketPrice = (float)($tkt['price'] ?? 0);
+                        $formattedDate = !empty($tkt['purchase_date']) ? date('M d, Y • h:i A', strtotime($tkt['purchase_date'])) : 'Recent';
+                    ?>
+                    <tr class="ticket-purchase-row">
+                        <td>
+                            <div class="ticket-code-pill-wrapper" style="display:inline-flex; align-items:center; gap:0.35rem;">
+                                <span class="ticket-code-badge" style="font-family:monospace; font-size:0.8rem; font-weight:800; background:rgba(var(--text), 0.05); color:rgb(var(--text)); padding:0.25rem 0.55rem; border-radius:6px; border:1px solid rgba(var(--muted), 0.15); letter-spacing:0.04em;">
+                                    <?= e($tkt['id']) ?>
+                                </span>
+                                <button type="button" onclick="navigator.clipboard.writeText('<?= addslashes(e($tkt['id'])) ?>'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500);" style="background:none; border:none; cursor:pointer; font-size:0.8rem; color:rgb(var(--muted)); padding:2px;" title="Copy Ticket Code">📋</button>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:0.6rem;">
+                                <div style="width:32px; height:32px; border-radius:50%; background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem; flex-shrink:0;">
+                                    <?= $initials ?>
+                                </div>
+                                <div style="min-width:0;">
+                                    <div style="font-size:0.88rem; font-weight:700; color:rgb(var(--text)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        <?= e($tkt['attendee_name'] ?: 'Guest') ?>
+                                    </div>
+                                    <div style="font-size:0.75rem; color:rgb(var(--muted)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        <?= e($tkt['attendee_email']) ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="max-width:200px;">
+                                <?php if (!empty($tkt['event_id'])): ?>
+                                    <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.2rem;" title="View Event in Admin">
+                                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?></span>
+                                        <span style="font-size:0.75rem;">↗</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span style="font-size:0.85rem; color:rgb(var(--muted));">Event #<?= e($tkt['event_id'] ?? 'N/A') ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="font-size:0.76rem; font-weight:700; padding:0.2rem 0.55rem; border-radius:6px; background:rgba(99, 102, 241, 0.1); color:#6366f1; white-space:nowrap;">
+                                <?= e($tkt['ticket_tier'] ?: 'General') ?>
+                            </span>
+                        </td>
+                        <td>
+                            <?php if ($ticketPrice > 0): ?>
+                                <strong style="font-size:0.88rem; color:rgb(var(--text));"><?= format_price($ticketPrice) ?></strong>
+                            <?php else: ?>
+                                <span style="font-size:0.76rem; font-weight:800; color:#10b981; background:rgba(16, 185, 129, 0.1); padding:0.18rem 0.5rem; border-radius:6px;">FREE</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="au-status-badge <?= $statusClass ?>" style="font-weight:700; font-size:0.76rem;">
+                                <?= ucfirst($tkt['status'] ?? 'Pending') ?>
+                            </span>
+                        </td>
+                        <td>
+                            <?php if ($isCheckedIn): ?>
+                                <span style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.75rem; font-weight:700; color:#10b981; background:rgba(16, 185, 129, 0.1); padding:0.2rem 0.55rem; border-radius:10px;">
+                                    <span>✓</span> Checked In
+                                </span>
+                            <?php else: ?>
+                                <span style="font-size:0.75rem; color:rgb(var(--muted));">⏳ Gate Pending</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="font-size:0.78rem; color:rgb(var(--muted)); white-space:nowrap;">
+                            <?= $formattedDate ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Screen Card View (CSS: display:none on desktop, flex on mobile <=768px) -->
+    <div class="ticket-stream-cards-list" id="ticketPurchasesCards">
+        <?php if (!empty($recent_ticket_purchases)): ?>
+            <?php foreach ($recent_ticket_purchases as $tkt): 
+                $hue = (crc32($tkt['attendee_email'] ?? $tkt['id']) % 260) + 100;
+                $initials = strtoupper(substr($tkt['attendee_name'] ?: 'A', 0, 2));
+                $isPaid = ($tkt['status'] === 'Paid');
+                $isComped = ($tkt['status'] === 'Comped');
+                $isCancelled = ($tkt['status'] === 'Cancelled');
+                $statusClass = $isPaid ? 'au-status--active' : ($isComped ? 'au-role--host' : ($isCancelled ? 'au-status--suspended' : 'au-status--unverified'));
+                $isCheckedIn = !empty($tkt['checked_in']);
+                $ticketPrice = (float)($tkt['price'] ?? 0);
+                $formattedDate = !empty($tkt['purchase_date']) ? date('M d, Y • h:i A', strtotime($tkt['purchase_date'])) : 'Recent';
+            ?>
+            <article class="ticket-purchase-mobile-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.6rem;">
+                    <div style="display:flex; align-items:center; gap:0.55rem;">
+                        <div style="width:36px; height:36px; border-radius:50%; background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.8rem; flex-shrink:0;">
+                            <?= $initials ?>
+                        </div>
+                        <div>
+                            <div style="font-size:0.9rem; font-weight:800; color:rgb(var(--text)); line-height:1.2;">
+                                <?= e($tkt['attendee_name'] ?: 'Guest') ?>
+                            </div>
+                            <div style="font-size:0.75rem; color:rgb(var(--muted));">
+                                <?= e($tkt['attendee_email']) ?>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="au-status-badge <?= $statusClass ?>" style="font-weight:700; font-size:0.74rem;">
+                        <?= ucfirst($tkt['status'] ?? 'Pending') ?>
+                    </span>
+                </div>
+
+                <div style="background:rgba(var(--muted), 0.04); border-radius:10px; padding:0.6rem 0.75rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem;">
+                    <div style="min-width:0;">
+                        <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block;">Event</span>
+                        <?php if (!empty($tkt['event_id'])): ?>
+                            <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block;">
+                                <?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?> ↗
+                            </a>
+                        <?php else: ?>
+                            <span style="font-size:0.82rem; font-weight:600;">Event #<?= e($tkt['event_id'] ?? 'N/A') ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block;">Tier &amp; Price</span>
+                        <div style="display:flex; align-items:center; gap:0.35rem; justify-content:flex-end;">
+                            <span style="font-size:0.72rem; font-weight:700; padding:0.12rem 0.4rem; border-radius:5px; background:rgba(99, 102, 241, 0.12); color:#6366f1;">
+                                <?= e($tkt['ticket_tier'] ?: 'General') ?>
+                            </span>
+                            <?php if ($ticketPrice > 0): ?>
+                                <strong style="font-size:0.85rem; color:rgb(var(--text));"><?= format_price($ticketPrice) ?></strong>
+                            <?php else: ?>
+                                <strong style="font-size:0.78rem; color:#10b981;">FREE</strong>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem; font-size:0.76rem;">
+                    <div style="display:inline-flex; align-items:center; gap:0.3rem;">
+                        <span style="font-family:monospace; font-weight:700; color:rgb(var(--text)); background:rgba(var(--text), 0.05); padding:0.18rem 0.45rem; border-radius:5px; border:1px solid rgba(var(--muted), 0.15);">
+                            <?= e($tkt['id']) ?>
+                        </span>
+                        <button type="button" onclick="navigator.clipboard.writeText('<?= addslashes(e($tkt['id'])) ?>'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500);" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:rgb(var(--muted));" title="Copy">📋</button>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <?php if ($isCheckedIn): ?>
+                            <span style="font-size:0.72rem; font-weight:700; color:#10b981;">✓ Checked In</span>
+                        <?php else: ?>
+                            <span style="font-size:0.72rem; color:rgb(var(--muted));">⏳ Unchecked</span>
+                        <?php endif; ?>
+                        <span style="color:rgb(var(--muted));">•</span>
+                        <span style="color:rgb(var(--muted));"><?= $formattedDate ?></span>
+                    </div>
+                </div>
+            </article>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     9. SYSTEM FINANCIAL AUDIT LOG STREAM
      ════════════════════════════════════════════════════════════════ -->
 <section class="form-card audit-log-section" style="border-radius:22px; padding:1.5rem; margin-bottom: 2rem;">
     <div class="au-table-header audit-header-row" style="margin-bottom:1.25rem; border-bottom:1px solid rgba(var(--muted),0.08); padding-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
@@ -709,6 +925,11 @@ try {
                         <span class="roster-event-status-pill <?= $isUpcoming ? 'roster-pill--upcoming' : 'roster-pill--past' ?>">
                             <?= $isUpcoming ? '🟢 Upcoming' : '✅ Completed' ?>
                         </span>
+                        <?php if (!empty($event['is_recurring'])): ?>
+                            <span class="roster-event-category-pill" style="background: rgba(99,102,241,0.25); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.45); font-weight: 700;">
+                                🔄 Series (<?= e($event['recurrence_count'] ?? '') ?> Dates)
+                            </span>
+                        <?php endif; ?>
                         <?php if (!empty($event['category'])): ?>
                             <span class="roster-event-category-pill" style="background: <?= $catColor ?>22; color: <?= $catColor ?>; border: 1px solid <?= $catColor ?>44;">
                                 <?= e($event['category']) ?>
@@ -1685,6 +1906,47 @@ try {
     100% { transform: scale(0.9); opacity: 0.7; }
 }
 
+/* ─── Ticket Activity Feed & Mobile Cards ─── */
+.ticket-activity-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.ticket-stream-table-wrap {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ticket-stream-cards-list {
+    display: none;
+}
+
+.ticket-purchase-mobile-card {
+    background: rgba(var(--text), 0.02);
+    border: 1px solid rgba(var(--muted), 0.12);
+    border-radius: 14px;
+    padding: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.ticket-purchase-mobile-card:hover {
+    border-color: rgba(var(--brand), 0.25);
+    background: rgba(var(--brand), 0.02);
+}
+
+@media (max-width: 900px) {
+    .ticket-stream-table-wrap {
+        display: none !important;
+    }
+    .ticket-stream-cards-list {
+        display: flex !important;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+
 /* ─── Responsive Media Queries (Desktop, Tablet & Mobile) ─── */
 @media (max-width: 1100px) {
     .roster-events-grid,
@@ -1822,6 +2084,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const now = new Date();
             clockEl.textContent = '🕒 ' + now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) + ' • ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         }, 30000);
+    }
+
+    // ─── Attendee Ticket Purchases Live Filter ───
+    const ticketSearchInput = document.getElementById('ticketPurchasesSearch');
+    const ticketTableRows = document.querySelectorAll('.ticket-purchase-row');
+    const ticketCards = document.querySelectorAll('.ticket-purchase-mobile-card');
+    if (ticketSearchInput) {
+        ticketSearchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            ticketTableRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+            ticketCards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
     }
 
     // ─── Audit Log Live Filter ───

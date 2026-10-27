@@ -195,7 +195,7 @@ class AdminPayoutService
                            COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales
                     FROM events e
                     LEFT JOIN tickets t ON e.id = t.event_id 
-                        AND t.status IN ('Paid', 'Comped')
+                        AND t.status = 'Paid'
                         AND (t.is_issued = 0 OR t.is_issued IS NULL)
                     WHERE e.id = :eid
                     GROUP BY e.id

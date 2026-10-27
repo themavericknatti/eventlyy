@@ -602,7 +602,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                             <strong style="display:block; font-size:0.88rem; color:rgb(var(--text)); line-height:1.3;" title="<?= e($eventName) ?>">
                                 <?= e(!empty($eventName) ? mb_strimwidth($eventName, 0, 26, '...') : 'General Settlement') ?>
                             </strong>
-                            <div style="margin-top: 4px;">
+                            <div style="margin-top: 4px; display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
                                 <?php if ($isEscrow): ?>
                                     <span class="payout-type-pill payout-type-pill--escrow" title="Early withdrawal request for upcoming/active event">
                                         ⚡ Escrow
@@ -616,12 +616,22 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                                         ✅ Standard
                                     </span>
                                 <?php endif; ?>
+                                <?php if (!empty($p['event_id']) && isset($p['event_remaining_balance'])): ?>
+                                    <span style="font-size:0.72rem; color:rgb(var(--muted));">
+                                        (Bal: <?= format_price($p['event_remaining_balance']) ?>)
+                                    </span>
+                                <?php endif; ?>
                             </div>
                         </td>
                         <td>
                             <strong style="color:rgb(var(--text)); font-size:1.02rem; font-weight:800; display:block;">
                                 <?= format_price($p['amount']) ?>
                             </strong>
+                            <?php if (!empty($p['is_partial']) && ($p['event_prior_disbursed'] ?? 0) > 0): ?>
+                                <span style="font-size:0.7rem; color:#6366f1; font-weight:600; display:block; margin-top:2px;" title="Prior disbursements have been made for this event">
+                                    🛡️ <?= format_price($p['event_prior_disbursed']) ?> prior
+                                </span>
+                            <?php endif; ?>
                         </td>
                         <td>
                             <div style="font-size:0.86rem; font-weight:700; color:rgb(var(--text));">
@@ -732,13 +742,25 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                     <span class="payout-card-label">Payout Amount:</span>
                     <span class="payout-card-value" style="color: rgb(var(--brand)); font-size: 1.05rem; font-weight: 800;">
                         <?= format_price($p['amount']) ?>
+                        <?php if (!empty($p['is_partial']) && ($p['event_prior_disbursed'] ?? 0) > 0): ?>
+                            <span style="font-size:0.7rem; color:#6366f1; font-weight:600; display:block; margin-top:2px;">
+                                🛡️ <?= format_price($p['event_prior_disbursed']) ?> prior disbursed
+                            </span>
+                        <?php endif; ?>
                     </span>
                 </div>
 
                 <?php if (!empty($eventName)): ?>
                     <div class="payout-card-row">
                         <span class="payout-card-label">Event:</span>
-                        <span class="payout-card-value"><?= e(mb_strimwidth($eventName, 0, 24, '...')) ?></span>
+                        <span class="payout-card-value">
+                            <?= e(mb_strimwidth($eventName, 0, 24, '...')) ?>
+                            <?php if (!empty($p['event_id']) && isset($p['event_remaining_balance'])): ?>
+                                <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block;">
+                                    Remaining: <?= format_price($p['event_remaining_balance']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </span>
                     </div>
                 <?php endif; ?>
 

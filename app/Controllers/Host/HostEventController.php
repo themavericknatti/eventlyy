@@ -138,6 +138,19 @@ class HostEventController extends Controller
             $organizerEmail = $org['email'] ?? '';
         }
 
+        // Fetch recurring series occurrences if applicable
+        $recurringOccurrences = [];
+        if (!empty($event->is_recurring) && !empty($event->recurrence_group_id)) {
+            $recStmt = $db->prepare("
+                SELECT id, name, date, recurrence_sequence, recurrence_count, status
+                FROM events
+                WHERE recurrence_group_id = :gid
+                ORDER BY date ASC, recurrence_sequence ASC
+            ");
+            $recStmt->execute(['gid' => $event->recurrence_group_id]);
+            $recurringOccurrences = $recStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
         return $this->render('host/edit-event', [
             'title' => 'Edit Event - ' . $event->name,
             'event' => $event,
@@ -147,10 +160,49 @@ class HostEventController extends Controller
             'eventCity' => $eventCity,
             'ticketTypes' => $ticketTypes,
             'eventGuests' => $eventGuests,
+            'recurringOccurrences' => $recurringOccurrences,
             'categories' => $this->categories,
             'isAdmin' => $isAdmin,
             'organizerName' => $organizerName,
             'organizerEmail' => $organizerEmail
+        ]);
+    }
+
+    /**
+     * Return JSON list of all occurrences in a recurring series for modals and switchers.
+     */
+    public function getOccurrencesJson(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        if (!$user) {
+            return Application::$app->response->json(['error' => 'Unauthorized'], 401);
+        }
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+        if (!$event) {
+            return Application::$app->response->json(['error' => 'Event not found'], 404);
+        }
+
+        $recurringOccurrences = [];
+        if (!empty($event->is_recurring) && !empty($event->recurrence_group_id)) {
+            $db = Application::$app->db->pdo;
+            $recStmt = $db->prepare("
+                SELECT id, name, date, recurrence_sequence, recurrence_count, status
+                FROM events
+                WHERE recurrence_group_id = :gid
+                ORDER BY date ASC, recurrence_sequence ASC
+            ");
+            $recStmt->execute(['gid' => $event->recurrence_group_id]);
+            $recurringOccurrences = $recStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
+        return Application::$app->response->json([
+            'success' => true,
+            'current_id' => (int)$event->id,
+            'event_name' => $event->name,
+            'is_recurring' => !empty($event->is_recurring),
+            'recurrence_group_id' => $event->recurrence_group_id,
+            'occurrences' => $recurringOccurrences
         ]);
     }
 
@@ -338,12 +390,26 @@ class HostEventController extends Controller
         $domainReqStmt->execute(['event_id' => $event->id, 'host_id' => $event->organizer_id]);
         $domainRequest = $domainReqStmt->fetch(\PDO::FETCH_ASSOC) ?: null;
 
+        // Fetch recurring series occurrences if applicable
+        $recurringOccurrences = [];
+        if (!empty($event->is_recurring) && !empty($event->recurrence_group_id)) {
+            $recStmt = $db->prepare("
+                SELECT id, name, date, recurrence_sequence, recurrence_count, status
+                FROM events
+                WHERE recurrence_group_id = :gid
+                ORDER BY date ASC, recurrence_sequence ASC
+            ");
+            $recStmt->execute(['gid' => $event->recurrence_group_id]);
+            $recurringOccurrences = $recStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
         return $this->render('host/event-management', [
             'title' => 'Manage Event - ' . $event->name,
             'event' => $event,
             'eventId' => $event->id,
             'tickets' => $tickets,
             'ticketTypes' => $ticketTypes,
+            'recurringOccurrences' => $recurringOccurrences,
             'totalRevenue' => $totalRevenue,
             'ticketsSold' => $ticketsSold,
             'ticketsIssued' => $ticketsIssued,

@@ -36,7 +36,7 @@ class HostService
             SELECT SUM(t.price) FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :organizer_id 
-              AND t.status IN ('Paid', 'Comped')
+              AND t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ");
         $stmt->execute(['organizer_id' => $hostId]);
@@ -50,7 +50,7 @@ class HostService
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :organizer_id 
-              AND t.status IN ('Paid', 'Comped')
+              AND t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ");
         $stmt->execute(['organizer_id' => $hostId]);
@@ -67,7 +67,7 @@ class HostService
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :organizer_id 
-              AND t.status IN ('Paid', 'Comped')
+              AND t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . event_completion_hours() . " HOUR))
         ");
@@ -82,7 +82,7 @@ class HostService
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :organizer_id 
-              AND t.status IN ('Paid', 'Comped')
+              AND t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR AND e.status = 'published'
         ");
@@ -212,10 +212,10 @@ class HostService
         $completionHours = event_completion_hours();
         $stmt = $db->prepare("
             SELECT e.id, e.name, e.date, e.status, e.pass_fee, e.location, e.image,
-                   COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as ticket_count,
+                   COUNT(CASE WHEN t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as ticket_count,
                    COUNT(CASE WHEN t.is_issued = 1 THEN t.id END) as issued_count,
-                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
+                   COALESCE(SUM(CASE WHEN t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
+                   COALESCE(SUM(CASE WHEN t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
                    COALESCE(SUM(CASE WHEN t.is_issued = 1 THEN t.price ELSE 0 END), 0) as issued_nominal
             FROM events e
             LEFT JOIN tickets t ON e.id = t.event_id AND t.status IN ('Paid', 'Comped')

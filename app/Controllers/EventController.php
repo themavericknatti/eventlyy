@@ -44,20 +44,66 @@ class EventController extends Controller
             $stmt->execute(['id' => (int)$id]);
             $event = $stmt->fetch();
         } else {
-            $stmt = $db->prepare("
-                SELECT e.*, 
-                       u.name as organizer_name, 
-                       u.email as organizer_email, 
-                       u.phone as organizer_phone,
-                       hp.bio as organizer_bio, 
-                       hp.rating as organizer_rating
-                FROM events e
-                INNER JOIN users u ON e.organizer_id = u.id
-                LEFT JOIN host_profiles hp ON hp.user_id = u.id
-                WHERE e.slug = :slug OR e.custom_url = :custom_url
-            ");
-            $stmt->execute(['slug' => $id, 'custom_url' => $id]);
-            $event = $stmt->fetch();
+            $occSeq = isset($_GET['occ']) && is_numeric($_GET['occ']) ? (int)$_GET['occ'] : null;
+            $reqDate = !empty($_GET['date']) ? trim($_GET['date']) : null;
+
+            if ($occSeq !== null) {
+                $stmt = $db->prepare("
+                    SELECT e.*, 
+                           u.name as organizer_name, 
+                           u.email as organizer_email, 
+                           u.phone as organizer_phone,
+                           hp.bio as organizer_bio, 
+                           hp.rating as organizer_rating
+                    FROM events e
+                    INNER JOIN users u ON e.organizer_id = u.id
+                    LEFT JOIN host_profiles hp ON hp.user_id = u.id
+                    WHERE (e.slug = :slug OR e.custom_url = :custom_url)
+                      AND e.recurrence_sequence = :occ
+                    LIMIT 1
+                ");
+                $stmt->execute(['slug' => $id, 'custom_url' => $id, 'occ' => $occSeq]);
+                $event = $stmt->fetch();
+            } elseif (!empty($reqDate)) {
+                $stmt = $db->prepare("
+                    SELECT e.*, 
+                           u.name as organizer_name, 
+                           u.email as organizer_email, 
+                           u.phone as organizer_phone,
+                           hp.bio as organizer_bio, 
+                           hp.rating as organizer_rating
+                    FROM events e
+                    INNER JOIN users u ON e.organizer_id = u.id
+                    LEFT JOIN host_profiles hp ON hp.user_id = u.id
+                    WHERE (e.slug = :slug OR e.custom_url = :custom_url)
+                      AND DATE(e.date) = :req_date
+                    LIMIT 1
+                ");
+                $stmt->execute(['slug' => $id, 'custom_url' => $id, 'req_date' => $reqDate]);
+                $event = $stmt->fetch();
+            }
+
+            if (empty($event)) {
+                $stmt = $db->prepare("
+                    SELECT e.*, 
+                           u.name as organizer_name, 
+                           u.email as organizer_email, 
+                           u.phone as organizer_phone,
+                           hp.bio as organizer_bio, 
+                           hp.rating as organizer_rating
+                    FROM events e
+                    INNER JOIN users u ON e.organizer_id = u.id
+                    LEFT JOIN host_profiles hp ON hp.user_id = u.id
+                    WHERE e.slug = :slug OR e.custom_url = :custom_url
+                    ORDER BY 
+                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN 0 ELSE 1 END ASC,
+                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN e.date END ASC,
+                        e.date DESC
+                    LIMIT 1
+                ");
+                $stmt->execute(['slug' => $id, 'custom_url' => $id]);
+                $event = $stmt->fetch();
+            }
         }
 
         if (!$event) {
@@ -94,9 +140,13 @@ class EventController extends Controller
         if (is_numeric($id)) {
             $canonicalSlug = !empty($event['custom_url']) ? $event['custom_url'] : ($event['slug'] ?? '');
             if (!empty($canonicalSlug)) {
+                $params = $_GET;
+                if (!empty($event['is_recurring']) && !empty($event['recurrence_sequence']) && (int)$event['recurrence_sequence'] > 1) {
+                    $params['occ'] = (int)$event['recurrence_sequence'];
+                }
                 $redirectUrl = route('event/{id}', ['id' => $canonicalSlug]);
-                if (!empty($_SERVER['QUERY_STRING'])) {
-                    $redirectUrl .= '?' . $_SERVER['QUERY_STRING'];
+                if (!empty($params)) {
+                    $redirectUrl .= '?' . http_build_query($params);
                 }
                 redirect($redirectUrl, 301);
                 return '';
@@ -175,19 +225,63 @@ class EventController extends Controller
             $stmt->execute(['id' => (int)$id]);
             $event = $stmt->fetch();
         } else {
-            $stmt = $db->prepare("
-                SELECT e.*, 
-                       u.name as organizer_name, 
-                       u.email as organizer_email,
-                       hp.bio as organizer_bio,
-                       hp.rating as organizer_rating
-                FROM events e
-                INNER JOIN users u ON e.organizer_id = u.id
-                LEFT JOIN host_profiles hp ON hp.user_id = u.id
-                WHERE e.slug = :slug OR e.custom_url = :custom_url
-            ");
-            $stmt->execute(['slug' => $id, 'custom_url' => $id]);
-            $event = $stmt->fetch();
+            $occSeq = isset($_GET['occ']) && is_numeric($_GET['occ']) ? (int)$_GET['occ'] : null;
+            $reqDate = !empty($_GET['date']) ? trim($_GET['date']) : null;
+
+            if ($occSeq !== null) {
+                $stmt = $db->prepare("
+                    SELECT e.*, 
+                           u.name as organizer_name, 
+                           u.email as organizer_email,
+                           hp.bio as organizer_bio,
+                           hp.rating as organizer_rating
+                    FROM events e
+                    INNER JOIN users u ON e.organizer_id = u.id
+                    LEFT JOIN host_profiles hp ON hp.user_id = u.id
+                    WHERE (e.slug = :slug OR e.custom_url = :custom_url)
+                      AND e.recurrence_sequence = :occ
+                    LIMIT 1
+                ");
+                $stmt->execute(['slug' => $id, 'custom_url' => $id, 'occ' => $occSeq]);
+                $event = $stmt->fetch();
+            } elseif (!empty($reqDate)) {
+                $stmt = $db->prepare("
+                    SELECT e.*, 
+                           u.name as organizer_name, 
+                           u.email as organizer_email,
+                           hp.bio as organizer_bio,
+                           hp.rating as organizer_rating
+                    FROM events e
+                    INNER JOIN users u ON e.organizer_id = u.id
+                    LEFT JOIN host_profiles hp ON hp.user_id = u.id
+                    WHERE (e.slug = :slug OR e.custom_url = :custom_url)
+                      AND DATE(e.date) = :req_date
+                    LIMIT 1
+                ");
+                $stmt->execute(['slug' => $id, 'custom_url' => $id, 'req_date' => $reqDate]);
+                $event = $stmt->fetch();
+            }
+
+            if (empty($event)) {
+                $stmt = $db->prepare("
+                    SELECT e.*, 
+                           u.name as organizer_name, 
+                           u.email as organizer_email,
+                           hp.bio as organizer_bio,
+                           hp.rating as organizer_rating
+                    FROM events e
+                    INNER JOIN users u ON e.organizer_id = u.id
+                    LEFT JOIN host_profiles hp ON hp.user_id = u.id
+                    WHERE e.slug = :slug OR e.custom_url = :custom_url
+                    ORDER BY 
+                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN 0 ELSE 1 END ASC,
+                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN e.date END ASC,
+                        e.date DESC
+                    LIMIT 1
+                ");
+                $stmt->execute(['slug' => $id, 'custom_url' => $id]);
+                $event = $stmt->fetch();
+            }
         }
 
         if (!$event) {
@@ -207,9 +301,13 @@ class EventController extends Controller
         if (is_numeric($id)) {
             $canonicalSlug = !empty($event['custom_url']) ? $event['custom_url'] : ($event['slug'] ?? '');
             if (!empty($canonicalSlug)) {
+                $params = $_GET;
+                if (!empty($event['is_recurring']) && !empty($event['recurrence_sequence']) && (int)$event['recurrence_sequence'] > 1) {
+                    $params['occ'] = (int)$event['recurrence_sequence'];
+                }
                 $redirectUrl = route('f/{id}', ['id' => $canonicalSlug]);
-                if (!empty($_SERVER['QUERY_STRING'])) {
-                    $redirectUrl .= '?' . $_SERVER['QUERY_STRING'];
+                if (!empty($params)) {
+                    $redirectUrl .= '?' . http_build_query($params);
                 }
                 redirect($redirectUrl, 301);
                 return '';

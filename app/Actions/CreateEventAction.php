@@ -255,10 +255,6 @@ class CreateEventAction
         if ($isRecurring && $totalOccurrences > 1) {
             for ($seq = 2; $seq <= $totalOccurrences; $seq++) {
                 $occDate = $occurrences[$seq - 1];
-                $dateObj = new \DateTime($occDate);
-                $dateSuffix = $dateObj->format('Y-m-d');
-                $occSlug = generate_event_slug($eventName . '-' . $dateSuffix);
-                $occCustomUrl = $this->ensureUniqueSlug($customUrl . '-' . $dateSuffix);
 
                 $occEvent = new Event();
                 $occEventData = [
@@ -270,8 +266,8 @@ class CreateEventAction
                     'organizer_id' => $hostId,
                     'status' => 'published',
                     'pass_fee' => $passFee,
-                    'slug' => $occSlug,
-                    'custom_url' => $occCustomUrl,
+                    'slug' => $slug,
+                    'custom_url' => $customUrl,
                     'flyer_page_enabled' => $flyerPageEnabled,
                     'image' => $imagePath,
                     'is_recurring' => 1,

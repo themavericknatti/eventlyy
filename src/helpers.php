@@ -998,7 +998,13 @@ if (!function_exists('event_url')) {
 
         $identifier = $customUrl !== '' ? $customUrl : ($slug !== '' ? $slug : value($event, 'id'));
 
-        return url('event/' . $identifier);
+        $url = url('event/' . $identifier);
+        $seq = value($event, 'recurrence_sequence');
+        $isRecurring = value($event, 'is_recurring');
+        if (!empty($isRecurring) && !empty($seq) && (int)$seq > 1) {
+            $url .= '?occ=' . (int)$seq;
+        }
+        return $url;
     }
 }
 
@@ -1014,7 +1020,13 @@ if (!function_exists('event_flyer_url')) {
 
         $identifier = $customUrl !== '' ? $customUrl : ($slug !== '' ? $slug : value($event, 'id'));
 
-        return url('f/' . $identifier);
+        $url = url('f/' . $identifier);
+        $seq = value($event, 'recurrence_sequence');
+        $isRecurring = value($event, 'is_recurring');
+        if (!empty($isRecurring) && !empty($seq) && (int)$seq > 1) {
+            $url .= '?occ=' . (int)$seq;
+        }
+        return $url;
     }
 }
 

@@ -216,14 +216,36 @@ class EventService
     public function getHostEvents(int|string $hostId, bool $isAdmin = false): array
     {
         $db = Application::$app->db->pdo;
-        $whereClause = $isAdmin ? "1=1" : "e.organizer_id = :organizer_id";
         $completionHours = event_completion_hours();
+        $whereClause = $isAdmin ? "1=1" : "e.organizer_id = :organizer_id";
+
+        // Deduplicate recurring series to display only 1 representative occurrence
+        $whereClause .= " AND (
+            e.recurrence_group_id IS NULL 
+            OR e.recurrence_group_id = ''
+            OR e.id = (
+                SELECT sub.id
+                FROM events sub
+                WHERE sub.recurrence_group_id = e.recurrence_group_id
+                ORDER BY 
+                    CASE 
+                        WHEN sub.date >= NOW() - INTERVAL {$completionHours} HOUR THEN 1 
+                        ELSE 2 
+                    END ASC,
+                    CASE 
+                        WHEN sub.date >= NOW() - INTERVAL {$completionHours} HOUR THEN sub.date 
+                    END ASC,
+                    sub.date DESC,
+                    sub.id ASC
+                LIMIT 1
+            )
+        )";
 
         $stmt = $db->prepare("
             SELECT e.*, 
-                   IFNULL(t.tickets_sold, 0) as tickets_sold,
+                   IFNULL(rec_t.series_tickets_sold, IFNULL(t.tickets_sold, 0)) as tickets_sold,
                    IFNULL(tt.total_capacity, 0) as total_capacity,
-                   IFNULL(t.revenue, 0.00) as revenue,
+                   IFNULL(rec_t.series_revenue, IFNULL(t.revenue, 0.00)) as revenue,
                    u.name as organizer_name,
                    u.email as organizer_email
             FROM events e
@@ -236,6 +258,17 @@ class EventService
                 WHERE status IN ('Paid', 'Comped') 
                 GROUP BY event_id
             ) t ON t.event_id = e.id
+            LEFT JOIN (
+                SELECT 
+                    ev.recurrence_group_id,
+                    COUNT(*) as series_tickets_sold,
+                    SUM(t.price) as series_revenue
+                FROM tickets t
+                INNER JOIN events ev ON t.event_id = ev.id
+                WHERE t.status IN ('Paid', 'Comped')
+                  AND ev.recurrence_group_id IS NOT NULL AND ev.recurrence_group_id != ''
+                GROUP BY ev.recurrence_group_id
+            ) rec_t ON rec_t.recurrence_group_id = e.recurrence_group_id
             LEFT JOIN (
                 SELECT event_id, SUM(capacity) as total_capacity 
                 FROM ticket_types 

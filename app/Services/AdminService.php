@@ -69,23 +69,21 @@ class AdminService
             $grossRevenue = (float)$db->query("
                 SELECT COALESCE(SUM(price), 0) 
                 FROM tickets 
-                WHERE status IN ('Paid', 'Comped')
+                WHERE status = 'Paid'
                   AND (is_issued = 0 OR is_issued IS NULL)
             ")->fetchColumn();
         }
 
         $platformProfit = (float)$db->query("
-            SELECT COALESCE(SUM(fee_amount + extra_charge_amount), 0) FROM transactions WHERE status = 'completed'
+            SELECT COALESCE(SUM(fee_amount + extra_charge_amount), 0) FROM transactions WHERE type = 'payment' AND status = 'completed'
         ")->fetchColumn();
 
         if ($platformProfit == 0 && $grossRevenue > 0) {
             $platformProfit = (float)$db->query("
-                SELECT COALESCE(SUM(
-                    CASE WHEN e.pass_fee = 1 THEN 0 ELSE t.price * 0.05 END
-                ), 0)
+                SELECT COALESCE(SUM(t.price * 0.05), 0)
                 FROM tickets t
                 INNER JOIN events e ON t.event_id = e.id
-                WHERE t.status IN ('Paid', 'Comped')
+                WHERE t.status = 'Paid'
                   AND (t.is_issued = 0 OR t.is_issued IS NULL)
             ")->fetchColumn();
         }
@@ -96,7 +94,7 @@ class AdminService
             ), 0)
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
-            WHERE t.status IN ('Paid', 'Comped')
+            WHERE t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ")->fetchColumn();
 
@@ -105,7 +103,7 @@ class AdminService
         ")->fetchColumn();
 
         $pendingPayoutRequests = (float)$db->query("
-            SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE status IN ('pending', 'failed')
+            SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE status = 'pending'
         ")->fetchColumn();
 
         $escrowRevenue = (float)$db->query("
@@ -114,7 +112,7 @@ class AdminService
             ), 0)
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
-            WHERE t.status IN ('Paid', 'Comped')
+            WHERE t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND e.status = 'published'
               AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
@@ -122,7 +120,7 @@ class AdminService
 
         $totalUndisbursedHostFunds = max(0.00, $totalHostShare - $disbursedPayouts);
         $withdrawableHostBalance = max(0.00, $totalUndisbursedHostFunds - $escrowRevenue);
-        $totalEscrowBalance = max($totalUndisbursedHostFunds, $escrowRevenue + $pendingPayoutRequests);
+        $totalEscrowBalance = max(0.00, min($totalUndisbursedHostFunds, $escrowRevenue));
 
         // 5. Monthly Analytics (Past 12 Months Timeline for Charts)
         $monthlyLabels = [];
@@ -209,7 +207,7 @@ class AdminService
             SELECT COALESCE(AVG(total_amount), 0) FROM transactions WHERE type = 'payment' AND status = 'completed'
         ")->fetchColumn();
 
-        // 6. Recent Published Events (enriched)
+        // 6. Recent Published Events (enriched, deduplicating recurring series)
         $stmt = $db->prepare("
             SELECT e.*, u.name as organizer_name, u.email as organizer_email,
                    (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL)) as sold,
@@ -218,6 +216,7 @@ class AdminService
             FROM events e
             INNER JOIN users u ON e.organizer_id = u.id
             WHERE e.status = 'published'
+              AND (e.recurrence_group_id IS NULL OR e.recurrence_group_id = '' OR e.recurrence_sequence = 1)
             ORDER BY e.created_at DESC
             LIMIT 6
         ");
@@ -249,6 +248,23 @@ class AdminService
             ORDER BY t.created_at DESC
             LIMIT 8
         ")->fetchAll() ?: [];
+
+        // 8.5. Real-Time Ticket Purchases & Attendee Activity Stream
+        $recentTicketPurchases = $db->query("
+            SELECT t.id, t.attendee_name, t.attendee_email, t.price, t.status, t.status_detail,
+                   t.purchase_date, t.checked_in, t.checked_in_at, t.event_id,
+                   e.name as event_name, e.slug as event_slug, e.custom_url as event_custom_url,
+                   tt.name as ticket_tier, u.name as buyer_name
+            FROM tickets t
+            LEFT JOIN events e ON t.event_id = e.id
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            LEFT JOIN users u ON t.user_id = u.id
+            WHERE t.is_issued = 0 OR t.is_issued IS NULL
+            ORDER BY t.purchase_date DESC, t.id DESC
+            LIMIT 12
+        ")->fetchAll() ?: [];
+
+        $todayTickets = (int)$db->query("SELECT COUNT(*) FROM tickets WHERE status IN ('Paid', 'Comped') AND (is_issued = 0 OR is_issued IS NULL) AND DATE(purchase_date) = CURDATE()")->fetchColumn();
 
         // 9. Real-Time Operational Queue & Alert Metrics
         $checkedInTickets = (int)$db->query("SELECT COUNT(*) FROM tickets WHERE status IN ('Paid', 'Comped') AND checked_in = 1")->fetchColumn();
@@ -367,6 +383,8 @@ class AdminService
             'recent_events' => $recentEvents,
             'recent_hosts' => $recentHosts,
             'audit_trail' => $auditTrail,
+            'recent_ticket_purchases' => $recentTicketPurchases,
+            'today_tickets' => $todayTickets,
         ];
     }
 }

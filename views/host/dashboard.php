@@ -590,6 +590,35 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
         padding: 0.55rem 0.5rem;
     }
 }
+
+/* ══ Recent Orders & Payouts Mobile Cards ══ */
+.host-orders-cards-mobile,
+.host-payouts-cards-mobile {
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.host-order-mobile-card,
+.host-payout-mobile-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--border), 0.7);
+    border-radius: 14px;
+    padding: 0.95rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 768px) {
+    .host-orders-table-wrap,
+    .host-payouts-table-wrap {
+        display: none !important;
+    }
+
+    .host-orders-cards-mobile,
+    .host-payouts-cards-mobile {
+        display: flex !important;
+    }
+}
 </style>
 
 <!-- Page Hero & Quick Action Bar -->
@@ -1041,10 +1070,13 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                 <div class="event-card-content">
                     <h3>{{ $event['name'] }}</h3>
                     <?php if (!empty($event['is_recurring'])): ?>
-                        <div style="margin-bottom: 0.4rem;">
-                            <span style="display:inline-flex; align-items:center; gap:0.25rem; font-size:0.72rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:6px; padding:0.15rem 0.5rem;" title="Recurring series occurrence <?= e($event['recurrence_sequence'] ?? 1) ?> of <?= e($event['recurrence_count'] ?? '') ?>">
-                                🔄 Recurring (#<?= e($event['recurrence_sequence'] ?? 1) ?>/<?= e($event['recurrence_count'] ?? '') ?> &bull; <?= ucfirst(e($event['recurrence_type'] ?? 'Series')) ?>)
+                        <div style="margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap;">
+                            <span style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.74rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:6px; padding:0.18rem 0.55rem;" title="Recurring series: <?= e($event['recurrence_count'] ?? '') ?> dates in series">
+                                🔄 Recurring (<?= e($event['recurrence_count'] ?? '') ?> Dates &bull; Next: #<?= e($event['recurrence_sequence'] ?? 1) ?>)
                             </span>
+                            <button type="button" class="btn-series-dates" onclick="openSeriesOccurrencesModal('<?= $event['id'] ?>', '<?= addslashes(e($event['name'])) ?>')" style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); color: #818cf8; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.16rem 0.45rem; border-radius: 5px; transition: all 0.2s;" title="View all occurrence dates to edit or manage">
+                                <span>📅 All Dates ▾</span>
+                            </button>
                         </div>
                     <?php endif; ?>
                     <?php if (!empty($isAdmin) && !$isOwnEvent): ?>
@@ -1140,7 +1172,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
         </div>
     </div>
 
-    <div class="admin-table-wrap" style="overflow-x:auto;">
+    <div class="admin-table-wrap host-orders-table-wrap" style="overflow-x:auto;">
         <table class="admin-table" style="width:100%; border-collapse:collapse;">
             <thead>
                 <tr>
@@ -1207,6 +1239,52 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
             </tbody>
         </table>
     </div>
+
+    <!-- Mobile Screen Cards (visible <= 768px) -->
+    <div class="host-orders-cards-mobile">
+        <?php foreach ($recentOrders as $ro):
+            $isCompletedEvent = in_array($ro['event_status'] ?? '', ['completed', 'past']);
+            $purchasedTime = !empty($ro['purchase_date']) ? strtotime($ro['purchase_date']) : null;
+        ?>
+        <div class="host-order-mobile-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.55rem;">
+                <div style="display:flex; align-items:center; gap:0.55rem; min-width:0;">
+                    <div style="width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #a855f7); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.78rem; flex-shrink:0;">
+                        <?= strtoupper(substr($ro['attendee_name'] ?: 'U', 0, 1)) ?>
+                    </div>
+                    <div style="min-width:0;">
+                        <strong style="color:rgb(var(--text)); font-size:0.88rem; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($ro['attendee_name']) ?></strong>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= e($ro['attendee_email']) ?></span>
+                    </div>
+                </div>
+                <div>
+                    <strong style="font-size:0.95rem; color:rgb(var(--text)); white-space:nowrap;"><?= format_price($ro['price']) ?></strong>
+                </div>
+            </div>
+            <div style="background:rgba(var(--muted),0.04); border-radius:8px; padding:0.5rem 0.65rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.35rem;">
+                <div style="min-width:0; display:flex; align-items:center; gap:0.35rem;">
+                    <span style="font-size:0.82rem; font-weight:600; color:rgb(var(--text));"><?= e($ro['event_name']) ?></span>
+                    <?php if ($isCompletedEvent): ?>
+                        <span style="background:rgba(16, 185, 129, 0.1); color:#059669; font-size:0.68rem; font-weight:700; padding:1px 5px; border-radius:4px;">✓ Past</span>
+                    <?php endif; ?>
+                </div>
+                <span style="background:rgba(99, 102, 241, 0.1); color:#6366f1; font-weight:700; font-size:0.72rem; padding:2px 7px; border-radius:5px;">
+                    <?= e($ro['tier_name']) ?>
+                </span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:rgb(var(--muted)); border-top:1px solid rgba(var(--border),0.3); padding-top:0.4rem;">
+                <span>
+                    <?php if (!empty($ro['checked_in'])): ?>
+                        <span style="background:rgba(16, 185, 129, 0.12); color:#059669; font-weight:800; padding:1px 6px; border-radius:12px;">✓ Checked In</span>
+                    <?php else: ?>
+                        <span>⏳ Gate Pending</span>
+                    <?php endif; ?>
+                </span>
+                <span><?= $purchasedTime ? date('M d, Y • g:i A', $purchasedTime) : '—' ?></span>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
 </section>
 <?php endif; ?>
 
@@ -1223,7 +1301,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
         </a>
     </div>
 
-    <div class="admin-table-wrap" style="overflow-x:auto;">
+    <div class="admin-table-wrap host-payouts-table-wrap" style="overflow-x:auto;">
         <table class="admin-table" style="width:100%; border-collapse:collapse;">
             <thead>
                 <tr>
@@ -1268,6 +1346,43 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
                 <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Screen Cards (visible <= 768px) -->
+    <div class="host-payouts-cards-mobile">
+        <?php foreach ($recentPayouts as $rp):
+            $isCompleted = in_array($rp['status'] ?? '', ['processed', 'completed']);
+            $isFailed = in_array($rp['status'] ?? '', ['failed', 'flagged']);
+        ?>
+        <div class="host-payout-mobile-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem; margin-bottom:0.45rem;">
+                <span style="font-family:monospace; font-weight:700; font-size:0.85rem; color:rgb(var(--text));">#<?= e($rp['id']) ?></span>
+                <?php if (($rp['type'] ?? '') === 'escrow'): ?>
+                    <span style="background:rgba(251, 146, 60, 0.15); color:#ea580c; border:1px solid rgba(251, 146, 60, 0.3); font-size:0.72rem; font-weight:800; padding:2px 7px; border-radius:6px;">⚡ Escrow</span>
+                <?php elseif (($rp['type'] ?? '') === 'auto_completed'): ?>
+                    <span style="background:rgba(59, 130, 246, 0.12); color:#2563eb; border:1px solid rgba(59, 130, 246, 0.3); font-size:0.72rem; font-weight:800; padding:2px 7px; border-radius:6px;">🤖 Auto</span>
+                <?php else: ?>
+                    <span style="background:rgba(16, 185, 129, 0.1); color:#059669; border:1px solid rgba(16, 185, 129, 0.2); font-size:0.72rem; font-weight:800; padding:2px 7px; border-radius:6px;">✅ Standard</span>
+                <?php endif; ?>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                <span style="font-size:0.85rem; color:rgb(var(--text)); font-weight:600;"><?= e(!empty($rp['event_name']) ? $rp['event_name'] : 'General Balance') ?></span>
+                <strong style="color:rgb(var(--text)); font-size:1.05rem;"><?= format_price($rp['amount']) ?></strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; border-top:1px solid rgba(var(--border),0.3); padding-top:0.4rem;">
+                <span>
+                    <?php if ($isCompleted): ?>
+                        <span style="background:rgba(16, 185, 129, 0.12); color:#059669; font-weight:700; padding:1px 6px; border-radius:12px;">✓ Disbursed</span>
+                    <?php elseif ($isFailed): ?>
+                        <span style="background:rgba(239, 68, 68, 0.12); color:#dc2626; font-weight:700; padding:1px 6px; border-radius:12px;">⚠️ Hold</span>
+                    <?php else: ?>
+                        <span style="background:rgba(245, 158, 11, 0.12); color:#b45309; font-weight:700; padding:1px 6px; border-radius:12px;">⏳ Pending</span>
+                    <?php endif; ?>
+                </span>
+                <span style="color:rgb(var(--muted));"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
+            </div>
+        </div>
+        <?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
@@ -1474,5 +1589,92 @@ document.addEventListener('DOMContentLoaded', function () {
     updateTabBadges();
     renderEvents();
 });
+
+// Recurring Series Occurrences Modal
+function openSeriesOccurrencesModal(eventId, eventName) {
+    const modal = document.getElementById('series-occurrences-modal');
+    const title = document.getElementById('series-modal-title');
+    const body = document.getElementById('series-modal-body');
+    if (!modal) return;
+
+    title.textContent = eventName ? 'Series Dates: ' + eventName : 'Recurring Event Dates';
+    body.innerHTML = '<div style="text-align: center; color: rgb(var(--muted)); padding: 2rem 0;">⏳ Loading dates...</div>';
+    modal.style.display = 'flex';
+
+    fetch('/host/event/' + eventId + '/occurrences')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.occurrences || data.occurrences.length === 0) {
+                body.innerHTML = '<div style="text-align: center; color: rgb(var(--muted)); padding: 1.5rem 0;">No other occurrences found for this series.</div>';
+                return;
+            }
+
+            let html = '<div style="display:flex; flex-direction:column; gap:0.65rem;">';
+            data.occurrences.forEach((occ) => {
+                const isCurrent = occ.id == data.current_id;
+                const occDate = new Date(occ.date);
+                const isPast = occDate.getTime() < Date.now();
+                const dateFormatted = occDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                const timeFormatted = occDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+                html += `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.75rem 0.95rem; background: ${isCurrent ? 'rgba(99,102,241,0.08)' : 'rgba(var(--text), 0.03)'}; border: 1.5px solid ${isCurrent ? 'rgba(99,102,241,0.3)' : 'rgba(var(--muted), 0.15)'}; border-radius:10px; flex-wrap:wrap;">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:0.4rem;">
+                                <strong style="font-size:0.88rem; color:rgb(var(--text));">#${occ.recurrence_sequence || '?'} — ${dateFormatted}</strong>
+                                ${isCurrent ? '<span style="font-size:0.7rem; font-weight:700; background:#6366f1; color:#fff; padding:0.1rem 0.4rem; border-radius:4px;">Next / Active</span>' : ''}
+                                ${isPast ? '<span style="font-size:0.7rem; color:rgb(var(--muted)); background:rgba(var(--muted),0.15); padding:0.1rem 0.4rem; border-radius:4px;">Past</span>' : '<span style="font-size:0.7rem; color:#10b981; background:rgba(16,185,129,0.12); padding:0.1rem 0.4rem; border-radius:4px; font-weight:600;">Upcoming</span>'}
+                            </div>
+                            <div style="font-size:0.78rem; color:rgb(var(--muted)); margin-top:2px;">
+                                ⏰ ${timeFormatted} &bull; Status: ${occ.status || 'Active'}
+                            </div>
+                        </div>
+                        <div style="display:inline-flex; align-items:center; gap:0.4rem;">
+                            <a href="/host/event/edit/${occ.id}" class="admin-action-btn" style="padding:0.35rem 0.7rem; font-size:0.78rem; font-weight:700; background:rgba(99,102,241,0.12); color:#6366f1; border-radius:7px; text-decoration:none;">
+                                ✏️ Edit
+                            </a>
+                            <a href="/host/event/management/${occ.id}" class="admin-action-btn" style="padding:0.35rem 0.7rem; font-size:0.78rem; font-weight:600; background:rgba(var(--text),0.06); color:rgb(var(--text)); border-radius:7px; text-decoration:none;">
+                                ⚙️ Manage
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            body.innerHTML = html;
+        })
+        .catch(err => {
+            body.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 1.5rem 0;">Failed to load series dates. Please try again.</div>';
+        });
+}
+
+function closeSeriesOccurrencesModal() {
+    const modal = document.getElementById('series-occurrences-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('series-occurrences-modal');
+    if (modal && e.target === modal) closeSeriesOccurrencesModal();
+});
 </script>
+
+<!-- Series Occurrences Date Picker / Manager Modal -->
+<div id="series-occurrences-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); justify-content:center; align-items:center; padding:1rem;">
+    <div style="width:100%; max-width:min(94vw, 560px); max-height:calc(100dvh - 2rem); overflow-y:auto; background:rgb(var(--card)); border-radius:20px; box-shadow:0 25px 60px rgba(0,0,0,0.3); border:1px solid rgba(var(--muted), 0.2); margin:auto; box-sizing:border-box;">
+        <div style="padding:1.35rem 1.6rem 1rem; border-bottom:1px solid rgba(var(--muted), 0.15); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h3 id="series-modal-title" style="margin:0; font-size:1.1rem; font-weight:800; color:rgb(var(--text));">Recurring Event Dates</h3>
+                <p id="series-modal-subtitle" style="margin:0.2rem 0 0; font-size:0.8rem; color:rgb(var(--muted));">Choose any date to edit tickets or manage attendees</p>
+            </div>
+            <button type="button" onclick="closeSeriesOccurrencesModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:rgb(var(--muted)); line-height:1;" aria-label="Close">&times;</button>
+        </div>
+        <div id="series-modal-body" style="padding:1.25rem 1.6rem; min-height: 120px;">
+            <div style="text-align: center; color: rgb(var(--muted)); padding: 2rem 0;">Loading dates...</div>
+        </div>
+        <div style="padding:0.9rem 1.6rem; border-top:1px solid rgba(var(--muted), 0.15); display:flex; justify-content:flex-end;">
+            <button type="button" onclick="closeSeriesOccurrencesModal()" class="admin-action-btn" style="padding:0.5rem 1.2rem; font-size:0.85rem; border-radius:8px;">Close</button>
+        </div>
+    </div>
+</div>
 @endsection

@@ -83,7 +83,7 @@ class AutoPayoutService
                 FROM tickets t
                 INNER JOIN events e ON t.event_id = e.id
                 WHERE e.id = :event_id 
-                  AND t.status IN ('Paid', 'Comped')
+                  AND t.status = 'Paid'
                   AND (t.is_issued = 0 OR t.is_issued IS NULL)
             ");
             $revStmt->execute(['event_id' => $event['id']]);

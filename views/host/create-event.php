@@ -608,6 +608,34 @@ Create Event - <?= e($siteName) ?> Host
     .staff-roles-grid {
         grid-template-columns: 1fr 1fr;
     }
+
+    /* Tablet ticket tier grid (clean 2-row layout) */
+    .ticket-tier-grid {
+        grid-template-columns: 2fr 1fr 1fr !important;
+        gap: 0.85rem !important;
+        align-items: flex-end !important;
+    }
+
+    .tier-remove-wrap {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        height: auto;
+        margin-top: 0.25rem;
+    }
+
+    .ticket-remove-btn {
+        width: auto !important;
+        padding: 0.45rem 1rem !important;
+        border-radius: 8px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.35rem !important;
+    }
+
+    .ticket-remove-btn .remove-text {
+        display: inline !important;
+        font-size: 0.82rem !important;
+    }
 }
 
 /* ══ Mobile Breakpoint (<= 600px) ══ */
@@ -652,6 +680,19 @@ Create Event - <?= e($siteName) ?> Host
         min-height: 46px;
     }
 
+    /* URL Slug wrapper stacks gracefully on small phones */
+    .url-slug-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .url-prefix-badge {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(var(--muted), 0.15) !important;
+        font-size: 0.82rem !important;
+        padding: 0.55rem 0.85rem !important;
+    }
+
     /* Guest rows stack vertically */
     .guest-row-grid {
         grid-template-columns: 1fr !important;
@@ -664,7 +705,7 @@ Create Event - <?= e($siteName) ?> Host
         padding: 0.6rem;
     }
 
-    /* Ticket tiers stack vertically */
+    /* Ticket tiers stack vertically on mobile */
     .ticket-tier-grid {
         display: flex !important;
         flex-direction: column !important;

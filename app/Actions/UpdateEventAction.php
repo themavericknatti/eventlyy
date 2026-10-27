@@ -42,8 +42,8 @@ class UpdateEventAction
             $customUrl = slugify($customUrl);
         }
 
-        // Ensure slug uniqueness (excluding current event ID)
-        $customUrl = $this->ensureUniqueSlugExcludingCurrent($customUrl, $event->id);
+        // Ensure slug uniqueness (excluding current event ID and events in the same recurrence series)
+        $customUrl = $this->ensureUniqueSlugExcludingCurrent($customUrl, $event->id, $event->recurrence_group_id ?? null);
 
         // Location formatting: Venue, City
         $venue = trim($data['event_venue'] ?? '');
@@ -230,6 +230,8 @@ class UpdateEventAction
                         description = :description, 
                         category = :category,
                         location = :location, 
+                        custom_url = :custom_url,
+                        slug = :slug,
                         pass_fee = :pass_fee,
                         flyer_page_enabled = :flyer_page_enabled,
                         image = :image,
@@ -242,6 +244,8 @@ class UpdateEventAction
                     'description' => $event->description,
                     'category' => $event->category,
                     'location' => $event->location,
+                    'custom_url' => $customUrl,
+                    'slug' => $slug,
                     'pass_fee' => $event->pass_fee,
                     'flyer_page_enabled' => $flyerPageEnabled,
                     'image' => $event->image,
@@ -364,10 +368,6 @@ class UpdateEventAction
 
                 for ($seq = 2; $seq <= $totalOccurrences; $seq++) {
                     $occDate = $occurrences[$seq - 1];
-                    $dateObj = new \DateTime($occDate);
-                    $dateSuffix = $dateObj->format('Y-m-d');
-                    $occSlug = generate_event_slug(($eventName ?: $event->name) . '-' . $dateSuffix);
-                    $occCustomUrl = $this->ensureUniqueSlugExcludingCurrent($customUrl . '-' . $dateSuffix, 0);
 
                     $occEvent = new Event();
                     $occEventData = [
@@ -379,8 +379,8 @@ class UpdateEventAction
                         'organizer_id' => $event->organizer_id,
                         'status' => 'published',
                         'pass_fee' => $passFee,
-                        'slug' => $occSlug,
-                        'custom_url' => $occCustomUrl,
+                        'slug' => $slug,
+                        'custom_url' => $customUrl,
                         'flyer_page_enabled' => $flyerPageEnabled,
                         'image' => $imagePath,
                         'is_recurring' => 1,
@@ -441,17 +441,22 @@ class UpdateEventAction
     }
 
     /**
-     * Ensure slug uniqueness excluding current event.
+     * Ensure slug uniqueness excluding current event and events in the same recurring series.
      */
-    private function ensureUniqueSlugExcludingCurrent(string $slug, int|string $currentEventId): string
+    private function ensureUniqueSlugExcludingCurrent(string $slug, int|string $currentEventId, ?string $recurrenceGroupId = null): string
     {
         $db = Application::$app->db->pdo;
         $originalSlug = $slug;
         $counter = 0;
 
         while (true) {
-            $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE custom_url = :slug AND id != :id");
-            $stmt->execute(['slug' => $slug, 'id' => $currentEventId]);
+            if (!empty($recurrenceGroupId)) {
+                $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE custom_url = :slug AND id != :id AND (recurrence_group_id IS NULL OR recurrence_group_id != :gid)");
+                $stmt->execute(['slug' => $slug, 'id' => $currentEventId, 'gid' => $recurrenceGroupId]);
+            } else {
+                $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE custom_url = :slug AND id != :id");
+                $stmt->execute(['slug' => $slug, 'id' => $currentEventId]);
+            }
 
             if ($stmt->fetchColumn() == 0) {
                 break;

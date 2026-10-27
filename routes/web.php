@@ -97,6 +97,7 @@ $router->get('/host/payouts', [HostController::class, 'financials']);
 $router->post('/host/withdraw', [HostController::class, 'requestWithdrawal']);
 $router->get('/host/event/create', [HostEventController::class, 'createEvent']);
 $router->post('/host/event/create', [HostEventController::class, 'storeEvent']);
+$router->get('/host/event/{id}/occurrences', [HostEventController::class, 'getOccurrencesJson']);
 $router->get('/host/event/edit/{id}', [HostEventController::class, 'editEvent']);
 $router->post('/host/event/edit/{id}', [HostEventController::class, 'updateEvent']);
 $router->get('/host/event/management/{id}', [HostEventController::class, 'manageEvent']);

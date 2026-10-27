@@ -152,9 +152,20 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     <?php endif; ?>
 
                     <?php if (!empty($event->is_recurring)): ?>
-                        <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.65rem; border-radius:20px; font-size:0.75rem; font-weight:700; background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3);">
-                            🔄 Recurring Series (Occurrence #<?= e($event->recurrence_sequence ?? 1) ?> of <?= e($event->recurrence_count ?? 'multiple') ?> &bull; <?= ucfirst(e($event->recurrence_type ?? 'Series')) ?>)
-                        </span>
+                        <div style="display:inline-flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                            <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.65rem; border-radius:20px; font-size:0.75rem; font-weight:700; background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3);">
+                                🔄 Recurring Series (Occurrence #<?= e($event->recurrence_sequence ?? 1) ?> of <?= e($event->recurrence_count ?? 'multiple') ?> &bull; <?= ucfirst(e($event->recurrence_type ?? 'Series')) ?>)
+                            </span>
+                            <?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
+                                <select class="event-select" style="padding:0.2rem 0.55rem; font-size:0.75rem; border-radius:6px; font-weight:600; background:rgba(99,102,241,0.08); color:#818cf8; border:1px solid rgba(99,102,241,0.25); cursor:pointer;" onchange="if(this.value && this.value != '<?= $event->id ?>') window.location.href = '<?= route('host/event/management/') ?>' + this.value;" title="Switch Occurrence to Manage">
+                                    <?php foreach ($recurringOccurrences as $occ): ?>
+                                        <option value="<?= $occ['id'] ?>" <?= $occ['id'] == $event->id ? 'selected' : '' ?>>
+                                            Date: <?= date('M j, Y', strtotime($occ['date'])) ?> (#<?= e($occ['recurrence_sequence'] ?? '?') ?>) <?= $occ['id'] == $event->id ? '★ Current' : '' ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
 

@@ -629,6 +629,122 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     transform: translateY(-1px);
 }
 
+
+/* ════════════════════════════════════════════════════════════════
+   HIGH-CONTRAST ACCESSIBLE SELECT & DROPDOWNS IN EDIT EVENT
+   ════════════════════════════════════════════════════════════════ */
+.event-select,
+.edit-series-dates-select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.6rem 2.2rem 0.6rem 0.95rem;
+    border-radius: 10px;
+    border: 1.5px solid rgba(99, 102, 241, 0.45);
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 15px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.event-select:hover,
+.edit-series-dates-select:hover {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.event-select:focus,
+.edit-series-dates-select:focus {
+    border-color: #4f46e5;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28);
+}
+
+.event-select option,
+.edit-series-dates-select option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-weight: 600;
+    padding: 10px 14px;
+}
+
+:root[data-theme='dark'] .event-select,
+:root[data-theme='dark'] .edit-series-dates-select {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: rgba(129, 140, 248, 0.5) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='dark'] .event-select option,
+:root[data-theme='dark'] .edit-series-dates-select option {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+/* ══ Occurrence Switcher & Recurrence Scope Polish ══ */
+.occurrence-switcher-banner {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.06));
+    border: 1.5px solid rgba(99, 102, 241, 0.35);
+    border-radius: 16px;
+    padding: 1.15rem 1.4rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.occurrence-switcher-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.occurrence-switcher-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.scope-radio-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.95rem 1.15rem;
+    border-radius: 12px;
+    border: 1.5px solid rgba(99, 102, 241, 0.22);
+    background: rgba(99, 102, 241, 0.03);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.scope-radio-card:hover {
+    border-color: rgba(99, 102, 241, 0.45);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.scope-radio-card:has(input:checked) {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.09);
+    box-shadow: 0 0 0 1px #6366f1;
+}
+
 /* ══ Tablet Breakpoint (601px - 960px) ══ */
 @media (max-width: 960px) {
     .form-card {
@@ -646,6 +762,57 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
     .event-grid-3 .event-field-group:first-child {
         grid-column: 1 / -1;
+    }
+
+    /* Tablet ticket tier grid (clean 2-row layout) */
+    .ticket-tier-grid {
+        grid-template-columns: 2fr 1fr 1fr !important;
+        gap: 0.85rem !important;
+        align-items: flex-end !important;
+    }
+
+    .tier-remove-wrap {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        height: auto;
+        margin-top: 0.25rem;
+    }
+
+    .ticket-remove-btn {
+        width: auto !important;
+        padding: 0.45rem 1rem !important;
+        border-radius: 8px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.35rem !important;
+    }
+
+    .ticket-remove-btn .remove-text {
+        display: inline !important;
+        font-size: 0.82rem !important;
+    }
+
+    .ticket-remove-btn .remove-icon {
+        display: inline !important;
+    }
+
+    .occurrence-switcher-banner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+
+    .occurrence-switcher-controls {
+        width: 100% !important;
+        justify-content: space-between !important;
+    }
+
+    .occurrence-switcher-controls .series-date-select-wrap {
+        flex: 1 !important;
+    }
+
+    .occurrence-switcher-controls select {
+        width: 100% !important;
     }
 }
 
@@ -689,6 +856,66 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     .event-textarea {
         font-size: 16px !important; /* Prevents auto-zoom on iOS */
         min-height: 46px;
+    }
+
+    /* URL Slug wrapper stacks gracefully on small phones */
+    .url-slug-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .url-prefix-badge {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(var(--muted), 0.15) !important;
+        font-size: 0.82rem !important;
+        padding: 0.55rem 0.85rem !important;
+    }
+
+    /* Occurrence Switcher Banner Mobile Layout */
+    .occurrence-switcher-banner {
+        padding: 1.1rem 1rem !important;
+        border-radius: 14px !important;
+    }
+
+    .occurrence-switcher-controls {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    .occurrence-switcher-controls .series-date-select-wrap {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+
+    .occurrence-switcher-controls select {
+        width: 100% !important;
+        min-height: 46px !important;
+    }
+
+    .occurrence-switcher-controls .admin-action-btn {
+        min-height: 44px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .scope-date-jump-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.6rem !important;
+    }
+
+    .scope-select-wrapper {
+        width: 100% !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .scope-select-wrapper select {
+        width: 100% !important;
+        min-width: 0 !important;
     }
 
     /* Guest rows stack vertically */
@@ -774,6 +1001,74 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
         </p>
     </header>
 
+    <?php if (!empty($event->is_recurring) && !empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
+        <?php
+            $totalOcc = count($recurringOccurrences);
+            $currentIndex = 0;
+            foreach ($recurringOccurrences as $idx => $occ) {
+                if ($occ['id'] == $event->id) {
+                    $currentIndex = $idx;
+                    break;
+                }
+            }
+            $prevOcc = $currentIndex > 0 ? $recurringOccurrences[$currentIndex - 1] : null;
+            $nextOcc = $currentIndex < $totalOcc - 1 ? $recurringOccurrences[$currentIndex + 1] : null;
+        ?>
+        <!-- Occurrence Quick Switcher Banner -->
+        <div class="occurrence-switcher-banner">
+            <div class="occurrence-switcher-header">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(99, 102, 241, 0.18); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+                    🔄
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: #6366f1; color: #fff; padding: 0.15rem 0.55rem; border-radius: 6px;">
+                            Recurring Event Series
+                        </span>
+                        <strong style="color: rgb(var(--text)); font-size: 1rem;">
+                            Editing Occurrence #<?= e($event->recurrence_sequence ?? ($currentIndex + 1)) ?> of <?= $totalOcc ?>
+                        </strong>
+                    </div>
+                    <div style="font-size: 0.85rem; color: rgb(var(--muted)); margin-top: 0.25rem;">
+                        This Occurrence Date: <strong style="color: rgb(var(--text));"><?= date('D, M j, Y • g:i A', strtotime($event->date)) ?></strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="occurrence-switcher-controls">
+                <?php if ($prevOcc): ?>
+                    <a href="{{ route('host/event/edit/' . $prevOcc['id']) }}" class="admin-action-btn" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; background: rgba(var(--text), 0.06); text-decoration: none; border-radius: 8px; font-weight: 600;" title="Go to Previous Occurrence (<?= date('M j', strtotime($prevOcc['date'])) ?>)">
+                        ← Prev
+                    </a>
+                <?php endif; ?>
+
+                <div class="series-date-select-wrap" style="display: flex; align-items: center; gap: 0.4rem;">
+                    <label for="series-date-jump" style="font-size: 0.82rem; font-weight: 700; color: #818cf8; white-space: nowrap;">
+                        Switch Date:
+                    </label>
+                    <select id="series-date-jump" class="edit-series-dates-select" style="min-width: 260px;" onchange="if(this.value && this.value != '<?= $event->id ?>') window.location.href = '<?= route('host/event/edit/') ?>' + this.value;" aria-label="Switch occurrence date">
+                        <?php foreach ($recurringOccurrences as $occ): ?>
+                            <?php
+                                $occTime = strtotime($occ['date']);
+                                $isCur = ($occ['id'] == $event->id);
+                                $isPast = $occTime < time();
+                            ?>
+                            <option value="<?= $occ['id'] ?>" <?= $isCur ? 'selected' : '' ?>>
+                                #<?= e($occ['recurrence_sequence'] ?? '?') ?>  —  <?= date('D, M d, Y • g:i A', $occTime) ?> <?= $isCur ? '★ (Current Editing)' : ($isPast ? '(Past)' : '(Upcoming)') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <?php if ($nextOcc): ?>
+                    <a href="{{ route('host/event/edit/' . $nextOcc['id']) }}" class="admin-action-btn" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; background: rgba(var(--text), 0.06); text-decoration: none; border-radius: 8px; font-weight: 600;" title="Go to Next Occurrence (<?= date('M j', strtotime($nextOcc['date'])) ?>)">
+                        Next →
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="form-card">
         <!-- Error / Feedback Messages -->
         <div class="auth-message" aria-live="polite" style="display: none;"></div>
@@ -847,7 +1142,8 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     </label>
                     <div class="url-slug-wrapper">
                         <span class="url-prefix-badge">/events/</span>
-                        <input type="text" id="custom-url" name="custom_url" class="url-slug-input" value="<?= e($event->custom_url ?? '') ?>" placeholder="summer-beats-festival" aria-label="Custom URL slug">
+                        <?php $cleanCustomUrl = preg_replace('/-\d{4}-\d{2}-\d{2}$/', '', $event->custom_url ?? ''); ?>
+                        <input type="text" id="custom-url" name="custom_url" class="url-slug-input" value="<?= e($cleanCustomUrl) ?>" placeholder="summer-beats-festival" aria-label="Custom URL slug">
                     </div>
                     <small class="event-help-text">
                         Short link for your event page. Leave empty to automatically generate from event title.
@@ -899,26 +1195,53 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
                 <?php if (!empty($event->is_recurring) && !empty($event->recurrence_group_id)): ?>
                 <!-- Recurring Series Scope Box -->
-                <div class="setting-card" style="margin-bottom: 1.5rem; border: 1.5px solid rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.04); border-radius: 12px; padding: 1.15rem 1.25rem;">
-                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                        <span style="font-size: 1.3rem;">🔄</span>
-                        <div style="flex: 1;">
-                            <strong style="color: rgb(var(--text)); font-size: 0.95rem; display: block;">
+                <div class="setting-card" style="margin-bottom: 1.5rem; border: 1.5px solid rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.04); border-radius: 16px; padding: 1.25rem 1.35rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
+                        <span style="font-size: 1.35rem; flex-shrink: 0; margin-top: 2px;">🔄</span>
+                        <div style="flex: 1; min-width: 0;">
+                            <strong style="color: rgb(var(--text)); font-size: 0.98rem; display: block; line-height: 1.3;">
                                 Recurring Event Series (Occurrence #<?= e($event->recurrence_sequence ?? 1) ?> of <?= e($event->recurrence_count ?? 'multiple') ?> &bull; <?= ucfirst(e($event->recurrence_type ?? 'recurring')) ?>)
                             </strong>
                             <p style="margin: 0.25rem 0 0.85rem; font-size: 0.82rem; color: rgb(var(--muted));">
                                 Choose how you want edits to apply across occurrences in this series:
                             </p>
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.88rem;">
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="radio" name="recurrence_update_scope" value="this_only" checked>
-                                    <span><strong>Update this occurrence only</strong> (does not modify other dates in this series)</span>
+                            
+                            <div class="scope-options-group" style="display: flex; flex-direction: column; gap: 0.65rem;">
+                                <label class="scope-radio-card">
+                                    <input type="radio" name="recurrence_update_scope" value="this_only" checked style="margin-top: 3px; accent-color: #6366f1;">
+                                    <div>
+                                        <strong style="color: rgb(var(--text)); font-size: 0.92rem; display: block;">Update this occurrence only</strong>
+                                        <span style="font-size: 0.8rem; color: rgb(var(--muted)); display: block; margin-top: 2px;">Modifications will apply strictly to #<?= e($event->recurrence_sequence ?? 1) ?> (<?= date('M j, Y', strtotime($event->date)) ?>). Other occurrences remain untouched.</span>
+                                    </div>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="radio" name="recurrence_update_scope" value="all_future">
-                                    <span><strong>Update this and all future occurrences</strong> (propagates details, location, and artwork to upcoming occurrences)</span>
+                                <label class="scope-radio-card">
+                                    <input type="radio" name="recurrence_update_scope" value="all_future" style="margin-top: 3px; accent-color: #6366f1;">
+                                    <div>
+                                        <strong style="color: rgb(var(--text)); font-size: 0.92rem; display: block;">Update this and all future occurrences</strong>
+                                        <span style="font-size: 0.8rem; color: rgb(var(--muted)); display: block; margin-top: 2px;">Propagates changes (title, description, venue, artwork, custom slug) to this and all upcoming occurrences in this series.</span>
+                                    </div>
                                 </label>
                             </div>
+
+                            <?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
+                            <div class="scope-date-jump-row" style="margin-top: 1.15rem; padding-top: 1rem; border-top: 1px dashed rgba(99, 102, 241, 0.25); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.65rem;">
+                                <span style="font-size: 0.82rem; color: rgb(var(--muted)); font-weight: 600;">
+                                    Need to edit a different date?
+                                </span>
+                                <div class="scope-select-wrapper" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label for="scope-date-jump" style="font-size: 0.8rem; font-weight: 700; color: #818cf8; white-space: nowrap;">
+                                        Select Date:
+                                    </label>
+                                    <select id="scope-date-jump" class="edit-series-dates-select" style="min-width: 260px;" onchange="if(this.value && this.value != '<?= $event->id ?>') window.location.href = '<?= route('host/event/edit/') ?>' + this.value;" aria-label="Select date to edit">
+                                        <?php foreach ($recurringOccurrences as $occ): ?>
+                                            <option value="<?= $occ['id'] ?>" <?= $occ['id'] == $event->id ? 'selected' : '' ?>>
+                                                #<?= e($occ['recurrence_sequence'] ?? '?') ?>: <?= date('D, M j, Y @ g:i A', strtotime($occ['date'])) ?> <?= $occ['id'] == $event->id ? '★ (Current)' : '' ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

@@ -270,6 +270,10 @@
                 if (currentChecked > 0) {
                     checkinCountEl.textContent = currentChecked - 1;
                     remainingCountEl.textContent = currentRemaining + 1;
+                    var tabBadge = document.getElementById('tv-tab-log-badge');
+                    var logCountDisplay = document.getElementById('log-count-display');
+                    if (tabBadge) tabBadge.textContent = Math.max(0, currentChecked - 1);
+                    if (logCountDisplay) logCountDisplay.textContent = Math.max(0, currentChecked - 1);
                 }
             }
 
