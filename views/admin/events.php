@@ -31,6 +31,25 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
     margin-bottom: 1.75rem;
 }
 
+.au-table th {
+    white-space: nowrap;
+}
+
+.admin-event-category-badge {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+}
+
+.au-status-badge, .au-role-badge {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
 .au-table-wrap {
     background: rgb(var(--card));
     border-radius: 18px;
@@ -199,71 +218,27 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
         grid-template-columns: repeat(3, 1fr) !important;
         gap: 0.5rem !important;
     }
-    /* High-Contrast Accessible Dates Dropdown */
-.admin-table-dates-dropdown-wrap {
-    margin-top: 0.45rem;
-    position: relative;
-    max-width: 260px;
-}
-
-.admin-table-dates-select {
-    width: 100%;
-    padding: 0.42rem 1.85rem 0.42rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    font-family: inherit;
-    border-radius: 8px;
-    border: 1.5px solid rgba(99, 102, 241, 0.45);
-    background-color: #ffffff;
-    color: #0f172a;
-    cursor: pointer;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.55rem center;
-    background-size: 13px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
-}
-
-.admin-table-dates-select:hover {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-}
-
-.admin-table-dates-select:focus {
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28);
-}
-
-.admin-table-dates-select option {
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    font-weight: 600;
-    padding: 8px 12px;
-}
-
-:root[data-theme='dark'] .admin-table-dates-select {
-    background-color: #1e293b !important;
-    color: #f8fafc !important;
-    border-color: rgba(129, 140, 248, 0.5) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-:root[data-theme='dark'] .admin-table-dates-select option {
-    background-color: #1e293b !important;
-    color: #f8fafc !important;
-}
-
-.admin-events-btn {
+    .admin-events-btn {
         justify-content: center !important;
         text-align: center !important;
         padding: 0.55rem 0.5rem !important;
         font-size: 0.8rem !important;
+    }
+}
+
+@media (max-width: 680px) {
+    .admin-events-hero-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 0.5rem !important;
+    }
+    .admin-events-hero-actions .admin-events-btn {
+        width: 100% !important;
+        min-height: 42px !important;
+        justify-content: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
     }
 }
 
@@ -278,10 +253,19 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
     .card-actions-grid .admin-action-btn {
         min-height: 40px;
     }
+    .card-action-feature-row {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+    .card-action-feature-row form,
+    .card-action-feature-row button {
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
 }
 
-@media (max-width: 480px) {
-    .admin-events-hero-actions {
+@media (max-width: 380px) {
+    .card-actions-grid {
         grid-template-columns: 1fr !important;
     }
 }
@@ -426,14 +410,14 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
         <table class="au-table">
             <thead>
                 <tr>
-                    <th>Event Title</th>
-                    <th>Date & Venue</th>
-                    <th>Organizer</th>
-                    <th>Sales Progress</th>
-                    <th>Gross &amp; Host Earned</th>
-                    <th>Platform Profit</th>
-                    <th>Status</th>
-                    <th style="text-align:right;">Actions</th>
+                    <th style="min-width:230px;">Event Title</th>
+                    <th style="min-width:180px;">Date &amp; Venue</th>
+                    <th style="min-width:160px;">Organizer</th>
+                    <th style="min-width:140px;">Sales Progress</th>
+                    <th style="min-width:140px;">Gross &amp; Host Earned</th>
+                    <th style="min-width:120px;">Platform Profit</th>
+                    <th style="min-width:110px;">Status</th>
+                    <th style="min-width:240px; text-align:right;">Actions</th>
                 </tr>
             </thead>
             <tbody id="events-tbody">
@@ -454,16 +438,16 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                         $evLiveEnd = $evTime + (event_completion_hours() * 3600);
                         if ($ev['status'] === 'completed' || ($ev['status'] === 'published' && $evNow > $evLiveEnd)) {
                             $evStatusLabel = 'Completed';
-                            $evStatusClass = 'au-status--unverified';
+                            $evStatusClass = 'au-status-badge au-status--unverified';
                         } elseif ($ev['status'] === 'published' && $evNow >= $evTime && $evNow <= $evLiveEnd) {
                             $evStatusLabel = '🔴 Live Now';
-                            $evStatusClass = 'au-status--active';
+                            $evStatusClass = 'au-status-badge au-status--active';
                         } elseif ($ev['status'] === 'published') {
                             $evStatusLabel = 'Upcoming';
                             $evStatusClass = 'au-role-badge au-role--host';
                         } elseif ($ev['status'] === 'cancelled') {
                             $evStatusLabel = 'Cancelled';
-                            $evStatusClass = 'au-status--suspended';
+                            $evStatusClass = 'au-status-badge au-status--suspended';
                         } else {
                             $evStatusLabel = ucfirst($ev['status']);
                             $evStatusClass = 'au-role-badge au-role--attendee';
@@ -477,11 +461,11 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                                     <a href="{{ route('admin/events/{id}', ['id' => $ev['id']]) }}" style="color:var(--text); text-decoration:none; font-weight:700; font-size:0.95rem;" onmouseover="this.style.color='rgb(var(--brand))'" onmouseout="this.style.color='var(--text)'">
                                         <?= e($ev['name']) ?> ↗
                                     </a>
-                                    <div style="display:flex; align-items:center; gap:0.4rem; margin-top:2px;">
-                                        <span class="au-card-email"><?= e($ev['category'] ?? 'Event') ?></span>
+                                    <div style="display:flex; align-items:center; gap:0.4rem; margin-top:2px; flex-wrap:nowrap;">
+                                        <span class="admin-event-category-badge" style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); background:rgba(var(--muted),0.08); padding:0.12rem 0.5rem; border-radius:5px; white-space:nowrap; flex-shrink:0;"><?= e($ev['category'] ?? 'Event') ?></span>
                                         <?php if (!empty($ev['is_recurring'])): ?>
-                                            <button type="button" onclick="openSeriesOccurrencesModal('<?= $ev['id'] ?>', '<?= addslashes(e($ev['name'])) ?>')" style="font-size:0.72rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); padding:0.12rem 0.45rem; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; gap:0.25rem;" title="Click to view all dates in this series to edit or manage">
-                                                🔄 Recurring (<?= e($ev['recurrence_count'] ?? '') ?> Dates &bull; Next: #<?= e($ev['recurrence_sequence'] ?? 1) ?>) ▾
+                                            <button type="button" onclick="openSeriesOccurrencesModal('<?= $ev['id'] ?>', '<?= addslashes(e($ev['name'])) ?>')" style="font-size:0.72rem; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); padding:0.12rem 0.45rem; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; gap:0.25rem; white-space:nowrap; flex-shrink:0;" title="Click to view all dates in this series to edit or manage">
+                                                🔄 Recurring (<?= e($ev['recurrence_count'] ?? '') ?> Dates &bull; #<?= e($ev['recurrence_sequence'] ?? 1) ?>) ▾
                                             </button>
                                         <?php endif; ?>
                                     </div>
@@ -615,7 +599,7 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                                 <?= e($ev['name']) ?> ↗
                             </a>
                             <div style="display:flex; align-items:center; gap:0.4rem; margin-top:3px; flex-wrap:wrap;">
-                                <span style="font-size:0.72rem; font-weight:700; color:rgb(var(--muted)); background:rgba(var(--muted),0.08); padding:0.12rem 0.45rem; border-radius:5px;">
+                                <span style="font-size:0.72rem; font-weight:700; color:rgb(var(--muted)); background:rgba(var(--muted),0.08); padding:0.12rem 0.45rem; border-radius:5px; white-space:nowrap;">
                                     <?= e($ev['category'] ?? 'Event') ?>
                                 </span>
                                 <?php if (!empty($ev['is_recurring'])): ?>
@@ -626,7 +610,7 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                             </div>
                         </div>
                     </div>
-                    <span class="<?= $evStatusClass ?>" style="flex-shrink:0; font-size:0.76rem; font-weight:700;"><?= $evStatusLabel ?></span>
+                    <span class="<?= $evStatusClass ?>" style="flex-shrink:0; font-size:0.76rem; font-weight:700; white-space:nowrap;"><?= $evStatusLabel ?></span>
                 </div>
 
                 <!-- Card Metrics Grid -->
@@ -677,10 +661,19 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
 
                     <div>
                         <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block;">Financials</span>
-                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:2px; font-size:0.78rem;">
-                            <span style="font-weight:700; color:rgb(var(--text));">Gross: <?= format_price($ev['gross_revenue'] ?? 0) ?></span>
-                            <span style="font-weight:700; color:#10b981;">Host: <?= format_price($ev['host_earnings'] ?? 0) ?></span>
-                            <span style="font-weight:700; color:rgb(35, 182, 107);">Profit: <?= format_price($ev['platform_profit'] ?? 0) ?></span>
+                        <div style="display:flex; flex-direction:column; gap:2px; margin-top:2px; font-size:0.78rem;">
+                            <div style="display:flex; justify-content:space-between; gap:0.4rem; white-space:nowrap;">
+                                <span style="color:rgb(var(--muted));">Gross:</span>
+                                <strong style="color:rgb(var(--text));"><?= format_price($ev['gross_revenue'] ?? 0) ?></strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; gap:0.4rem; white-space:nowrap;">
+                                <span style="color:rgb(var(--muted));">Host:</span>
+                                <strong style="color:#10b981;"><?= format_price($ev['host_earnings'] ?? 0) ?></strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; gap:0.4rem; white-space:nowrap;">
+                                <span style="color:rgb(var(--muted));">Profit:</span>
+                                <strong style="color:rgb(35, 182, 107);"><?= format_price($ev['platform_profit'] ?? 0) ?></strong>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -702,7 +695,7 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                             📋 Clone
                         </button>
                     </form>
-                    <div style="grid-column: 2 / -1;">
+                    <div class="card-action-feature-row" style="grid-column: 1 / -1; width: 100%;">
                         <form method="POST" action="{{ route('admin/events/toggle-featured') }}" style="display:block; margin:0;">
                             <?= csrf_field() ?>
                             <input type="hidden" name="event_id" value="<?= $ev['id'] ?>" />

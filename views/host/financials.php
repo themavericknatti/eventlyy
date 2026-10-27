@@ -357,8 +357,14 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
         gap: 1rem;
     }
 
+    .fin-hero-info {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
     .fin-bank-box {
-        width: 100%;
+        min-width: 0 !important;
+        width: 100% !important;
         box-sizing: border-box;
     }
 
@@ -387,7 +393,14 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
     }
 
     .fin-table-search {
-        width: 100%;
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .fin-secondary-grid {
+        grid-template-columns: 1fr !important;
     }
 }
 </style>

@@ -26,6 +26,175 @@ Accounting Report - <?= e($event->name) ?>
 @endsection
 
 @section('content')
+<style>
+/* ─── Host Accounting Report Mobile Responsiveness ─── */
+.accounting-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.report-hero-card {
+    padding: 1.75rem;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+    background: var(--card-bg, rgb(var(--card)));
+    border: 1px solid rgba(var(--muted), 0.15);
+}
+
+.accounting-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.accounting-tabs-bar {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid rgba(var(--muted), 0.15);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    white-space: nowrap;
+    padding-bottom: 2px;
+}
+
+.accounting-tabs-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.accounting-tab-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: rgb(var(--muted));
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.accounting-tab-btn.active {
+    color: rgb(var(--brand));
+    border-bottom-color: rgb(var(--brand));
+}
+
+.accounting-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.accounting-cards-mobile {
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.accounting-ticket-card {
+    background: rgba(var(--muted), 0.03);
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 14px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.reconcile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.08);
+    font-size: 0.88rem;
+    gap: 0.75rem;
+}
+
+.reconcile-final-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.1rem 1rem;
+    background: rgba(var(--brand), 0.08);
+    border-top: 2px solid rgb(var(--brand));
+    gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .accounting-table-wrap {
+        display: none !important;
+    }
+    .accounting-cards-mobile {
+        display: flex !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .accounting-topbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+    .accounting-topbar > div {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    .accounting-topbar .admin-action-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0.55rem !important;
+    }
+
+    .report-hero-card {
+        padding: 1.25rem 1rem !important;
+        border-radius: 16px !important;
+    }
+
+    .report-hero-card h1 {
+        font-size: 1.35rem !important;
+    }
+
+    .accounting-kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    .reconcile-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.3rem !important;
+        padding: 0.75rem 0.85rem !important;
+    }
+
+    .reconcile-final-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+        padding: 1rem 0.85rem !important;
+    }
+
+    .reconcile-final-row > div:last-child {
+        font-size: 1.3rem !important;
+    }
+}
+</style>
 <div class="accounting-report-wrapper" style="margin-bottom: 3rem;">
 
     <!-- ════════════════════════════════════════════════════════════════
@@ -59,7 +228,7 @@ Accounting Report - <?= e($event->name) ?>
     <!-- ════════════════════════════════════════════════════════════════
          2. REPORT HERO HEADER
          ════════════════════════════════════════════════════════════════ -->
-    <section class="form-card" style="padding:1.75rem; border-radius:20px; margin-bottom:1.5rem; background:var(--card-bg, #fff);">
+    <section class="form-card report-hero-card" style="border-radius:20px; margin-bottom:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem;">
             <div>
                 <div style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.25rem 0.65rem; border-radius:20px; background:rgba(var(--brand), 0.1); color:rgb(var(--brand)); font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.5rem;">
@@ -185,7 +354,7 @@ Accounting Report - <?= e($event->name) ?>
                     <p style="font-size:0.85rem; margin-top:0.25rem;">Online ticket sales through Paystack will appear here with verification references.</p>
                 </div>
             <?php else: ?>
-                <div class="table-responsive" style="overflow-x:auto;">
+                <div class="table-responsive accounting-table-wrap" style="overflow-x:auto;">
                     <table class="data-table" id="online-sales-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                         <thead>
                             <tr style="background:rgba(var(--muted), 0.05); text-align:left; border-bottom:2px solid rgba(var(--muted), 0.15);">
@@ -252,6 +421,46 @@ Accounting Report - <?= e($event->name) ?>
                         </tfoot>
                     </table>
                 </div>
+
+                <!-- Mobile Card Stream (Displays on screens <= 768px) -->
+                <div class="accounting-cards-mobile" id="online-tickets-cards">
+                    <?php foreach ($onlineTickets as $ot): ?>
+                        <div class="accounting-ticket-card" data-search="<?= strtolower(e($ot['id'] . ' ' . ($ot['attendee_name'] ?? '') . ' ' . ($ot['attendee_email'] ?? '') . ' ' . ($ot['extracted_ref'] ?? ''))) ?>">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                                <div>
+                                    <span style="font-family:monospace; font-weight:700; color:rgb(var(--brand)); font-size:0.88rem;"><?= e($ot['id']) ?></span>
+                                    <h4 style="margin:0.25rem 0 0; font-size:0.95rem; font-weight:700;"><?= e($ot['attendee_name'] ?: 'Guest') ?></h4>
+                                    <div style="font-size:0.78rem; color:rgb(var(--muted)); word-break:break-all;"><?= e($ot['attendee_email']) ?></div>
+                                </div>
+                                <div style="text-align:right; flex-shrink:0;">
+                                    <div style="font-weight:800; font-size:1rem; color:#10b981;"><?= e($currency) ?><?= number_format((float)$ot['price'], 2) ?></div>
+                                    <span class="badge" style="background:rgba(var(--muted),0.12); font-weight:600; font-size:0.74rem; padding:0.2rem 0.5rem; border-radius:6px; display:inline-block; margin-top:0.25rem;">
+                                        <?= e($ot['ticket_tier'] ?? 'General') ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.78rem; border-top:1px dashed rgba(var(--muted),0.15); padding-top:0.5rem; margin-top:0.25rem;">
+                                <div>
+                                    <?php if (!empty($ot['checked_in'])): ?>
+                                        <span style="color:#10b981; font-weight:700;">✓ Checked In</span>
+                                    <?php else: ?>
+                                        <span style="color:rgb(var(--muted));">Awaiting Entry</span>
+                                    <?php endif; ?>
+                                    <span style="margin: 0 0.35rem; color:rgba(var(--muted),0.4);">•</span>
+                                    <span style="color:#10b981; font-weight:600;">● <?= e($ot['gateway_status']) ?></span>
+                                </div>
+                                <div style="color:rgb(var(--muted));">
+                                    <?= !empty($ot['purchase_date']) ? date('M d, Y • H:i', strtotime($ot['purchase_date'])) : 'N/A' ?>
+                                </div>
+                            </div>
+                            <?php if (!empty($ot['extracted_ref'])): ?>
+                                <div style="font-size:0.74rem; color:#6366f1; font-family:monospace; word-break:break-all;">
+                                    Ref: <?= e($ot['extracted_ref']) ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         </section>
     </div>
@@ -281,7 +490,7 @@ Accounting Report - <?= e($event->name) ?>
                     <p style="font-size:0.85rem; margin-top:0.25rem;">Tickets issued manually or through the gate cash box office terminal will appear here.</p>
                 </div>
             <?php else: ?>
-                <div class="table-responsive" style="overflow-x:auto;">
+                <div class="table-responsive accounting-table-wrap" style="overflow-x:auto;">
                     <table class="data-table" id="issued-tickets-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                         <thead>
                             <tr style="background:rgba(var(--muted), 0.05); text-align:left; border-bottom:2px solid rgba(var(--muted), 0.15);">
@@ -350,6 +559,48 @@ Accounting Report - <?= e($event->name) ?>
                         </tfoot>
                     </table>
                 </div>
+
+                <!-- Mobile Card Stream (Displays on screens <= 768px) -->
+                <div class="accounting-cards-mobile" id="issued-tickets-cards">
+                    <?php foreach ($issuedTickets as $it): ?>
+                        <div class="accounting-ticket-card" data-search="<?= strtolower(e($it['id'] . ' ' . ($it['attendee_name'] ?? '') . ' ' . ($it['attendee_email'] ?? '') . ' ' . ($it['issuance_type'] ?? ''))) ?>">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                                <div>
+                                    <span style="font-family:monospace; font-weight:700; color:rgb(var(--brand)); font-size:0.88rem;"><?= e($it['id']) ?></span>
+                                    <h4 style="margin:0.25rem 0 0; font-size:0.95rem; font-weight:700;"><?= e($it['attendee_name'] ?: 'Guest') ?></h4>
+                                    <div style="font-size:0.78rem; color:rgb(var(--muted)); word-break:break-all;"><?= e($it['attendee_email']) ?></div>
+                                </div>
+                                <div style="text-align:right; flex-shrink:0;">
+                                    <div style="font-weight:800; font-size:1rem; color:#6366f1;"><?= e($currency) ?><?= number_format((float)$it['price'], 2) ?></div>
+                                    <span class="badge" style="background:rgba(var(--muted),0.12); font-weight:600; font-size:0.74rem; padding:0.2rem 0.5rem; border-radius:6px; display:inline-block; margin-top:0.25rem;">
+                                        <?= e($it['ticket_tier'] ?? 'General') ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.78rem; border-top:1px dashed rgba(var(--muted),0.15); padding-top:0.5rem; margin-top:0.25rem;">
+                                <div>
+                                    <?php if (!empty($it['checked_in'])): ?>
+                                        <span style="color:#10b981; font-weight:700;">✓ Checked In</span>
+                                    <?php else: ?>
+                                        <span style="color:rgb(var(--muted));">Awaiting Entry</span>
+                                    <?php endif; ?>
+                                    <span style="margin: 0 0.35rem; color:rgba(var(--muted),0.4);">•</span>
+                                    <span style="font-weight:700; color:<?= str_contains($it['issuance_type'], 'Gate') ? '#10b981' : '#6366f1' ?>;">
+                                        <?= e($it['issuance_type']) ?>
+                                    </span>
+                                </div>
+                                <div style="color:rgb(var(--muted));">
+                                    <?= !empty($it['purchase_date']) ? date('M d, Y • H:i', strtotime($it['purchase_date'])) : 'N/A' ?>
+                                </div>
+                            </div>
+                            <?php if (!empty($it['status_detail'])): ?>
+                                <div style="font-size:0.74rem; color:rgb(var(--muted));">
+                                    <?= e($it['status_detail']) ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         </section>
     </div>
@@ -375,19 +626,19 @@ Accounting Report - <?= e($event->name) ?>
                     1. Event &amp; Organizer Profile
                 </h4>
                 <div style="border:1px solid rgba(var(--muted), 0.15); border-radius:12px; overflow:hidden;">
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Event Title</span>
                         <strong><?= e($event->name) ?></strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Scheduled Date &amp; Time</span>
                         <span><?= e($formattedEventDate) ?></span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Venue &amp; Location</span>
                         <span><?= e($event->location ?: 'Venue TBA') ?></span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; font-size:0.85rem;">
+                    <div class="reconcile-row">
                         <span style="color:rgb(var(--muted));">Ticketing Fee Configuration</span>
                         <span><?= !empty($event->pass_fee) ? 'Platform fee passed to ticket buyers' : 'Platform fee absorbed by host' ?></span>
                     </div>
@@ -400,23 +651,23 @@ Accounting Report - <?= e($event->name) ?>
                     2. Ticket Inventory &amp; Attendance Audit
                 </h4>
                 <div style="border:1px solid rgba(var(--muted), 0.15); border-radius:12px; overflow:hidden;">
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Total Event Capacity</span>
                         <strong><?= number_format($totalCapacity) ?> tickets</strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Online / Paystack Sold Tickets</span>
                         <strong><?= number_format(count($onlineTickets)) ?> tickets</strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Host &amp; Gate Issued Tickets</span>
                         <strong><?= number_format(count($issuedTickets)) ?> tickets</strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.85rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span style="color:rgb(var(--muted));">Total Attendance Roster</span>
                         <strong style="color:rgb(var(--brand));"><?= number_format($totalTicketsSoldOrIssued) ?> attendees (<?= $occupancyRate ?>% capacity taken)</strong>
                     </div>
-                    <div style="display:flex; justify-content:space-between; padding:0.65rem 1rem; font-size:0.85rem;">
+                    <div class="reconcile-row">
                         <span style="color:rgb(var(--muted));">Gate Scanner Turnout</span>
                         <strong style="color:#10b981;"><?= number_format($totalCheckedIn) ?> verified attendees (<?= $turnoutRate ?>% turnout)</strong>
                     </div>
@@ -429,28 +680,28 @@ Accounting Report - <?= e($event->name) ?>
                     3. Financial Settlement &amp; Revenue Reconciliation
                 </h4>
                 <div style="border:1px solid rgba(var(--muted), 0.15); border-radius:12px; overflow:hidden;">
-                    <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span>Gross Online / Paystack Purchases</span>
                         <strong><?= e($currency) ?><?= number_format($onlineGross, 2) ?></strong>
                     </div>
                     <?php if ($totalPlatformFee > 0): ?>
-                    <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem; color:#ef4444;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08); color:#ef4444;">
                         <span>Platform Ticketing Fee (<?= $platformFeePercent ?>% absorbed by host)</span>
                         <strong>-<?= e($currency) ?><?= number_format($totalPlatformFee, 2) ?></strong>
                     </div>
                     <?php else: ?>
-                    <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem; color:rgb(var(--muted));">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08); color:rgb(var(--muted));">
                         <span>Platform Ticketing Fee</span>
                         <span>Covered by ticket buyer (+5% fee paid at checkout)</span>
                     </div>
                     <?php endif; ?>
-                    <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(var(--muted),0.08); font-size:0.88rem;">
+                    <div class="reconcile-row" style="border-bottom:1px solid rgba(var(--muted),0.08);">
                         <span>Host Settlement Status</span>
                         <strong style="text-transform:capitalize; color:#6366f1;"><?= !empty($payout) ? e($payout['status']) : 'Pending Settlement' ?></strong>
                     </div>
                     
                     <!-- FINAL BALANCE ROW -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1rem; background:rgba(var(--brand), 0.08); border-top:2px solid rgb(var(--brand));">
+                    <div class="reconcile-final-row">
                         <div>
                             <div style="font-size:0.95rem; font-weight:800; color:rgb(var(--brand));">ORGANIZER PAYOUT ENTITLEMENT (PLATFORM SHARE)</div>
                             <div style="font-size:0.76rem; color:rgb(var(--muted));">Online sales amount approved &amp; reconciled for host bank transfer</div>
@@ -542,7 +793,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Quick filter for Online Sales table
+    // Quick filter for Online Sales table & mobile cards
     const searchOnline = document.getElementById('search-online-table');
     if (searchOnline) {
         searchOnline.addEventListener('input', function() {
@@ -552,10 +803,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const text = r.textContent.toLowerCase();
                 r.style.display = text.includes(term) ? '' : 'none';
             });
+            const cards = document.querySelectorAll('#online-tickets-cards .accounting-ticket-card');
+            cards.forEach(c => {
+                const text = (c.getAttribute('data-search') || c.textContent).toLowerCase();
+                c.style.display = text.includes(term) ? '' : 'none';
+            });
         });
     }
 
-    // Quick filter for Issued Tickets table
+    // Quick filter for Issued Tickets table & mobile cards
     const searchIssued = document.getElementById('search-issued-table');
     if (searchIssued) {
         searchIssued.addEventListener('input', function() {
@@ -564,6 +820,11 @@ document.addEventListener('DOMContentLoaded', function() {
             rows.forEach(r => {
                 const text = r.textContent.toLowerCase();
                 r.style.display = text.includes(term) ? '' : 'none';
+            });
+            const cards = document.querySelectorAll('#issued-tickets-cards .accounting-ticket-card');
+            cards.forEach(c => {
+                const text = (c.getAttribute('data-search') || c.textContent).toLowerCase();
+                c.style.display = text.includes(term) ? '' : 'none';
             });
         });
     }

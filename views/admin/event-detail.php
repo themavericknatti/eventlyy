@@ -160,18 +160,18 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
             </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="admin-occ-switcher-controls" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <?php if ($prevOcc): ?>
-                <a href="{{ route('admin/events/' . $prevOcc['id']) }}" class="admin-action-btn" style="padding: 0.45rem 0.75rem; font-size: 0.82rem; background: rgba(var(--text), 0.06); text-decoration: none; border-radius: 8px; font-weight:600;" title="Go to Previous Date">
+                <a href="{{ route('admin/events/' . $prevOcc['id']) }}" class="admin-action-btn admin-occ-nav-btn" style="padding: 0.45rem 0.75rem; font-size: 0.82rem; background: rgba(var(--text), 0.06); text-decoration: none; border-radius: 8px; font-weight:600;" title="Go to Previous Date">
                     ← Prev
                 </a>
             <?php endif; ?>
 
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <div class="admin-occ-jump-wrap" style="display: flex; align-items: center; gap: 0.4rem; min-width: 0;">
                 <label for="admin-occ-jump" style="font-size: 0.82rem; font-weight: 700; color: #818cf8; white-space: nowrap;">
                     Switch Date:
                 </label>
-                <select id="admin-occ-jump" class="admin-detail-dates-select" style="min-width: 260px;" onchange="if(this.value && this.value != '<?= $event['id'] ?>') window.location.href = '<?= route('admin/events/') ?>' + this.value;">
+                <select id="admin-occ-jump" class="admin-detail-dates-select" onchange="if(this.value && this.value != '<?= $event['id'] ?>') window.location.href = '<?= route('admin/events/') ?>' + this.value;">
                     <?php foreach ($recurring_occurrences as $occ): ?>
                         <option value="<?= $occ['id'] ?>" <?= $occ['id'] == $event['id'] ? 'selected' : '' ?>>
                             #<?= e($occ['recurrence_sequence'] ?? '?') ?>  —  <?= date('D, M d, Y • g:i A', strtotime($occ['date'])) ?>  <?= $occ['id'] == $event['id'] ? '  ★ (Viewing)' : (strtotime($occ['date']) < time() ? '  (Past)' : '  (Upcoming)') ?>
@@ -1035,6 +1035,47 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
     }
 }
 
+.occurrence-switcher-banner {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.admin-detail-dates-select {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .occurrence-switcher-banner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.85rem !important;
+        padding: 1rem !important;
+    }
+    .admin-occ-switcher-controls {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+    }
+    .admin-occ-jump-wrap {
+        width: 100% !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.35rem !important;
+    }
+    #admin-occ-jump {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .admin-occ-nav-btn {
+        text-align: center !important;
+        justify-content: center !important;
+    }
+}
+
 /* ── Extra Small Mobile (≤ 480px) ── */
 @media (max-width: 480px) {
     .event-detail-actions-grid {
@@ -1046,6 +1087,12 @@ Admin Event Detail - Manage Your <?= e($siteName) ?> Events
         padding: 0.48rem 0.25rem;
         font-size: 0.74rem;
         gap: 0.25rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .event-detail-actions-grid {
+        grid-template-columns: 1fr !important;
     }
 }
 

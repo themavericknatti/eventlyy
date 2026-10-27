@@ -539,6 +539,8 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
         flex-direction: column;
         align-items: flex-start;
         gap: 0.85rem;
+        min-width: 0 !important;
+        width: 100% !important;
     }
 
     .host-spotlight-thumb {
@@ -559,6 +561,7 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
 
     .host-spotlight-actions {
         width: 100%;
+        min-width: 0 !important;
         flex-direction: row;
     }
 
@@ -588,6 +591,15 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
     .card-actions .host-action-btn {
         width: 100%;
         padding: 0.55rem 0.5rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .host-spotlight-actions {
+        flex-direction: column !important;
+    }
+    .card-actions {
+        grid-template-columns: 1fr !important;
     }
 }
 

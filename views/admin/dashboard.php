@@ -632,18 +632,18 @@ try {
         </div>
     </div>
 
-    <!-- Desktop & Tablet Table (displayed on screens > 768px) -->
+    <!-- Desktop & Tablet Table (displayed on screens > 900px) -->
     <div class="au-table-wrap ticket-stream-table-wrap">
         <table class="au-table" id="ticketPurchasesTable">
             <thead>
                 <tr>
-                    <th>Ticket Code</th>
-                    <th>Attendee / Buyer</th>
+                    <th>Ticket</th>
+                    <th>Attendee</th>
                     <th>Event</th>
                     <th>Tier</th>
-                    <th>Amount Paid</th>
+                    <th>Amount</th>
                     <th>Status</th>
-                    <th>Gate Check-In</th>
+                    <th>Gate</th>
                     <th>Purchased</th>
                 </tr>
             </thead>
@@ -672,24 +672,24 @@ try {
                             </div>
                         </td>
                         <td>
-                            <div style="display:flex; align-items:center; gap:0.6rem;">
+                            <div style="display:flex; align-items:center; gap:0.6rem; min-width:0;">
                                 <div style="width:32px; height:32px; border-radius:50%; background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem; flex-shrink:0;">
                                     <?= $initials ?>
                                 </div>
-                                <div style="min-width:0;">
-                                    <div style="font-size:0.88rem; font-weight:700; color:rgb(var(--text)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                <div style="min-width:0; max-width:180px;">
+                                    <div style="font-size:0.88rem; font-weight:700; color:rgb(var(--text)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="<?= e($tkt['attendee_name'] ?: 'Guest') ?>">
                                         <?= e($tkt['attendee_name'] ?: 'Guest') ?>
                                     </div>
-                                    <div style="font-size:0.75rem; color:rgb(var(--muted)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    <div style="font-size:0.75rem; color:rgb(var(--muted)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="<?= e($tkt['attendee_email']) ?>">
                                         <?= e($tkt['attendee_email']) ?>
                                     </div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div style="max-width:200px;">
+                            <div style="max-width:180px;">
                                 <?php if (!empty($tkt['event_id'])): ?>
-                                    <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.2rem;" title="View Event in Admin">
+                                    <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.2rem;" title="<?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?>">
                                         <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?></span>
                                         <span style="font-size:0.75rem;">↗</span>
                                     </a>
@@ -705,23 +705,23 @@ try {
                         </td>
                         <td>
                             <?php if ($ticketPrice > 0): ?>
-                                <strong style="font-size:0.88rem; color:rgb(var(--text));"><?= format_price($ticketPrice) ?></strong>
+                                <strong style="font-size:0.88rem; color:rgb(var(--text)); white-space:nowrap;"><?= format_price($ticketPrice) ?></strong>
                             <?php else: ?>
-                                <span style="font-size:0.76rem; font-weight:800; color:#10b981; background:rgba(16, 185, 129, 0.1); padding:0.18rem 0.5rem; border-radius:6px;">FREE</span>
+                                <span style="font-size:0.76rem; font-weight:800; color:#10b981; background:rgba(16, 185, 129, 0.1); padding:0.18rem 0.5rem; border-radius:6px; white-space:nowrap;">FREE</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <span class="au-status-badge <?= $statusClass ?>" style="font-weight:700; font-size:0.76rem;">
+                            <span class="au-status-badge <?= $statusClass ?>" style="font-weight:700; font-size:0.76rem; white-space:nowrap;">
                                 <?= ucfirst($tkt['status'] ?? 'Pending') ?>
                             </span>
                         </td>
                         <td>
                             <?php if ($isCheckedIn): ?>
-                                <span style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.75rem; font-weight:700; color:#10b981; background:rgba(16, 185, 129, 0.1); padding:0.2rem 0.55rem; border-radius:10px;">
-                                    <span>✓</span> Checked In
+                                <span style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.75rem; font-weight:700; color:#10b981; background:rgba(16, 185, 129, 0.1); padding:0.2rem 0.55rem; border-radius:10px; white-space:nowrap;">
+                                    <span>✓</span> In
                                 </span>
                             <?php else: ?>
-                                <span style="font-size:0.75rem; color:rgb(var(--muted));">⏳ Gate Pending</span>
+                                <span style="font-size:0.75rem; color:rgb(var(--muted)); white-space:nowrap;">⏳ Gate</span>
                             <?php endif; ?>
                         </td>
                         <td style="font-size:0.78rem; color:rgb(var(--muted)); white-space:nowrap;">
@@ -734,7 +734,7 @@ try {
         </table>
     </div>
 
-    <!-- Mobile Screen Card View (CSS: display:none on desktop, flex on mobile <=768px) -->
+    <!-- Mobile Screen Card View (CSS: display:none on desktop, flex on mobile <=900px) -->
     <div class="ticket-stream-cards-list" id="ticketPurchasesCards">
         <?php if (!empty($recent_ticket_purchases)): ?>
             <?php foreach ($recent_ticket_purchases as $tkt): 
@@ -746,70 +746,70 @@ try {
                 $statusClass = $isPaid ? 'au-status--active' : ($isComped ? 'au-role--host' : ($isCancelled ? 'au-status--suspended' : 'au-status--unverified'));
                 $isCheckedIn = !empty($tkt['checked_in']);
                 $ticketPrice = (float)($tkt['price'] ?? 0);
-                $formattedDate = !empty($tkt['purchase_date']) ? date('M d, Y • h:i A', strtotime($tkt['purchase_date'])) : 'Recent';
+                $compactDate = !empty($tkt['purchase_date']) ? date('M d, g:i A', strtotime($tkt['purchase_date'])) : 'Recent';
             ?>
             <article class="ticket-purchase-mobile-card">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.6rem;">
-                    <div style="display:flex; align-items:center; gap:0.55rem;">
-                        <div style="width:36px; height:36px; border-radius:50%; background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.8rem; flex-shrink:0;">
+                <!-- Row 1: Attendee Info (flex:1, min-width:0) + Status & Price (flex-shrink:0) -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.65rem; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.6rem; min-width:0; flex:1;">
+                        <div style="width:34px; height:34px; border-radius:50%; background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.78rem; flex-shrink:0;">
                             <?= $initials ?>
                         </div>
-                        <div>
-                            <div style="font-size:0.9rem; font-weight:800; color:rgb(var(--text)); line-height:1.2;">
+                        <div style="min-width:0; flex:1;">
+                            <div class="ticket-buyer-name" title="<?= e($tkt['attendee_name'] ?: 'Guest') ?>">
                                 <?= e($tkt['attendee_name'] ?: 'Guest') ?>
                             </div>
-                            <div style="font-size:0.75rem; color:rgb(var(--muted));">
+                            <div class="ticket-buyer-email" title="<?= e($tkt['attendee_email']) ?>">
                                 <?= e($tkt['attendee_email']) ?>
                             </div>
                         </div>
                     </div>
-                    <span class="au-status-badge <?= $statusClass ?>" style="font-weight:700; font-size:0.74rem;">
-                        <?= ucfirst($tkt['status'] ?? 'Pending') ?>
-                    </span>
-                </div>
 
-                <div style="background:rgba(var(--muted), 0.04); border-radius:10px; padding:0.6rem 0.75rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem;">
-                    <div style="min-width:0;">
-                        <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block;">Event</span>
-                        <?php if (!empty($tkt['event_id'])): ?>
-                            <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block;">
-                                <?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?> ↗
-                            </a>
-                        <?php else: ?>
-                            <span style="font-size:0.82rem; font-weight:600;">Event #<?= e($tkt['event_id'] ?? 'N/A') ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <div style="text-align:right;">
-                        <span style="font-size:0.72rem; color:rgb(var(--muted)); display:block;">Tier &amp; Price</span>
-                        <div style="display:flex; align-items:center; gap:0.35rem; justify-content:flex-end;">
-                            <span style="font-size:0.72rem; font-weight:700; padding:0.12rem 0.4rem; border-radius:5px; background:rgba(99, 102, 241, 0.12); color:#6366f1;">
-                                <?= e($tkt['ticket_tier'] ?: 'General') ?>
-                            </span>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.2rem; flex-shrink:0;">
+                        <span class="au-status-badge <?= $statusClass ?>">
+                            <?= ucfirst($tkt['status'] ?? 'Pending') ?>
+                        </span>
+                        <div style="font-size:0.9rem; font-weight:800; color:rgb(var(--text)); white-space:nowrap;">
                             <?php if ($ticketPrice > 0): ?>
-                                <strong style="font-size:0.85rem; color:rgb(var(--text));"><?= format_price($ticketPrice) ?></strong>
+                                <?= format_price($ticketPrice) ?>
                             <?php else: ?>
-                                <strong style="font-size:0.78rem; color:#10b981;">FREE</strong>
+                                <span style="color:#10b981; font-weight:800;">FREE</span>
                             <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem; font-size:0.76rem;">
-                    <div style="display:inline-flex; align-items:center; gap:0.3rem;">
-                        <span style="font-family:monospace; font-weight:700; color:rgb(var(--text)); background:rgba(var(--text), 0.05); padding:0.18rem 0.45rem; border-radius:5px; border:1px solid rgba(var(--muted), 0.15);">
+                <!-- Row 2: Event Name -->
+                <div style="min-width:0; margin-top:0.15rem;">
+                    <?php if (!empty($tkt['event_id'])): ?>
+                        <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block;" title="<?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?>">
+                            🎪 <?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?> ↗
+                        </a>
+                    <?php else: ?>
+                        <span style="font-size:0.82rem; font-weight:600; color:rgb(var(--muted));">🎪 Event #<?= e($tkt['event_id'] ?? 'N/A') ?></span>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Row 3: Reduced Details (Code, Tier, Check-in, Date) -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.35rem; font-size:0.74rem; border-top:1px solid rgba(var(--muted), 0.08); padding-top:0.45rem; margin-top:0.15rem;">
+                    <div style="display:inline-flex; align-items:center; gap:0.35rem; min-width:0;">
+                        <span style="font-family:monospace; font-weight:700; color:rgb(var(--text)); background:rgba(var(--text), 0.05); padding:0.15rem 0.45rem; border-radius:5px; border:1px solid rgba(var(--muted), 0.15); font-size:0.72rem;">
                             <?= e($tkt['id']) ?>
                         </span>
-                        <button type="button" onclick="navigator.clipboard.writeText('<?= addslashes(e($tkt['id'])) ?>'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500);" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:rgb(var(--muted));" title="Copy">📋</button>
+                        <button type="button" onclick="navigator.clipboard.writeText('<?= addslashes(e($tkt['id'])) ?>'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500);" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:rgb(var(--muted)); padding:0 2px;" title="Copy Ticket Code">📋</button>
+                        <span style="font-weight:700; padding:0.12rem 0.45rem; border-radius:5px; background:rgba(99, 102, 241, 0.1); color:#6366f1; font-size:0.7rem; white-space:nowrap;">
+                            <?= e($tkt['ticket_tier'] ?: 'General') ?>
+                        </span>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.4rem; color:rgb(var(--muted)); font-size:0.72rem; white-space:nowrap;">
                         <?php if ($isCheckedIn): ?>
-                            <span style="font-size:0.72rem; font-weight:700; color:#10b981;">✓ Checked In</span>
+                            <span style="font-weight:700; color:#10b981;">✓ In</span>
                         <?php else: ?>
-                            <span style="font-size:0.72rem; color:rgb(var(--muted));">⏳ Unchecked</span>
+                            <span style="color:rgb(var(--muted));">⏳ Gate</span>
                         <?php endif; ?>
-                        <span style="color:rgb(var(--muted));">•</span>
-                        <span style="color:rgb(var(--muted));"><?= $formattedDate ?></span>
+                        <span>•</span>
+                        <span><?= $compactDate ?></span>
                     </div>
                 </div>
             </article>
@@ -1927,13 +1927,47 @@ try {
     background: rgba(var(--text), 0.02);
     border: 1px solid rgba(var(--muted), 0.12);
     border-radius: 14px;
-    padding: 1.1rem;
+    padding: 0.95rem 1.05rem;
     transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
 }
 
 .ticket-purchase-mobile-card:hover {
     border-color: rgba(var(--brand), 0.25);
     background: rgba(var(--brand), 0.02);
+}
+
+.ticket-purchase-mobile-card .au-status-badge {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+    padding: 0.22rem 0.55rem !important;
+    border-radius: 6px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    font-size: 0.72rem !important;
+}
+
+.ticket-purchase-mobile-card .ticket-buyer-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ticket-purchase-mobile-card .ticket-buyer-email {
+    font-size: 0.74rem;
+    color: rgb(var(--muted));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 900px) {
@@ -2059,6 +2093,10 @@ try {
     .au-table-wrap {
         margin: 0 -0.5rem;
         width: calc(100% + 1rem);
+        max-width: calc(100% + 1rem);
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
     }
     .chart-canvas-wrapper {
         height: 220px !important;

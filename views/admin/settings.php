@@ -42,7 +42,7 @@ try {
 </section>
 
 <!-- Quick Action Shortcuts: Events, Domains, Attendees & Communications -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom: 1.5rem;">
+<div class="admin-shortcuts-grid">
     <!-- Published Events Hub Shortcut -->
     <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(2, 132, 199, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
         <div>
@@ -924,6 +924,22 @@ if (document.readyState === 'loading') {
     </div>
 </div>
 <style>
+.admin-shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 640px) {
+    .admin-shortcuts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    .admin-shortcuts-grid .form-card {
+        padding: 1.25rem 1rem !important;
+        border-radius: 16px !important;
+    }
+}
 @keyframes previewScale {
     from { transform: scale(0.92) translateY(12px); opacity: 0; }
     to { transform: scale(1) translateY(0); opacity: 1; }

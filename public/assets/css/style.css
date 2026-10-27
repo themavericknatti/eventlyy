@@ -7850,11 +7850,18 @@ select::-ms-expand {
   font-size: 1.15rem;
 }
 
-/* Table */
-.au-table-wrap {
+/* Table & Universal Responsive Wrappers */
+.au-table-wrap,
+.table-responsive,
+.admin-table-wrap,
+.mgmt-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 14px;
+  box-sizing: border-box;
 }
 
 .au-table {
@@ -7907,6 +7914,18 @@ select::-ms-expand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.au-user-cell > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.au-user-name {
+  display: block;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .au-avatar {
@@ -8027,6 +8046,8 @@ select::-ms-expand {
   font-size: 0.82rem;
   color: rgb(var(--muted));
   margin-top: 0.1rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .au-card-meta {
@@ -8885,11 +8906,11 @@ select::-ms-expand {
 
 /* Tablet & Mobile: ≤900px — switch table to cards */
 @media (max-width: 900px) {
-  .au-table-wrap {
+  .team-desktop-table {
     display: none !important;
   }
 
-  .au-cards-list {
+  .admin-teams-table-section .au-cards-list {
     display: flex !important;
     flex-direction: column;
     gap: 0.75rem;
@@ -8910,7 +8931,7 @@ select::-ms-expand {
 }
 
 @media (min-width: 901px) {
-  .au-cards-list {
+  .admin-teams-table-section .au-cards-list {
     display: none !important;
   }
 }
@@ -8991,11 +9012,12 @@ select::-ms-expand {
   }
 
   .au-card-email {
-    word-break: break-all;
+    word-break: break-word;
   }
 
-  /* Stack assignment status badge */
-  .au-status-badge {
+  /* Stack assignment status badge on teams cards */
+  .admin-teams-table-section .au-status-badge,
+  .team-assignment-badge {
     white-space: normal;
     word-break: break-word;
     line-height: 1.35;
