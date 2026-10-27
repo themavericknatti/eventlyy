@@ -264,10 +264,10 @@
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
 
-  // 1. Reveal-on-Scroll 3D Perspective Transitions
+  // 1. Reveal-on-Scroll Smooth Entrance Transitions
   const revealElements = document.querySelectorAll('.reveal-on-scroll');
   if (revealElements.length > 0) {
-    if (prefersReduced || !('IntersectionObserver' in window)) {
+    if (prefersReduced || !('IntersectionObserver' in window) || window.innerWidth <= 768) {
       revealElements.forEach(el => el.classList.add('revealed'));
     } else {
       const revealObserver = new IntersectionObserver((entries, observer) => {
@@ -278,28 +278,33 @@
           }
         });
       }, {
-        threshold: 0.08,
-        rootMargin: '0px 0px -40px 0px'
+        threshold: 0.04,
+        rootMargin: '0px 0px 50px 0px'
       });
 
       revealElements.forEach(el => revealObserver.observe(el));
     }
   }
 
-  // 2. Hero 3D Scroll Parallax (Homepage)
+  // 2. Hero Subtle Scroll Pitch (Desktop fine-pointer only; no vertical translation to prevent overlapping following content)
   const hero3D = document.querySelector('.hm-hero-3d');
-  if (hero3D && !prefersReduced) {
+  if (hero3D && !prefersReduced && isFinePointer) {
     let ticking = false;
-    const maxScroll = 600;
+    const maxScroll = 500;
 
     function updateHeroScroll() {
+      if (window.innerWidth < 1024) {
+        hero3D.style.transform = '';
+        ticking = false;
+        return;
+      }
+
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       if (scrollY <= maxScroll) {
-        // Subtle tilt: as user scrolls down, hero angles slightly backwards in 3D
+        // Subtle tilt without downwards translateY displacement to prevent layout overlap
         const progress = Math.min(scrollY / maxScroll, 1);
-        const rotateX = progress * 7; // max 7 deg back-pitch
-        const translateY = scrollY * 0.18; // slight depth lag
-        hero3D.style.transform = `rotateX(${rotateX}deg) translateY(${translateY}px)`;
+        const rotateX = progress * 4; // subtle 4 deg back-pitch
+        hero3D.style.transform = `rotateX(${rotateX}deg)`;
       } else {
         hero3D.style.transform = '';
       }
@@ -310,6 +315,12 @@
       if (!ticking) {
         window.requestAnimationFrame(updateHeroScroll);
         ticking = true;
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth < 1024) {
+        hero3D.style.transform = '';
       }
     }, { passive: true });
   }

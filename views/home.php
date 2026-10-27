@@ -34,6 +34,13 @@
 }
 
 /* ─── Hero Section ─────────────────────────────────────────── */
+.perspective-stage {
+    perspective: 1200px;
+    position: relative;
+    z-index: 2;
+    margin-bottom: clamp(2rem, 4vw, 3.25rem);
+}
+
 .hm-hero {
     position: relative;
     border-radius: 28px;
@@ -43,7 +50,7 @@
                 linear-gradient(135deg, rgba(var(--card), 0.95), rgba(var(--card), 0.85));
     border: 1px solid rgba(var(--brand), 0.16);
     box-shadow: 0 16px 45px -15px rgba(var(--brand), 0.12), 0 2px 8px rgba(0, 0, 0, 0.03);
-    margin-bottom: 2.5rem;
+    margin-bottom: 0;
     overflow: hidden;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -309,7 +316,9 @@
 
 /* ─── Categories Navigation ─────────────────────────────────── */
 .hm-categories-section {
-    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 1;
+    margin-bottom: clamp(2rem, 4vw, 3rem);
 }
 
 .hm-section-title-wrap {
@@ -444,7 +453,7 @@
 }
 
 .hm-featured-card-link {
-    flex: 0 0 clamp(280px, 32vw, 360px);
+    flex: 0 0 clamp(260px, 32vw, 360px);
     scroll-snap-align: start;
     text-decoration: none;
     color: inherit;
@@ -519,21 +528,56 @@
     font-size: 1.05rem;
     font-weight: 800;
     color: rgb(var(--text));
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.5rem;
     line-height: 1.35;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    min-height: 2.7em;
 }
 
 .hm-featured-info {
-    font-size: 0.82rem;
-    color: rgb(var(--muted));
+    font-size: 0.84rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.hm-featured-info-item {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.45rem;
+    width: 100%;
+}
+
+.hm-featured-date {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: rgb(var(--brand));
+}
+
+.hm-featured-address {
+    font-size: 0.82rem;
+    color: rgb(var(--muted));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hm-featured-address span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hm-info-icon {
+    flex-shrink: 0;
+    font-size: 0.88rem;
+    line-height: 1;
 }
 
 .hm-carousel-indicators {
@@ -972,10 +1016,19 @@
 
 /* Mobile & Small Tablets (max 768px) */
 @media (max-width: 768px) {
+    .perspective-stage {
+        perspective: none !important;
+        margin-bottom: 2rem !important;
+    }
+
     .hm-hero {
-        padding: 2rem 1.15rem;
-        border-radius: 22px;
-        margin-bottom: 2rem;
+        padding: clamp(1.75rem, 5vw, 2.25rem) clamp(1rem, 4vw, 1.5rem);
+        border-radius: 20px;
+        margin-bottom: 0;
+    }
+
+    .hm-hero-3d {
+        transform: none !important;
     }
 
     .hm-search-form {
@@ -988,9 +1041,10 @@
 
     .hm-search-group,
     .hm-search-select-wrap {
-        padding: 0 0.5rem;
+        padding: 0 0.75rem;
         flex: none;
         width: 100%;
+        height: 48px;
         background: rgba(var(--muted), 0.05);
         border: 1px solid rgba(var(--muted), 0.15);
         border-radius: 12px;
@@ -999,7 +1053,7 @@
 
     .hm-search-input,
     .hm-search-select {
-        height: 46px;
+        height: 100%;
         font-size: 16px; /* Prevents iOS Safari auto-zoom */
     }
 
@@ -1016,20 +1070,52 @@
 
     .hm-trust-bar {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.5rem;
-        margin-top: 1.25rem;
-        padding-top: 1.15rem;
+        margin-top: 1.35rem;
+        padding-top: 1.25rem;
     }
 
     .hm-trust-item {
         justify-content: center;
         font-size: 0.76rem;
-        padding: 0.4rem 0.5rem;
+        padding: 0.45rem 0.5rem;
         text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        line-height: 1.25;
+    }
+
+    .hm-categories-section {
+        margin-bottom: 2rem;
+    }
+
+    .hm-chips {
+        margin: 0 -0.5rem;
+        padding: 0.25rem 0.5rem 0.5rem;
+        gap: 0.45rem;
+    }
+
+    .hm-chip-btn {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.82rem;
+    }
+
+    .hm-featured-section {
+        margin-bottom: 2.25rem;
+    }
+
+    .hm-featured-carousel {
+        padding: 1rem 0.75rem;
+        border-radius: 18px;
+    }
+
+    .hm-featured-card-link {
+        flex: 0 0 clamp(240px, 80vw, 320px);
+    }
+
+    .hm-carousel-slides {
+        gap: 0.85rem;
+        padding: 0.35rem 0.2rem 0.5rem;
     }
 
     .hm-section-title-wrap {
@@ -1045,24 +1131,88 @@
 
     .hm-cta {
         padding: 2.25rem 1.15rem;
-        border-radius: 22px;
+        border-radius: 20px;
     }
 
     .hm-cta-actions {
         flex-direction: column;
         width: 100%;
+        gap: 0.65rem;
     }
 
     .hm-btn-primary,
     .hm-btn-secondary {
         width: 100%;
+        height: 48px;
+    }
+
+    .reveal-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+
+    .card-3d, .hm-card, .hm-featured-card {
+        transform: none !important;
+    }
+
+    .card-glare {
+        display: none !important;
     }
 }
 
-/* Very Small Mobile (< 400px) */
-@media (max-width: 400px) {
+/* Small Mobile (max 480px) */
+@media (max-width: 480px) {
+    .hm-hero__title {
+        font-size: clamp(1.65rem, 7vw, 2.25rem);
+    }
+
+    .hm-hero__subtitle {
+        font-size: 0.92rem;
+        margin-bottom: 1.35rem;
+    }
+
+    .hm-eyebrow {
+        font-size: 0.72rem;
+        padding: 0.25rem 0.65rem;
+    }
+
+    .hm-card-body {
+        padding: 1rem;
+    }
+
+    .hm-card-btn {
+        height: 44px;
+        font-size: 0.86rem;
+    }
+
+    .hm-pagination {
+        gap: 0.3rem;
+    }
+
+    .hm-page-btn {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 0.45rem;
+        font-size: 0.8rem;
+        border-radius: 8px;
+    }
+}
+
+/* Very Small Mobile (< 380px) */
+@media (max-width: 380px) {
     .hm-trust-bar {
         grid-template-columns: 1fr;
+        gap: 0.35rem;
+    }
+
+    .hm-featured-card-link {
+        flex: 0 0 calc(90vw - 1rem);
+        min-width: 220px;
+    }
+
+    .hm-hero {
+        padding: 1.5rem 0.75rem;
     }
 }
 
@@ -1126,17 +1276,17 @@
     transform: translateZ(10px);
 }
 
-/* ─── Scroll-Driven 3D Depth Entrance ──────────────────────── */
+/* ─── Scroll-Driven Smooth Entrance ────────────────────────── */
 .reveal-on-scroll {
     opacity: 0;
-    transform: perspective(1000px) translateY(24px) rotateX(4deg) scale(0.98);
-    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(16px);
+    transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: opacity, transform;
 }
 
 .reveal-on-scroll.revealed {
     opacity: 1;
-    transform: perspective(1000px) translateY(0) rotateX(0deg) scale(1);
+    transform: translateY(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1346,11 +1496,16 @@
                                             <span class="hm-tag hm-tag--featured">⭐ Featured</span>
                                         <?php endif; ?>
                                     </div>
-                                    <h3 class="hm-featured-title"><?= e($fe['name']) ?></h3>
+                                    <h3 class="hm-featured-title" title="<?= e($fe['name']) ?>"><?= e($fe['name']) ?></h3>
                                     <div class="hm-featured-info">
-                                        <span>📅 <?= $feDate ?></span>
-                                        <span>&bull;</span>
-                                        <span>📍 <?= e($fe['location']) ?></span>
+                                        <div class="hm-featured-info-item hm-featured-date">
+                                            <span class="hm-info-icon" aria-hidden="true">📅</span>
+                                            <span><?= $feDate ?></span>
+                                        </div>
+                                        <div class="hm-featured-info-item hm-featured-address" title="<?= e($fe['location']) ?>">
+                                            <span class="hm-info-icon" aria-hidden="true">📍</span>
+                                            <span><?= e($fe['location']) ?></span>
+                                        </div>
                                     </div>
                                 </div>
                             </article>
