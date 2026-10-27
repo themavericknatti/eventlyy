@@ -524,7 +524,7 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
     <article class="fin-mini-card">
         <span class="fin-card-label" style="font-size:0.76rem;">Events Hosted</span>
         <h4 class="fin-mini-value"><?= number_format($totalEventsCount ?? 0) ?></h4>
-        <p class="fin-card-meta" style="font-size:0.75rem;">All-time created events</p>
+        <p class="fin-card-meta" style="font-size:0.75rem;"><?= (($totalOccurrencesCount ?? 0) > ($totalEventsCount ?? 0)) ? '(' . ($totalOccurrencesCount) . ' dates across series)' : 'All-time created events' ?></p>
     </article>
 </section>
 

@@ -55,7 +55,7 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
         </span>
         <div class="au-stat-body">
             <span class="au-stat-num"><?= number_format($total_events ?? 0) ?></span>
-            <span class="au-stat-lbl">Total Events</span>
+            <span class="au-stat-lbl">Total Events<?php if (($total_occurrences ?? 0) > ($total_events ?? 0)): ?> <span style="font-weight:500; opacity:0.7;">(<?= (int)$total_occurrences ?> occurrences)</span><?php endif; ?></span>
         </div>
     </div>
     <div class="au-stat-card">

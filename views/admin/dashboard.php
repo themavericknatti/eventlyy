@@ -455,7 +455,7 @@ try {
                 <span class="au-stat-num"><?= number_format($total_events ?? 0) ?></span>
                 <span class="au-stat-lbl">Published Events</span>
                 <span class="stat-sub-info">
-                    <?= (int)($live_events ?? 0) ?> live · <?= (int)($completed_events ?? 0) ?> completed · <?= (int)($draft_events ?? 0) ?> draft
+                    <?= (int)($live_events ?? 0) ?> live · <?= (int)($completed_events ?? 0) ?> completed · <?= (int)($draft_events ?? 0) ?> draft<?php if (($total_occurrences ?? 0) > ($total_events ?? 0)): ?> · <?= (int)$total_occurrences ?> total occurrences<?php endif; ?>
                 </span>
             </div>
         </div>

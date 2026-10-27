@@ -13,10 +13,23 @@ class HostService
     {
         $db = Application::$app->db->pdo;
 
-        // 1. Total Events count
-        $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE organizer_id = :organizer_id");
+        // 1. Total Events count (count recurring series as one unique event)
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM events e
+            WHERE e.organizer_id = :organizer_id
+              AND (
+                  e.recurrence_group_id IS NULL 
+                  OR e.recurrence_group_id = ''
+                  OR e.recurrence_sequence = 1
+              )
+        ");
         $stmt->execute(['organizer_id' => $hostId]);
         $totalEventsCount = (int)$stmt->fetchColumn();
+
+        // 1b. Total occurrences count (all individual event rows including recurring)
+        $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE organizer_id = :organizer_id");
+        $stmt->execute(['organizer_id' => $hostId]);
+        $totalOccurrencesCount = (int)$stmt->fetchColumn();
 
         // 2. Total Gross Revenue (All time across all events - ticket face value of online purchases)
         $stmt = $db->prepare("
@@ -98,8 +111,26 @@ class HostService
         $stmt->execute(['organizer_id' => $hostId]);
         $totalTicketsIssued = (int)$stmt->fetchColumn();
 
-        // 6. Active Events Count
-        $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE organizer_id = :organizer_id AND date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR AND status = 'published'");
+        // 6. Active Events Count (unique series only)
+        $completionHours = event_completion_hours();
+        $stmt = $db->prepare("
+            SELECT COUNT(*) FROM events e
+            WHERE e.organizer_id = :organizer_id 
+              AND e.date >= NOW() - INTERVAL {$completionHours} HOUR 
+              AND e.status = 'published'
+              AND (
+                  e.recurrence_group_id IS NULL 
+                  OR e.recurrence_group_id = ''
+                  OR e.id = (
+                      SELECT sub.id FROM events sub 
+                      WHERE sub.recurrence_group_id = e.recurrence_group_id 
+                        AND sub.status = 'published'
+                        AND sub.date >= NOW() - INTERVAL {$completionHours} HOUR
+                      ORDER BY sub.date ASC, sub.recurrence_sequence ASC, sub.id ASC
+                      LIMIT 1
+                  )
+              )
+        ");
         $stmt->execute(['organizer_id' => $hostId]);
         $activeEventsCount = (int)$stmt->fetchColumn();
 
@@ -127,6 +158,7 @@ class HostService
 
         return [
             'totalEventsCount' => $totalEventsCount,
+            'totalOccurrencesCount' => $totalOccurrencesCount,
             'totalRevenue' => $totalRevenue,
             'totalNetRevenue' => $totalNetRevenue,
             'totalPlatformFees' => $totalPlatformFees,

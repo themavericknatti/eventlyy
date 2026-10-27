@@ -32,20 +32,30 @@ class AdminService
 
         $pendingHosts = max(0, $totalHosts - $readyHosts);
 
-        // 2. Event Counts & Breakdown
-        $totalEvents = (int)$db->query("SELECT COUNT(*) FROM events WHERE status = 'published'")->fetchColumn();
+        // 2. Event Counts & Breakdown (count recurring series as one unique event)
+        $completionHours = event_completion_hours();
+        $recurDedup = "(
+            e.recurrence_group_id IS NULL 
+            OR e.recurrence_group_id = ''
+            OR e.recurrence_sequence = 1
+        )";
+
+        $totalEvents = (int)$db->query("SELECT COUNT(*) FROM events e WHERE e.status = 'published' AND {$recurDedup}")->fetchColumn();
+        $totalOccurrences = (int)$db->query("SELECT COUNT(*) FROM events WHERE status = 'published'")->fetchColumn();
         
         $liveEvents = (int)$db->query("
-            SELECT COUNT(*) FROM events 
-            WHERE status = 'published' AND date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
+            SELECT COUNT(*) FROM events e
+            WHERE e.status = 'published' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR
+              AND {$recurDedup}
         ")->fetchColumn();
 
         $completedEvents = (int)$db->query("
-            SELECT COUNT(*) FROM events 
-            WHERE status IN ('completed', 'past') OR (status = 'published' AND date < NOW() - INTERVAL " . event_completion_hours() . " HOUR)
+            SELECT COUNT(*) FROM events e
+            WHERE (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL {$completionHours} HOUR))
+              AND {$recurDedup}
         ")->fetchColumn();
 
-        $draftEvents = (int)$db->query("SELECT COUNT(*) FROM events WHERE status = 'draft'")->fetchColumn();
+        $draftEvents = (int)$db->query("SELECT COUNT(*) FROM events e WHERE e.status = 'draft' AND {$recurDedup}")->fetchColumn();
 
         // 3. Ticket Counts
         $totalTickets = (int)$db->query("SELECT COUNT(*) FROM tickets WHERE status IN ('Paid', 'Comped')")->fetchColumn();
@@ -217,8 +227,8 @@ class AdminService
         // 7. Recent Hosts & Organizers (enriched)
         $stmt = $db->prepare("
             SELECT u.*, hp.payout_bank, hp.payout_account, hp.rating,
-                   (SELECT COUNT(*) FROM events ev WHERE ev.organizer_id = u.id) as total_events_count,
-                   (SELECT COUNT(*) FROM events ev WHERE ev.organizer_id = u.id AND ev.status = 'published') as active_events_count,
+                   (SELECT COUNT(*) FROM events ev WHERE ev.organizer_id = u.id AND (ev.recurrence_group_id IS NULL OR ev.recurrence_group_id = '' OR ev.recurrence_sequence = 1)) as total_events_count,
+                   (SELECT COUNT(*) FROM events ev WHERE ev.organizer_id = u.id AND ev.status = 'published' AND (ev.recurrence_group_id IS NULL OR ev.recurrence_group_id = '' OR ev.recurrence_sequence = 1)) as active_events_count,
                    (SELECT COALESCE(SUM(tk.price), 0) FROM tickets tk INNER JOIN events ev ON tk.event_id = ev.id WHERE ev.organizer_id = u.id AND tk.status IN ('Paid', 'Comped') AND (tk.is_issued = 0 OR tk.is_issued IS NULL)) as host_total_sales
             FROM users u
             INNER JOIN user_roles ur ON u.id = ur.user_id
@@ -311,6 +321,7 @@ class AdminService
             'pending_hosts' => $pendingHosts,
             'host_verification_rate' => $hostVerificationRate,
             'total_events' => $totalEvents,
+            'total_occurrences' => $totalOccurrences,
             'live_events' => $liveEvents,
             'completed_events' => $completedEvents,
             'draft_events' => $draftEvents,

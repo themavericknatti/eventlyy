@@ -13,9 +13,12 @@ class AdminEventService
     public function getEventStats(): array
     {
         $db = Application::$app->db->pdo;
+        $completionHours = event_completion_hours();
+        $recurDedup = "(e.recurrence_group_id IS NULL OR e.recurrence_group_id = '' OR e.recurrence_sequence = 1)";
 
-        $totalEvents = $db->query("SELECT COUNT(*) FROM events")->fetchColumn();
-        $activeEvents = $db->query("SELECT COUNT(*) FROM events WHERE status = 'published' AND date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR")->fetchColumn();
+        $totalEvents = $db->query("SELECT COUNT(*) FROM events e WHERE {$recurDedup}")->fetchColumn();
+        $totalOccurrences = $db->query("SELECT COUNT(*) FROM events")->fetchColumn();
+        $activeEvents = $db->query("SELECT COUNT(*) FROM events e WHERE e.status = 'published' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR AND {$recurDedup}")->fetchColumn();
         $ticketsSold = $db->query("SELECT COUNT(*) FROM tickets WHERE status IN ('Paid', 'Comped') AND (is_issued = 0 OR is_issued IS NULL)")->fetchColumn();
         $ticketsIssued = $db->query("SELECT COUNT(*) FROM tickets WHERE status IN ('Paid', 'Comped') AND is_issued = 1")->fetchColumn();
         $totalGross = (float)$db->query("
@@ -33,6 +36,7 @@ class AdminEventService
 
         return [
             'total_events' => (int)$totalEvents,
+            'total_occurrences' => (int)$totalOccurrences,
             'active_events' => (int)$activeEvents,
             'tickets_sold' => (int)$ticketsSold,
             'tickets_issued' => (int)$ticketsIssued,

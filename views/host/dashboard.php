@@ -983,7 +983,12 @@ Host Dashboard - Manage Your <?= e($siteName) ?> Events
 <!-- Events Section -->
 <section class="form-card" style="border-radius:22px; padding:1.5rem;">
     <div class="card-header" style="margin-bottom:1.25rem; border-bottom:none;">
-        <h2 style="font-size:1.3rem; margin:0;"><?= !empty($isAdmin) ? 'All Platform Events' : 'Your Events' ?></h2>
+        <h2 style="font-size:1.3rem; margin:0;">
+            <?= !empty($isAdmin) ? 'All Platform Events' : 'Your Events' ?>
+            <span style="font-size:0.92rem; font-weight:600; color:rgb(var(--muted));">
+                (<?= (int)($totalEventsCount ?? 0) ?> unique<?php if (($totalOccurrencesCount ?? 0) > ($totalEventsCount ?? 0)): ?>, <?= (int)$totalOccurrencesCount ?> total dates<?php endif; ?>)
+            </span>
+        </h2>
     </div>
 
     <!-- Category Filter Tabs -->
@@ -1365,6 +1370,109 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmBtn.style.cursor = this.checked ? 'pointer' : 'not-allowed';
         });
     }
+
+    /* ── Host Events Tabs & Pagination Logic ── */
+    const eventCards = Array.from(document.querySelectorAll('.host-event-card'));
+    const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
+    const emptyState = document.getElementById('empty-events');
+    const paginationWrap = document.getElementById('events-pagination');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const pageNumbersWrap = document.getElementById('page-numbers');
+
+    const PAGE_SIZE = 6;
+    let currentFilter = 'all';
+    let currentPage = 1;
+
+    // Update tab badges
+    function updateTabBadges() {
+        let counts = { all: eventCards.length, live: 0, upcoming: 0, past: 0, mine: 0, others: 0 };
+        eventCards.forEach(card => {
+            const status = card.getAttribute('data-status');
+            const owner = card.getAttribute('data-owner');
+            if (counts[status] !== undefined) counts[status]++;
+            if (counts[owner] !== undefined) counts[owner]++;
+        });
+
+        for (const [key, count] of Object.entries(counts)) {
+            const badge = document.getElementById(`badge-${key}`);
+            if (badge) badge.textContent = count;
+        }
+    }
+
+    function renderEvents() {
+        const filtered = eventCards.filter(card => {
+            if (currentFilter === 'all') return true;
+            if (currentFilter === 'mine' || currentFilter === 'others') {
+                return card.getAttribute('data-owner') === currentFilter;
+            }
+            return card.getAttribute('data-status') === currentFilter;
+        });
+
+        const totalFiltered = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIdx = (currentPage - 1) * PAGE_SIZE;
+        const endIdx = startIdx + PAGE_SIZE;
+
+        eventCards.forEach(card => card.style.display = 'none');
+        filtered.slice(startIdx, endIdx).forEach(card => card.style.display = 'flex');
+
+        if (emptyState) {
+            emptyState.style.display = totalFiltered === 0 ? 'block' : 'none';
+        }
+
+        if (paginationWrap) {
+            paginationWrap.style.display = totalPages > 1 ? 'flex' : 'none';
+            if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
+            if (nextPageBtn) nextPageBtn.disabled = currentPage === totalPages;
+
+            if (pageNumbersWrap) {
+                pageNumbersWrap.innerHTML = '';
+                for (let p = 1; p <= totalPages; p++) {
+                    const btn = document.createElement('button');
+                    btn.className = `page-number ${p === currentPage ? 'active' : ''}`;
+                    btn.textContent = p;
+                    btn.addEventListener('click', () => {
+                        currentPage = p;
+                        renderEvents();
+                        paginationWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                    pageNumbersWrap.appendChild(btn);
+                }
+            }
+        }
+    }
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            tabButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.getAttribute('data-filter') || 'all';
+            currentPage = 1;
+            renderEvents();
+        });
+    });
+
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderEvents();
+            }
+        });
+    }
+
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', () => {
+            currentPage++;
+            renderEvents();
+        });
+    }
+
+    updateTabBadges();
+    renderEvents();
 });
 </script>
 @endsection
