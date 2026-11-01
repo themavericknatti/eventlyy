@@ -1107,6 +1107,76 @@ class HostEventController extends Controller
     }
 
     /**
+     * Dismiss / Cancel a pending transaction that was abandoned or failed.
+     */
+    public function dismissTransaction(Request $request, string $ref)
+    {
+        $user = Application::$app->user;
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        $ref = trim($ref);
+        $db = Application::$app->db->pdo;
+
+        // Verify transaction exists and belongs to host's event (or user is admin)
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) 
+                || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) 
+                || hasRole('admin') || hasRole('super-admin');
+
+        $stmt = $db->prepare("
+            SELECT t.id, t.reference, t.event_id, t.status, e.organizer_id 
+            FROM transactions t
+            LEFT JOIN events e ON t.event_id = e.id
+            WHERE t.reference = :ref
+            LIMIT 1
+        ");
+        $stmt->execute(['ref' => $ref]);
+        $tx = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$tx) {
+            Application::$app->session->setFlash('error', 'Transaction not found.');
+            return back();
+        }
+
+        if (!$isAdmin && (int)$tx['organizer_id'] !== (int)$user->id) {
+            Application::$app->session->setFlash('error', 'You are not authorized to dismiss transactions for this event.');
+            return back();
+        }
+
+        if ($tx['status'] === 'completed') {
+            Application::$app->session->setFlash('error', 'Completed transactions cannot be dismissed.');
+            return back();
+        }
+
+        $upStmt = $db->prepare("
+            UPDATE transactions 
+            SET status = 'failed', 
+                gateway_response = :resp, 
+                updated_at = NOW() 
+            WHERE reference = :ref AND status = 'pending'
+        ");
+        $upStmt->execute([
+            'resp' => json_encode([
+                'dismissed_by' => $user->id,
+                'dismissed_at' => date('Y-m-d H:i:s'),
+                'note' => 'Manually dismissed by host or admin'
+            ]),
+            'ref' => $ref
+        ]);
+
+        Application::$app->session->setFlash('success', 'Pending transaction #' . $ref . ' was dismissed and removed from pending orders.');
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        if ($referer && !str_contains($referer, 'tab=')) {
+            $separator = str_contains($referer, '?') ? '&' : '?';
+            return redirect($referer . $separator . 'tab=attendees#tab-attendees');
+        }
+
+        return back();
+    }
+
+    /**
      * 1-Click Duplicate / Clone an Event.
      * Clones event settings, ticket tiers, and guest performers into a new draft event.
      */

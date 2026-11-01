@@ -452,13 +452,22 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                     <span style="font-size:0.75rem; font-family:monospace; color:#6366f1; word-break:break-all;">#<?= e($pTx['reference']) ?></span>
                                     <span style="font-size:0.8rem; font-weight:700; color:rgb(var(--brand));"><?= format_price($pTx['total_amount']) ?></span>
                                 </div>
-                                <form method="POST" action="<?= route('host/event/transaction/' . $pTx['reference'] . '/verify') ?>" class="mgmt-pending-form" style="margin:0;">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="tab" value="attendees">
-                                    <button type="submit" class="admin-action-btn" style="font-size:0.76rem; padding:0.35rem 0.75rem; background:rgba(99,102,241,0.12); color:#4f46e5; border:1px solid rgba(99,102,241,0.3); font-weight:700; border-radius:6px; cursor:pointer;">
-                                        🔄 Verify with Paystack
-                                    </button>
-                                </form>
+                                <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                    <form method="POST" action="<?= route('host/event/transaction/' . $pTx['reference'] . '/verify') ?>" class="mgmt-pending-form" style="margin:0;">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="tab" value="attendees">
+                                        <button type="submit" class="admin-action-btn" style="font-size:0.76rem; padding:0.35rem 0.75rem; background:rgba(99,102,241,0.12); color:#4f46e5; border:1px solid rgba(99,102,241,0.3); font-weight:700; border-radius:6px; cursor:pointer;" title="Re-query Paystack gateway to check if payment succeeded">
+                                            🔄 Verify with Paystack
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="<?= route('host/event/transaction/' . $pTx['reference'] . '/dismiss') ?>" class="mgmt-pending-form" style="margin:0;" onsubmit="return confirm('Dismiss pending transaction #<?= e($pTx['reference']) ?>? This marks it as cancelled/failed and removes it from this alert list.');">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="tab" value="attendees">
+                                        <button type="submit" class="admin-action-btn" style="font-size:0.76rem; padding:0.35rem 0.65rem; background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.25); font-weight:700; border-radius:6px; cursor:pointer;" title="Dismiss abandoned or invalid transaction">
+                                            ✕ Dismiss
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     </div>

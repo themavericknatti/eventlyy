@@ -118,6 +118,7 @@ $router->get('/host/event/domain-request/callback', [HostEventController::class,
 $router->post('/host/event/duplicate/{id}', [HostEventController::class, 'duplicateEvent']);
 $router->post('/host/event/delete/{id}', [HostEventController::class, 'deleteEvent']);
 $router->post('/host/event/transaction/{ref}/verify', [HostEventController::class, 'reverifyPayment']);
+$router->post('/host/event/transaction/{ref}/dismiss', [HostEventController::class, 'dismissTransaction']);
 $router->get('/host/event/ticket/{id}', [HostTicketController::class, 'ticketDetail']);
 $router->post('/host/event/ticket/{id}/action', [HostTicketController::class, 'ticketAction']);
 $router->get('/host/event/ticket-verification/{id?}', [HostTicketController::class, 'verifyTicket']);

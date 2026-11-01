@@ -459,9 +459,29 @@ class PaymentService
                 'message' => "Paystack returned status '{$paystackStatus}'. Payment was not successful."
             ];
         } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
+
+            // When Paystack explicitly rejects the reference (e.g. 'Transaction reference not found',
+            // 'Reference not valid', or 400 error), update the transaction status to 'failed'
+            // so that phantom/invalid references do not stay stuck in 'pending' indefinitely.
+            try {
+                $db->prepare("UPDATE transactions SET status = 'failed', gateway_response = :resp, updated_at = NOW() WHERE reference = :ref AND status = 'pending'")
+                   ->execute([
+                       'resp' => json_encode([
+                           'error' => $errorMessage,
+                           'failed_at' => date('Y-m-d H:i:s'),
+                           'verified_by' => 'gateway_reverify'
+                       ]),
+                       'ref' => $reference
+                   ]);
+            } catch (\Throwable $dbErr) {
+                error_log("PaymentService: Failed to mark transaction {$reference} as failed: " . $dbErr->getMessage());
+            }
+
             return [
                 'success' => false,
-                'message' => 'Paystack Verification error: ' . $e->getMessage()
+                'status' => 'failed',
+                'message' => 'Paystack Verification: ' . $errorMessage . '. Transaction marked as failed.'
             ];
         }
     }
