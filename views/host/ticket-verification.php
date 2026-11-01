@@ -559,19 +559,20 @@ $checkedInCount = count($verified_tickets ?? []);
             <!-- Verification Result display container -->
             <?php
             $verification_result = \Ace\Application::$app->session->getFlash('verification_result');
+            $hasResult = !empty($verification_result);
+            $isSuccess = $hasResult && ($verification_result['status'] === 'success');
+            $t = $isSuccess ? ($verification_result['ticket'] ?? []) : [];
             ?>
-            <?php if ($verification_result): ?>
-            <div id="verification-result" class="verification-result">
+            <div id="verification-result" class="verification-result <?= $hasResult ? '' : 'hidden' ?>" 
+                 data-status="<?= e($verification_result['status'] ?? '') ?>" 
+                 data-type="<?= e($verification_result['type'] ?? '') ?>">
 
-                <?php if ($verification_result['status'] === 'success'): 
-                    $t = $verification_result['ticket'];
-                ?>
                 <!-- Success Ticket Card Template -->
-                <div id="ticket-success-card" class="ticket-display-card ticket-verified">
+                <div id="ticket-success-card" class="ticket-display-card ticket-verified <?= $isSuccess ? '' : 'hidden' ?>">
                     <div class="ticket-card-header" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <div class="ticket-event-name" id="ticket-success-event-title" style="font-weight: 800; font-size: 1.05rem;"><?= e($t['event_name']) ?></div>
-                            <div class="ticket-event-meta" id="ticket-success-event-location" style="font-size: 0.8rem; color: rgb(var(--muted));"><?= e($t['event_location'] ?: 'Event Venue') ?></div>
+                            <div class="ticket-event-name" id="ticket-success-event-title" style="font-weight: 800; font-size: 1.05rem;"><?= e($t['event_name'] ?? 'Live Event') ?></div>
+                            <div class="ticket-event-meta" id="ticket-success-event-location" style="font-size: 0.8rem; color: rgb(var(--muted));"><?= e($t['event_location'] ?? 'Event Venue') ?></div>
                         </div>
                         <span class="ticket-status-badge badge-verified" style="font-weight: 800; font-size: 0.78rem; padding: 0.25rem 0.65rem;">✓ Checked In</span>
                     </div>
@@ -580,22 +581,22 @@ $checkedInCount = count($verified_tickets ?? []);
                         <div class="ticket-attendee-row" style="display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.95rem;">
                             <div class="ticket-avatar" id="ticket-success-avatar"><?= strtoupper(substr($t['attendee_name'] ?? 'U', 0, 2)) ?></div>
                             <div class="ticket-attendee-info">
-                                <h3 id="ticket-success-attendee-name" style="margin: 0; font-size: 1.1rem; font-weight: 800;"><?= e($t['attendee_name']) ?></h3>
-                                <p id="ticket-success-ticket-type" style="margin: 2px 0 0; font-size: 0.84rem; color: rgb(var(--muted));"><?= e($t['ticket_type']) ?> Ticket</p>
+                                <h3 id="ticket-success-attendee-name" style="margin: 0; font-size: 1.1rem; font-weight: 800;"><?= e($t['attendee_name'] ?? 'Attendee') ?></h3>
+                                <p id="ticket-success-ticket-type" style="margin: 2px 0 0; font-size: 0.84rem; color: rgb(var(--muted));"><?= e($t['ticket_type'] ?? 'General Admission') ?> Ticket</p>
                             </div>
                         </div>
                         <div class="ticket-details-grid">
                             <div class="ticket-detail-item">
                                 <div class="detail-label">Ticket Code</div>
-                                <div class="detail-value" id="ticket-success-code" style="font-family: monospace; font-weight: 700;"><?= e($t['id']) ?></div>
+                                <div class="detail-value" id="ticket-success-code" style="font-family: monospace; font-weight: 700;"><?= e($t['id'] ?? '') ?></div>
                             </div>
                             <div class="ticket-detail-item">
                                 <div class="detail-label">Purchase Date</div>
-                                <div class="detail-value" id="ticket-success-date"><?= date('M d, Y', strtotime($t['purchase_date'])) ?></div>
+                                <div class="detail-value" id="ticket-success-date"><?= !empty($t['purchase_date']) ? date('M d, Y', strtotime($t['purchase_date'])) : 'Today' ?></div>
                             </div>
                             <div class="ticket-detail-item">
                                 <div class="detail-label">Verified At</div>
-                                <div class="detail-value" id="ticket-success-time"><?= date('h:i A', strtotime($t['checked_in_at'])) ?></div>
+                                <div class="detail-value" id="ticket-success-time"><?= !empty($t['checked_in_at']) ? date('h:i A', strtotime($t['checked_in_at'])) : date('h:i A') ?></div>
                             </div>
                             <div class="ticket-detail-item">
                                 <div class="detail-label">Status</div>
@@ -612,37 +613,33 @@ $checkedInCount = count($verified_tickets ?? []);
                             <span style="height:24px;width:2px"></span>
                             <span style="height:26px;width:3px"></span>
                         </div>
-                        <div class="ticket-barcode-code" id="ticket-success-barcode-code"><?= e($t['id']) ?></div>
+                        <div class="ticket-barcode-code" id="ticket-success-barcode-code"><?= e($t['id'] ?? '') ?></div>
                     </div>
                 </div>
-                <?php else: ?>
+
                 <!-- Warning / Error Ticket Card Template -->
-                <div id="ticket-error-card" class="ticket-display-card ticket-error">
+                <div id="ticket-error-card" class="ticket-display-card ticket-error <?= ($hasResult && !$isSuccess) ? '' : 'hidden' ?>">
                     <div class="ticket-card-header" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div class="ticket-event-name" id="ticket-error-event-title" style="font-weight: 800; font-size: 1.05rem;">Verification Warning</div>
                             <div class="ticket-event-meta" id="ticket-error-event-location" style="font-size: 0.8rem; color: rgb(var(--muted));">Event Entry Desk</div>
                         </div>
-                        <span class="ticket-status-badge badge-invalid" id="ticket-error-badge" style="font-weight: 800; font-size: 0.78rem;"><?= e(ucfirst($verification_result['type'] ?? 'error')) ?></span>
+                        <span class="ticket-status-badge badge-invalid" id="ticket-error-badge" style="font-weight: 800; font-size: 0.78rem;"><?= e(ucfirst($verification_result['type'] ?? 'warning')) ?></span>
                     </div>
                     <div class="ticket-error-card" style="padding: 1.5rem 1.25rem; text-align: center;">
                         <span class="ticket-error-icon" id="ticket-error-icon" style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">⚠️</span>
                         <h3 id="ticket-error-title" style="margin: 0 0 0.4rem; font-size: 1.15rem; font-weight: 800;"><?= e($verification_result['message'] ?? 'Check-in failed') ?></h3>
-                        <p id="ticket-error-message" style="margin: 0; font-size: 0.88rem; color: rgb(var(--muted));">Ticket Code: <strong style="font-family: monospace; color: rgb(var(--text));"><?= e($verification_result['code']) ?></strong></p>
+                        <p id="ticket-error-message" style="margin: 0; font-size: 0.88rem; color: rgb(var(--muted));">Ticket Code: <strong id="ticket-error-code-val" style="font-family: monospace; color: rgb(var(--text));"><?= e($verification_result['code'] ?? '') ?></strong></p>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap: wrap;">
                     <button type="button" id="clear-result-btn" class="btn-secondary" style="flex:1; min-height: 44px; font-weight: 700;">Clear Result</button>
-                    <?php if (($verification_result['status'] ?? '') === 'success' && !empty($t['id'])): ?>
-                        <button type="button" class="btn-secondary" style="background:rgba(245, 158, 11, 0.12); color:#d97706; border:1px solid rgba(245, 158, 11, 0.3); font-weight:700; min-height: 44px;" onclick="removeVerifiedTicket('<?= e($t['id']) ?>')">
-                            ↩️ Undo Check-In
-                        </button>
-                    <?php endif; ?>
+                    <button type="button" id="undo-checkin-btn" class="btn-secondary <?= ($isSuccess && !empty($t['id'])) ? '' : 'hidden' ?>" style="background:rgba(245, 158, 11, 0.12); color:#d97706; border:1px solid rgba(245, 158, 11, 0.3); font-weight:700; min-height: 44px;" onclick="removeVerifiedTicket(document.getElementById('ticket-success-code').textContent.trim())">
+                        ↩️ Undo Check-In
+                    </button>
                 </div>
             </div>
-            <?php endif; ?>
 
             <div id="no-event-message" class="empty-state <?= $selected_event_id ? 'hidden' : '' ?>">
                 <p style="font-weight: 600;">Please select an active event to start check-in.</p>

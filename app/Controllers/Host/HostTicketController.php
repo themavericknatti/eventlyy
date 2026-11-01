@@ -101,16 +101,35 @@ class HostTicketController extends Controller
         $user = Application::$app->user;
         $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
         $data = $request->getBody();
-        $ticketCode = trim($data['ticket_code'] ?? '');
+        $ticketCode = trim($data['ticket_code'] ?? $data['code'] ?? '');
         $selectedEventId = $data['event_id'] ?? null;
 
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $isJson = str_contains($accept, 'application/json') || str_contains($contentType, 'application/json') || (!empty($data['ajax']));
+
         if (empty($ticketCode)) {
+            if ($isJson) {
+                return Application::$app->response->json(['success' => false, 'status' => 'error', 'message' => 'Please enter a ticket code.'], 400);
+            }
             Application::$app->session->setFlash('error', 'Please enter a ticket code.');
             return redirect('/host/event/ticket-verification/' . $selectedEventId);
         }
 
         // Execute action via CheckInTicketAction (with admin bypass)
         $result = $this->checkInTicketAction->execute($ticketCode, $selectedEventId, $user->id, $isAdmin);
+
+        if ($isJson) {
+            $isSuccess = ($result['status'] === 'success');
+            return Application::$app->response->json([
+                'success' => $isSuccess,
+                'status' => $result['result']['type'] ?? ($isSuccess ? 'success' : 'error'),
+                'message' => $result['result']['message'] ?? $result['flash_message'],
+                'code' => $result['result']['code'] ?? $ticketCode,
+                'ticket' => $result['result']['ticket'] ?? null,
+                'result' => $result['result']
+            ]);
+        }
 
         Application::$app->session->setFlash($result['flash_type'], $result['flash_message']);
         Application::$app->session->setFlash('verification_result', $result['result']);

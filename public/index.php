@@ -5,6 +5,9 @@ define('ROOT_DIR', dirname(__DIR__));
 
 require_once ROOT_DIR . '/vendor/autoload.php';
 
+// Enforce consistent default timezone platform-wide (Nigeria - Africa/Lagos UTC+1)
+date_default_timezone_set('Africa/Lagos');
+
 use Ace\Application;
 
 $rootDir = ROOT_DIR;

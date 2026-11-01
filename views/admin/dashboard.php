@@ -605,10 +605,10 @@ try {
 <!-- ════════════════════════════════════════════════════════════════
      8. REAL-TIME ATTENDEE TICKET PURCHASES & ACTIVITY FEED
      ════════════════════════════════════════════════════════════════ -->
-<section class="form-card ticket-activity-section" style="border-radius:22px; padding:1.5rem; margin-bottom: 2rem;">
-    <div class="au-table-header audit-header-row" style="margin-bottom:1.25rem; border-bottom:1px solid rgba(var(--muted),0.08); padding-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+<section class="form-card ticket-activity-section">
+    <div class="au-table-header audit-header-row">
         <div>
-            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <div class="ticket-header-title-row" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                 <h2 style="margin:0; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:0.4rem;">
                     <span>🎟️</span> Real-Time Attendee Ticket Purchases
                 </h2>
@@ -624,7 +624,7 @@ try {
             </div>
             <p class="section-note" style="margin:0.25rem 0 0; font-size:0.82rem;">Super-admin visibility into incoming ticket orders, buyer information, and check-in status.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <div class="ticket-stream-controls">
             <input type="text" id="ticketPurchasesSearch" placeholder="🔍 Search attendee, event, or code..." class="audit-search-box">
             <a href="{{ route('admin/attendees') }}" class="admin-action-btn primary" style="font-size:0.82rem; padding:0.45rem 0.95rem; border-radius:10px; font-weight:700; text-decoration:none;">
                 Attendee Directory (<?= number_format($total_tickets ?? 0) ?>) →
@@ -632,8 +632,8 @@ try {
         </div>
     </div>
 
-    <!-- Desktop & Tablet Table (displayed on screens > 900px) -->
-    <div class="au-table-wrap ticket-stream-table-wrap">
+    <!-- Desktop & Tablet Table (displayed on screens > 900px, Accessible & Responsive) -->
+    <div class="au-table-wrap ticket-stream-table-wrap" tabindex="0" role="region" aria-label="Real-Time Attendee Ticket Purchases">
         <table class="au-table" id="ticketPurchasesTable">
             <thead>
                 <tr>
@@ -750,12 +750,12 @@ try {
             ?>
             <article class="ticket-purchase-mobile-card">
                 <!-- Row 1: Attendee Info (flex:1, min-width:0) + Status & Price (flex-shrink:0) -->
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.65rem; min-width:0;">
-                    <div style="display:flex; align-items:center; gap:0.6rem; min-width:0; flex:1;">
-                        <div style="width:34px; height:34px; border-radius:50%; background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.78rem; flex-shrink:0;">
+                <div class="ticket-card-header-row">
+                    <div class="ticket-card-buyer-wrap">
+                        <div class="ticket-card-avatar" style="background:hsl(<?= $hue ?>, 70%, 92%); color:hsl(<?= $hue ?>, 60%, 35%);">
                             <?= $initials ?>
                         </div>
-                        <div style="min-width:0; flex:1;">
+                        <div class="ticket-card-buyer-text">
                             <div class="ticket-buyer-name" title="<?= e($tkt['attendee_name'] ?: 'Guest') ?>">
                                 <?= e($tkt['attendee_name'] ?: 'Guest') ?>
                             </div>
@@ -765,11 +765,11 @@ try {
                         </div>
                     </div>
 
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.2rem; flex-shrink:0;">
+                    <div class="ticket-card-price-wrap">
                         <span class="au-status-badge <?= $statusClass ?>">
                             <?= ucfirst($tkt['status'] ?? 'Pending') ?>
                         </span>
-                        <div style="font-size:0.9rem; font-weight:800; color:rgb(var(--text)); white-space:nowrap;">
+                        <div class="ticket-card-price">
                             <?php if ($ticketPrice > 0): ?>
                                 <?= format_price($ticketPrice) ?>
                             <?php else: ?>
@@ -780,36 +780,36 @@ try {
                 </div>
 
                 <!-- Row 2: Event Name -->
-                <div style="min-width:0; margin-top:0.15rem;">
+                <div class="ticket-card-event-row">
                     <?php if (!empty($tkt['event_id'])): ?>
-                        <a href="{{ route('admin/events/' . $tkt['event_id']) }}" style="color:rgb(var(--brand)); text-decoration:none; font-weight:700; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block;" title="<?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?>">
+                        <a href="{{ route('admin/events/' . $tkt['event_id']) }}" class="ticket-card-event-link" title="<?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?>">
                             🎪 <?= e($tkt['event_name'] ?: 'Event #' . $tkt['event_id']) ?> ↗
                         </a>
                     <?php else: ?>
-                        <span style="font-size:0.82rem; font-weight:600; color:rgb(var(--muted));">🎪 Event #<?= e($tkt['event_id'] ?? 'N/A') ?></span>
+                        <span class="ticket-card-event-empty">🎪 Event #<?= e($tkt['event_id'] ?? 'N/A') ?></span>
                     <?php endif; ?>
                 </div>
 
                 <!-- Row 3: Reduced Details (Code, Tier, Check-in, Date) -->
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.35rem; font-size:0.74rem; border-top:1px solid rgba(var(--muted), 0.08); padding-top:0.45rem; margin-top:0.15rem;">
-                    <div style="display:inline-flex; align-items:center; gap:0.35rem; min-width:0;">
-                        <span style="font-family:monospace; font-weight:700; color:rgb(var(--text)); background:rgba(var(--text), 0.05); padding:0.15rem 0.45rem; border-radius:5px; border:1px solid rgba(var(--muted), 0.15); font-size:0.72rem;">
+                <div class="ticket-card-footer-row">
+                    <div class="ticket-card-meta-left">
+                        <span class="ticket-code-badge" title="<?= e($tkt['id']) ?>">
                             <?= e($tkt['id']) ?>
                         </span>
-                        <button type="button" onclick="navigator.clipboard.writeText('<?= addslashes(e($tkt['id'])) ?>'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500);" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:rgb(var(--muted)); padding:0 2px;" title="Copy Ticket Code">📋</button>
-                        <span style="font-weight:700; padding:0.12rem 0.45rem; border-radius:5px; background:rgba(99, 102, 241, 0.1); color:#6366f1; font-size:0.7rem; white-space:nowrap;">
+                        <button type="button" onclick="navigator.clipboard.writeText('<?= addslashes(e($tkt['id'])) ?>'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500);" class="ticket-code-copy-btn" title="Copy Ticket Code">📋</button>
+                        <span class="ticket-tier-badge" title="<?= e($tkt['ticket_tier'] ?: 'General') ?>">
                             <?= e($tkt['ticket_tier'] ?: 'General') ?>
                         </span>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:0.4rem; color:rgb(var(--muted)); font-size:0.72rem; white-space:nowrap;">
+                    <div class="ticket-card-meta-right">
                         <?php if ($isCheckedIn): ?>
-                            <span style="font-weight:700; color:#10b981;">✓ In</span>
+                            <span class="ticket-gate-badge gate-in">✓ In</span>
                         <?php else: ?>
-                            <span style="color:rgb(var(--muted));">⏳ Gate</span>
+                            <span class="ticket-gate-badge gate-pending">⏳ Gate</span>
                         <?php endif; ?>
-                        <span>•</span>
-                        <span><?= $compactDate ?></span>
+                        <span class="ticket-meta-dot">•</span>
+                        <span class="ticket-date-text"><?= $compactDate ?></span>
                     </div>
                 </div>
             </article>
@@ -821,21 +821,21 @@ try {
 <!-- ════════════════════════════════════════════════════════════════
      9. SYSTEM FINANCIAL AUDIT LOG STREAM
      ════════════════════════════════════════════════════════════════ -->
-<section class="form-card audit-log-section" style="border-radius:22px; padding:1.5rem; margin-bottom: 2rem;">
-    <div class="au-table-header audit-header-row" style="margin-bottom:1.25rem; border-bottom:1px solid rgba(var(--muted),0.08); padding-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+<section class="form-card audit-log-section">
+    <div class="au-table-header audit-header-row">
         <div>
             <h2 style="margin:0; font-size:1.15rem; font-weight:800;">System Financial Audit Log</h2>
             <p class="section-note" style="margin:0.25rem 0 0; font-size:0.82rem;">Real-time stream of incoming customer payments, fee deductions, and payouts.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <div class="ticket-stream-controls">
             <input type="text" id="auditSearchInput" placeholder="🔍 Filter transactions..." class="audit-search-box">
-            <a href="{{ route('admin/payouts') }}" class="admin-action-btn primary" style="font-size:0.82rem; padding:0.45rem 0.95rem; border-radius:10px; font-weight:700;">
+            <a href="{{ route('admin/payouts') }}" class="admin-action-btn primary" style="font-size:0.82rem; padding:0.45rem 0.95rem; border-radius:10px; font-weight:700; text-decoration:none;">
                 Payout Center →
             </a>
         </div>
     </div>
 
-    <div class="au-table-wrap">
+    <div class="au-table-wrap" tabindex="0" role="region" aria-label="System Financial Audit Log">
         <table class="au-table" id="auditTable">
             <thead>
                 <tr>
@@ -1906,32 +1906,90 @@ try {
     100% { transform: scale(0.9); opacity: 0.7; }
 }
 
-/* ─── Ticket Activity Feed & Mobile Cards ─── */
-.ticket-activity-section {
+/* ─── Ticket Activity Feed & Mobile Cards (Responsive & Accessible) ─── */
+.ticket-activity-section,
+.audit-log-section {
     position: relative;
     overflow: hidden;
+    border-radius: 22px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.audit-header-row {
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.08);
+    padding-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ticket-stream-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .ticket-stream-table-wrap {
     display: block;
     width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+.ticket-stream-table-wrap .au-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    font-size: 0.84rem;
+}
+
+.ticket-stream-table-wrap .au-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(var(--card), 0.98);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.15);
+    white-space: nowrap;
+}
+
+.ticket-stream-table-wrap .au-table td {
+    padding: 0.65rem 0.75rem;
+    vertical-align: middle;
 }
 
 .ticket-stream-cards-list {
     display: none;
 }
 
+/* ── Mobile Ticket Card Layout ── */
 .ticket-purchase-mobile-card {
     background: rgba(var(--text), 0.02);
     border: 1px solid rgba(var(--muted), 0.12);
     border-radius: 14px;
-    padding: 0.95rem 1.05rem;
+    padding: 0.85rem 1rem;
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .ticket-purchase-mobile-card:hover {
@@ -1939,17 +1997,37 @@ try {
     background: rgba(var(--brand), 0.02);
 }
 
-.ticket-purchase-mobile-card .au-status-badge {
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    display: inline-block !important;
-    flex-shrink: 0 !important;
-    line-height: 1.2 !important;
-    padding: 0.22rem 0.55rem !important;
-    border-radius: 6px !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-    font-size: 0.72rem !important;
+.ticket-card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.ticket-card-buyer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.ticket-card-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+
+.ticket-card-buyer-text {
+    min-width: 0;
+    flex: 1;
 }
 
 .ticket-purchase-mobile-card .ticket-buyer-name {
@@ -1960,6 +2038,7 @@ try {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 
 .ticket-purchase-mobile-card .ticket-buyer-email {
@@ -1968,6 +2047,163 @@ try {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
+    margin-top: 1px;
+}
+
+.ticket-card-price-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    flex-shrink: 0;
+}
+
+.ticket-purchase-mobile-card .au-status-badge {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+    padding: 0.18rem 0.5rem !important;
+    border-radius: 6px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+}
+
+.ticket-card-price {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    white-space: nowrap;
+}
+
+.ticket-card-event-row {
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 0.1rem;
+}
+
+.ticket-card-event-link {
+    color: rgb(var(--brand));
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    max-width: 100%;
+}
+
+.ticket-card-event-empty {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgb(var(--muted));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    max-width: 100%;
+}
+
+.ticket-card-footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    border-top: 1px solid rgba(var(--muted), 0.08);
+    padding-top: 0.45rem;
+    margin-top: 0.1rem;
+    min-width: 0;
+}
+
+.ticket-card-meta-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.ticket-code-badge {
+    font-family: monospace;
+    font-weight: 700;
+    color: rgb(var(--text));
+    background: rgba(var(--text), 0.05);
+    padding: 0.15rem 0.45rem;
+    border-radius: 5px;
+    border: 1px solid rgba(var(--muted), 0.15);
+    font-size: 0.72rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.ticket-code-copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: rgb(var(--muted));
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+
+.ticket-tier-badge {
+    font-weight: 700;
+    padding: 0.12rem 0.45rem;
+    border-radius: 5px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+}
+
+.ticket-card-meta-right {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: rgb(var(--muted));
+    font-size: 0.72rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ticket-gate-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.ticket-gate-badge.gate-in {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.ticket-gate-badge.gate-pending {
+    color: rgb(var(--muted));
+}
+
+.ticket-meta-dot {
+    color: rgba(var(--muted), 0.5);
+}
+
+.ticket-date-text {
+    font-size: 0.7rem;
+    color: rgb(var(--muted));
 }
 
 @media (max-width: 900px) {
@@ -2047,6 +2283,31 @@ try {
     .chart-canvas-wrapper {
         height: 240px !important;
     }
+    .ticket-activity-section,
+    .audit-log-section {
+        padding: 1rem 0.85rem;
+        border-radius: 16px;
+    }
+    .audit-header-row {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+    }
+    .ticket-stream-controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.5rem;
+    }
+    .ticket-stream-controls .audit-search-box {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .ticket-stream-controls .admin-action-btn {
+        width: 100% !important;
+        justify-content: center;
+        text-align: center;
+    }
 }
 
 @media (max-width: 600px) {
@@ -2089,11 +2350,12 @@ try {
     }
     .audit-search-box {
         width: 100%;
+        min-width: 0;
     }
     .au-table-wrap {
-        margin: 0 -0.5rem;
-        width: calc(100% + 1rem);
-        max-width: calc(100% + 1rem);
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
         box-sizing: border-box;
@@ -2106,6 +2368,46 @@ try {
     }
     .chart-card-header p {
         font-size: 0.75rem !important;
+    }
+}
+
+/* ── Extra Small Mobile (<= 420px) ── */
+@media (max-width: 420px) {
+    .ticket-activity-section,
+    .audit-log-section {
+        padding: 0.75rem 0.65rem;
+        border-radius: 14px;
+    }
+    .ticket-purchase-mobile-card {
+        padding: 0.75rem 0.8rem;
+        border-radius: 12px;
+    }
+    .ticket-card-avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 0.72rem;
+    }
+    .ticket-purchase-mobile-card .ticket-buyer-name {
+        font-size: 0.82rem;
+    }
+    .ticket-purchase-mobile-card .ticket-buyer-email {
+        font-size: 0.7rem;
+    }
+    .ticket-card-price {
+        font-size: 0.82rem;
+    }
+    .ticket-card-footer-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+    }
+    .ticket-card-meta-left {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .ticket-card-meta-right {
+        width: 100%;
+        justify-content: flex-start;
     }
 }
 </style>

@@ -42,19 +42,8 @@ class CheckoutController extends Controller
             return redirect('/') ?: '';
         }
 
-        // Fetch event info
-        $stmt = $db->prepare("
-            SELECT e.*, u.name as organizer_name, u.email as organizer_email
-            FROM events e
-            INNER JOIN users u ON e.organizer_id = u.id
-            WHERE e.id = :id_num OR e.slug = :slug OR e.custom_url = :custom_url
-        ");
-        $stmt->execute([
-            'id_num' => is_numeric($eventId) ? (int)$eventId : 0,
-            'slug' => $eventId,
-            'custom_url' => $eventId
-        ]);
-        $event = $stmt->fetch();
+        // Fetch event info (resolves specific ID or active recurring occurrence)
+        $event = $this->resolveCheckoutEvent($eventId);
 
         if (!$event) {
             throw new \Exception("Event not found.", 404);
@@ -162,19 +151,8 @@ class CheckoutController extends Controller
             return redirect('/') ?: '';
         }
 
-        // Fetch event info
-        $stmt = $db->prepare("
-            SELECT e.*, u.name as organizer_name, u.email as organizer_email
-            FROM events e
-            INNER JOIN users u ON e.organizer_id = u.id
-            WHERE e.id = :id_num OR e.slug = :slug OR e.custom_url = :custom_url
-        ");
-        $stmt->execute([
-            'id_num' => is_numeric($eventId) ? (int)$eventId : 0,
-            'slug' => $eventId,
-            'custom_url' => $eventId
-        ]);
-        $event = $stmt->fetch();
+        // Fetch event info (resolves specific ID or active recurring occurrence)
+        $event = $this->resolveCheckoutEvent($eventId);
 
         if (!$event) {
             throw new \Exception("Event not found.", 404);
@@ -306,14 +284,8 @@ class CheckoutController extends Controller
 
         $db = Application::$app->db->pdo;
 
-        // Verify event
-        $stmt = $db->prepare("SELECT * FROM events WHERE id = :id_num OR slug = :slug OR custom_url = :custom_url LIMIT 1");
-        $stmt->execute([
-            'id_num' => is_numeric($eventId) ? (int)$eventId : 0,
-            'slug' => $eventId,
-            'custom_url' => $eventId
-        ]);
-        $event = $stmt->fetch();
+        // Verify event (resolves specific ID or active recurring occurrence)
+        $event = $this->resolveCheckoutEvent($eventId);
 
         if (!$event) {
             Application::$app->session->setFlash('error', 'Invalid event selection.');
@@ -1103,5 +1075,69 @@ class CheckoutController extends Controller
             'title' => 'Purchase Success - ' . ($order['event_name'] ?? 'Event'),
             'order' => $order
         ]);
+    }
+
+    /**
+     * Resolve the target event or active recurring occurrence by ID or slug.
+     * Guarantees active/upcoming occurrences are selected over expired past occurrences.
+     */
+    protected function resolveCheckoutEvent($eventId): ?array
+    {
+        $db = (Application::$app && Application::$app->db) ? Application::$app->db->pdo : null;
+        if (!$db) {
+            $rootDir = defined('ROOT_DIR') ? ROOT_DIR : (Application::$ROOT_DIR ?: dirname(__DIR__, 2));
+            $dbConfig = require $rootDir . '/config/database.php';
+            $db = (new \Ace\Database($dbConfig))->pdo;
+        }
+        $completionHours = function_exists('event_completion_hours') ? event_completion_hours() : 12;
+        $occSeq = isset($_GET['occ']) && is_numeric($_GET['occ']) ? (int)$_GET['occ'] : (isset($_POST['occ']) && is_numeric($_POST['occ']) ? (int)$_POST['occ'] : null);
+        $occId = isset($_GET['occ_id']) && is_numeric($_GET['occ_id']) ? (int)$_GET['occ_id'] : (isset($_POST['occ_id']) && is_numeric($_POST['occ_id']) ? (int)$_POST['occ_id'] : (isset($_POST['event_id']) && is_numeric($_POST['event_id']) ? (int)$_POST['event_id'] : null));
+
+        if ($occId && $occId > 0) {
+            $stmt = $db->prepare("SELECT e.*, u.name as organizer_name, u.email as organizer_email FROM events e INNER JOIN users u ON e.organizer_id = u.id WHERE e.id = :id LIMIT 1");
+            $stmt->execute(['id' => $occId]);
+            $ev = $stmt->fetch();
+            if ($ev) return $ev;
+        }
+
+        if (is_numeric($eventId) && (int)$eventId > 0) {
+            $stmt = $db->prepare("SELECT e.*, u.name as organizer_name, u.email as organizer_email FROM events e INNER JOIN users u ON e.organizer_id = u.id WHERE e.id = :id LIMIT 1");
+            $stmt->execute(['id' => (int)$eventId]);
+            $ev = $stmt->fetch();
+            if ($ev) return $ev;
+        }
+
+        if ($occSeq !== null) {
+            $stmt = $db->prepare("
+                SELECT e.*, u.name as organizer_name, u.email as organizer_email 
+                FROM events e 
+                INNER JOIN users u ON e.organizer_id = u.id 
+                WHERE (e.slug = :slug OR e.custom_url = :custom_url)
+                  AND e.recurrence_sequence = :occ
+                LIMIT 1
+            ");
+            $stmt->execute(['slug' => $eventId, 'custom_url' => $eventId, 'occ' => $occSeq]);
+            $ev = $stmt->fetch();
+            if ($ev) return $ev;
+        }
+
+        // Prioritize active/upcoming occurrences for recurring events
+        $stmt = $db->prepare("
+            SELECT e.*, u.name as organizer_name, u.email as organizer_email
+            FROM events e
+            INNER JOIN users u ON e.organizer_id = u.id
+            WHERE e.slug = :slug OR e.custom_url = :custom_url
+            ORDER BY 
+                CASE 
+                    WHEN e.status = 'published' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN 0 
+                    WHEN e.status = 'published' THEN 1
+                    ELSE 2 
+                END ASC,
+                CASE WHEN e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN e.date END ASC,
+                e.date DESC
+            LIMIT 1
+        ");
+        $stmt->execute(['slug' => $eventId, 'custom_url' => $eventId]);
+        return $stmt->fetch() ?: null;
     }
 }

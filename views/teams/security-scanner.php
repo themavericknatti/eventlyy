@@ -210,6 +210,137 @@ Gate Security Scanner - <?= e($event['name'] ?? 'Evently') ?>
     border: 2px solid #ef4444;
 }
 
+.sc-alert.alert-warning {
+    background: rgba(245, 158, 11, 0.14);
+    color: #d97706;
+    border: 2px solid #f59e0b;
+}
+
+/* ── Live Admission Result Card ── */
+.sc-result-card {
+    border-radius: 18px;
+    padding: 1.2rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: scAlertPop 0.22s ease-out;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1rem;
+}
+
+.sc-result-card.result-success {
+    background: rgba(16, 185, 129, 0.12);
+    border: 2px solid #10b981;
+}
+
+.sc-result-card.result-warning {
+    background: rgba(245, 158, 11, 0.13);
+    border: 2px solid #f59e0b;
+}
+
+.sc-result-card.result-error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 2px solid #ef4444;
+}
+
+.sc-result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.sc-result-icon {
+    font-size: 1.3rem;
+    font-weight: 900;
+}
+
+.sc-result-card.result-success .sc-result-icon,
+.sc-result-card.result-success .sc-result-headline {
+    color: #059669;
+}
+
+.sc-result-card.result-warning .sc-result-icon,
+.sc-result-card.result-warning .sc-result-headline {
+    color: #d97706;
+}
+
+.sc-result-card.result-error .sc-result-icon,
+.sc-result-card.result-error .sc-result-headline {
+    color: #dc2626;
+}
+
+.sc-result-headline {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sc-result-attendee {
+    font-size: clamp(1.2rem, 3vw, 1.45rem);
+    font-weight: 800;
+    color: rgb(var(--text));
+    line-height: 1.2;
+}
+
+.sc-result-meta {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: rgb(var(--muted));
+    margin-top: 0.2rem;
+}
+
+.sc-result-note {
+    font-size: 0.84rem;
+    font-weight: 700;
+    margin-top: 0.35rem;
+}
+
+.sc-result-card.result-warning .sc-result-note {
+    color: #b45309;
+}
+
+.sc-result-card.result-error .sc-result-note {
+    color: #b91c1c;
+}
+
+.sc-result-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.sc-btn-next-scan {
+    padding: 0.55rem 1.15rem;
+    font-size: 0.86rem;
+    font-weight: 800;
+    border-radius: 10px;
+    border: none;
+    background: #0B7366;
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.sc-btn-next-scan:hover {
+    opacity: 0.92;
+}
+
+.sc-btn-next-scan:active {
+    transform: scale(0.97);
+}
+
+.sc-resume-countdown {
+    font-size: 0.78rem;
+    color: rgb(var(--muted));
+    font-weight: 600;
+}
+
 @keyframes scAlertPop {
     from { transform: scale(0.94); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
@@ -690,6 +821,25 @@ Gate Security Scanner - <?= e($event['name'] ?? 'Evently') ?>
     <!-- Scanner Alert Box -->
     <div id="scan-alert" class="sc-alert"></div>
 
+    <!-- Live Admission Result Card (Attendee Details & Gate Feedback) -->
+    <div id="scan-result-card" class="sc-result-card" style="display:none;">
+        <div class="sc-result-header">
+            <span class="sc-result-icon" id="sc-result-icon">✓</span>
+            <div class="sc-result-headline" id="sc-result-headline">ADMISSION GRANTED</div>
+        </div>
+        <div class="sc-result-body">
+            <div class="sc-result-attendee" id="sc-result-attendee">Attendee Name</div>
+            <div class="sc-result-meta" id="sc-result-meta">Tier • Pass #EV-XXXXXXXX</div>
+            <div class="sc-result-note" id="sc-result-note"></div>
+        </div>
+        <div class="sc-result-actions">
+            <button type="button" class="sc-btn-next-scan" id="sc-btn-next-scan" onclick="resumeCameraScanner()">
+                Scan Next Pass &rarr;
+            </button>
+            <span class="sc-resume-countdown" id="sc-resume-timer"></span>
+        </div>
+    </div>
+
     <!-- Scanner Module Card -->
     <section class="sc-scanner-card">
         <!-- Mode Toggle -->
@@ -798,8 +948,105 @@ var TOTAL_CAPACITY = <?= (int)($stats['total_tickets'] ?? 0) ?>;
 // ── State ──
 var html5QrcodeScanner = null;
 var isProcessing = false;
+var isScanLocked = false;
 var lastScannedCode = '';
 var lastScanTime = 0;
+var resumeTimerInterval = null;
+var audioCtx = null;
+
+// ── Web Audio API Engine & Mobile Audio Unlock ──
+function getAudioContext() {
+    if (!audioCtx) {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+        }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+function unlockAudio() {
+    var ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+        ctx.resume();
+    }
+}
+document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+document.addEventListener('click', unlockAudio, { once: true });
+
+function playScanSound(type) {
+    try {
+        var ctx = getAudioContext();
+        if (!ctx) return;
+
+        var now = ctx.currentTime;
+
+        if (type === 'success') {
+            // Melodic two-tone success chime (587.33 Hz [D5] -> 880 Hz [A5])
+            var osc1 = ctx.createOscillator();
+            var osc2 = ctx.createOscillator();
+            var gain = ctx.createGain();
+
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(587.33, now);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, now + 0.09);
+
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc1.start(now);
+            osc1.stop(now + 0.09);
+            osc2.start(now + 0.09);
+            osc2.stop(now + 0.32);
+        } else if (type === 'duplicate') {
+            // Distinct 2-pulse warning buzzer (220 Hz -> 180 Hz)
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.setValueAtTime(180, now + 0.12);
+
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.setValueAtTime(0.01, now + 0.09);
+            gain.gain.setValueAtTime(0.25, now + 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.32);
+        } else {
+            // Harsh rejection buzzer (140 Hz downward bend)
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(140, now);
+            osc.frequency.exponentialRampToValueAtTime(85, now + 0.28);
+
+            gain.gain.setValueAtTime(0.28, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.28);
+        }
+    } catch(e) {
+        console.warn('Audio feedback error:', e);
+    }
+}
 
 // ── Mode Switching ──
 function switchMode(mode) {
@@ -905,11 +1152,51 @@ function renderCameraError(msg) {
 
 function onQrCodeScanned(decodedText) {
     var now = Date.now();
-    if (decodedText === lastScannedCode && (now - lastScanTime) < 3000) return;
-    lastScannedCode = decodedText;
+    var code = (decodedText || '').trim();
+    if (!code) return;
+
+    // Isolate group passes: prevent scanning next pass until previous scan is concluded
+    if (isScanLocked || isProcessing) return;
+    if (code === lastScannedCode && (now - lastScanTime) < 4000) return;
+
+    // Immediately lock scanner & pause hardware stream
+    isScanLocked = true;
+    lastScannedCode = code;
     lastScanTime = now;
 
-    performCheckIn(decodedText.trim());
+    if (html5QrcodeScanner) {
+        try {
+            if (typeof html5QrcodeScanner.pause === 'function') {
+                html5QrcodeScanner.pause(true);
+            }
+        } catch(e) {}
+    }
+
+    performCheckIn(code, true);
+}
+
+// ── Resume Camera Scanner After Feedback ──
+function resumeCameraScanner() {
+    if (resumeTimerInterval) {
+        clearInterval(resumeTimerInterval);
+        resumeTimerInterval = null;
+    }
+    var resultCard = document.getElementById('scan-result-card');
+    if (resultCard) resultCard.style.display = 'none';
+
+    var timerEl = document.getElementById('sc-resume-timer');
+    if (timerEl) timerEl.textContent = '';
+
+    isScanLocked = false;
+    isProcessing = false;
+
+    if (html5QrcodeScanner) {
+        try {
+            if (typeof html5QrcodeScanner.resume === 'function') {
+                html5QrcodeScanner.resume();
+            }
+        } catch(e) {}
+    }
 }
 
 // ── Scan QR Code from Photo / File Capture ──
@@ -929,7 +1216,7 @@ function scanQrFromPhoto(input) {
     tempScanner.scanFile(file, true)
         .then(function(decodedText) {
             if (processingOverlay) processingOverlay.style.display = 'none';
-            performCheckIn(decodedText.trim());
+            performCheckIn(decodedText.trim(), false);
             input.value = '';
         })
         .catch(function(err) {
@@ -952,16 +1239,18 @@ function verifyManualCode(e) {
     var code = input ? input.value.trim() : '';
     if (!code) return;
 
-    performCheckIn(code);
+    performCheckIn(code, false);
     if (input) input.value = '';
 }
 
 // ── Core Check-In API Request ──
-function performCheckIn(code) {
+function performCheckIn(code, isFromCamera) {
     if (isProcessing) return;
     isProcessing = true;
+    unlockAudio();
 
     var alertBox = document.getElementById('scan-alert');
+    var resultCard = document.getElementById('scan-result-card');
     var logContainer = document.getElementById('scan-log-container');
     var countEl = document.getElementById('my-scan-count');
     var barFill = document.getElementById('scan-progress-bar');
@@ -983,16 +1272,76 @@ function performCheckIn(code) {
     .then(function(data) {
         if (processingOverlay) processingOverlay.style.display = 'none';
 
-        if (!alertBox) { isProcessing = false; return; }
+        var statusType = data.status || (data.success ? 'success' : 'error');
+        var ticket = data.ticket || null;
+        var attendeeName = ticket ? (ticket.attendee_name || 'Attendee') : 'Guest';
+        var typeName = ticket ? (ticket.ticket_type_name || ticket.ticket_type || 'General Admission') : 'Admission Pass';
+        var displayCode = ticket ? (ticket.id || code) : code;
 
-        alertBox.style.display = 'block';
-        alertBox.className = 'sc-alert ' + (data.success ? 'alert-success' : 'alert-error');
-        alertBox.textContent = data.message;
-
+        // 1. Audio & Haptic Feedback
         if (data.success) {
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            playTone(880, 180);
+            playScanSound('success');
+            if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+        } else if (statusType === 'duplicate') {
+            playScanSound('duplicate');
+            if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+        } else {
+            playScanSound('error');
+            if (navigator.vibrate) navigator.vibrate([350]);
+        }
 
+        // 2. Render prominent Result Card
+        if (resultCard) {
+            resultCard.style.display = 'flex';
+            var iconEl = document.getElementById('sc-result-icon');
+            var headlineEl = document.getElementById('sc-result-headline');
+            var nameEl = document.getElementById('sc-result-attendee');
+            var metaEl = document.getElementById('sc-result-meta');
+            var noteEl = document.getElementById('sc-result-note');
+
+            if (data.success) {
+                resultCard.className = 'sc-result-card result-success';
+                if (iconEl) iconEl.textContent = '✓';
+                if (headlineEl) headlineEl.textContent = 'ADMISSION GRANTED';
+                if (nameEl) nameEl.textContent = attendeeName;
+                if (metaEl) metaEl.textContent = typeName + ' • #' + displayCode;
+                if (noteEl) noteEl.textContent = 'Pass verified. Welcome to the event!';
+            } else if (statusType === 'duplicate') {
+                resultCard.className = 'sc-result-card result-warning';
+                if (iconEl) iconEl.textContent = '⚠️';
+                if (headlineEl) headlineEl.textContent = 'ALREADY SCANNED';
+                if (nameEl) nameEl.textContent = attendeeName;
+                if (metaEl) metaEl.textContent = typeName + ' • #' + displayCode;
+                if (noteEl) noteEl.textContent = data.message + ' (Check if another attendee in this group already used this pass).';
+            } else {
+                resultCard.className = 'sc-result-card result-error';
+                if (iconEl) iconEl.textContent = '🚫';
+                if (headlineEl) headlineEl.textContent = 'ENTRY DENIED';
+                if (nameEl) nameEl.textContent = attendeeName !== 'Guest' ? attendeeName : ('Code: ' + code);
+                if (metaEl) metaEl.textContent = '#' + displayCode;
+                if (noteEl) noteEl.textContent = data.message || 'Ticket code is invalid or cancelled.';
+            }
+
+            // Start countdown to auto-resume
+            var secondsLeft = 3;
+            var timerEl = document.getElementById('sc-resume-timer');
+            if (timerEl) timerEl.textContent = 'Resuming in ' + secondsLeft + 's...';
+
+            if (resumeTimerInterval) clearInterval(resumeTimerInterval);
+            resumeTimerInterval = setInterval(function() {
+                secondsLeft--;
+                if (secondsLeft > 0) {
+                    if (timerEl) timerEl.textContent = 'Resuming in ' + secondsLeft + 's...';
+                } else {
+                    clearInterval(resumeTimerInterval);
+                    resumeTimerInterval = null;
+                    resumeCameraScanner();
+                }
+            }, 1000);
+        }
+
+        // 3. Update stats & history log
+        if (data.success) {
             if (countEl) {
                 var current = parseInt(countEl.textContent.replace(/,/g, '') || '0') || 0;
                 var nextCount = current + 1;
@@ -1004,29 +1353,32 @@ function performCheckIn(code) {
                 }
             }
 
-            if (logContainer && data.ticket) {
+            if (logContainer) {
                 var logHtml = '<div class="sc-log-item">' +
-                    '<div class="sc-log-item-left"><span class="sc-log-name">' + escapeHtml(data.ticket.attendee_name) + '</span>' +
-                    '<span class="sc-log-sub">#' + escapeHtml(String(data.ticket.id)) + ' • ' + escapeHtml(data.ticket.ticket_type_name) + ' • ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) + '</span></div>' +
+                    '<div class="sc-log-item-left"><span class="sc-log-name">' + escapeHtml(attendeeName) + '</span>' +
+                    '<span class="sc-log-sub">#' + escapeHtml(String(displayCode)) + ' • ' + escapeHtml(typeName) + ' • ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) + '</span></div>' +
                     '<span class="sc-log-badge sc-log-in">✓ ADMIT</span></div>';
                 logContainer.insertAdjacentHTML('afterbegin', logHtml);
             }
         } else {
-            if (navigator.vibrate) navigator.vibrate(300);
-            playTone(280, 280);
-
             if (logContainer) {
+                var badgeClass = statusType === 'duplicate' ? 'sc-log-warn' : 'sc-log-deny';
+                var badgeLabel = statusType === 'duplicate' ? 'DUP' : 'DENY';
                 var errHtml = '<div class="sc-log-item">' +
-                    '<div class="sc-log-item-left"><span class="sc-log-name">Code: ' + escapeHtml(code) + '</span>' +
+                    '<div class="sc-log-item-left"><span class="sc-log-name">' + escapeHtml(attendeeName) + ' (#' + escapeHtml(displayCode) + ')</span>' +
                     '<span class="sc-log-sub">' + escapeHtml(data.message) + ' • ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) + '</span></div>' +
-                    '<span class="sc-log-badge sc-log-deny">✗ DENY</span></div>';
+                    '<span class="sc-log-badge ' + badgeClass + '">' + badgeLabel + '</span></div>';
                 logContainer.insertAdjacentHTML('afterbegin', errHtml);
             }
         }
 
-        setTimeout(function() {
-            alertBox.style.display = 'none';
-        }, 4000);
+        // Keep standard alert box synchronized
+        if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.className = 'sc-alert ' + (data.success ? 'alert-success' : (statusType === 'duplicate' ? 'alert-warning' : 'alert-error'));
+            alertBox.textContent = data.message;
+            setTimeout(function() { alertBox.style.display = 'none'; }, 5000);
+        }
 
         isProcessing = false;
     })
@@ -1041,27 +1393,8 @@ function performCheckIn(code) {
             setTimeout(function() { alertBox.style.display = 'none'; }, 4000);
         }
 
-        isProcessing = false;
+        resumeCameraScanner();
     });
-}
-
-// ── Audio Feedback ──
-function playTone(frequency, duration) {
-    try {
-        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var oscillator = audioCtx.createOscillator();
-        var gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.frequency.value = frequency;
-        oscillator.type = 'sine';
-        gainNode.gain.value = 0.15;
-        oscillator.start();
-        setTimeout(function() {
-            oscillator.stop();
-            audioCtx.close();
-        }, duration);
-    } catch(e) {}
 }
 
 // ── Utilities ──

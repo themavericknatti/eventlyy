@@ -132,18 +132,20 @@ class TeamService
 
         // Strip prefix if user enters e.g. EV-1234
         $cleanCode = preg_replace('/^EV-/i', '', $code);
+        $evCode = str_starts_with(strtoupper($code), 'EV-') ? $code : ('EV-' . $code);
 
         $stmt = $db->prepare("
             SELECT t.*, COALESCE(tt.name, 'General Admission') as ticket_type_name, e.name as event_name 
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             JOIN events e ON t.event_id = e.id
-            WHERE (t.id = :code OR t.id = :cleancode) AND t.event_id = :event_id
+            WHERE (t.id = :code OR t.id = :cleancode OR t.id = :evcode) AND t.event_id = :event_id
             LIMIT 1
         ");
         $stmt->execute([
             'code' => $code,
             'cleancode' => $cleanCode,
+            'evcode' => $evCode,
             'event_id' => $eventId
         ]);
         $ticket = $stmt->fetch();
@@ -151,27 +153,48 @@ class TeamService
         if (!$ticket) {
             return [
                 'success' => false,
+                'status' => 'invalid',
                 'message' => "Invalid Ticket: Code '{$code}' not found for this event."
+            ];
+        }
+
+        if (in_array(strtolower($ticket['status'] ?? ''), ['cancelled', 'refunded']) || ($ticket['status_detail'] ?? '') === 'Refunded') {
+            return [
+                'success' => false,
+                'status' => 'cancelled',
+                'message' => "🚫 ENTRY DENIED: Ticket has been REFUNDED / CANCELLED.",
+                'ticket' => $ticket
             ];
         }
 
         if (!in_array(strtolower($ticket['status'] ?? ''), ['paid', 'comped', 'free', 'active'])) {
             return [
                 'success' => false,
+                'status' => 'invalid',
                 'message' => "Entry Denied: Ticket status is '{$ticket['status']}'."
             ];
         }
 
-        if ($ticket['checked_in'] == 1) {
-            $time = !empty($ticket['checked_in_at']) ? date('H:i', strtotime($ticket['checked_in_at'])) : 'earlier';
+        if (($ticket['status_detail'] ?? '') === 'Flagged for review') {
             return [
                 'success' => false,
-                'message' => "ALREADY SCANNED: Checked in at {$time}.",
+                'status' => 'flagged',
+                'message' => "⚠️ FLAGGED TICKET: Requires host review before admission. Attendee: {$ticket['attendee_name']}",
                 'ticket' => $ticket
             ];
         }
 
-        // Perform check-in
+        if ($ticket['checked_in'] == 1) {
+            $time = !empty($ticket['checked_in_at']) ? date('h:i A', strtotime($ticket['checked_in_at'])) : 'earlier';
+            return [
+                'success' => false,
+                'status' => 'duplicate',
+                'message' => "ALREADY SCANNED: Checked in at {$time} for {$ticket['attendee_name']}.",
+                'ticket' => $ticket
+            ];
+        }
+
+        // Perform check-in (bound strictly to verified ticket's database ID)
         $update = $db->prepare("UPDATE tickets SET checked_in = 1, checked_in_at = CURRENT_TIMESTAMP, checked_in_by = :staff_id WHERE id = :id");
         $update->execute(['id' => $ticket['id'], 'staff_id' => $staffId]);
 
@@ -180,6 +203,7 @@ class TeamService
 
         return [
             'success' => true,
+            'status' => 'success',
             'message' => "VALID TICKET: Welcome {$ticket['attendee_name']}!",
             'ticket' => $ticket
         ];

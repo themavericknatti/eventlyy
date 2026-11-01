@@ -137,10 +137,13 @@ $introText = !empty($greeting_text) ? $greeting_text : 'Your official admission 
                             </div>
 
                             <!-- Individual Ticket Cards Loop -->
-                            <?php foreach (($tickets ?? []) as $index => $t): 
+                            <?php 
+                            $totalTicketCount = count($tickets ?? []);
+                            foreach (($tickets ?? []) as $index => $t): 
                                 $tCode = $t['ticket_code'] ?? ($t['id'] ?? 'EV-' . ($index + 1));
-                                $qrSrc = function_exists('ticket_qr_data_uri') ? ticket_qr_data_uri($tCode, 260) : ticket_qr_url($tCode, 260);
+                                $qrSrc = ticket_qr_url($tCode, 260);
                                 $tPrice = (float)($t['price'] ?? 0);
+                                $tAttendeeName = !empty($t['attendee_name']) ? $t['attendee_name'] : ($attendee_name ?? 'Attendee');
                             ?>
                             <table class="ticket-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid #0B7366; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                 <!-- Card Header Strip -->
@@ -149,7 +152,7 @@ $introText = !empty($greeting_text) ? $greeting_text : 'Your official admission 
                                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                             <tr>
                                                 <td align="left" style="font-size: 13px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.04em;">
-                                                    🎟️ <?= e($t['ticket_type'] ?? 'General Admission') ?>
+                                                    🎟️ <?= e($t['ticket_type'] ?? 'General Admission') ?><?= $totalTicketCount > 1 ? ' &bull; Pass ' . ($index + 1) . ' of ' . $totalTicketCount : '' ?>
                                                 </td>
                                                 <td align="right" style="font-size: 13px; font-weight: 800; color: #ffffff;">
                                                     <?= $tPrice > 0 ? (get_currency_symbol() . number_format($tPrice, 2)) : 'FREE / COMP' ?>
@@ -161,6 +164,12 @@ $introText = !empty($greeting_text) ? $greeting_text : 'Your official admission 
                                 <!-- Card Body: Scannable QR & Admission Code -->
                                 <tr>
                                     <td align="center" style="padding: 18px 16px; text-align: center;">
+                                        <!-- Registered Attendee Identifier -->
+                                        <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 14px; margin-bottom: 12px; display: inline-block;">
+                                            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.04em;">Registered Attendee:</span>
+                                            <strong style="font-size: 13px; color: #0f172a; margin-left: 5px;"><?= e($tAttendeeName) ?></strong>
+                                        </div>
+                                        <br/>
                                         <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 10px;">
                                             <img class="qr-code-img" src="<?= $qrSrc ?>" alt="QR Code for <?= e($tCode) ?>" width="135" height="135" style="display: block; margin: 0 auto; width: 135px; height: 135px; border-radius: 4px;" />
                                         </div>

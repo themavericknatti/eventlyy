@@ -1,5 +1,10 @@
 <?php
 
+// Platform standard timezone: Nigeria (Africa/Lagos - UTC+1)
+if (!ini_get('date.timezone') || date_default_timezone_get() !== 'Africa/Lagos') {
+    date_default_timezone_set('Africa/Lagos');
+}
+
 use Ace\Application;
 
 if (!function_exists('app')) {
@@ -1097,7 +1102,10 @@ if (!function_exists('site_setting')) {
                 'announcement_updated_at' => '0',
             ];
 
-            $settingsFile = \Ace\Application::$ROOT_DIR . '/config/settings.json';
+            $rootDir = !empty(\Ace\Application::$ROOT_DIR) 
+                ? \Ace\Application::$ROOT_DIR 
+                : (defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__));
+            $settingsFile = $rootDir . '/config/settings.json';
 
             if (file_exists($settingsFile)) {
                 $data = json_decode(file_get_contents($settingsFile), true) ?: [];
@@ -1631,3 +1639,13 @@ if (!function_exists('pagination_range')) {
     }
 }
 
+
+if (!function_exists('app_timezone')) {
+    /**
+     * Get the standardized platform timezone (Africa/Lagos).
+     */
+    function app_timezone(): string
+    {
+        return function_exists('site_setting') ? site_setting('timezone', 'Africa/Lagos') : 'Africa/Lagos';
+    }
+}

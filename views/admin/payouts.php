@@ -45,7 +45,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
 /* Stats Grid */
 .admin-users-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
@@ -54,12 +54,13 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     background: rgb(var(--card));
     border: 1px solid rgba(var(--muted), 0.14);
     border-radius: 18px;
-    padding: 1.2rem 1.35rem;
+    padding: 1rem 1.1rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-width: 0;
 }
 
 .au-stat-card:hover {
@@ -82,11 +83,13 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     border-radius: 18px;
     padding: 0.85rem 1.15rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .au-search-wrap {
     flex: 1;
-    min-width: 240px;
+    min-width: 0;
     position: relative;
     display: flex;
     align-items: center;
@@ -135,6 +138,8 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     padding: 1.5rem;
     box-shadow: 0 2px 14px rgba(0, 0, 0, 0.03);
     margin-bottom: 2rem;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .au-table-header {
@@ -151,6 +156,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
 }
 
 .au-table {
@@ -168,13 +174,13 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    padding: 0.85rem 1rem;
+    padding: 0.65rem 0.75rem;
     border-bottom: 1px solid rgba(var(--muted), 0.15);
     white-space: nowrap;
 }
 
 .au-table td {
-    padding: 0.95rem 1rem;
+    padding: 0.7rem 0.75rem;
     border-bottom: 1px solid rgba(var(--muted), 0.08);
     color: rgb(var(--text));
     vertical-align: middle;
@@ -197,6 +203,10 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     font-size: 0.92rem;
     display: block;
     line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
 }
 
 .payout-host-email {
@@ -204,6 +214,10 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     color: rgb(var(--muted));
     display: block;
     margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
 }
 
 /* Payout Type Badges */
@@ -270,13 +284,14 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
 .payout-actions-cell {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    flex-wrap: nowrap;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .payout-btn-process {
-    padding: 0.45rem 0.85rem;
-    font-size: 0.82rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
     font-weight: 800;
     border-radius: 10px;
     background: rgb(var(--brand));
@@ -294,8 +309,8 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
 }
 
 .payout-btn-flag {
-    padding: 0.45rem 0.75rem;
-    font-size: 0.82rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
     font-weight: 700;
     border-radius: 10px;
     background: rgba(239, 68, 68, 0.1);
@@ -312,8 +327,8 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
 }
 
 .payout-btn-unflag {
-    padding: 0.45rem 0.85rem;
-    font-size: 0.82rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
     border-radius: 10px;
     background: rgba(59, 130, 246, 0.12);
@@ -347,17 +362,21 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     background: rgba(var(--card), 0.7);
     border: 1px solid rgba(var(--muted), 0.14);
     border-radius: 18px;
-    padding: 1.15rem;
+    padding: 1rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    box-sizing: border-box;
+    word-break: break-word;
 }
 
 .payout-card-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: flex-start;
+    gap: 0.4rem;
     margin-top: 0.55rem;
     font-size: 0.85rem;
+    min-width: 0;
 }
 
 .payout-card-label {
@@ -369,6 +388,9 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     color: rgb(var(--text));
     font-weight: 700;
     text-align: right;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .payout-mobile-actions {
@@ -377,6 +399,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     margin-top: 0.95rem;
     padding-top: 0.85rem;
     border-top: 1px solid rgba(var(--muted), 0.1);
+    flex-wrap: wrap;
 }
 
 .payout-mobile-actions button,
@@ -408,21 +431,116 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     .au-cards-list {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
+        gap: 0.75rem;
     }
     .au-toolbar-form {
         flex-direction: column;
         align-items: stretch;
+        padding: 0.65rem 0.85rem;
+        border-radius: 14px;
     }
     .au-search-wrap,
     .au-filter-group select,
     .au-toolbar-form button,
     .au-toolbar-form a {
         width: 100%;
+        min-width: 0;
     }
     .au-filter-group {
         flex-direction: column;
         width: 100%;
+    }
+    .admin-users-table-section {
+        padding: 0.85rem;
+        border-radius: 16px;
+    }
+    .au-table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .au-table-header h2 {
+        font-size: 1.05rem;
+    }
+    .au-table-header p {
+        font-size: 0.78rem !important;
+    }
+    .admin-users-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+    }
+    .au-stat-card {
+        padding: 0.75rem 0.85rem;
+        border-radius: 14px;
+        gap: 0.5rem;
+    }
+    .au-stat-icon {
+        display: none;
+    }
+    .payout-host-cell {
+        gap: 0.5rem;
+    }
+    .payout-host-name {
+        font-size: 0.85rem;
+    }
+    .payout-host-email {
+        font-size: 0.72rem;
+    }
+    .modal-card {
+        max-width: 95vw;
+        padding: 1rem;
+        border-radius: 16px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .payout-mobile-actions button,
+    .payout-mobile-actions span {
+        padding: 0.45rem 0.65rem;
+        font-size: 0.78rem;
+    }
+}
+
+/* ══ Small Mobile (<= 420px) ══ */
+@media (max-width: 420px) {
+    .admin-users-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.45rem;
+    }
+    .au-stat-card {
+        padding: 0.6rem 0.7rem;
+        border-radius: 12px;
+    }
+    .au-stat-num {
+        font-size: 0.9rem !important;
+    }
+    .au-stat-lbl {
+        font-size: 0.68rem !important;
+    }
+    .admin-users-table-section {
+        padding: 0.65rem;
+        border-radius: 14px;
+    }
+    .payout-mobile-card {
+        padding: 0.8rem;
+        border-radius: 14px;
+    }
+    .payout-card-row {
+        font-size: 0.8rem;
+    }
+    .payout-mobile-actions {
+        flex-direction: column;
+    }
+    .payout-mobile-actions button,
+    .payout-mobile-actions span {
+        flex: unset;
+        width: 100%;
+    }
+    .modal-card {
+        padding: 0.85rem;
+        border-radius: 14px;
+    }
+    .au-toolbar-form {
+        padding: 0.55rem 0.65rem;
     }
 }
 
@@ -551,7 +669,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
     </div>
 
     <!-- Desktop Streamlined Table View -->
-    <div class="au-table-wrap">
+    <div class="au-table-wrap" tabindex="0" role="region" aria-label="Payouts Directory">
         <table class="au-table">
             <thead>
                 <tr>

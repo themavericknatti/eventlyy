@@ -6,8 +6,8 @@ use Exception;
 
 class Application
 {
-    public static string $ROOT_DIR;
-    public static Application $app;
+    public static string $ROOT_DIR = '';
+    public static ?Application $app = null;
     
     public string $layout = 'main';
     public Request $request;
@@ -27,7 +27,7 @@ class Application
         $this->config = $config;
 
         // Set system default timezone (settings.json overrides config/app.php)
-        $timezone = $this->config['timezone'] ?? 'UTC';
+        $timezone = $this->config['timezone'] ?? 'Africa/Lagos';
         $settingsFile = $rootDir . '/config/settings.json';
         if (file_exists($settingsFile)) {
             $settingsData = json_decode(file_get_contents($settingsFile), true);

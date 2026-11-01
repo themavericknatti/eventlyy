@@ -25,6 +25,12 @@ $isCompleted = ($eventDate && $now > $liveWindowEnd) || in_array(strtolower($eve
 $isLiveNow = !$isCompleted && ($eventDate && $now >= $eventDate && $now <= $liveWindowEnd);
 $isToday = !$isCompleted && ($eventDate && date('Y-m-d', $now) === date('Y-m-d', $eventDate));
 $eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id);
+
+// Ticket sales countdown: show when event is < 24 hours away and not yet started/completed
+$salesCloseTimestamp = $eventDate ?: 0; // Sales close at event start time
+$hoursUntilClose = $salesCloseTimestamp ? ($salesCloseTimestamp - $now) / 3600 : 0;
+$showCountdown = !$isCompleted && !$isLiveNow && $salesCloseTimestamp && $hoursUntilClose > 0 && $hoursUntilClose <= 24;
+
 $shareUrl = event_url($event);
 $shareText = urlencode("Check out " . ($event->name ?? 'this event') . " on Eventlyy!");
 $encodedShareUrl = urlencode($shareUrl);
@@ -315,6 +321,162 @@ $encodedShareUrl = urlencode($shareUrl);
         width: 100%;
     }
 }
+
+/* ── Ticket Sales Countdown Banner ── */
+.ep-countdown-banner {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%);
+    border: 1.5px solid #f59e0b;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.18);
+    animation: ep-countdown-pulse 3s ease-in-out infinite;
+}
+@keyframes ep-countdown-pulse {
+    0%, 100% { box-shadow: 0 2px 12px rgba(245, 158, 11, 0.18); }
+    50% { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35); }
+}
+.ep-countdown-banner__icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.ep-countdown-banner__body {
+    flex: 1;
+    min-width: 0;
+}
+.ep-countdown-banner__label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #92400e;
+    margin-bottom: 4px;
+}
+.ep-countdown-banner__timer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.ep-countdown-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 8px;
+    padding: 5px 10px;
+    min-width: 52px;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.ep-countdown-unit__value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #78350f;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+.ep-countdown-unit__label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #92400e;
+    margin-top: 1px;
+}
+.ep-countdown-sep {
+    font-size: 20px;
+    font-weight: 800;
+    color: #b45309;
+    line-height: 1;
+    margin-top: -8px;
+}
+.ep-countdown-banner__note {
+    font-size: 12px;
+    color: #92400e;
+    margin-top: 5px;
+    font-weight: 500;
+}
+.ep-countdown-banner--urgent {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #f87171 100%);
+    border-color: #ef4444;
+    animation-name: ep-countdown-urgent-pulse;
+}
+@keyframes ep-countdown-urgent-pulse {
+    0%, 100% { box-shadow: 0 2px 12px rgba(239, 68, 68, 0.18); }
+    50% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+}
+.ep-countdown-banner--urgent .ep-countdown-banner__label {
+    color: #991b1b;
+}
+.ep-countdown-banner--urgent .ep-countdown-unit__value {
+    color: #991b1b;
+}
+.ep-countdown-banner--urgent .ep-countdown-unit__label {
+    color: #b91c1c;
+}
+.ep-countdown-banner--urgent .ep-countdown-sep {
+    color: #dc2626;
+}
+.ep-countdown-banner--urgent .ep-countdown-banner__note {
+    color: #991b1b;
+}
+.ep-countdown-banner--urgent .ep-countdown-unit {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+@media (max-width: 480px) {
+    .ep-countdown-banner {
+        flex-direction: column;
+        text-align: center;
+        padding: 14px 14px;
+        gap: 8px;
+    }
+    .ep-countdown-banner__timer {
+        justify-content: center;
+    }
+    .ep-countdown-unit {
+        min-width: 46px;
+        padding: 4px 8px;
+    }
+    .ep-countdown-unit__value {
+        font-size: 19px;
+    }
+}
+
+/* ── Order Summary Countdown Badge ── */
+.ep-summary__timer-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px dashed rgba(245, 158, 11, 0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: #92400e;
+}
+.ep-summary__timer-badge strong {
+    font-family: monospace;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #78350f;
+    letter-spacing: 0.05em;
+}
+.ep-summary__timer-badge--urgent {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #991b1b;
+}
+.ep-summary__timer-badge--urgent strong {
+    color: #b91c1c;
+}
 </style>
 @endsection
 
@@ -537,12 +699,46 @@ $encodedShareUrl = urlencode($shareUrl);
 <?php else: ?>
     <form id="tickets-form" method="GET" action="{{ route('checkout/{event_id}', ['event_id' => $eventIdentifier]) }}">
         <input type="hidden" name="event_id" value="<?= $eventIdentifier ?>" />
+        <input type="hidden" name="occ_id" value="<?= (int)($event->id ?? 0) ?>" />
+        <?php if (!empty($event->recurrence_sequence)): ?>
+            <input type="hidden" name="occ" value="<?= (int)$event->recurrence_sequence ?>" />
+        <?php endif; ?>
         <?php if (!empty($refCode) || !empty($_GET['ref'])): ?>
             <input type="hidden" name="ref" value="<?= e($refCode ?? ($_GET['ref'] ?? '')) ?>" />
         <?php endif; ?>
 
         <section class="ep-tickets reveal-on-scroll">
             <div class="ep-tickets__main">
+                <?php if ($showCountdown): ?>
+                <!-- ── Ticket Sales Closing Countdown ── -->
+                <div class="ep-countdown-banner" id="ticket-countdown-banner"
+                     data-close-timestamp="<?= $salesCloseTimestamp ?>">
+                    <span class="ep-countdown-banner__icon">⏳</span>
+                    <div class="ep-countdown-banner__body">
+                        <div class="ep-countdown-banner__label">Online Ticket Sales Closing Soon</div>
+                        <div class="ep-countdown-banner__timer" id="countdown-timer">
+                            <div class="ep-countdown-unit">
+                                <span class="ep-countdown-unit__value" id="cd-hours">--</span>
+                                <span class="ep-countdown-unit__label">Hours</span>
+                            </div>
+                            <span class="ep-countdown-sep">:</span>
+                            <div class="ep-countdown-unit">
+                                <span class="ep-countdown-unit__value" id="cd-minutes">--</span>
+                                <span class="ep-countdown-unit__label">Mins</span>
+                            </div>
+                            <span class="ep-countdown-sep">:</span>
+                            <div class="ep-countdown-unit">
+                                <span class="ep-countdown-unit__value" id="cd-seconds">--</span>
+                                <span class="ep-countdown-unit__label">Secs</span>
+                            </div>
+                        </div>
+                        <div class="ep-countdown-banner__note">
+                            Online booking closes at event start (<?= date('D, M j \a\t g:i A', $salesCloseTimestamp) ?>). Gate passes available during live event.
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="ep-tickets__header">
                     <h2>
                         Select Tickets
@@ -627,6 +823,12 @@ $encodedShareUrl = urlencode($shareUrl);
                 <div class="ep-summary__head">
                     <h3>Your Order Summary</h3>
                     <p>Review ticket selection and total cost.</p>
+                    <?php if ($showCountdown): ?>
+                        <div class="ep-summary__timer-badge" id="summary-countdown-badge">
+                            <span>⏳ Sales Close In:</span>
+                            <strong id="summary-countdown-text">--:--:--</strong>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <div class="ep-summary__items" id="summary-items"></div>
                 <div class="ep-summary__total">
@@ -889,6 +1091,67 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     updateSummary();
+
+    /* ── Ticket Sales Countdown Timer ── */
+    var countdownBanner = document.getElementById('ticket-countdown-banner');
+    if (countdownBanner) {
+        var closeTimestamp = parseInt(countdownBanner.getAttribute('data-close-timestamp'), 10);
+        var cdHours = document.getElementById('cd-hours');
+        var cdMinutes = document.getElementById('cd-minutes');
+        var cdSeconds = document.getElementById('cd-seconds');
+        var summaryCdText = document.getElementById('summary-countdown-text');
+        var summaryCdBadge = document.getElementById('summary-countdown-badge');
+
+        function updateCountdown() {
+            var nowSec = Math.floor(Date.now() / 1000);
+            var diff = closeTimestamp - nowSec;
+
+            if (diff <= 0) {
+                // Online pre-sales window elapsed — transition to Live Gate Sales mode safely
+                countdownBanner.style.display = 'none';
+                if (summaryCdBadge) summaryCdBadge.style.display = 'none';
+                var reloadKey = 'cd_done_' + closeTimestamp;
+                if (!sessionStorage.getItem(reloadKey)) {
+                    sessionStorage.setItem(reloadKey, '1');
+                    window.location.reload();
+                }
+                return;
+            }
+
+            var h = Math.floor(diff / 3600);
+            var m = Math.floor((diff % 3600) / 60);
+            var s = diff % 60;
+
+            var hStr = h < 10 ? '0' + h : '' + h;
+            var mStr = m < 10 ? '0' + m : '' + m;
+            var sStr = s < 10 ? '0' + s : '' + s;
+
+            if (cdHours) cdHours.textContent = hStr;
+            if (cdMinutes) cdMinutes.textContent = mStr;
+            if (cdSeconds) cdSeconds.textContent = sStr;
+
+            if (summaryCdText) {
+                summaryCdText.textContent = hStr + ':' + mStr + ':' + sStr;
+            }
+
+            // Switch to urgent (red) style when under 2 hours
+            if (diff <= 7200) {
+                if (!countdownBanner.classList.contains('ep-countdown-banner--urgent')) {
+                    countdownBanner.classList.add('ep-countdown-banner--urgent');
+                    var iconEl = countdownBanner.querySelector('.ep-countdown-banner__icon');
+                    var labelEl = countdownBanner.querySelector('.ep-countdown-banner__label');
+                    if (iconEl) iconEl.textContent = '🔥';
+                    if (labelEl) labelEl.textContent = 'Hurry! Sales Closing Very Soon';
+                }
+                if (summaryCdBadge && !summaryCdBadge.classList.contains('ep-summary__timer-badge--urgent')) {
+                    summaryCdBadge.classList.add('ep-summary__timer-badge--urgent');
+                }
+            }
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    }
 });
 </script>
 

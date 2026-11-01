@@ -95,6 +95,9 @@ class AdminEventService
 
         $stmt = $db->prepare("
             SELECT e.*, u.email as organizer_email,
+                   (SELECT MIN(price) FROM ticket_types tt WHERE tt.event_id = e.id) as min_price,
+                   (SELECT MAX(price) FROM ticket_types tt WHERE tt.event_id = e.id) as max_price,
+                   (SELECT COUNT(*) FROM ticket_types tt WHERE tt.event_id = e.id) as ticket_type_count,
                    (CASE 
                        WHEN e.recurrence_group_id IS NOT NULL AND e.recurrence_group_id != '' THEN
                            (SELECT COUNT(*) FROM tickets t INNER JOIN events ev ON t.event_id = ev.id WHERE ev.recurrence_group_id = e.recurrence_group_id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL))

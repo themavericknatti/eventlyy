@@ -84,6 +84,7 @@ class EventController extends Controller
             }
 
             if (empty($event)) {
+                $completionHours = function_exists('event_completion_hours') ? event_completion_hours() : 12;
                 $stmt = $db->prepare("
                     SELECT e.*, 
                            u.name as organizer_name, 
@@ -96,8 +97,12 @@ class EventController extends Controller
                     LEFT JOIN host_profiles hp ON hp.user_id = u.id
                     WHERE e.slug = :slug OR e.custom_url = :custom_url
                     ORDER BY 
-                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN 0 ELSE 1 END ASC,
-                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN e.date END ASC,
+                        CASE 
+                            WHEN e.status = 'published' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN 0 
+                            WHEN e.status = 'published' THEN 1
+                            ELSE 2 
+                        END ASC,
+                        CASE WHEN e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN e.date END ASC,
                         e.date DESC
                     LIMIT 1
                 ");
@@ -263,6 +268,7 @@ class EventController extends Controller
             }
 
             if (empty($event)) {
+                $completionHours = function_exists('event_completion_hours') ? event_completion_hours() : 12;
                 $stmt = $db->prepare("
                     SELECT e.*, 
                            u.name as organizer_name, 
@@ -274,8 +280,12 @@ class EventController extends Controller
                     LEFT JOIN host_profiles hp ON hp.user_id = u.id
                     WHERE e.slug = :slug OR e.custom_url = :custom_url
                     ORDER BY 
-                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN 0 ELSE 1 END ASC,
-                        CASE WHEN e.date >= NOW() - INTERVAL 4 HOUR THEN e.date END ASC,
+                        CASE 
+                            WHEN e.status = 'published' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN 0 
+                            WHEN e.status = 'published' THEN 1
+                            ELSE 2 
+                        END ASC,
+                        CASE WHEN e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN e.date END ASC,
                         e.date DESC
                     LIMIT 1
                 ");

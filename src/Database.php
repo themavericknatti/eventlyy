@@ -25,6 +25,13 @@ class Database
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
+
+            // Synchronize MySQL session time zone with Africa/Lagos (UTC+1)
+            try {
+                $this->pdo->exec("SET time_zone = '+01:00'");
+            } catch (\Throwable $tzEx) {
+                // Ignore if restricted by database host privilege
+            }
         } catch (Exception $e) {
             // Check for code 1049 (Unknown database) to auto-create
             if (str_contains($e->getMessage(), 'Unknown database') || $e->getCode() == 1049) {
@@ -41,6 +48,10 @@ class Database
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                         PDO::ATTR_EMULATE_PREPARES => false,
                     ]);
+
+                    try {
+                        $this->pdo->exec("SET time_zone = '+01:00'");
+                    } catch (\Throwable $tzEx) {}
                 } catch (Exception $subEx) {
                     throw new Exception("Database Connection Failed (could not auto-create database): " . $subEx->getMessage(), 500);
                 }

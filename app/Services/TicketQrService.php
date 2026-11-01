@@ -3,13 +3,22 @@
 namespace App\Services;
 
 use Ace\Application;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
+use chillerlan\QRCode\Common\EccLevel;
+use chillerlan\QRCode\Output\QRGdImagePNG;
 
 class TicketQrService
 {
     /**
-     * Generate or fetch a cached high-contrast QR code composited with the Eventlyy brand logo.
-     * Uses Level H (30%) Reed-Solomon Error Correction and a protective white rounded badge
+     * Generate or fetch a cached high-contrast QR code composited with the Eventlyy brand emblem.
+     * Uses Level H (30%) Reed-Solomon Error Correction and matrix-aware logo space reservation
      * to guarantee optical gate scanning reliability.
+     *
+     * The center emblem is a bold cursive italic "E" in Eventlyy teal (#0B7366) inside
+     * a circular badge. This approach avoids distorted logos that break scanning.
+     *
+     * Zero external network dependencies — all generation is local via chillerlan/php-qrcode + GD.
      *
      * @param string $ticketCode Unique ticket admission code
      * @param int $size Dimension in pixels (default 240, clamped between 120 and 800)
@@ -18,52 +27,44 @@ class TicketQrService
     public function generateQrPng(string $ticketCode, int $size = 240): string
     {
         $code = trim($ticketCode);
+        if ($code === '') {
+            $code = 'UNKNOWN';
+        }
         $size = max(120, min(800, $size));
 
-        $cacheDir = (Application::$ROOT_DIR ?? dirname(__DIR__, 2)) . '/storage/cache/qr';
+        // ── Disk cache ──
+        $rootDir = $this->getRootDir();
+        $cacheDir = $rootDir . '/storage/cache/qr';
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0775, true);
         }
 
-        $logoPath = $this->resolveLogoPath();
-        $logoMtime = ($logoPath && file_exists($logoPath)) ? (string)filemtime($logoPath) : 'no-logo';
-        $cacheKey = md5("qr_v1_{$code}_{$size}_{$logoMtime}");
+        $cacheKey = md5("qr_v2_{$code}_{$size}");
         $cacheFile = $cacheDir . '/' . $cacheKey . '.png';
 
         // Serve from disk cache if already generated
-        if (file_exists($cacheFile) && filesize($cacheFile) > 0) {
+        if (file_exists($cacheFile) && filesize($cacheFile) > 100) {
             $cached = @file_get_contents($cacheFile);
-            if ($cached !== false && strlen($cached) > 0) {
+            if ($cached !== false && strlen($cached) > 100) {
                 return $cached;
             }
         }
 
-        // Fetch high-error-correction base QR code
-        $baseQrPng = $this->fetchBaseQrCode($code, $size);
-        if (!$baseQrPng) {
-            // Fallback emergency blank/simple image if external API is unreachable
-            return $this->generateEmergencyFallback($code, $size);
-        }
+        // ── Generate QR locally with chillerlan/php-qrcode ──
+        $png = $this->renderBrandedQr($code, $size);
 
-        // If no logo available or GD not loaded, return base QR directly
-        if (!$logoPath || !file_exists($logoPath) || !extension_loaded('gd')) {
-            @file_put_contents($cacheFile, $baseQrPng);
-            return $baseQrPng;
-        }
+        // Cache to disk for instant re-reads at gate
+        @file_put_contents($cacheFile, $png);
 
-        // Composite the logo onto the center
-        $compositedPng = $this->compositeLogo($baseQrPng, $logoPath, $size);
-        if ($compositedPng) {
-            @file_put_contents($cacheFile, $compositedPng);
-            return $compositedPng;
-        }
-
-        return $baseQrPng;
+        return $png;
     }
 
     /**
      * Generate a self-contained Base64 Data URI (data:image/png;base64,...) of the branded QR code.
-     * Perfect for direct embedding inside HTML emails without depending on external image proxies or web access.
+     *
+     * NOTE: Gmail and many email clients BLOCK data: URIs in <img> tags.
+     * For emails, prefer ticket_qr_url() which returns a publicly accessible HTTPS URL.
+     * This method is useful for in-app rendering (profile page, success page, PDF export).
      *
      * @param string $ticketCode Unique ticket admission code
      * @param int $size Dimension in pixels (default 240)
@@ -76,295 +77,153 @@ class TicketQrService
     }
 
     /**
-     * Fetch the raw QR code with Level H Error Correction from QR Server API.
+     * Render a branded QR code with matrix-aware logo space reservation and center emblem.
+     *
+     * Uses chillerlan/php-qrcode to generate the QR matrix with a 7×7 module quiet zone
+     * in the center (via addLogoSpace), then composites a teal circle with a cursive italic
+     * "E" character rendered in the InstrumentSerif-Italic font.
+     *
+     * The approach ensures:
+     * 1. The QR matrix algorithm reserves empty space — no Reed-Solomon codewords destroyed
+     * 2. ECC Level H (30%) provides ample error correction headroom
+     * 3. The emblem is size-proportional and stays within the safe zone
+     * 4. Output is resampled to the exact requested pixel dimension
+     *
+     * @param string $code The ticket code text to encode
+     * @param int $targetSize Final output dimension in pixels
+     * @return string Binary PNG data
      */
-    protected function fetchBaseQrCode(string $code, int $size): ?string
+    protected function renderBrandedQr(string $code, int $targetSize): string
     {
-        $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&margin=4&ecc=H&color=0-0-0&bgcolor=255-255-255&data=" . urlencode($code);
+        $scale = 10;          // High-res internal rendering scale
+        $logoModules = 7;     // 7×7 modules reserved in center (safe for ECC-H)
 
-        if (function_exists('curl_init')) {
-            $ch = curl_init($qrUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Eventlyy-Ticket-Engine/1.0');
-            $data = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+        $options = new QROptions([
+            'outputInterface' => QRGdImagePNG::class,
+            'eccLevel'        => EccLevel::H,
+            'scale'           => $scale,
+            'outputBase64'    => false,
+            'addLogoSpace'    => true,
+            'logoSpaceWidth'  => $logoModules,
+            'logoSpaceHeight' => $logoModules,
+            'quietzoneSize'   => 4,
+        ]);
 
-            if ($httpCode === 200 && !empty($data)) {
-                return $data;
+        $qr = new QRCode($options);
+        $rawPng = $qr->render($code);
+
+        // If GD is not available, return the raw (un-badged) QR code
+        if (!extension_loaded('gd')) {
+            return $rawPng;
+        }
+
+        $qrImg = @imagecreatefromstring($rawPng);
+        if (!$qrImg) {
+            return $rawPng;
+        }
+
+        imagealphablending($qrImg, true);
+        imagesavealpha($qrImg, true);
+
+        $w = imagesx($qrImg);
+        $h = imagesy($qrImg);
+        $centerX = (int)($w / 2);
+        $centerY = (int)($h / 2);
+
+        // Badge fits snugly inside the reserved 7×7 module quiet zone
+        $badgeSize = $logoModules * $scale;
+
+        // Brand colors: Deep Emerald Teal (#0B7366) and Pure White (#FFFFFF)
+        $white = imagecolorallocate($qrImg, 255, 255, 255);
+        $teal  = imagecolorallocate($qrImg, 11, 115, 102);
+
+        // 1. Outer protective white circular isolation halo
+        imagefilledellipse($qrImg, $centerX, $centerY, $badgeSize, $badgeSize, $white);
+
+        // 2. Inner brand teal circular badge (84% of outer = 2px white ring at scale 10)
+        $innerBadge = (int)round($badgeSize * 0.84);
+        imagefilledellipse($qrImg, $centerX, $centerY, $innerBadge, $innerBadge, $teal);
+
+        // 3. Bold cursive italic "E" character
+        $fontPath = $this->resolveFontPath();
+        if ($fontPath && function_exists('imagettftext')) {
+            $fontSize = (int)round($innerBadge * 0.58);
+            $bbox = @imagettfbbox($fontSize, 0, $fontPath, 'E');
+            if ($bbox) {
+                $textWidth  = abs($bbox[4] - $bbox[0]);
+                $textHeight = abs($bbox[5] - $bbox[1]);
+                $tx = (int)round($centerX - ($textWidth / 2)) - $bbox[0] - 1;
+                $ty = (int)round($centerY + ($textHeight / 2)) - 3;
+                imagettftext($qrImg, $fontSize, 0, $tx, $ty, $white, $fontPath, 'E');
             }
         }
 
-        $context = stream_context_create([
-            'http' => ['timeout' => 8, 'user_agent' => 'Eventlyy-Ticket-Engine/1.0'],
-            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false]
-        ]);
-        $data = @file_get_contents($qrUrl, false, $context);
-        return $data ?: null;
-    }
-
-    /**
-     * Composite the Eventlyy logo onto the center of the QR code using PHP GD.
-     */
-    protected function compositeLogo(string $qrPngData, string $logoPath, int $size): ?string
-    {
-        $qrImage = @imagecreatefromstring($qrPngData);
-        if (!$qrImage) {
-            return null;
+        // 4. Resample to the exact requested target dimension
+        if ($w !== $targetSize || $h !== $targetSize) {
+            $resized = imagecreatetruecolor($targetSize, $targetSize);
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+            imagecopyresampled($resized, $qrImg, 0, 0, 0, 0, $targetSize, $targetSize, $w, $h);
+            imagedestroy($qrImg);
+            $qrImg = $resized;
         }
-
-        $logoInfo = @getimagesize($logoPath);
-        if (!$logoInfo) {
-            imagedestroy($qrImage);
-            return null;
-        }
-
-        $logoImage = null;
-        switch ($logoInfo['mime'] ?? '') {
-            case 'image/png':
-                $logoImage = @imagecreatefrompng($logoPath);
-                break;
-            case 'image/jpeg':
-                $logoImage = @imagecreatefromjpeg($logoPath);
-                break;
-            case 'image/webp':
-                if (function_exists('imagecreatefromwebp')) {
-                    $logoImage = @imagecreatefromwebp($logoPath);
-                }
-                break;
-        }
-
-        if (!$logoImage) {
-            imagedestroy($qrImage);
-            return null;
-        }
-
-        imagealphablending($qrImage, true);
-        imagesavealpha($qrImage, true);
-
-        $qrWidth = imagesx($qrImage);
-        $qrHeight = imagesy($qrImage);
-
-        // Target logo size: 20% of QR dimensions (safe for ECC Level H)
-        $logoTargetSize = (int)round($qrWidth * 0.20);
-        $badgePadding = (int)round($qrWidth * 0.025); // Protective white border
-        $badgeSize = $logoTargetSize + ($badgePadding * 2);
-
-        $badgeX1 = (int)round(($qrWidth - $badgeSize) / 2);
-        $badgeY1 = (int)round(($qrHeight - $badgeSize) / 2);
-        $badgeX2 = $badgeX1 + $badgeSize;
-        $badgeY2 = $badgeY1 + $badgeSize;
-        $radius = (int)round($badgeSize * 0.22); // Smooth modern rounded corner
-
-        $white = imagecolorallocate($qrImage, 255, 255, 255);
-        $borderColor = imagecolorallocate($qrImage, 226, 232, 240); // Soft subtle slate border (#e2e8f0)
-
-        // Draw outer 1px border
-        $this->drawRoundedRect($qrImage, $badgeX1 - 1, $badgeY1 - 1, $badgeX2 + 1, $badgeY2 + 1, $radius + 1, $borderColor);
-
-        // Draw solid white protective background
-        $this->drawRoundedRect($qrImage, $badgeX1, $badgeY1, $badgeX2, $badgeY2, $radius, $white);
-
-        // Copy and resample logo with alpha transparency
-        $logoX = $badgeX1 + $badgePadding;
-        $logoY = $badgeY1 + $badgePadding;
-
-        imagealphablending($logoImage, true);
-        imagecopyresampled(
-            $qrImage,
-            $logoImage,
-            $logoX,
-            $logoY,
-            0,
-            0,
-            $logoTargetSize,
-            $logoTargetSize,
-            imagesx($logoImage),
-            imagesy($logoImage)
-        );
 
         ob_start();
-        imagepng($qrImage, null, 9);
+        imagepng($qrImg, null, 9);
         $finalPng = ob_get_clean();
+        imagedestroy($qrImg);
 
-        imagedestroy($qrImage);
-        imagedestroy($logoImage);
-
-        return $finalPng ?: null;
+        return $finalPng ?: $rawPng;
     }
 
     /**
-     * Draw a smooth rounded rectangle filled with a given color.
+     * Resolve the path to the InstrumentSerif-Italic TTF font used for the center "E" emblem.
+     * Searches multiple candidate directories for production/development compatibility.
+     *
+     * @return string|null Absolute path to the TTF font file, or null if not found
      */
-    protected function drawRoundedRect($img, int $x1, int $y1, int $x2, int $y2, int $r, int $color): void
+    protected function resolveFontPath(): ?string
     {
-        $r = max(1, $r);
-        imagefilledrectangle($img, $x1 + $r, $y1, $x2 - $r, $y2, $color);
-        imagefilledrectangle($img, $x1, $y1 + $r, $x2, $y2 - $r, $color);
-        imagefilledellipse($img, $x1 + $r, $y1 + $r, $r * 2, $r * 2, $color);
-        imagefilledellipse($img, $x2 - $r, $y1 + $r, $r * 2, $r * 2, $color);
-        imagefilledellipse($img, $x2 - $r, $y2 - $r, $r * 2, $r * 2, $color);
-        imagefilledellipse($img, $x1 + $r, $y2 - $r, $r * 2, $r * 2, $color);
-    }
+        $rootDir = $this->getRootDir();
+        $candidates = [
+            $rootDir . '/public/assets/fonts/InstrumentSerif-Italic.ttf',
+            $rootDir . '/public_html/assets/fonts/InstrumentSerif-Italic.ttf',
+        ];
 
-    /**
-     * Locate the physical image path of the Eventlyy brand logo.
-     * Fully compatible with:
-     * - Live production cPanel / DirectAdmin (domains/eventlyy.com/public_html/assets/...)
-     * - Local development (public/assets/...)
-     * - Web server DOCUMENT_ROOT
-     */
-    protected function resolveLogoPath(): ?string
-    {
-        $baseDirs = $this->getPublicBaseDirs();
-
-        // 1. Check configured site_logo in settings
-        $configuredLogo = function_exists('site_setting') ? site_setting('site_logo') : null;
-        if (!empty($configuredLogo)) {
-            $path = $this->findFileInBaseDirs($configuredLogo, $baseDirs);
-            if ($path) {
-                return $path;
-            }
+        // Check DOCUMENT_ROOT for production hosting
+        if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+            $docRoot = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']), '/');
+            $candidates[] = $docRoot . '/assets/fonts/InstrumentSerif-Italic.ttf';
         }
 
-        // 2. Check site_favicon as crisp icon mark
-        $configuredFavicon = function_exists('site_setting') ? site_setting('site_favicon') : null;
-        if (!empty($configuredFavicon)) {
-            $path = $this->findFileInBaseDirs($configuredFavicon, $baseDirs);
-            if ($path) {
-                return $path;
-            }
-        }
-
-        // 3. Fallback scan in branding directories (public_html/assets/img/branding, public/assets/img/branding, etc.)
-        foreach ($baseDirs as $dir) {
-            $scanDirs = [
-                $dir . '/assets/img/branding',
-                $dir . '/img/branding',
-                $dir . '/assets/img',
-            ];
-            foreach ($scanDirs as $sDir) {
-                if (is_dir($sDir)) {
-                    $files = glob($sDir . '/*.png');
-                    if (!empty($files)) {
-                        return $files[0];
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Search for an image file across all candidate public root directories.
-     */
-    protected function findFileInBaseDirs(string $relativePath, array $baseDirs): ?string
-    {
-        $clean = ltrim($relativePath, '/\\');
-        $raw = preg_replace('#^assets/#i', '', $clean);
-
-        foreach ($baseDirs as $dir) {
-            $candidates = [
-                $dir . '/assets/' . $raw,
-                $dir . '/' . $clean,
-                $dir . '/' . $raw,
-                $dir . '/assets/' . $clean,
-                $dir . '/uploads/' . $clean,
-            ];
-
-            foreach ($candidates as $cand) {
-                if (file_exists($cand) && is_file($cand) && is_readable($cand)) {
-                    return $cand;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Detect all candidate public directories on disk across local and live production hosting.
-     * Supports cPanel, DirectAdmin (domains/eventlyy.com/public_html), Docker, and local XAMPP.
-     */
-    protected function getPublicBaseDirs(): array
-    {
-        $rootDir = Application::$ROOT_DIR ?? (defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 2));
-        $dirs = [];
-
-        // 1. Web server DOCUMENT_ROOT (e.g. /home/user/domains/eventlyy.com/public_html)
-        if (!empty($_SERVER['DOCUMENT_ROOT']) && is_dir($_SERVER['DOCUMENT_ROOT'])) {
-            $dirs[] = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']), '/');
-        }
-
-        // 2. Explicit ACE_PUBLIC_DIR if defined by index.php
-        if (defined('ACE_PUBLIC_DIR') && is_dir(ACE_PUBLIC_DIR)) {
-            $dirs[] = rtrim(str_replace('\\', '/', ACE_PUBLIC_DIR), '/');
-        }
-
-        // 3. Application public_dir() helper if loaded
-        if (function_exists('public_dir')) {
-            $p = public_dir();
-            if (is_dir($p)) {
-                $dirs[] = rtrim(str_replace('\\', '/', $p), '/');
-            }
-        }
-
-        // 4. Production public_html under application root (e.g. root/public_html)
-        if (is_dir($rootDir . '/public_html')) {
-            $dirs[] = rtrim(str_replace('\\', '/', $rootDir . '/public_html'), '/');
-        }
-
-        // 5. Production public_html in parent folder (common in cPanel / DirectAdmin: ../public_html)
+        // Check parent directory for cPanel/DirectAdmin hosting
         $parent = dirname($rootDir);
         if (is_dir($parent . '/public_html')) {
-            $dirs[] = rtrim(str_replace('\\', '/', $parent . '/public_html'), '/');
+            $candidates[] = $parent . '/public_html/assets/fonts/InstrumentSerif-Italic.ttf';
         }
 
-        // 6. DirectAdmin / cPanel domain specific path checks (domains/*/public_html)
-        if (str_contains($rootDir, 'domains')) {
-            $parts = explode('/domains/', str_replace('\\', '/', $rootDir));
-            if (!empty($parts[1])) {
-                $domainPart = explode('/', $parts[1])[0];
-                $domPublicHtml = $parts[0] . '/domains/' . $domainPart . '/public_html';
-                if (is_dir($domPublicHtml)) {
-                    $dirs[] = rtrim($domPublicHtml, '/');
-                }
+        foreach ($candidates as $path) {
+            if (file_exists($path) && is_readable($path)) {
+                return $path;
             }
         }
 
-        // 7. Local development public/ folder
-        if (is_dir($rootDir . '/public')) {
-            $dirs[] = rtrim(str_replace('\\', '/', $rootDir . '/public'), '/');
-        }
-
-        // 8. Application root directory itself
-        if (is_dir($rootDir)) {
-            $dirs[] = rtrim(str_replace('\\', '/', $rootDir), '/');
-        }
-
-        return array_values(array_unique($dirs));
+        return null;
     }
 
     /**
-     * Emergency fallback image if external QR service is unreachable.
+     * Get the application root directory, with safe fallbacks.
+     *
+     * @return string Absolute path to project root
      */
-    protected function generateEmergencyFallback(string $code, int $size): string
+    protected function getRootDir(): string
     {
-        $im = imagecreatetruecolor($size, $size);
-        $white = imagecolorallocate($im, 255, 255, 255);
-        $dark = imagecolorallocate($im, 15, 23, 42);
-        imagefilledrectangle($im, 0, 0, $size, $size, $white);
-        imagerectangle($im, 2, 2, $size - 3, $size - 3, $dark);
-        $text = "ADMISSION PASS\n" . substr($code, 0, 16);
-        imagestring($im, 3, 10, (int)($size / 2) - 10, $text, $dark);
-        ob_start();
-        imagepng($im);
-        $fallback = ob_get_clean();
-        imagedestroy($im);
-        return $fallback;
+        if (!empty(Application::$ROOT_DIR)) {
+            return Application::$ROOT_DIR;
+        }
+        if (defined('ROOT_DIR')) {
+            return ROOT_DIR;
+        }
+        return dirname(__DIR__, 2);
     }
 }

@@ -84,7 +84,7 @@ class CheckInTicketAction
                 'result' => [
                     'status' => 'warning',
                     'type' => 'flagged',
-                    'message' => '⚠️ FLAGGED TICKET: This ticket requires host review before admission. Attendee: ' . $ticket['attendee_name'],
+                    'message' => '⚠️ FLAGGED TICKET: This ticket requires host review before admission. Attendee: ' . ($ticket['attendee_name'] ?? 'Attendee'),
                     'code' => $ticketCode,
                     'ticket' => $ticket
                 ]
@@ -93,26 +93,27 @@ class CheckInTicketAction
 
         // 5. Check if already checked in
         if ($ticket['checked_in']) {
+            $checkTime = !empty($ticket['checked_in_at']) ? date('h:i A', strtotime($ticket['checked_in_at'])) : 'earlier';
             return [
                 'status' => 'error',
                 'flash_type' => 'warning',
-                'flash_message' => 'Ticket code ' . $ticketCode . ' is already checked in.',
+                'flash_message' => 'Ticket ' . $ticket['id'] . ' (' . ($ticket['attendee_name'] ?? 'Attendee') . ') is already checked in.',
                 'result' => [
                     'status' => 'error',
                     'type' => 'duplicate',
-                    'message' => 'This ticket was already checked in today at ' . date('h:i A', strtotime($ticket['checked_in_at'])),
-                    'code' => $ticketCode,
+                    'message' => 'ALREADY SCANNED: This ticket was already checked in at ' . $checkTime . ' for ' . ($ticket['attendee_name'] ?? 'Attendee') . '.',
+                    'code' => $ticket['id'],
                     'ticket' => $ticket
                 ]
             ];
         }
 
-        // 4. Perform check-in
+        // 6. Perform check-in (bound strictly to verified ticket's database ID)
         $now = date('Y-m-d H:i:s');
         $stmt = $db->prepare("UPDATE tickets SET checked_in = 1, checked_in_at = :now WHERE id = :id");
         $stmt->execute([
             'now' => $now,
-            'id' => $ticketCode
+            'id' => $ticket['id']
         ]);
 
         $ticket['checked_in'] = 1;
@@ -121,12 +122,12 @@ class CheckInTicketAction
         return [
             'status' => 'success',
             'flash_type' => 'success',
-            'flash_message' => 'Ticket ' . $ticketCode . ' checked in successfully!',
+            'flash_message' => 'Ticket ' . $ticket['id'] . ' (' . ($ticket['attendee_name'] ?? 'Attendee') . ') checked in successfully!',
             'result' => [
                 'status' => 'success',
                 'type' => 'success',
-                'message' => 'Verified successfully.',
-                'code' => $ticketCode,
+                'message' => 'Verified successfully: Welcome ' . ($ticket['attendee_name'] ?? 'Guest') . '!',
+                'code' => $ticket['id'],
                 'ticket' => $ticket
             ]
         ];
