@@ -45,13 +45,15 @@
     ?>
 
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">
+    @include('partials/theme-styles')
+    @include('partials/pwa-head')
 
     <?php if (app()->request->is('host/event/ticket-verification', 'host/event/ticket-verification/*')): ?>
         <script src="{{ route('assets/js/html5qrcode.min.js') }}?v=<?= $html5QrcodeJsVer ?>"></script>
     <?php endif; ?>
 </head>
 
-<body>
+<body class="vn-shell">
     @include('partials/host-header')
     <main class="container">
         @session('success')

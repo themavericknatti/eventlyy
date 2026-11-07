@@ -34,6 +34,28 @@ use App\Controllers\TicketController;
 // Branded Ticket Admission QR Code Generator
 $router->get('/ticket/qr/{code}', [TicketController::class, 'qrCode']);
 
+// Dynamic PWA Manifest Route
+$router->get('/manifest.json', function () {
+    header('Content-Type: application/manifest+json; charset=utf-8');
+    echo json_encode([
+        'name' => site_setting('site_title', 'Eventlyy') . ' - Event Ticketing & Management',
+        'short_name' => site_setting('site_title', 'Eventlyy'),
+        'description' => site_setting('site_description', 'Discover, book, manage and verify event tickets with Eventlyy.'),
+        'start_url' => '/',
+        'scope' => '/',
+        'display' => 'standalone',
+        'orientation' => 'portrait-primary',
+        'background_color' => '#ffffff',
+        'theme_color' => function_exists('theme_primary_color') ? theme_primary_color() : '#108a55',
+        'icons' => [
+            ['src' => '/assets/img/branding/pwa-icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => '/assets/img/branding/pwa-icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => '/assets/img/branding/pwa-icon-maskable.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable']
+        ]
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+});
+
 // Home Route
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/about', [HomeController::class, 'about']);
@@ -104,6 +126,7 @@ $router->get('/host/event/management/{id}', [HostEventController::class, 'manage
 $router->get('/host/event/accounting/{id}', [HostEventController::class, 'accountingReport']);
 $router->get('/host/event/accounting/{id}/export', [HostEventController::class, 'exportAccountingCsv']);
 $router->get('/host/event/management/{id}/export', [HostEventController::class, 'exportAttendees']);
+$router->get('/host/event/management/{id}/export-pdf', [HostEventController::class, 'exportAttendeesPdf']);
 $router->get('/host/event/management/{id}/export-accounting', [HostEventController::class, 'exportAccountingReport']);
 $router->post('/host/event/management/{id}', [HostEventController::class, 'addTicketManually']);
 $router->post('/host/event/management/{id}/send-reminders', [HostEventController::class, 'sendReminders']);
@@ -142,6 +165,7 @@ $router->get('/admin/users/detail', [AdminUserController::class, 'userDetail']);
 $router->post('/admin/users', [AdminUserController::class, 'postAction']);
 $router->get('/admin/attendees', [AdminAttendeeController::class, 'index']);
 $router->get('/admin/attendees/export', [AdminAttendeeController::class, 'exportCsv']);
+$router->get('/admin/attendees/export-pdf', [AdminAttendeeController::class, 'exportPdf']);
 $router->get('/admin/events', [AdminEventController::class, 'events']);
 $router->post('/admin/events', [AdminEventController::class, 'deleteEvent']);
 $router->post('/admin/events/duplicate/{id}', [AdminEventController::class, 'duplicateEvent']);

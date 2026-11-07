@@ -12,6 +12,10 @@
  * @version 2.0.0
  */
 
+$currentStatus = $currentStatus ?? ($_GET['status'] ?? 'all');
+$search = $search ?? ($_GET['q'] ?? '');
+$counts = $counts ?? [];
+$inquiries = $inquiries ?? [];
 ?>
 
 @extends('layouts/admin')

@@ -34,16 +34,18 @@
     </button>
     <nav class="nav-desktop" role="navigation" aria-label="Top navigation">
         <a href="{{ route('admin/overview') }}" class="nav-link{{ app()->request->is('admin/overview', 'admin', 'admin/dashboard') ? ' active' : '' }}">Overview</a>
-        <a href="{{ route('admin/users') }}" class="nav-link{{ app()->request->is('admin/users') ? ' active' : '' }}">Users</a>
-        <a href="{{ route('admin/payouts') }}" class="nav-link{{ app()->request->is('admin/payouts') ? ' active' : '' }}" style="display:inline-flex; align-items:center; gap:0.35rem;">
+        <a href="{{ route('admin/events') }}" class="nav-link{{ app()->request->is('admin/events*') ? ' active' : '' }}">Events</a>
+        <a href="{{ route('admin/users') }}" class="nav-link{{ app()->request->is('admin/users*') ? ' active' : '' }}">Users</a>
+        <a href="{{ route('admin/payouts') }}" class="nav-link{{ app()->request->is('admin/payouts*') ? ' active' : '' }}" style="display:inline-flex; align-items:center; gap:0.35rem;">
             Payouts
             <?php if ($pendingPayouts > 0): ?>
                 <span class="nav-badge-count" style="background:#ef4444; color:#fff; font-size:0.72rem; font-weight:700; border-radius:999px; padding:0.1rem 0.45rem; line-height:1; min-width:18px; text-align:center; display:inline-block; box-shadow:0 2px 4px rgba(239, 68, 68, 0.4);"><?= $pendingPayouts ?></span>
             <?php endif; ?>
         </a>
-        <a href="{{ route('admin/settings') }}" class="nav-link{{ app()->request->is('admin/settings') ? ' active' : '' }}">Settings</a>
+        <a href="{{ route('admin/support') }}" class="nav-link{{ app()->request->is('admin/support*') ? ' active' : '' }}">Support</a>
         <a href="{{ route('admin/teams') }}" class="nav-link{{ app()->request->is('admin/teams*') ? ' active' : '' }}">Teams</a>
-        <a href="{{ route('host/dashboard') }}" class="nav-link" title="Switch to Host Dashboard to create and manage events" style="display:inline-flex; align-items:center; gap:0.3rem; color:rgb(var(--brand)); font-weight:600;">
+        <a href="{{ route('admin/settings') }}" class="nav-link{{ app()->request->is('admin/settings*') ? ' active' : '' }}">Settings</a>
+        <a href="{{ route('host/dashboard') }}" class="nav-link" title="Switch to Host Dashboard to create and manage events" style="display:inline-flex; align-items:center; gap:0.3rem; color:var(--vn-brass); font-weight:700;">
             <span>🎪</span> Host View
         </a>
         <a href="{{ route('profile') }}" class="nav-link{{ app()->request->is('profile') ? ' active' : '' }}" style="display:inline-flex; align-items:center; gap:0.35rem; font-weight:700;">👤 <?= e(user_first_name()) ?></a>

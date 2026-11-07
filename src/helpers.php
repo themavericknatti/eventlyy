@@ -77,6 +77,49 @@ if (!function_exists('get_setting')) {
     }
 }
 
+if (!function_exists('theme_primary_color')) {
+    /**
+     * Get configured primary brand theme color in hex format (e.g. #108a55).
+     */
+    function theme_primary_color(): string
+    {
+        $color = setting('theme_primary_color', '#108a55');
+        return (is_string($color) && preg_match('/^#[0-9a-fA-F]{6}$/', $color)) ? strtolower($color) : '#108a55';
+    }
+}
+
+if (!function_exists('theme_secondary_color')) {
+    /**
+     * Get configured secondary accent theme color in hex format (e.g. #1aae6c).
+     */
+    function theme_secondary_color(): string
+    {
+        $color = setting('theme_secondary_color', '#1aae6c');
+        return (is_string($color) && preg_match('/^#[0-9a-fA-F]{6}$/', $color)) ? strtolower($color) : '#1aae6c';
+    }
+}
+
+if (!function_exists('hex_to_rgb_triple')) {
+    /**
+     * Convert 6-character hex color to space-separated RGB string (e.g. "16 138 85")
+     * compatible with CSS rgb(var(--brand)) and rgba(var(--brand), alpha).
+     */
+    function hex_to_rgb_triple(string $hex): string
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        if (strlen($hex) !== 6) {
+            return '16 138 85';
+        }
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+        return "$r $g $b";
+    }
+}
+
 if (!function_exists('get_currency_symbol')) {
     /**
      * Get currency symbol based on active currency setting
@@ -849,8 +892,9 @@ if (!function_exists('format_price')) {
      * Format a price according to active currency settings.
      * Prevents division-by-zero errors, supports multiple currencies, and runs optimally.
      */
-    function format_price(float|int $amount, ?string $currencyCode = null): string
+    function format_price(float|int|string|null $amount = 0, ?string $currencyCode = null): string
     {
+        $amount = (float)($amount ?? 0);
         $currency = strtoupper($currencyCode ?: setting('currency', 'NGN'));
         $exchangeRate = (float) setting('exchange_rate', 1500.00);
 

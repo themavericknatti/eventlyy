@@ -1,3 +1,8 @@
+<?php
+$primaryColor = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$secondaryColor = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+$primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_to_rgb_triple($primaryColor)) : '16, 138, 85';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -49,7 +54,7 @@
         }
 
         .header {
-            background-color: #0B7366;
+            background-color: <?= $primaryColor ?>;
             padding: 32px 24px;
             text-align: center;
         }
@@ -60,7 +65,7 @@
             height: 36px;
             line-height: 36px;
             background-color: #ffffff;
-            color: #0B7366;
+            color: <?= $primaryColor ?>;
             font-weight: 900;
             font-size: 22px;
             border-radius: 8px;
@@ -103,7 +108,7 @@
         }
 
         .btn {
-            background-color: #0B7366;
+            background-color: <?= $primaryColor ?>;
             color: #ffffff !important;
             text-decoration: none;
             padding: 14px 32px;
@@ -111,7 +116,7 @@
             font-size: 14px;
             border-radius: 12px;
             display: inline-block;
-            box-shadow: 0 8px 16px rgba(11, 115, 102, 0.15);
+            box-shadow: 0 8px 16px rgba(<?= $primaryRgb ?>, 0.15);
         }
 
         .features {
@@ -146,7 +151,7 @@
         }
 
         .footer a {
-            color: #0B7366;
+            color: <?= $primaryColor ?>;
             text-decoration: none;
             font-weight: 600;
         }
@@ -181,7 +186,7 @@
 
                                 <?php $vUrl = $verification_url ?? '#'; ?>
                                 <div class="btn-wrap">
-                                    <a href="<?= e($vUrl) ?>" class="btn" style="background-color:#0B7366; color:#ffffff !important; padding:14px 32px; border-radius:12px; font-weight:700; text-decoration:none;">Verify Account &rarr;</a>
+                                    <a href="<?= e($vUrl) ?>" class="btn" style="background-color:<?= $primaryColor ?>; color:#ffffff !important; padding:14px 32px; border-radius:12px; font-weight:700; text-decoration:none;">Verify Account &rarr;</a>
                                 </div>
 
                                 <p>If you did not sign up for an <?= e(site_setting('site_title', 'Evently')) ?> account, you can safely ignore this email.</p>
@@ -204,10 +209,10 @@
                             <td class="footer">
                                 <p style="margin-bottom: 8px;">&copy; <?= date('Y') ?> <?= e(site_setting('site_title', 'Evently')) ?>. All rights reserved.</p>
                                 <p style="margin-top: 12px;">
-                                    <a href="<?= \url('/privacy') ?>" style="color:#0B7366; text-decoration:none; font-weight:600;">Privacy Policy</a> &bull;
-                                    <a href="<?= \url('/terms') ?>" style="color:#0B7366; text-decoration:none; font-weight:600;">Terms of Service</a> &bull;
-                                    <a href="<?= \url('/support') ?>" style="color:#0B7366; text-decoration:none; font-weight:600;">Support</a> &bull;
-                                    <a href="<?= \url('/about') ?>" style="color:#0B7366; text-decoration:none; font-weight:600;">About</a>
+                                    <a href="<?= \url('/privacy') ?>" style="color:<?= $primaryColor ?>; text-decoration:none; font-weight:600;">Privacy Policy</a> &bull;
+                                    <a href="<?= \url('/terms') ?>" style="color:<?= $primaryColor ?>; text-decoration:none; font-weight:600;">Terms of Service</a> &bull;
+                                    <a href="<?= \url('/support') ?>" style="color:<?= $primaryColor ?>; text-decoration:none; font-weight:600;">Support</a> &bull;
+                                    <a href="<?= \url('/about') ?>" style="color:<?= $primaryColor ?>; text-decoration:none; font-weight:600;">About</a>
                                 </p>
                                 <p style="margin-top: 10px; font-size: 11px; color: #94a3b8;">
                                     You're receiving this email because you created an account on <?= e(site_setting('site_title', 'Evently')) ?>.

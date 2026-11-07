@@ -454,6 +454,38 @@ Promo Codes &amp; Discounts - <?= e($siteName) ?> Host
         gap: 0.85rem;
     }
 }
+
+/* --- Vintage Theme Enhancements for Promo Codes --- */
+.promo-hero-card, .promo-card, .promo-table-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.promo-hero-card h1, .promo-card h2, .promo-table-card h2 {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-ink) !important;
+}
+.promo-table th {
+    background: var(--vn-parchment-warm) !important;
+    color: var(--vn-ink-soft) !important;
+    border-bottom: 2px solid var(--vn-border-dark) !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+}
+.promo-table td {
+    border-bottom: 1px solid var(--vn-border) !important;
+    color: var(--vn-ink) !important;
+}
+.promo-mobile-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.promo-btn--primary {
+    background: var(--vn-brass) !important;
+    box-shadow: 0 4px 12px var(--vn-brass-glow) !important;
+}
 </style>
 
 <!-- Top Navigation Bar -->

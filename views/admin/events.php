@@ -482,7 +482,7 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                             $amountDisplay = '<strong style="font-size:0.86rem; color:rgb(var(--text));">' . format_price($minP) . '</strong>';
                             $amountSub = $tierCount > 1 ? ($tierCount . ' tiers') : 'Single tier';
                         } else {
-                            $amountDisplay = '<strong style="font-size:0.82rem; color:rgb(var(--text));">' . format_price($minP) . ' – ' . format_price($maxP) . '</strong>';
+                            $amountDisplay = '<strong style="font-size:0.82rem; color:rgb(var(--text));">' . format_price($minP ?? 0) . ' – ' . format_price($maxP ?? 0) . '</strong>';
                             $amountSub = $tierCount . ' tiers';
                         }
 
@@ -642,7 +642,7 @@ Admin Events - Manage Your <?= e($siteName) ?> Events
                 } elseif ($minP !== null && $maxP !== null && $minP == $maxP) {
                     $cardAmount = format_price($minP);
                 } else {
-                    $cardAmount = format_price($minP) . ' – ' . format_price($maxP);
+                    $cardAmount = format_price($minP ?? 0) . ' – ' . format_price($maxP ?? 0);
                 }
 
                 $venueStr = $ev['location'] ?: 'Online / TBD';

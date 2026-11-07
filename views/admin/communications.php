@@ -26,16 +26,17 @@ Communications Center - Admin
 ?>
 
 <!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <h1 style="margin: 0; font-size: 1.65rem;">📨 Communications Center</h1>
-    <p style="margin: 0.3rem 0 0; color: var(--text-muted, #64748b); font-size: 0.92rem;">Send announcements, updates, and messages to hosts and users via email</p>
-</div>
+<section class="page-hero" style="margin-bottom: 1.5rem;">
+    <span class="panel-badge">Admin — Communications</span>
+    <h1 style="margin: 0.5rem 0 0; font-size: 1.65rem;">📨 Communications Center</h1>
+    <p style="margin: 0.3rem 0 0; color: var(--vn-ink-muted); font-size: 0.92rem;">Send announcements, updates, and messages to hosts and users via email</p>
+</section>
 
 <!-- Compose & Preview Grid -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
+<div class="comms-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
 
     <!-- Compose Form -->
-    <div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+    <div class="form-card" style="padding: 1.5rem;">
         <h2 style="margin: 0 0 1.25rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
             ✍️ Compose Message
         </h2>
@@ -103,7 +104,7 @@ Communications Center - Admin
     </div>
 
     <!-- Live Email Preview -->
-    <div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); position: sticky; top: 1rem;">
+    <div class="form-card" style="padding: 1.5rem; position: sticky; top: 1rem;">
         <h2 style="margin: 0 0 1rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
             👁️ Email Preview
         </h2>
@@ -142,7 +143,7 @@ Communications Center - Admin
 </div>
 
 <!-- Broadcast History -->
-<div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+<div class="form-card" style="padding: 1.5rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
         <h2 style="margin: 0; font-size: 1.15rem;">📋 Broadcast History</h2>
         <?php if (!empty($historyItems)): ?>
@@ -157,16 +158,16 @@ Communications Center - Admin
             <p style="font-size: 0.88rem; color: var(--text-muted, #64748b); margin: 0;">Compose your first message above to get started.</p>
         </div>
     <?php else: ?>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+        <div class="au-table-wrap" style="overflow-x: auto;">
+            <table class="au-table" style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
                 <thead>
-                    <tr style="border-bottom: 2px solid rgba(var(--muted), 0.1); text-align: left;">
-                        <th style="padding: 0.65rem 0.5rem; color: var(--text-muted, #64748b); font-weight: 600; white-space: nowrap;">Date</th>
-                        <th style="padding: 0.65rem 0.5rem; color: var(--text-muted, #64748b); font-weight: 600;">Subject</th>
-                        <th style="padding: 0.65rem 0.5rem; color: var(--text-muted, #64748b); font-weight: 600;">Audience</th>
-                        <th style="padding: 0.65rem 0.5rem; color: var(--text-muted, #64748b); font-weight: 600;">Recipient</th>
-                        <th style="padding: 0.65rem 0.5rem; color: var(--text-muted, #64748b); font-weight: 600;">Priority</th>
-                        <th style="padding: 0.65rem 0.5rem; color: var(--text-muted, #64748b); font-weight: 600;">Status</th>
+                    <tr>
+                        <th style="padding: 0.65rem 0.5rem; white-space: nowrap;">Date</th>
+                        <th style="padding: 0.65rem 0.5rem;">Subject</th>
+                        <th style="padding: 0.65rem 0.5rem;">Audience</th>
+                        <th style="padding: 0.65rem 0.5rem;">Recipient</th>
+                        <th style="padding: 0.65rem 0.5rem;">Priority</th>
+                        <th style="padding: 0.65rem 0.5rem;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -220,17 +221,17 @@ Communications Center - Admin
         </div>
 
         <?php if ($totalPages > 1): ?>
-            <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap;">
+            <nav class="au-pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap;">
                 <?php foreach (pagination_range($currentPage, $totalPages) as $p): ?>
                     <?php if ($p === '...'): ?>
-                        <span style="display:inline-flex; align-items:center; padding:0 0.35rem; color:rgb(var(--muted)); font-weight:700;" aria-hidden="true">&hellip;</span>
+                        <span style="display:inline-flex; align-items:center; padding:0 0.35rem; color:var(--vn-ink-muted); font-weight:700;" aria-hidden="true">&hellip;</span>
                     <?php else: ?>
-                        <a href="/admin/communications?page=<?= $p ?>" style="padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $p === $currentPage ? 'background: rgb(var(--brand)); color: #fff;' : 'background: rgba(var(--muted), 0.08); color: rgb(var(--text));' ?>">
+                        <a href="/admin/communications?page=<?= $p ?>" class="<?= $p === $currentPage ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">
                             <?= $p ?>
                         </a>
                     <?php endif; ?>
                 <?php endforeach; ?>
-            </div>
+            </nav>
         <?php endif; ?>
     <?php endif; ?>
 </div>

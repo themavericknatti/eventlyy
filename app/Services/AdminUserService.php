@@ -187,34 +187,19 @@ class AdminUserService
             $profileStmt->execute(['id' => $userId]);
             $profile = $profileStmt->fetch() ?: [];
 
-            // Fetch events count
-            $evtCountStmt = $db->prepare("SELECT COUNT(*) FROM events WHERE organizer_id = :id");
-            $evtCountStmt->execute(['id' => $userId]);
-            $totalEvents = (int)$evtCountStmt->fetchColumn();
+            // Use HostService for unified, lifecycle-aware calculations
+            $hostService = new \App\Services\HostService();
+            $hostStats = $hostService->getDashboardStats($userId);
 
-            // Fetch tickets sold and total revenue (online platform purchases only)
-            $ticketsRevenueStmt = $db->prepare("
-                SELECT COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as sold_count,
-                       SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END) as revenue
-                FROM tickets t
-                INNER JOIN events e ON t.event_id = e.id
-                WHERE e.organizer_id = :id AND t.status IN ('Paid', 'Comped')
-            ");
-            $ticketsRevenueStmt->execute(['id' => $userId]);
-            $ticketData = $ticketsRevenueStmt->fetch();
-            $ticketsSold = (int)($ticketData['sold_count'] ?? 0);
-            $totalRevenue = (float)($ticketData['revenue'] ?? 0.00);
-
-            // Fetch payout info
-            $payoutsStmt = $db->prepare("SELECT SUM(amount) FROM payouts WHERE organizer_id = :id AND status = 'processed'");
-            $payoutsStmt->execute(['id' => $userId]);
-            $disbursed = (float)($payoutsStmt->fetchColumn() ?: 0.00);
-
-            $pendingPayoutsStmt = $db->prepare("SELECT SUM(amount) FROM payouts WHERE organizer_id = :id AND status IN ('pending', 'failed')");
-            $pendingPayoutsStmt->execute(['id' => $userId]);
-            $pending = (float)($pendingPayoutsStmt->fetchColumn() ?: 0.00);
-
-            $availableBalance = max(0.00, $totalRevenue - $disbursed - $pending);
+            $totalEvents = (int)($hostStats['totalEventsCount'] ?? 0);
+            $ticketsSold = (int)($hostStats['totalTicketsSold'] ?? 0);
+            $grossRevenue = (float)($hostStats['totalRevenue'] ?? 0.00);
+            $netEarnings = (float)($hostStats['totalNetRevenue'] ?? 0.00);
+            $platformProfit = (float)($hostStats['totalPlatformFees'] ?? 0.00);
+            $disbursed = (float)($hostStats['disbursedPayouts'] ?? 0.00);
+            $pending = (float)($hostStats['pendingPayouts'] ?? 0.00);
+            $availableBalance = (float)($hostStats['availableBalance'] ?? 0.00);
+            $escrowBalance = (float)($hostStats['availableEscrowBalance'] ?? 0.00);
 
             // Fetch payout history
             $payoutsHistoryStmt = $db->prepare("
@@ -248,14 +233,22 @@ class AdminUserService
                 'payout_routing' => !empty($profile['payout_routing']) ? '****' . substr($profile['payout_routing'], -4) : 'Not set',
                 'total_events' => $totalEvents,
                 'tickets_sold' => $ticketsSold,
-                'total_revenue' => $totalRevenue,
-                'total_revenue_formatted' => format_price($totalRevenue),
+                'total_revenue' => $grossRevenue,
+                'total_revenue_formatted' => format_price($grossRevenue),
+                'net_earnings' => $netEarnings,
+                'net_earnings_formatted' => format_price($netEarnings),
+                'platform_profit' => $platformProfit,
+                'platform_profit_formatted' => format_price($platformProfit),
                 'disbursed_payouts' => $disbursed,
                 'disbursed_payouts_formatted' => format_price($disbursed),
                 'pending_payouts' => $pending,
                 'pending_payouts_formatted' => format_price($pending),
+                'escrow_balance' => $escrowBalance,
+                'escrow_balance_formatted' => format_price($escrowBalance),
                 'available_balance' => $availableBalance,
                 'available_balance_formatted' => format_price($availableBalance),
+                'total_available' => ($availableBalance + $escrowBalance),
+                'total_available_formatted' => format_price($availableBalance + $escrowBalance),
                 'payouts_history' => array_map(function($p) {
                     $p['amount_formatted'] = format_price($p['amount']);
                     return $p;

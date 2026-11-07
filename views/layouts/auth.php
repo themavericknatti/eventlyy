@@ -43,10 +43,12 @@
         })();
     </script>
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">
+    @include('partials/theme-styles')
+    @include('partials/pwa-head')
     @yield('style')
 </head>
 
-<body>
+<body class="vn-shell">
     <!-- Floating decorative background elements -->
     <div class="hero-orb hero-orb-1" style="top: -10%; left: -10%; width: 50vw; height: 50vw; opacity: 0.15;"
         aria-hidden="true"></div>

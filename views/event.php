@@ -1,23 +1,22 @@
 <?php
 
 /**
- * Event Page
+ * Event Page — Vintage Edition
  *
- * Displays single event details, dynamic ticket tier selection, order calculation, and checkout redirection.
+ * Immersive vintage box office & ticket reservation parlor.
+ * Features antique admission stubs, letterpress typography ('Instrument Serif'),
+ * clockwork countdown, interactive ticket steppers, receipt summary, and mobile optimization.
  *
  * @package Eventlyy
  * @subpackage Views/Event
  * @author Celio Natti
  * @license MIT License
- * @version 2.0.0
+ * @version 3.1.0
  */
 
-?>
-
-<?php
 $eventImg = !empty($event->image) ? $event->image : 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&q=80&auto=format&fit=crop';
 $rawDesc = $event->description ?? '';
-$heroSummary = (mb_strlen($rawDesc) > 150) ? mb_strimwidth($rawDesc, 0, 150, '…') : $rawDesc;
+$heroSummary = (mb_strlen($rawDesc) > 160) ? mb_strimwidth($rawDesc, 0, 160, '…') : $rawDesc;
 $eventDate = strtotime($event->date ?? '');
 $now = time();
 $liveWindowEnd = $eventDate ? $eventDate + (event_completion_hours() * 3600) : 0;
@@ -27,7 +26,7 @@ $isToday = !$isCompleted && ($eventDate && date('Y-m-d', $now) === date('Y-m-d',
 $eventIdentifier = !empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id);
 
 // Ticket sales countdown: show when event is < 24 hours away and not yet started/completed
-$salesCloseTimestamp = $eventDate ?: 0; // Sales close at event start time
+$salesCloseTimestamp = $eventDate ?: 0;
 $hoursUntilClose = $salesCloseTimestamp ? ($salesCloseTimestamp - $now) / 3600 : 0;
 $showCountdown = !$isCompleted && !$isLiveNow && $salesCloseTimestamp && $hoursUntilClose > 0 && $hoursUntilClose <= 24;
 
@@ -39,886 +38,460 @@ $encodedShareUrl = urlencode($shareUrl);
 @extends('layouts/main')
 
 @section('title')
-<?= e($event->name) ?> - Eventlyy
-@endsection
-
-@section('style')
-<style>
-/* ─── Event Page 3D Perspective & Depth System ──────────────── */
-.ep-hero {
-    perspective: 1200px;
-    transform-style: preserve-3d;
-}
-
-.card-3d, .ep-sidebar-card, .ep-ticket-item, .ep-details__card {
-    transform-style: preserve-3d;
-    position: relative;
-    will-change: transform;
-    backface-visibility: hidden;
-    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s ease;
-}
-
-.ep-sidebar-card {
-    box-shadow: 0 16px 45px -10px rgba(0, 0, 0, 0.12), 0 0 25px rgba(var(--brand), 0.08);
-}
-
-.ep-sidebar-card:hover {
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.22), 0 0 35px rgba(var(--brand), 0.18);
-    border-color: rgba(var(--brand), 0.45);
-}
-
-/* Dynamic Specular Sheen Glare */
-.card-glare {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 5;
-    opacity: 0;
-    background: radial-gradient(circle 320px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.25), transparent 75%);
-    transition: opacity 0.3s ease;
-}
-
-:root[data-theme='dark'] .card-glare {
-    background: radial-gradient(circle 320px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.12), transparent 70%);
-}
-
-.ep-sidebar-card:hover .card-glare,
-.card-3d:hover .card-glare {
-    opacity: 1;
-}
-
-/* ─── Scroll-Driven 3D Depth Entrance ──────────────────────── */
-.reveal-on-scroll {
-    opacity: 0;
-    transform: perspective(1000px) translateY(24px) rotateX(4deg) scale(0.98);
-    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
-}
-
-.reveal-on-scroll.revealed {
-    opacity: 1;
-    transform: perspective(1000px) translateY(0) rotateX(0deg) scale(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .reveal-on-scroll {
-        opacity: 1 !important;
-        transform: none !important;
-        transition: none !important;
-    }
-    .card-3d, .ep-sidebar-card {
-        transform: none !important;
-    }
-    .card-glare {
-        display: none !important;
-    }
-}
-
-/* ─── Progressive Blur-Up Image Loading ─────────────────────── */
-.progressive-img-wrap {
-    position: relative;
-    overflow: hidden;
-    background: rgba(var(--muted), 0.08);
-}
-
-.progressive-img-wrap img {
-    opacity: 0;
-    filter: blur(14px);
-    transform: scale(1.04);
-    transition: opacity 0.4s ease-out, filter 0.4s ease-out, transform 0.4s ease-out;
-}
-
-.progressive-img-wrap img.is-loaded {
-    opacity: 1;
-    filter: blur(0);
-    transform: scale(1);
-}
-
-.progressive-skeleton {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, rgba(var(--muted), 0.04) 25%, rgba(var(--muted), 0.12) 50%, rgba(var(--muted), 0.04) 75%);
-    background-size: 200% 100%;
-    animation: progressiveShimmer 1.8s infinite;
-    transition: opacity 0.3s ease-out;
-    pointer-events: none;
-    z-index: 2;
-}
-
-.progressive-img-wrap.has-loaded .progressive-skeleton {
-    opacity: 0;
-}
-
-@keyframes progressiveShimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* ─── Recurring Series Dropdown Switcher ─── */
-.ep-series-switcher-box {
-    margin-bottom: 2rem;
-    background: var(--card, #1e293b);
-    border: 1px solid rgba(99, 102, 241, 0.28);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.ep-series-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 0.85rem;
-}
-
-.ep-series-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.ep-series-icon {
-    font-size: 1.4rem;
-    line-height: 1;
-}
-
-.ep-series-title {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: rgb(var(--text));
-    letter-spacing: -0.01em;
-}
-
-.ep-series-subtitle {
-    margin: 0.2rem 0 0;
-    font-size: 0.82rem;
-    color: rgb(var(--muted));
-}
-
-.ep-series-badge {
-    font-size: 0.78rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 20px;
-    background: rgba(99, 102, 241, 0.12);
-    color: #818cf8;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    font-weight: 600;
-}
-
-.ep-series-current-pill {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.84rem;
-    padding: 0.5rem 0.85rem;
-    border-radius: 8px;
-    background: rgba(99, 102, 241, 0.06);
-    border: 1px solid rgba(99, 102, 241, 0.15);
-    color: rgb(var(--text));
-    margin-bottom: 1rem;
-}
-
-.ep-series-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #818cf8;
-    box-shadow: 0 0 6px #818cf8;
-    flex-shrink: 0;
-}
-
-.ep-series-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-}
-
-.ep-series-select-wrap {
-    position: relative;
-    flex: 1 1 320px;
-}
-
-.ep-series-select {
-    width: 100%;
-    padding: 0.75rem 2.5rem 0.75rem 1rem;
-    border-radius: 12px;
-    border: 1.5px solid rgba(99, 102, 241, 0.35);
-    background: rgba(var(--card), 0.95);
-    color: rgb(var(--text));
-    font-size: 0.92rem;
-    font-weight: 600;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: all 0.2s ease;
-}
-
-:root[data-theme='dark'] .ep-series-select {
-    background: #0f172a;
-    border-color: rgba(99, 102, 241, 0.4);
-}
-
-.ep-series-select:focus {
-    outline: none;
-    border-color: var(--brand, #4f46e5);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-}
-
-.ep-series-select-arrow {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: #818cf8;
-    display: flex;
-    align-items: center;
-}
-
-.ep-series-nav-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.72rem 1.1rem;
-    border-radius: 12px;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    background: rgba(var(--card), 0.7);
-    color: rgb(var(--text));
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    white-space: nowrap;
-    transition: all 0.2s ease;
-}
-
-.ep-series-nav-btn:hover {
-    background: rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.5);
-    color: #818cf8;
-    transform: translateY(-1px);
-}
-
-@media (max-width: 640px) {
-    .ep-series-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .ep-series-select-wrap {
-        width: 100%;
-        flex: 1 1 100%;
-    }
-    .ep-series-nav-btn {
-        justify-content: center;
-        width: 100%;
-    }
-}
-
-/* ── Ticket Sales Countdown Banner ── */
-.ep-countdown-banner {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%);
-    border: 1.5px solid #f59e0b;
-    border-radius: 14px;
-    padding: 16px 20px;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.18);
-    animation: ep-countdown-pulse 3s ease-in-out infinite;
-}
-@keyframes ep-countdown-pulse {
-    0%, 100% { box-shadow: 0 2px 12px rgba(245, 158, 11, 0.18); }
-    50% { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35); }
-}
-.ep-countdown-banner__icon {
-    font-size: 28px;
-    flex-shrink: 0;
-    line-height: 1;
-}
-.ep-countdown-banner__body {
-    flex: 1;
-    min-width: 0;
-}
-.ep-countdown-banner__label {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #92400e;
-    margin-bottom: 4px;
-}
-.ep-countdown-banner__timer {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-.ep-countdown-unit {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.75);
-    border-radius: 8px;
-    padding: 5px 10px;
-    min-width: 52px;
-    border: 1px solid rgba(245, 158, 11, 0.25);
-}
-.ep-countdown-unit__value {
-    font-size: 22px;
-    font-weight: 800;
-    color: #78350f;
-    line-height: 1.15;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-}
-.ep-countdown-unit__label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #92400e;
-    margin-top: 1px;
-}
-.ep-countdown-sep {
-    font-size: 20px;
-    font-weight: 800;
-    color: #b45309;
-    line-height: 1;
-    margin-top: -8px;
-}
-.ep-countdown-banner__note {
-    font-size: 12px;
-    color: #92400e;
-    margin-top: 5px;
-    font-weight: 500;
-}
-.ep-countdown-banner--urgent {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #f87171 100%);
-    border-color: #ef4444;
-    animation-name: ep-countdown-urgent-pulse;
-}
-@keyframes ep-countdown-urgent-pulse {
-    0%, 100% { box-shadow: 0 2px 12px rgba(239, 68, 68, 0.18); }
-    50% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
-}
-.ep-countdown-banner--urgent .ep-countdown-banner__label {
-    color: #991b1b;
-}
-.ep-countdown-banner--urgent .ep-countdown-unit__value {
-    color: #991b1b;
-}
-.ep-countdown-banner--urgent .ep-countdown-unit__label {
-    color: #b91c1c;
-}
-.ep-countdown-banner--urgent .ep-countdown-sep {
-    color: #dc2626;
-}
-.ep-countdown-banner--urgent .ep-countdown-banner__note {
-    color: #991b1b;
-}
-.ep-countdown-banner--urgent .ep-countdown-unit {
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-@media (max-width: 480px) {
-    .ep-countdown-banner {
-        flex-direction: column;
-        text-align: center;
-        padding: 14px 14px;
-        gap: 8px;
-    }
-    .ep-countdown-banner__timer {
-        justify-content: center;
-    }
-    .ep-countdown-unit {
-        min-width: 46px;
-        padding: 4px 8px;
-    }
-    .ep-countdown-unit__value {
-        font-size: 19px;
-    }
-}
-
-/* ── Order Summary Countdown Badge ── */
-.ep-summary__timer-badge {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px dashed rgba(245, 158, 11, 0.4);
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin-top: 10px;
-    font-size: 12.5px;
-    color: #92400e;
-}
-.ep-summary__timer-badge strong {
-    font-family: monospace;
-    font-size: 13.5px;
-    font-weight: 800;
-    color: #78350f;
-    letter-spacing: 0.05em;
-}
-.ep-summary__timer-badge--urgent {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: #991b1b;
-}
-.ep-summary__timer-badge--urgent strong {
-    color: #b91c1c;
-}
-</style>
+<?= e($event->name) ?> — Eventlyy Box Office
 @endsection
 
 @section('content')
+<style>
+.ve-badge--series-link {
+    border-color: var(--ve-brass);
+    color: var(--ve-brass);
+    text-decoration: none;
+}
+.ve-min-w-0 { min-width: 0; }
+.ve-share-btn--full { grid-column: 1 / -1; }
+.ve-series-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.ve-series-title {
+    font-family: var(--ve-font-serif);
+    font-size: 1.4rem;
+    color: var(--ve-ink);
+    margin: 0;
+}
+.ve-series-sub {
+    font-size: 0.85rem;
+    color: var(--ve-ink-muted);
+    margin: 0.2rem 0 0;
+}
+.ve-series-select {
+    width: 100%;
+    height: 44px;
+    padding: 0 0.85rem;
+    border-radius: var(--ve-radius-sm);
+    border: 1px solid var(--ve-border-dark);
+    background: var(--ve-parchment-card);
+    font-family: var(--ve-font-sans);
+    font-size: 0.9rem;
+    color: var(--ve-ink);
+}
+.ve-concluded-icon {
+    font-size: 2.75rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+.ve-concluded-title {
+    font-family: var(--ve-font-serif);
+    font-size: 2rem;
+    color: var(--ve-ink);
+    margin: 0 0 0.5rem;
+}
+.ve-concluded-text {
+    color: var(--ve-ink-muted);
+    max-width: 500px;
+    margin: 0 auto 1.5rem;
+}
+.ve-concluded-btn { display: inline-flex; }
+.ve-empty-tiers-msg {
+    color: var(--ve-ink-muted);
+    text-align: center;
+    padding: 2rem 0;
+}
+.ve-empty-summary-msg {
+    font-size: 0.86rem;
+    color: var(--ve-ink-light);
+    text-align: center;
+    margin: auto 0;
+    font-style: italic;
+}
+.ve-guests-section { margin-bottom: 2rem; }
+.ve-guests-title {
+    font-family: var(--ve-font-serif);
+    font-size: 1.6rem;
+    color: var(--ve-ink);
+    margin: 0 0 1rem;
+}
+.ve-guest-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+}
+.ve-guest-name {
+    display: block;
+    font-size: 0.92rem;
+    color: var(--ve-ink);
+}
+.ve-guest-role {
+    font-size: 0.78rem;
+    color: var(--ve-ink-muted);
+}
+</style>
+<div class="ve-wrapper">
 
-<!-- ═══ Event Hero ═══ -->
-<section class="ep-hero">
-    <div class="ep-hero__content">
-        <!-- Status & Category Badges -->
-        <div class="ep-badges">
-            <?php if ($isCompleted): ?>
-                <span class="ep-badge ep-badge--completed">🏁 Event Completed</span>
-            <?php elseif ($isLiveNow): ?>
-                <span class="ep-badge ep-badge--live">
-                    <span class="ep-badge__dot"></span> Live Now — Gate Tickets Available
-                </span>
-            <?php elseif ($isToday): ?>
-                <span class="ep-badge ep-badge--today">⚡ Happening Today</span>
-            <?php endif; ?>
-            <span class="ep-badge ep-badge--category"><?= e($event->category ?? 'Event') ?></span>
-            <?php if (!empty($event->is_recurring)): ?>
-                <a href="#series-date-selector" class="ep-badge ep-badge--recurring" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); text-decoration: none; cursor: pointer;" title="View all dates in this recurring series">
-                    🔄 Recurring Series (<?= ucfirst(e($event->recurrence_type ?? 'Event')) ?>)<?= !empty($recurringOccurrences) && count($recurringOccurrences) > 1 ? ' • ' . count($recurringOccurrences) . ' Dates ▾' : '' ?>
-                </a>
-            <?php endif; ?>
-            <?php if (!empty($event->flyer_page_enabled)): ?>
-                <a href="<?= e(event_flyer_url($event)) ?>" class="ep-badge ep-badge--flyer" title="View immersive flyer">
-                    🎨 Flyer View
-                </a>
-            <?php endif; ?>
-        </div>
-
-        <!-- Event Title -->
-        <h1 class="ep-title"><?= e($event->name) ?></h1>
-        <p class="ep-summary"><?= e($heroSummary) ?></p>
-
-        <!-- Quick Info Cards -->
-        <div class="ep-meta">
-            <div class="ep-meta__item">
-                <span class="ep-meta__icon">📅</span>
-                <div class="ep-meta__text">
-                    <span class="ep-meta__label">Date</span>
-                    <span class="ep-meta__value"><?= $eventDate ? date('M d, Y', $eventDate) : 'TBA' ?></span>
-                </div>
-            </div>
-            <div class="ep-meta__item">
-                <span class="ep-meta__icon">⏰</span>
-                <div class="ep-meta__text">
-                    <span class="ep-meta__label">Time</span>
-                    <span class="ep-meta__value"><?= $eventDate ? date('g:i A', $eventDate) : 'TBA' ?></span>
-                </div>
-            </div>
-            <div class="ep-meta__item">
-                <span class="ep-meta__icon">📍</span>
-                <div class="ep-meta__text">
-                    <span class="ep-meta__label">Location</span>
-                    <span class="ep-meta__value" title="<?= e($event->location) ?>"><?= e($event->location) ?></span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Event Image & Organizer Sidebar -->
-    <aside class="ep-sidebar-card card-3d">
-        <div class="card-glare"></div>
-        <div class="ep-image progressive-img-wrap" id="event-image-container" title="Click to view full image">
-            <div class="progressive-skeleton"></div>
-            <div class="ep-image__blur" style="background-image: url('<?= e($eventImg) ?>');"></div>
-            <img src="<?= e($eventImg) ?>" alt="<?= e($event->name) ?>" class="ep-image__full" id="event-image-main" fetchpriority="high" loading="eager" decoding="async" />
-        </div>
-        <div class="ep-card-body">
-            <!-- Organizer Info -->
-            <div class="ep-organizer">
-                <span class="au-avatar" style="--avatar-hue:<?= abs(crc32($event->organizer_name ?? 'Host')) % 360 ?>;">
-                    <?= strtoupper(substr($event->organizer_name ?? 'H', 0, 2)) ?>
-                </span>
-                <div class="ep-organizer__info">
-                    <strong><?= e($event->organizer_name ?? 'Event Organizer') ?></strong>
-                    <span class="ep-organizer__rating">★ <?= number_format($event->organizer_rating ?? 5.0, 1) ?> Host Rating</span>
-                </div>
-            </div>
-            <p class="ep-organizer__bio">
-                <?= e($event->organizer_bio ?? 'Verified Eventlyy organizer creating memorable live events.') ?>
-            </p>
-
-            <!-- Tags -->
-            <div class="ep-tags">
-                <span><?= e($event->category ?? 'Live Event') ?></span>
-                <span>✓ Verified Host</span>
-                <span>⚡ Instant Delivery</span>
-            </div>
-
-            <!-- Share Event -->
-            <div class="ep-action-block">
-                <span class="ep-action-block__label">Share Event</span>
-                <div class="ep-action-block__buttons">
-                    <a href="https://api.whatsapp.com/send?text=<?= $shareText ?>%20<?= $encodedShareUrl ?>" target="_blank" rel="noopener" class="ep-share-btn ep-share-btn--whatsapp" title="Share on WhatsApp">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                        WhatsApp
-                    </a>
-                    <a href="https://twitter.com/intent/tweet?url=<?= $encodedShareUrl ?>&text=<?= $shareText ?>" target="_blank" rel="noopener" class="ep-share-btn ep-share-btn--twitter" title="Share on X">
-                        <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                        Twitter
-                    </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u=<?= $encodedShareUrl ?>" target="_blank" rel="noopener" class="ep-share-btn ep-share-btn--facebook" title="Share on Facebook">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                        Facebook
-                    </a>
-                    <button type="button" id="copy-share-link" class="ep-share-btn ep-share-btn--copy" title="Copy Link">
-                        🔗 <span id="copy-btn-text">Copy Link</span>
-                    </button>
-                </div>
+    <!-- ═══ 1. Grand Event Hero Stage ═══ -->
+    <div class="ve-hero-stage">
+        <section class="ve-hero-main">
+            <!-- Mobile Poster Showcase (visible on <= 960px) -->
+            <div class="ve-mobile-poster" aria-hidden="true">
+                <img src="<?= e($eventImg) ?>" alt="<?= e($event->name) ?> Poster" loading="eager" decoding="async">
             </div>
 
-            <!-- Add to Calendar -->
-            <div class="ep-action-block">
-                <span class="ep-action-block__label">📅 Add to Calendar</span>
-                <div class="ep-action-block__buttons">
-                    <a href="<?= event_google_calendar_url($event) ?>" target="_blank" rel="noopener" class="ep-calendar-btn" title="Add to Google Calendar">Google</a>
-                    <a href="<?= event_ics_url($event) ?>" download class="ep-calendar-btn" title="Download iCal">Apple / iCal</a>
-                    <a href="<?= event_outlook_calendar_url($event) ?>" target="_blank" rel="noopener" class="ep-calendar-btn" title="Add to Outlook">Outlook</a>
-                </div>
-            </div>
-        </div>
-    </aside>
-</section>
-
-<!-- ═══ Recurring Series Occurrence Switcher ═══ -->
-<?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): 
-    $currentIndex = 0;
-    $prevOcc = null;
-    $nextOcc = null;
-    foreach ($recurringOccurrences as $idx => $occ) {
-        if ($occ['id'] == $event->id) {
-            $currentIndex = $idx;
-            $prevOcc = $recurringOccurrences[$idx - 1] ?? null;
-            $nextOcc = $recurringOccurrences[$idx + 1] ?? null;
-            break;
-        }
-    }
-?>
-    <div class="ep-series-switcher-box reveal-on-scroll" id="series-date-selector">
-        <div class="ep-series-header">
-            <div class="ep-series-title-wrap">
-                <span class="ep-series-icon">📅</span>
-                <div>
-                    <h3 class="ep-series-title">
-                        Event Series Dates
-                    </h3>
-                    <p class="ep-series-subtitle">
-                        This event takes place on multiple dates. Choose a date to view tickets and details:
-                    </p>
-                </div>
-            </div>
-            <span class="ep-series-badge">
-                <?= count($recurringOccurrences) ?> Dates Available
-            </span>
-        </div>
-
-        <div class="ep-series-current-pill">
-            <span class="ep-series-dot"></span>
-            <span>Currently Viewing: <strong>Occurrence #<?= e($event->recurrence_sequence ?? ($currentIndex + 1)) ?></strong> &bull; <?= $eventDate ? date('l, M j, Y • g:i A', $eventDate) : 'Date TBA' ?></span>
-        </div>
-
-        <div class="ep-series-controls">
-            <?php if ($prevOcc): ?>
-                <a href="<?= e(event_url((object)$prevOcc)) ?>" class="ep-series-nav-btn ep-series-nav-btn--prev" title="Switch to previous occurrence (<?= date('M d', strtotime($prevOcc['date'])) ?>)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    <span>Prev Date</span>
-                </a>
-            <?php endif; ?>
-
-            <div class="ep-series-select-wrap">
-                <select id="series-occurrence-select" class="ep-series-select" aria-label="Select event date and occurrence">
-                    <?php foreach ($recurringOccurrences as $occ): 
-                        $occTime = strtotime($occ['date']);
-                        $isCurrentOcc = ($occ['id'] == $event->id);
-                        $occPast = ($occTime + (event_completion_hours() * 3600)) < time();
-                        $occUrl = event_url((object)$occ);
-                        
-                        $label = 'Occurrence #' . ($occ['recurrence_sequence'] ?? 1) . ' — ' . date('D, M j, Y • g:i A', $occTime);
-                        if ($isCurrentOcc) {
-                            $label .= ' (Current Selection)';
-                        } elseif ($occPast) {
-                            $label .= ' (Concluded)';
-                        } else {
-                            $label .= ' (Upcoming)';
-                        }
-                    ?>
-                        <option value="<?= e($occUrl) ?>" <?= $isCurrentOcc ? 'selected' : '' ?>>
-                            <?= e($label) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="ep-series-select-arrow" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </div>
-            </div>
-
-            <?php if ($nextOcc): ?>
-                <a href="<?= e(event_url((object)$nextOcc)) ?>" class="ep-series-nav-btn ep-series-nav-btn--next" title="Switch to next occurrence (<?= date('M d', strtotime($nextOcc['date'])) ?>)">
-                    <span>Next Date</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </a>
-            <?php endif; ?>
-        </div>
-    </div>
-<?php endif; ?>
-
-<!-- ═══ Tickets or Completed Banner ═══ -->
-<?php if ($isCompleted): ?>
-    <div class="ep-completed-banner">
-        <span class="ep-completed-banner__icon">🏁</span>
-        <h3>Ticket Sales Closed</h3>
-        <p>This event concluded on <?= date('F j, Y \a\t g:i A', strtotime($event->date)) ?>. Ticket purchasing is no longer available for past events.</p>
-        <a href="<?= route('event/' . $eventIdentifier . '/feedback') ?>" class="ep-completed-banner__btn">
-            ⭐ Rate &amp; Review This Event
-        </a>
-    </div>
-<?php else: ?>
-    <form id="tickets-form" method="GET" action="{{ route('checkout/{event_id}', ['event_id' => $eventIdentifier]) }}">
-        <input type="hidden" name="event_id" value="<?= $eventIdentifier ?>" />
-        <input type="hidden" name="occ_id" value="<?= (int)($event->id ?? 0) ?>" />
-        <?php if (!empty($event->recurrence_sequence)): ?>
-            <input type="hidden" name="occ" value="<?= (int)$event->recurrence_sequence ?>" />
-        <?php endif; ?>
-        <?php if (!empty($refCode) || !empty($_GET['ref'])): ?>
-            <input type="hidden" name="ref" value="<?= e($refCode ?? ($_GET['ref'] ?? '')) ?>" />
-        <?php endif; ?>
-
-        <section class="ep-tickets reveal-on-scroll">
-            <div class="ep-tickets__main">
-                <?php if ($showCountdown): ?>
-                <!-- ── Ticket Sales Closing Countdown ── -->
-                <div class="ep-countdown-banner" id="ticket-countdown-banner"
-                     data-close-timestamp="<?= $salesCloseTimestamp ?>">
-                    <span class="ep-countdown-banner__icon">⏳</span>
-                    <div class="ep-countdown-banner__body">
-                        <div class="ep-countdown-banner__label">Online Ticket Sales Closing Soon</div>
-                        <div class="ep-countdown-banner__timer" id="countdown-timer">
-                            <div class="ep-countdown-unit">
-                                <span class="ep-countdown-unit__value" id="cd-hours">--</span>
-                                <span class="ep-countdown-unit__label">Hours</span>
-                            </div>
-                            <span class="ep-countdown-sep">:</span>
-                            <div class="ep-countdown-unit">
-                                <span class="ep-countdown-unit__value" id="cd-minutes">--</span>
-                                <span class="ep-countdown-unit__label">Mins</span>
-                            </div>
-                            <span class="ep-countdown-sep">:</span>
-                            <div class="ep-countdown-unit">
-                                <span class="ep-countdown-unit__value" id="cd-seconds">--</span>
-                                <span class="ep-countdown-unit__label">Secs</span>
-                            </div>
-                        </div>
-                        <div class="ep-countdown-banner__note">
-                            Online booking closes at event start (<?= date('D, M j \a\t g:i A', $salesCloseTimestamp) ?>). Gate passes available during live event.
-                        </div>
-                    </div>
-                </div>
+            <!-- Badges -->
+            <div class="ve-badges-row">
+                <?php if ($isCompleted): ?>
+                    <span class="ve-badge ve-badge--completed">🏁 Concluded</span>
+                <?php elseif ($isLiveNow): ?>
+                    <span class="ve-badge ve-badge--live">🔴 Live Now &bull; Gate Admission</span>
+                <?php elseif ($isToday): ?>
+                    <span class="ve-badge ve-badge--today">⚡ Today's Gathering</span>
                 <?php endif; ?>
 
-                <div class="ep-tickets__header">
-                    <h2>
-                        Select Tickets
-                        <?php if ($isLiveNow): ?>
-                            <span class="ep-badge ep-badge--live-sm">🔴 Live Gate Sales</span>
-                        <?php endif; ?>
-                    </h2>
-                    <p class="ep-tickets__note">
-                        <?= $isLiveNow ? 'Event is currently live! Choose ticket tiers below for instant gate entry with digital QR code.' : 'Choose your desired ticket tiers below and preview your order summary.' ?>
-                    </p>
-                </div>
+                <span class="ve-badge"><?= e($event->category ?? 'Special Gathering') ?></span>
 
-                <div class="ep-ticket-list">
-                    <?php if (empty($ticketTypes)): ?>
-                        <div class="ep-ticket-list__empty">
-                            No ticket tiers available for this event currently.
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($ticketTypes as $index => $tt):
-                            $sold = (int)($tt['sold'] ?? 0);
-                            $capacity = (int)($tt['capacity'] ?? 0);
-                            $remaining = max(0, $capacity - $sold);
-                            $isSoldOut = ($remaining <= 0);
-                            $defaultQty = 0;
-                        ?>
-                            <div class="ep-ticket<?= $isSoldOut ? ' ep-ticket--soldout' : '' ?>"
-                                 data-price="<?= (float)$tt['price'] ?>"
-                                 data-label="<?= e($tt['name']) ?>"
-                                 data-ticket-id="<?= $tt['id'] ?>">
-                                <div class="ep-ticket__info">
-                                    <div class="ep-ticket__name-row">
-                                        <h3><?= e($tt['name']) ?></h3>
-                                        <?php 
-                                            $admitsCount = max(1, (int)($tt['admits'] ?? 1));
-                                            if ($admitsCount === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $tt['name'], $mAdmits)) {
-                                                $admitsCount = max(1, (int)$mAdmits[1]);
-                                            }
-                                        ?>
-                                        <?php if ($admitsCount > 1): ?>
-                                            <span class="ep-ticket-badge" style="background:rgba(14,165,233,0.12); color:#0284c7; border:1px solid rgba(14,165,233,0.25); font-weight:700;">👥 Admits <?= $admitsCount ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($isSoldOut): ?>
-                                            <span class="ep-ticket-badge ep-ticket-badge--soldout">Sold Out</span>
-                                        <?php elseif ($remaining <= 15): ?>
-                                            <span class="ep-ticket-badge ep-ticket-badge--low"><?= $remaining ?> left</span>
-                                        <?php endif; ?>
-                                        <?php if (!empty($tt['max_per_person'])): ?>
-                                            <span class="ep-ticket-badge" style="background:rgba(245,158,11,0.12); color:#d97706; border:1px solid rgba(245,158,11,0.25); font-weight:700;">🔒 Max <?= (int)$tt['max_per_person'] ?>/person</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <?php if (!empty($tt['description'])): ?>
-                                        <p class="ep-ticket__desc"><?= e($tt['description']) ?></p>
-                                    <?php else: ?>
-                                        <p class="ep-ticket__desc">
-                                            <a href="#about-event" class="ep-ticket__desc-link" title="See event description for details">
-                                                ℹ️ Read description for ticket details
-                                            </a>
-                                        </p>
-                                    <?php endif; ?>
-                                </div>
+                <?php if (!empty($event->is_recurring)): ?>
+                    <a href="#series-date-selector" class="ve-badge ve-badge--series-link">
+                        🔄 Recurring Series<?= !empty($recurringOccurrences) ? ' (' . count($recurringOccurrences) . ' Dates)' : '' ?>
+                    </a>
+                <?php endif; ?>
 
-                                <div class="ep-ticket__controls">
-                                    <button type="button" class="qty-btn" data-action="decrease" <?= $isSoldOut ? 'disabled' : '' ?>
-                                        aria-label="Decrease <?= e($tt['name']) ?> quantity">−</button>
-                                    <span class="qty-value" aria-live="polite"><?= $defaultQty ?></span>
-                                    <input type="hidden" name="qty[<?= $tt['id'] ?>]" class="qty-input" value="<?= $defaultQty ?>" data-max="<?= $remaining ?>" data-max-per-person="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>">
-                                    <button type="button" class="qty-btn" data-action="increase" <?= $isSoldOut ? 'disabled' : '' ?>
-                                        aria-label="Increase <?= e($tt['name']) ?> quantity">+</button>
-                                </div>
-
-                                <div class="ep-ticket__price<?= ((float)$tt['price'] <= 0) ? ' ep-ticket__price--free' : '' ?>">
-                                    <?= ((float)$tt['price'] > 0) ? format_price($tt['price']) : 'Free' ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
+                <?php if (!empty($event->flyer_page_enabled)): ?>
+                    <a href="<?= e(event_flyer_url($event)) ?>" class="ve-badge ve-badge--flyer" title="View dedicated flyer poster">
+                        🎨 Flyer Mode
+                    </a>
+                <?php endif; ?>
             </div>
 
-            <!-- Order Summary Sidebar -->
-            <aside class="ep-summary">
-                <div class="ep-summary__head">
-                    <h3>Your Order Summary</h3>
-                    <p>Review ticket selection and total cost.</p>
-                    <?php if ($showCountdown): ?>
-                        <div class="ep-summary__timer-badge" id="summary-countdown-badge">
-                            <span>⏳ Sales Close In:</span>
-                            <strong id="summary-countdown-text">--:--:--</strong>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <div class="ep-summary__items" id="summary-items"></div>
-                <div class="ep-summary__total">
-                    <span>Total Amount</span>
-                    <strong id="order-total">Free</strong>
-                </div>
-                <button type="submit" id="checkout-submit-btn" class="ep-checkout-btn">
-                    Continue to Checkout →
-                </button>
-            </aside>
-        </section>
-    </form>
-<?php endif; ?>
+            <!-- Title -->
+            <h1 class="ve-title"><?= e($event->name) ?></h1>
+            <p class="ve-summary"><?= e($heroSummary) ?></p>
 
-<!-- ═══ About This Event ═══ -->
-<section class="ep-about reveal-on-scroll" id="about-event">
-    <h2>About This Event</h2>
-    <div class="ep-description"><?= e($event->description) ?></div>
-
-    <?php
-    $validGuests = [];
-    if (!empty($eventGuests)) {
-        foreach ($eventGuests as $guest) {
-            $name = !empty($guest->name) ? $guest->name : ($guest['name'] ?? '');
-            if (!empty(trim((string)$name))) {
-                $validGuests[] = $guest;
-            }
-        }
-    }
-    ?>
-    <?php if (!empty($validGuests)): ?>
-    <div class="ep-guests">
-        <h3><span>✨</span> Special Guests</h3>
-        <div class="guest-cards-grid">
-            <?php foreach ($validGuests as $guest):
-                $gName = !empty($guest->name) ? (string)$guest->name : (string)($guest['name'] ?? '');
-                $gRole = !empty($guest->role) ? (string)$guest->role : (string)($guest['role'] ?? '');
-                $gSocial = !empty($guest->social) ? (string)$guest->social : (string)($guest['social'] ?? '');
-                $socialLinks = parse_guest_socials($gSocial);
-            ?>
-                <div class="guest-card-item">
-                    <div class="guest-card-header">
-                        <span class="au-avatar guest-avatar" style="--avatar-hue:<?= abs(crc32($gName)) % 360 ?>;">
-                            <?= strtoupper(substr($gName, 0, 2)) ?>
-                        </span>
-                        <div class="guest-info">
-                            <strong class="guest-name"><?= e($gName) ?></strong>
-                            <?php if (!empty($gRole)): ?>
-                                <span class="guest-role"><?= e($gRole) ?></span>
-                            <?php endif; ?>
-                        </div>
+            <!-- Postmark Meta Chips -->
+            <div class="ve-meta-grid">
+                <div class="ve-meta-card ve-meta-card--date">
+                    <span class="ve-meta-icon" aria-hidden="true">🗓️</span>
+                    <div class="ve-meta-content">
+                        <span class="ve-meta-label">Date</span>
+                        <span class="ve-meta-val"><?= $eventDate ? date('M d, Y', $eventDate) : 'Date TBA' ?></span>
                     </div>
-                    <?php if (!empty($socialLinks)): ?>
-                        <div class="guest-social-list">
-                            <?php foreach ($socialLinks as $soc): ?>
-                                <a href="<?= e($soc['url']) ?>" target="_blank" rel="noopener noreferrer"
-                                   class="guest-social-btn guest-social-<?= e($soc['type']) ?>" title="<?= e($soc['title']) ?>">
-                                    <?= $soc['icon'] ?>
-                                    <span class="guest-social-label"><?= e($soc['label']) ?></span>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
                 </div>
-            <?php endforeach; ?>
-        </div>
+                <div class="ve-meta-card ve-meta-card--time">
+                    <span class="ve-meta-icon" aria-hidden="true">⏰</span>
+                    <div class="ve-meta-content">
+                        <span class="ve-meta-label">Time</span>
+                        <span class="ve-meta-val"><?= $eventDate ? date('g:i A', $eventDate) : 'Time TBA' ?></span>
+                    </div>
+                </div>
+                <div class="ve-meta-card ve-meta-card--venue">
+                    <span class="ve-meta-icon" aria-hidden="true">📍</span>
+                    <div class="ve-meta-content">
+                        <span class="ve-meta-label">Venue</span>
+                        <span class="ve-meta-val" title="<?= e($event->location) ?>"><?= e($event->location) ?></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Framed Poster & Host Ledger Sidebar -->
+        <aside class="ve-sidebar">
+            <div class="ve-poster-wrap ve-desktop-only">
+                <img src="<?= e($eventImg) ?>" alt="<?= e($event->name) ?> Poster" class="ve-poster-img" loading="eager" decoding="async">
+            </div>
+            <div class="ve-sidebar-body">
+                <!-- Host Ledger -->
+                <div class="ve-host-block">
+                    <div class="ve-host-avatar">
+                        <?= strtoupper(substr($event->organizer_name ?? 'H', 0, 1)) ?>
+                    </div>
+                    <div class="ve-min-w-0">
+                        <span class="ve-host-name"><?= e($event->organizer_name ?? 'Event Organizer') ?></span>
+                        <span class="ve-host-rating">★ <?= number_format($event->organizer_rating ?? 5.0, 1) ?> Verified Host Rating</span>
+                    </div>
+                </div>
+
+                <!-- Share Dispatch -->
+                <div class="ve-share-block">
+                    <span class="ve-block-label">Share This Experience</span>
+                    <div class="ve-share-btns">
+                        <a href="https://api.whatsapp.com/send?text=<?= $shareText ?>%20<?= $encodedShareUrl ?>" target="_blank" rel="noopener" class="ve-share-btn">WhatsApp</a>
+                        <a href="https://twitter.com/intent/tweet?url=<?= $encodedShareUrl ?>&text=<?= $shareText ?>" target="_blank" rel="noopener" class="ve-share-btn">X / Twitter</a>
+                        <button type="button" id="copy-share-link" class="ve-share-btn ve-share-btn--full">
+                            🔗 <span id="copy-btn-text">Copy Event Link</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add to Calendar -->
+                <div class="ve-share-block">
+                    <span class="ve-block-label">📅 Add to Calendar</span>
+                    <div class="ve-cal-btns">
+                        <a href="<?= event_google_calendar_url($event) ?>" target="_blank" rel="noopener" class="ve-share-btn">Google</a>
+                        <a href="<?= event_ics_url($event) ?>" download class="ve-share-btn">iCal</a>
+                        <a href="<?= event_outlook_calendar_url($event) ?>" target="_blank" rel="noopener" class="ve-share-btn">Outlook</a>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
+
+    <!-- ═══ 3. Recurring Series Switcher (if applicable) ═══ -->
+    <?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>
+        <div class="ve-series-card" id="series-date-selector">
+            <div class="ve-series-head">
+                <div>
+                    <h3 class="ve-series-title">Event Series Dates</h3>
+                    <p class="ve-series-sub">This event is held across multiple dates. Select an occurrence below:</p>
+                </div>
+                <span class="ve-badge"><?= count($recurringOccurrences) ?> Dates in Series</span>
+            </div>
+            <select id="series-occurrence-select" class="ve-series-select" onchange="if (this.value) window.location.href = this.value;">
+                <?php foreach ($recurringOccurrences as $occ): 
+                    $occTime = strtotime($occ['date']);
+                    $isCurrentOcc = ($occ['id'] == $event->id);
+                    $occUrl = event_url((object)$occ);
+                    $label = 'Occurrence #' . ($occ['recurrence_sequence'] ?? 1) . ' — ' . date('D, M j, Y • g:i A', $occTime) . ($isCurrentOcc ? ' (Current)' : '');
+                ?>
+                    <option value="<?= e($occUrl) ?>" <?= $isCurrentOcc ? 'selected' : '' ?>>
+                        <?= e($label) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
     <?php endif; ?>
 
-    <h3 class="ep-highlights__title">Event Highlights &amp; Access Info</h3>
-    <ul class="ep-highlights">
-        <li><strong>Instant Ticket Delivery:</strong> Receive digital tickets with QR code validation immediately upon purchase.</li>
-        <li><strong>Venue Location:</strong> <?= e($event->location) ?></li>
-        <li><strong>Organizer:</strong> <?= e($event->organizer_name ?? 'Eventlyy Host') ?> (<?= e($event->organizer_email ?? '') ?>)</li>
-        <li><strong>Ticketing Policy:</strong> <?= !empty($event->pass_fee) ? e(get_setting('platform_fee', 5)) . '% platform fee is applied to attendee purchases.' : 'Platform fees are covered by the event organizer.' ?></li>
-    </ul>
-</section>
+    <!-- ═══ 4. Box Office Admissions Counter ═══ -->
+    <?php if ($isCompleted): ?>
+        <div class="ve-completed-box">
+            <span class="ve-concluded-icon">🏁</span>
+            <h3 class="ve-concluded-title">Admission Sales Concluded</h3>
+            <p class="ve-concluded-text">This gathering concluded on <?= date('F j, Y \a\t g:i A', strtotime($event->date)) ?>. We thank all patrons for attending.</p>
+            <a href="<?= route('event/' . $eventIdentifier . '/feedback') ?>" class="vn-btn-primary ve-concluded-btn">
+                ⭐ Rate &amp; Review This Event
+            </a>
+        </div>
+    <?php else: ?>
+        <form id="tickets-form" method="GET" action="{{ route('checkout/{event_id}', ['event_id' => $eventIdentifier]) }}">
+            <input type="hidden" name="event_id" value="<?= $eventIdentifier ?>" />
+            <input type="hidden" name="occ_id" value="<?= (int)($event->id ?? 0) ?>" />
+            <?php if (!empty($event->recurrence_sequence)): ?>
+                <input type="hidden" name="occ" value="<?= (int)$event->recurrence_sequence ?>" />
+            <?php endif; ?>
+            <?php if (!empty($refCode) || !empty($_GET['ref'])): ?>
+                <input type="hidden" name="ref" value="<?= e($refCode ?? ($_GET['ref'] ?? '')) ?>" />
+            <?php endif; ?>
 
-<!-- ═══ Interactive Ticket & Order JS ═══ -->
+            <div class="ve-box-office">
+                <!-- Left: Ticket Tiers Desk -->
+                <div class="ve-desk-card">
+                    <?php if ($showCountdown): ?>
+                        <!-- Clockwork Urgency Banner -->
+                        <div class="ve-clockwork-card" id="ticket-countdown-banner" data-close-timestamp="<?= $salesCloseTimestamp ?>">
+                            <div class="ve-clockwork-info">
+                                <span class="ve-clockwork-icon">⏳</span>
+                                <div>
+                                    <span class="ve-clockwork-label">Box Office Closing Soon</span>
+                                    <div class="ve-clockwork-sub">Reserve your passes before online sales close</div>
+                                </div>
+                            </div>
+                            <div class="ve-clockwork-timer" id="countdown-timer">
+                                <div class="ve-timer-box">
+                                    <span class="ve-timer-val" id="cd-hours">--</span>
+                                    <span class="ve-timer-lbl">Hours</span>
+                                </div>
+                                <span class="ve-timer-colon">:</span>
+                                <div class="ve-timer-box">
+                                    <span class="ve-timer-val" id="cd-minutes">--</span>
+                                    <span class="ve-timer-lbl">Mins</span>
+                                </div>
+                                <span class="ve-timer-colon">:</span>
+                                <div class="ve-timer-box">
+                                    <span class="ve-timer-val" id="cd-seconds">--</span>
+                                    <span class="ve-timer-lbl">Secs</span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="ve-desk-header">
+                        <div>
+                            <span class="ve-desk-pre">Admissions Counter</span>
+                            <h2 class="ve-desk-title">Select Admission Tiers</h2>
+                        </div>
+                        <span class="ve-badge">⚡ Instant QR Delivery</span>
+                    </div>
+
+                    <div class="ve-tier-list">
+                        <?php if (empty($ticketTypes)): ?>
+                            <p class="ve-empty-tiers-msg">No ticket tiers are currently available for this gathering.</p>
+                        <?php else: ?>
+                            <?php foreach ($ticketTypes as $tt):
+                                $sold = (int)($tt['sold'] ?? 0);
+                                $capacity = (int)($tt['capacity'] ?? 0);
+                                $remaining = max(0, $capacity - $sold);
+                                $isSoldOut = ($remaining <= 0);
+                            ?>
+                                <div class="ve-tier-stub<?= $isSoldOut ? ' sold-out' : '' ?>"
+                                     data-price="<?= (float)$tt['price'] ?>"
+                                     data-label="<?= e($tt['name']) ?>"
+                                     data-ticket-id="<?= $tt['id'] ?>">
+
+                                    <!-- Ticket Information Header -->
+                                    <div class="ve-tier-info">
+                                        <div class="ve-tier-title-row">
+                                            <h3 class="ve-tier-name"><?= e($tt['name']) ?></h3>
+                                            <div class="ve-tier-badges">
+                                                <?php if ($isSoldOut): ?>
+                                                    <span class="ve-tier-badge ve-tier-badge--soldout">Sold Out</span>
+                                                <?php elseif ($remaining <= 15): ?>
+                                                    <span class="ve-tier-badge ve-tier-badge--urgency">🔥 <?= $remaining ?> left</span>
+                                                <?php endif; ?>
+                                                <?php if (!empty($tt['max_per_person'])): ?>
+                                                    <span class="ve-tier-badge ve-tier-badge--limit">Max <?= (int)$tt['max_per_person'] ?>/person</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <?php if (!empty($tt['description'])): ?>
+                                            <p class="ve-tier-desc"><?= e($tt['description']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <!-- Perforated separator for mobile & tablet -->
+                                    <div class="ve-tier-divider" aria-hidden="true"></div>
+
+                                    <!-- Bottom Action Row: Price & Quantity Stepper -->
+                                    <div class="ve-tier-bottom-row">
+                                        <div class="ve-tier-price-box">
+                                            <span class="ve-price-lbl">Per Admission</span>
+                                            <div class="ve-tier-price">
+                                                <?= ((float)$tt['price'] > 0) ? format_price($tt['price']) : 'Free' ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="ve-stepper-wrap">
+                                            <div class="ve-stepper">
+                                                <button type="button" class="ve-stepper-btn" data-action="decrease" <?= $isSoldOut ? 'disabled' : '' ?> aria-label="Decrease quantity">−</button>
+                                                <span class="ve-stepper-val" aria-live="polite">0</span>
+                                                <input type="hidden" name="qty[<?= $tt['id'] ?>]" class="qty-input" value="0" data-max="<?= $remaining ?>" data-max-per-person="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>">
+                                                <button type="button" class="ve-stepper-btn" data-action="increase" <?= $isSoldOut ? 'disabled' : '' ?> aria-label="Increase quantity">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Right: Printed Ledger Receipt -->
+                <aside class="ve-receipt-card">
+                    <div class="ve-receipt-header">
+                        <span class="ve-receipt-seal">✦ Admission Summary ✦</span>
+                        <h3 class="ve-receipt-title">Order Ledger</h3>
+                    </div>
+
+                    <div class="ve-receipt-lines" id="summary-items">
+                        <p class="ve-empty-summary-msg">
+                            Select admission passes on the left to tally your order.
+                        </p>
+                    </div>
+
+                    <div class="ve-receipt-total">
+                        <span class="ve-total-lbl">Total Amount</span>
+                        <strong class="ve-total-val" id="order-total"><?= format_price(0) ?></strong>
+                    </div>
+
+                    <button type="submit" id="checkout-submit-btn" class="ve-checkout-btn" disabled>
+                        <span>Reserve Admissions</span>
+                        <span>→</span>
+                    </button>
+                </aside>
+            </div>
+
+            <!-- Mobile Floating Bottom Checkout Bar (Only visible when tickets selected on mobile) -->
+            <div id="ve-mobile-bar" class="ve-mobile-bar" aria-live="polite">
+                <div class="ve-mobile-bar-summary">
+                    <span class="ve-mobile-bar-qty" id="mobile-bar-qty">0 Passes Selected</span>
+                    <strong class="ve-mobile-bar-total" id="mobile-bar-total"><?= format_price(0) ?></strong>
+                </div>
+                <button type="submit" class="ve-mobile-bar-btn" id="mobile-bar-btn">
+                    <span>Reserve Tickets</span>
+                    <span>→</span>
+                </button>
+            </div>
+        </form>
+    <?php endif; ?>
+
+    <!-- ═══ 5. Narrative Description & Special Guests ═══ -->
+    <section class="ve-narrative-card">
+        <h2 class="ve-narrative-head">The Full Chronicle</h2>
+        <div class="ve-narrative-body">
+            <?= nl2br(e($event->description)) ?>
+        </div>
+
+        <?php
+        $validGuests = [];
+        if (!empty($eventGuests)) {
+            foreach ($eventGuests as $guest) {
+                $name = !empty($guest->name) ? $guest->name : ($guest['name'] ?? '');
+                if (!empty(trim((string)$name))) $validGuests[] = $guest;
+            }
+        }
+        ?>
+        <?php if (!empty($validGuests)): ?>
+            <div class="ve-guests-section">
+                <h3 class="ve-guests-title">
+                    ✦ Honored Guests &amp; Performers
+                </h3>
+                <div class="ve-guests-grid">
+                    <?php foreach ($validGuests as $guest):
+                        $gName = !empty($guest->name) ? (string)$guest->name : (string)($guest['name'] ?? '');
+                        $gRole = !empty($guest->role) ? (string)$guest->role : (string)($guest['role'] ?? '');
+                    ?>
+                        <div class="ve-guest-item">
+                            <div class="ve-host-avatar ve-guest-avatar">
+                                <?= strtoupper(substr($gName, 0, 1)) ?>
+                            </div>
+                            <div class="ve-min-w-0">
+                                <strong class="ve-guest-name"><?= e($gName) ?></strong>
+                                <?php if (!empty($gRole)): ?>
+                                    <span class="ve-guest-role"><?= e($gRole) ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Admissions Policy Strip -->
+        <div class="ve-policy-strip">
+            <div><strong>✦ Gate Policy:</strong> Present your scannable digital QR pass upon arrival for entry verification.</div>
+            <div><strong>✦ Direct Settlement:</strong> Ticket funds are disbursed securely to the event host upon conclusion.</div>
+        </div>
+    </section>
+
+</div>
+
+<!-- ═══ Interactive Ticket & Order Calculation JS ═══ -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var rows = document.querySelectorAll('.ep-ticket');
+    var rows = document.querySelectorAll('.ve-tier-stub');
     var summaryItems = document.getElementById('summary-items');
     var orderTotal = document.getElementById('order-total');
     var submitBtn = document.getElementById('checkout-submit-btn');
 
+    // Mobile bar elements
+    var mobileBar = document.getElementById('ve-mobile-bar');
+    var mobileBarQty = document.getElementById('mobile-bar-qty');
+    var mobileBarTotal = document.getElementById('mobile-bar-total');
+
     var currencySymbol = '<?= e(get_currency_symbol()) ?>';
     function formatCurrencyJS(amount) {
-        if (amount <= 0) return 'Free';
-        return currencySymbol + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return currencySymbol + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function updateSummary() {
@@ -933,30 +506,39 @@ document.addEventListener('DOMContentLoaded', function () {
             var qty = parseInt(qtyInput ? qtyInput.value : 0, 10) || 0;
 
             if (qty > 0) {
+                row.classList.add('is-selected');
                 var subtotal = price * qty;
                 total += subtotal;
                 totalQty += qty;
-                itemsHtml += '<div class="ep-summary__row"><span>' + qty + 'x ' + label + '</span><strong>' + formatCurrencyJS(subtotal) + '</strong></div>';
+                itemsHtml += '<div class="ve-receipt-row"><span>' + qty + 'x ' + label + '</span><strong>' + (subtotal > 0 ? formatCurrencyJS(subtotal) : 'Free') + '</strong></div>';
+            } else {
+                row.classList.remove('is-selected');
             }
         });
 
         if (totalQty === 0) {
-            summaryItems.innerHTML = '<p class="ep-summary__empty">Select at least 1 ticket to proceed.</p>';
-            orderTotal.textContent = 'Free';
+            if (summaryItems) summaryItems.innerHTML = '<p class="ve-empty-summary-msg">Select admission passes on the left to tally your order.</p>';
+            if (orderTotal) orderTotal.textContent = formatCurrencyJS(0);
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
-                submitBtn.textContent = 'Continue to Checkout →';
+                submitBtn.textContent = 'Reserve Admissions →';
             }
+            if (mobileBar) {
+                mobileBar.classList.remove('is-visible');
+            }
+            if (mobileBarTotal) mobileBarTotal.textContent = formatCurrencyJS(0);
         } else {
-            summaryItems.innerHTML = itemsHtml;
-            orderTotal.textContent = (total > 0) ? formatCurrencyJS(total) : 'Free';
+            var formattedTotal = (total > 0) ? formatCurrencyJS(total) : 'Free';
+            if (summaryItems) summaryItems.innerHTML = itemsHtml;
+            if (orderTotal) orderTotal.textContent = formattedTotal;
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.style.cursor = 'pointer';
-                submitBtn.textContent = (total > 0) ? 'Continue to Checkout →' : 'Get Free Tickets →';
+                submitBtn.textContent = (total > 0) ? 'Reserve (' + totalQty + ') • ' + formattedTotal + ' →' : 'Reserve Free Passes (' + totalQty + ') →';
+            }
+            if (mobileBar) {
+                mobileBar.classList.add('is-visible');
+                if (mobileBarQty) mobileBarQty.textContent = totalQty + (totalQty === 1 ? ' Pass Selected' : ' Passes Selected');
+                if (mobileBarTotal) mobileBarTotal.textContent = formattedTotal;
             }
         }
     }
@@ -964,10 +546,10 @@ document.addEventListener('DOMContentLoaded', function () {
     rows.forEach(function(row) {
         var decreaseBtn = row.querySelector('[data-action="decrease"]');
         var increaseBtn = row.querySelector('[data-action="increase"]');
-        var qtyVal = row.querySelector('.qty-value');
+        var qtyVal = row.querySelector('.ve-stepper-val');
         var qtyInput = row.querySelector('.qty-input');
-        var maxCapacity = parseInt(qtyInput.getAttribute('data-max'), 10) || 99;
-        var maxPerPerson = qtyInput.getAttribute('data-max-per-person');
+        var maxCapacity = parseInt(qtyInput ? qtyInput.getAttribute('data-max') : 99, 10) || 99;
+        var maxPerPerson = qtyInput ? qtyInput.getAttribute('data-max-per-person') : null;
         maxPerPerson = maxPerPerson ? parseInt(maxPerPerson, 10) : null;
         var effectiveMax = (maxPerPerson && maxPerPerson > 0) ? Math.min(maxCapacity, maxPerPerson) : maxCapacity;
 
@@ -996,168 +578,59 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    /* ── Copy Link (cross-device) ── */
-    function copyTextToClipboard(textToCopy, callback) {
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(textToCopy)
-                .then(function () { callback(true); })
-                .catch(function () { fallbackCopyText(textToCopy, callback); });
-        } else {
-            fallbackCopyText(textToCopy, callback);
-        }
-    }
-
-    function fallbackCopyText(textToCopy, callback) {
-        var textArea = document.createElement("textarea");
-        textArea.value = textToCopy;
-        textArea.style.position = "fixed";
-        textArea.style.top = "-9999px";
-        textArea.style.left = "-9999px";
-        textArea.style.opacity = "0";
-        textArea.setAttribute("readonly", "");
-        document.body.appendChild(textArea);
-        if (navigator.userAgent.match(/ipad|iphone/i)) {
-            var range = document.createRange();
-            range.selectNodeContents(textArea);
-            var selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            textArea.setSelectionRange(0, 999999);
-        } else {
-            textArea.focus();
-            textArea.select();
-        }
-        var successful = false;
-        try { successful = document.execCommand('copy'); } catch (err) { successful = false; }
-        document.body.removeChild(textArea);
-        callback(successful);
-    }
-
-    var copyBtn = document.getElementById('copy-share-link');
-    var copyText = document.getElementById('copy-btn-text');
-    if (copyBtn && copyText) {
-        copyBtn.addEventListener('click', function () {
-            copyTextToClipboard(window.location.href, function (success) {
-                if (success) {
-                    copyText.textContent = 'Copied!';
-                    copyBtn.style.borderColor = '#10b981';
-                    copyBtn.style.color = '#10b981';
-                    setTimeout(function () {
-                        copyText.textContent = 'Copy Link';
-                        copyBtn.style.borderColor = '';
-                        copyBtn.style.color = '';
-                    }, 2000);
-                } else {
-                    copyText.textContent = 'Copy Failed';
-                    setTimeout(function () { copyText.textContent = 'Copy Link'; }, 2000);
-                }
-            });
-        });
-    }
-
-    /* ── Image Lightbox ── */
-    var imageContainer = document.getElementById('event-image-container');
-    var lightboxModal = document.getElementById('image-lightbox-modal');
-    var lightboxImg = document.getElementById('lightbox-img');
-    var lightboxClose = document.getElementById('lightbox-close');
-
-    if (imageContainer && lightboxModal && lightboxImg) {
-        imageContainer.addEventListener('click', function () {
-            lightboxImg.src = '<?= e($eventImg) ?>';
-            lightboxModal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        });
-        function closeLightbox() {
-            lightboxModal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
-        if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
-        lightboxModal.addEventListener('click', function (e) {
-            if (e.target === lightboxModal) closeLightbox();
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && lightboxModal.style.display === 'flex') closeLightbox();
-        });
-    }
-
-    /* ── Recurring Series Date Switcher ── */
-    var seriesSelect = document.getElementById('series-occurrence-select');
-    if (seriesSelect) {
-        seriesSelect.addEventListener('change', function () {
-            if (this.value) {
-                window.location.href = this.value;
-            }
-        });
-    }
-
-    updateSummary();
-
-    /* ── Ticket Sales Countdown Timer ── */
+    /* ── Live Countdown Timer ── */
     var countdownBanner = document.getElementById('ticket-countdown-banner');
     if (countdownBanner) {
-        var closeTimestamp = parseInt(countdownBanner.getAttribute('data-close-timestamp'), 10);
+        var closeTimestamp = parseInt(countdownBanner.getAttribute('data-close-timestamp'), 10) * 1000;
         var cdHours = document.getElementById('cd-hours');
         var cdMinutes = document.getElementById('cd-minutes');
         var cdSeconds = document.getElementById('cd-seconds');
-        var summaryCdText = document.getElementById('summary-countdown-text');
-        var summaryCdBadge = document.getElementById('summary-countdown-badge');
 
-        function updateCountdown() {
-            var nowSec = Math.floor(Date.now() / 1000);
-            var diff = closeTimestamp - nowSec;
-
+        function tick() {
+            var diff = closeTimestamp - Date.now();
             if (diff <= 0) {
-                // Online pre-sales window elapsed — transition to Live Gate Sales mode safely
-                countdownBanner.style.display = 'none';
-                if (summaryCdBadge) summaryCdBadge.style.display = 'none';
-                var reloadKey = 'cd_done_' + closeTimestamp;
-                if (!sessionStorage.getItem(reloadKey)) {
-                    sessionStorage.setItem(reloadKey, '1');
-                    window.location.reload();
-                }
+                if (cdHours) cdHours.textContent = '00';
+                if (cdMinutes) cdMinutes.textContent = '00';
+                if (cdSeconds) cdSeconds.textContent = '00';
                 return;
             }
-
-            var h = Math.floor(diff / 3600);
-            var m = Math.floor((diff % 3600) / 60);
-            var s = diff % 60;
-
-            var hStr = h < 10 ? '0' + h : '' + h;
-            var mStr = m < 10 ? '0' + m : '' + m;
-            var sStr = s < 10 ? '0' + s : '' + s;
-
-            if (cdHours) cdHours.textContent = hStr;
-            if (cdMinutes) cdMinutes.textContent = mStr;
-            if (cdSeconds) cdSeconds.textContent = sStr;
-
-            if (summaryCdText) {
-                summaryCdText.textContent = hStr + ':' + mStr + ':' + sStr;
-            }
-
-            // Switch to urgent (red) style when under 2 hours
-            if (diff <= 7200) {
-                if (!countdownBanner.classList.contains('ep-countdown-banner--urgent')) {
-                    countdownBanner.classList.add('ep-countdown-banner--urgent');
-                    var iconEl = countdownBanner.querySelector('.ep-countdown-banner__icon');
-                    var labelEl = countdownBanner.querySelector('.ep-countdown-banner__label');
-                    if (iconEl) iconEl.textContent = '🔥';
-                    if (labelEl) labelEl.textContent = 'Hurry! Sales Closing Very Soon';
-                }
-                if (summaryCdBadge && !summaryCdBadge.classList.contains('ep-summary__timer-badge--urgent')) {
-                    summaryCdBadge.classList.add('ep-summary__timer-badge--urgent');
-                }
-            }
+            var secs = Math.floor(diff / 1000);
+            var h = Math.floor(secs / 3600);
+            var m = Math.floor((secs % 3600) / 60);
+            var s = secs % 60;
+            if (cdHours) cdHours.textContent = String(h).padStart(2, '0');
+            if (cdMinutes) cdMinutes.textContent = String(m).padStart(2, '0');
+            if (cdSeconds) cdSeconds.textContent = String(s).padStart(2, '0');
         }
+        tick();
+        setInterval(tick, 1000);
+    }
 
-        updateCountdown();
-        setInterval(updateCountdown, 1000);
+    /* ── Copy Link ── */
+    var copyBtn = document.getElementById('copy-share-link');
+    var copyText = document.getElementById('copy-btn-text');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            var url = '<?= addslashes($shareUrl) ?>';
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(function() {
+                    if (copyText) copyText.textContent = 'Copied to Clipboard!';
+                    setTimeout(function() { if (copyText) copyText.textContent = 'Copy Event Link'; }, 2000);
+                });
+            } else {
+                var ta = document.createElement('textarea');
+                ta.value = url;
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    if (copyText) copyText.textContent = 'Copied!';
+                    setTimeout(function() { if (copyText) copyText.textContent = 'Copy Event Link'; }, 2000);
+                } catch(e) {}
+                document.body.removeChild(ta);
+            }
+        });
     }
 });
 </script>
-
-<!-- Fullscreen Image Lightbox -->
-<div id="image-lightbox-modal" class="image-lightbox-modal" style="display:none;">
-    <span class="lightbox-close" id="lightbox-close">&times;</span>
-    <img class="lightbox-content" id="lightbox-img" alt="<?= e($event->name) ?> full cover image">
-</div>
 @endsection

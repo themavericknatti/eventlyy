@@ -1,4 +1,7 @@
 <?php
+$primaryColor = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$secondaryColor = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+$primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_to_rgb_triple($primaryColor)) : '16, 138, 85';
 $isIssuedOnly = !empty($is_issued) || (!empty($payment_method) && (
     str_contains(strtolower($payment_method), 'gate') || 
     str_contains(strtolower($payment_method), 'host') || 
@@ -76,7 +79,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                     
                     <!-- Organization Header -->
                     <tr>
-                        <td class="header-padding" align="center" style="background-color: #0B7366; background: linear-gradient(135deg, #0B7366 0%, #064e45 100%); padding: 32px 24px; text-align: center;">
+                        <td class="header-padding" align="center" style="background-color: <?= $primaryColor ?>; background: linear-gradient(135deg, <?= $primaryColor ?> 0%, <?= $secondaryColor ?> 100%); padding: 32px 24px; text-align: center;">
                             <!-- Brand & Logo -->
                             <div style="margin-bottom: 14px; display: inline-block;">
                                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
@@ -88,7 +91,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                                                     <?= e(site_setting('site_title', 'Evently')) ?>
                                                 </span>
                                             <?php else: ?>
-                                                <span class="brand-letter" style="display: inline-block; width: 36px; height: 36px; line-height: 36px; background-color: #ffffff; color: #0B7366; font-weight: 900; font-size: 22px; border-radius: 8px; text-align: center; vertical-align: middle;">
+                                                <span class="brand-letter" style="display: inline-block; width: 36px; height: 36px; line-height: 36px; background-color: #ffffff; color: <?= $primaryColor ?>; font-weight: 900; font-size: 22px; border-radius: 8px; text-align: center; vertical-align: middle;">
                                                     <?= strtoupper(substr(site_setting('site_title', 'Evently'), 0, 1)) ?>
                                                 </span>
                                                 <span class="header-brand-title" style="display: inline-block; color: #ffffff; font-size: 20px; font-weight: 700; margin-left: 10px; vertical-align: middle;">
@@ -149,10 +152,10 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                                 $tPrice = (float)($t['price'] ?? 0);
                                 $tAttendeeName = !empty($t['attendee_name']) ? $t['attendee_name'] : ($attendee_name ?? 'Attendee');
                             ?>
-                            <table class="ticket-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid #0B7366; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                            <table class="ticket-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid <?= $primaryColor ?>; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                 <!-- Card Header Strip -->
                                 <tr>
-                                    <td style="background-color: #0B7366; padding: 10px 16px;">
+                                    <td style="background-color: <?= $primaryColor ?>; padding: 10px 16px;">
                                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                             <tr>
                                                 <td align="left" style="font-size: 13px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.04em;">
@@ -181,7 +184,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                                             Unique Admission Code
                                         </div>
                                         <div>
-                                            <span class="ticket-code-badge" style="display: inline-block; font-family: Consolas, Monaco, 'Courier New', monospace; background-color: #f1f5f9; color: #0B7366; border: 1px dashed #0B7366; font-size: 16px; font-weight: 800; padding: 5px 14px; border-radius: 8px; letter-spacing: 0.08em; margin-bottom: 6px;">
+                                            <span class="ticket-code-badge" style="display: inline-block; font-family: Consolas, Monaco, 'Courier New', monospace; background-color: #f1f5f9; color: <?= $primaryColor ?>; border: 1px dashed <?= $primaryColor ?>; font-size: 16px; font-weight: 800; padding: 5px 14px; border-radius: 8px; letter-spacing: 0.08em; margin-bottom: 6px;">
                                                 <?= e($tCode) ?>
                                             </span>
                                         </div>
@@ -197,7 +200,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; margin-bottom: 12px;">
                                 <tr>
                                     <td align="center">
-                                        <a href="<?= \url('/profile') ?>" class="btn-primary" style="display: inline-block; background-color: #0B7366; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(11, 115, 102, 0.25);">
+                                        <a href="<?= \url('/profile') ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
                                             View &amp; Manage Passes &rarr;
                                         </a>
                                     </td>
@@ -219,10 +222,10 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                             </div>
                             <p style="margin: 0 0 8px;">&copy; <?= date('Y') ?> <?= e(site_setting('site_title', 'Evently')) ?>. All rights reserved.</p>
                             <p class="footer-links" style="margin: 0 0 10px;">
-                                <a href="<?= \url('/privacy') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">Privacy Policy</a> &bull;
-                                <a href="<?= \url('/terms') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">Terms of Service</a> &bull;
-                                <a href="<?= \url('/support') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">Support Desk</a> &bull;
-                                <a href="<?= \url('/about') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">About Us</a>
+                                <a href="<?= \url('/privacy') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Privacy Policy</a> &bull;
+                                <a href="<?= \url('/terms') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Terms of Service</a> &bull;
+                                <a href="<?= \url('/support') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Support Desk</a> &bull;
+                                <a href="<?= \url('/about') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">About Us</a>
                             </p>
                             <p style="margin: 0; font-size: 11px; color: #94a3b8;">
                                 You are receiving this email because an admission pass or ticket was issued on your behalf via <?= e(site_setting('site_title', 'Evently')) ?>.

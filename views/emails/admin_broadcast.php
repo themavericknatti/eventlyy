@@ -1,3 +1,8 @@
+<?php
+$primaryColor = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$secondaryColor = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+$primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_to_rgb_triple($primaryColor)) : '16, 138, 85';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -49,7 +54,7 @@
         }
 
         .header {
-            background-color: #0B7366;
+            background-color: <?= $primaryColor ?>;
             padding: 32px 24px;
             text-align: center;
         }
@@ -60,7 +65,7 @@
             height: 36px;
             line-height: 36px;
             background-color: #ffffff;
-            color: #0B7366;
+            color: <?= $primaryColor ?>;
             font-weight: 900;
             font-size: 22px;
             border-radius: 8px;
@@ -115,7 +120,7 @@
         }
 
         .btn {
-            background-color: #0B7366;
+            background-color: <?= $primaryColor ?>;
             color: #ffffff !important;
             text-decoration: none;
             padding: 14px 32px;
@@ -123,7 +128,7 @@
             font-size: 14px;
             border-radius: 12px;
             display: inline-block;
-            box-shadow: 0 8px 16px rgba(11, 115, 102, 0.15);
+            box-shadow: 0 8px 16px rgba(<?= $primaryRgb ?>, 0.15);
         }
 
         .footer {
@@ -136,7 +141,7 @@
         }
 
         .footer a {
-            color: #0B7366;
+            color: <?= $primaryColor ?>;
             text-decoration: none;
         }
     </style>

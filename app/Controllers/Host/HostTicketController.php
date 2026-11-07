@@ -40,8 +40,56 @@ class HostTicketController extends Controller
         $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
         $ticket = $this->ticketService->getTicketDetail($id, $user->id, $isAdmin);
 
+        $isJson = $request->isAjax() 
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')
+            || !empty($request->getBody()['ajax']);
+
         if (!$ticket) {
+            if ($isJson) {
+                return Application::$app->response->json(['success' => false, 'error' => 'Ticket not found or access denied.'], 404);
+            }
             throw new \Exception("Ticket not found or access denied.", 404);
+        }
+
+        if ($isJson) {
+            $isEventStarted = !empty($ticket['event_date']) && strtotime($ticket['event_date']) <= time();
+            $isCheckedIn = !empty($ticket['checked_in']);
+            $isRefunded = in_array($ticket['status'] ?? '', ['Cancelled', 'Refunded']);
+
+            return Application::$app->response->json([
+                'success' => true,
+                'ticket' => [
+                    'id' => $ticket['id'],
+                    'attendee_name' => $ticket['attendee_name'] ?? 'Guest',
+                    'attendee_email' => $ticket['attendee_email'] ?? '',
+                    'user_id' => $ticket['user_id'] ?? null,
+                    'is_user' => !empty($ticket['user_id']),
+                    'ticket_type' => $ticket['ticket_type'] ?? 'General Admission',
+                    'price' => (float)($ticket['price'] ?? 0),
+                    'price_formatted' => format_price($ticket['price'] ?? 0),
+                    'status' => $ticket['status'] ?? 'Paid',
+                    'status_detail' => $ticket['status_detail'] ?? 'Payment confirmed',
+                    'is_issued' => !empty($ticket['is_issued']),
+                    'checked_in' => $isCheckedIn,
+                    'checked_in_at' => $ticket['checked_in_at'] ?? null,
+                    'checked_in_time' => !empty($ticket['checked_in_at']) ? date('h:i A', strtotime($ticket['checked_in_at'])) : null,
+                    'purchase_date' => $ticket['purchase_date'] ?? null,
+                    'purchase_date_formatted' => !empty($ticket['purchase_date']) ? date('M d, Y \a\t h:i A', strtotime($ticket['purchase_date'])) : 'N/A',
+                    'qr_url' => ticket_qr_url($ticket['id'], 220),
+                    'is_refunded' => $isRefunded,
+                    'is_event_started' => $isEventStarted,
+                    'action_url' => route('host/event/ticket/' . $ticket['id'] . '/action'),
+                    'detail_url' => route('host/event/ticket/' . $ticket['id'])
+                ],
+                'event' => [
+                    'id' => $ticket['event_id'],
+                    'name' => $ticket['event_name'],
+                    'date' => $ticket['event_date'] ?? null,
+                    'date_formatted' => !empty($ticket['event_date']) ? date('D, M j, Y \a\t g:i A', strtotime($ticket['event_date'])) : '',
+                    'location' => $ticket['event_location'] ?? ''
+                ]
+            ]);
         }
 
         return $this->render('host/ticket-detail', [
@@ -49,7 +97,9 @@ class HostTicketController extends Controller
             'ticket' => $ticket,
             'event' => [
                 'id' => $ticket['event_id'],
-                'name' => $ticket['event_name']
+                'name' => $ticket['event_name'],
+                'date' => $ticket['event_date'] ?? null,
+                'location' => $ticket['event_location'] ?? null
             ]
         ]);
     }

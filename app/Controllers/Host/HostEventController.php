@@ -638,6 +638,39 @@ class HostEventController extends Controller
         exit;
     }
 
+    public function exportAttendeesPdf(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+        if (!$event) {
+            throw new \Exception("Event not found or access denied.", 404);
+        }
+
+        $db = Application::$app->db->pdo;
+        $stmt = $db->prepare("
+            SELECT t.id, t.attendee_name, t.attendee_email, 
+                   tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                   t.checked_in_at, t.purchase_date
+            FROM tickets t
+            INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.event_id = :event_id
+            ORDER BY t.purchase_date DESC
+        ");
+        $stmt->execute(['event_id' => $event->id]);
+        $attendees = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $hostStmt = $db->prepare("SELECT name, email FROM users WHERE id = :id LIMIT 1");
+        $hostStmt->execute(['id' => $event->organizer_id]);
+        $host = $hostStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+        return $this->render('reports/attendee-pdf', [
+            'event' => $event,
+            'attendees' => $attendees,
+            'host' => $host
+        ]);
+    }
+
     public function accountingReport(Request $request, int|string $id)
     {
         $user = Application::$app->user;

@@ -1117,6 +1117,40 @@ Referral & Affiliate Tracking - <?= e($event->name) ?> - <?= e($siteName) ?>
         width: 100%;
     }
 }
+
+/* --- Vintage Theme Enhancements for Referrals Hub --- */
+.ref-hero-banner, .ref-card, .ref-stat-card, .ref-table-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.ref-hero-banner h1, .ref-card h2, .ref-table-card h2 {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-ink) !important;
+}
+.ref-stat-val {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-brass) !important;
+}
+.ref-table th {
+    background: var(--vn-parchment-warm) !important;
+    color: var(--vn-ink-soft) !important;
+    border-bottom: 2px solid var(--vn-border-dark) !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+}
+.ref-table td {
+    border-bottom: 1px solid var(--vn-border) !important;
+    color: var(--vn-ink) !important;
+}
+.ref-table tr:hover td {
+    background: var(--vn-parchment-subtle) !important;
+}
+.add-ref-btn {
+    background: var(--vn-brass) !important;
+    box-shadow: 0 4px 12px var(--vn-brass-glow) !important;
+}
 </style>
 
 <script>

@@ -1,8 +1,8 @@
 {
     "site_title": "Eventlyy",
     "site_description": "Discover and book amazing events near you.",
-    "site_logo": "img\/branding\/d79d5df5b3ef0d98_1792052864.png",
-    "site_favicon": "img\/branding\/933dccf0bd5666fb_1792111031.png",
+    "site_logo": "img\/branding\/3dffd0b59b3a1001_1793969143.png",
+    "site_favicon": "img\/branding\/91dd39adf5097bab_1793973486.png",
     "support_email": "support@eventlyy.com",
     "maintenance_mode": "no",
     "enabled_gateways": [
@@ -33,14 +33,17 @@
     "stripe_secret_key": "",
     "flutterwave_public_key": "",
     "flutterwave_secret_key": "",
-    "announcement_enabled": "1",
+    "announcement_enabled": "0",
     "announcement_location": "home",
-    "announcement_badge": "\ud83c\udf89 Special Announcement",
-    "announcement_title": "Celebrating Our new Features",
-    "announcement_message": "This is just a testing message",
-    "announcement_image": "img\/announcements\/d9d5be3d4c556587_1791118578.jpg",
-    "announcement_link_text": "Check It Out \u2192",
-    "announcement_link_url": "eventlyy.test",
-    "announcement_dismiss_text": "Continue to Site",
-    "announcement_updated_at": "1792111031"
+    "announcement_badge": "",
+    "announcement_title": "",
+    "announcement_message": "",
+    "announcement_image": "",
+    "announcement_link_text": "",
+    "announcement_link_url": "",
+    "announcement_dismiss_text": "",
+    "announcement_updated_at": "1794051550",
+    "theme_primary_color": "#0284c7",
+    "theme_secondary_color": "#6366f1",
+    "theme_preset": "winter"
 }

@@ -508,7 +508,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
             </svg>
         </span>
         <div class="au-stat-body">
-            <span class="au-stat-num"><?= number_format($total_users) ?></span>
+            <span class="au-stat-num"><?= number_format($total_users ?? 0) ?></span>
             <span class="au-stat-lbl">Total Users</span>
         </div>
     </div>
@@ -522,7 +522,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
             </svg>
         </span>
         <div class="au-stat-body">
-            <span class="au-stat-num"><?= number_format($total_hosts) ?></span>
+            <span class="au-stat-num"><?= number_format($total_hosts ?? $hosts_count ?? 0) ?></span>
             <span class="au-stat-lbl">Hosts / Organizers</span>
         </div>
     </div>
@@ -534,7 +534,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
             </svg>
         </span>
         <div class="au-stat-body">
-            <span class="au-stat-num"><?= number_format($verified_accounts) ?></span>
+            <span class="au-stat-num"><?= number_format($verified_accounts ?? $verified_count ?? 0) ?></span>
             <span class="au-stat-lbl">Verified Accounts</span>
         </div>
     </div>
@@ -547,7 +547,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
             </svg>
         </span>
         <div class="au-stat-body">
-            <span class="au-stat-num"><?= number_format($suspended_users) ?></span>
+            <span class="au-stat-num"><?= number_format($suspended_users ?? $suspended_count ?? 0) ?></span>
             <span class="au-stat-lbl">Suspended</span>
         </div>
     </div>
@@ -633,8 +633,9 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                     <tr><td colspan="6" style="padding:3rem; text-align:center; color:rgb(var(--muted));">No users found matching your criteria.</td></tr>
                 <?php else: ?>
                     <?php 
-                    $currentUserId = \Ace\Application::$app->user->id ?? 0;
-                    $isCurrentSuperAdmin = method_exists(\Ace\Application::$app->user, 'isSuperAdmin') && \Ace\Application::$app->user->isSuperAdmin();
+                    $currAppUser = \Ace\Application::$app->user ?? null;
+                    $currentUserId = $currAppUser->id ?? 0;
+                    $isCurrentSuperAdmin = $currAppUser && method_exists($currAppUser, 'isSuperAdmin') && $currAppUser->isSuperAdmin();
 
                     foreach ($users as $user):
                         $hue = abs(crc32($user['name'])) % 360;
@@ -1078,13 +1079,25 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                             <div class="au-stat-card" style="margin:0; padding:0.85rem; background:rgba(var(--muted), 0.04); border:1px solid rgba(var(--muted), 0.1);">
                                 <div class="au-stat-body">
                                     <span id="vd-total-revenue" class="au-stat-num" style="font-size:1.3rem; line-height:1.2;">$0.00</span>
-                                    <span class="au-stat-lbl">Total Revenue</span>
+                                    <span class="au-stat-lbl">Gross Sales</span>
                                 </div>
                             </div>
-                            <div class="au-stat-card" style="margin:0; padding:0.85rem; background:rgba(var(--muted), 0.04); border:1px solid rgba(var(--muted), 0.1);">
+                            <div class="au-stat-card" style="margin:0; padding:0.85rem; background:rgba(99, 102, 241, 0.06); border:1px solid rgba(99, 102, 241, 0.2);">
+                                <div class="au-stat-body">
+                                    <span id="vd-platform-profit" class="au-stat-num" style="font-size:1.3rem; line-height:1.2; color:#6366f1;">$0.00</span>
+                                    <span class="au-stat-lbl">Platform Profit</span>
+                                </div>
+                            </div>
+                            <div class="au-stat-card" style="margin:0; padding:0.85rem; background:rgba(251, 146, 60, 0.06); border:1px solid rgba(251, 146, 60, 0.25);">
+                                <div class="au-stat-body">
+                                    <span id="vd-escrow-balance" class="au-stat-num" style="font-size:1.3rem; line-height:1.2; color:#ea580c;">$0.00</span>
+                                    <span class="au-stat-lbl">Live Escrow</span>
+                                </div>
+                            </div>
+                            <div class="au-stat-card" style="margin:0; padding:0.85rem; background:rgba(16, 185, 129, 0.06); border:1px solid rgba(16, 185, 129, 0.25);">
                                 <div class="au-stat-body">
                                     <span id="vd-available-balance" class="au-stat-num" style="font-size:1.3rem; line-height:1.2; color:#10b981;">$0.00</span>
-                                    <span class="au-stat-lbl">Avail. Balance</span>
+                                    <span class="au-stat-lbl">Avail. Payout</span>
                                 </div>
                             </div>
                         </div>
@@ -1134,4 +1147,180 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+    }
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    }
+
+    // Modal close triggers
+    ['suspend-cancel-btn', 'reactivate-cancel-btn', 'verify-cancel-btn', 'resend-cancel-btn', 'view-close-x-btn', 'view-close-btn'].forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.addEventListener('click', function() {
+                const modal = this.closest('.modal-overlay');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+    });
+
+    // Close on overlay backdrop click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+    });
+
+    // Suspend user buttons
+    document.querySelectorAll('.au-suspend-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const uid = this.dataset.userId;
+            const name = this.dataset.userName || 'this user';
+            document.getElementById('suspend-user-id').value = uid;
+            document.getElementById('suspend-user-name').textContent = name;
+            openModal('suspend-modal');
+        });
+    });
+
+    // Reactivate user buttons
+    document.querySelectorAll('.au-reactivate-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const uid = this.dataset.userId;
+            const name = this.dataset.userName || 'this user';
+            document.getElementById('reactivate-user-id').value = uid;
+            document.getElementById('reactivate-user-name').textContent = name;
+            openModal('reactivate-modal');
+        });
+    });
+
+    // Verify email buttons
+    document.querySelectorAll('.au-verify-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const uid = this.dataset.userId;
+            const name = this.dataset.userName || 'this user';
+            document.getElementById('verify-user-id').value = uid;
+            document.getElementById('verify-user-name').textContent = name;
+            openModal('verify-modal');
+        });
+    });
+
+    // View Profile Modal (AJAX detail fetch)
+    document.querySelectorAll('.au-view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.detailUrl;
+            if (!url) return;
+
+            openModal('view-modal');
+            const loading = document.getElementById('view-modal-loading');
+            const content = document.getElementById('view-modal-content');
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+
+            fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+
+                    const user = data.user || {};
+                    const stats = data.stats || {};
+
+                    // Basic details
+                    document.getElementById('vd-name').textContent = user.name || 'Unnamed';
+                    document.getElementById('vd-email').textContent = user.email || '-';
+                    document.getElementById('vd-phone').textContent = user.phone || 'No phone recorded';
+                    document.getElementById('vd-joined').textContent = user.created_at ? new Date(user.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '-';
+                    
+                    const statusBadge = document.getElementById('vd-status');
+                    statusBadge.textContent = user.status || 'Active';
+                    statusBadge.className = 'au-status-badge ' + (user.status === 'suspended' ? 'is-suspended' : 'is-active');
+
+                    const roleBadge = document.getElementById('vd-role');
+                    roleBadge.textContent = (user.role || 'Attendee').toUpperCase();
+                    roleBadge.className = 'au-role-badge ' + (user.role === 'admin' ? 'is-admin' : (user.role === 'host' ? 'is-host' : 'is-attendee'));
+
+                    // Verification
+                    const verBadge = document.getElementById('vd-verification-badge');
+                    const isVerified = (user.is_verified == 1 || user.email_verified_at);
+                    verBadge.textContent = isVerified ? '✓ Verified Email' : '⚠️ Unverified';
+                    verBadge.className = 'au-badge ' + (isVerified ? 'au-badge--success' : 'au-badge--warning');
+
+                    const isHost = (user.role === 'host' || stats.total_events > 0);
+                    const hostSection = document.getElementById('vd-section-host');
+                    const attendeeSection = document.getElementById('vd-section-attendee');
+
+                    if (isHost) {
+                        hostSection.classList.remove('hidden');
+                        attendeeSection.classList.add('hidden');
+
+                        document.getElementById('vd-bio').textContent = stats.bio || 'No organizer bio set.';
+                        document.getElementById('vd-total-events').textContent = stats.total_events || 0;
+                        document.getElementById('vd-tickets-sold').textContent = stats.tickets_sold || 0;
+                        document.getElementById('vd-total-revenue').textContent = stats.total_revenue_formatted || '$0.00';
+                        
+                        const platProfit = document.getElementById('vd-platform-profit');
+                        if (platProfit) platProfit.textContent = stats.platform_profit_formatted || '$0.00';
+
+                        const escBal = document.getElementById('vd-escrow-balance');
+                        if (escBal) escBal.textContent = stats.escrow_balance_formatted || '$0.00';
+
+                        document.getElementById('vd-available-balance').textContent = stats.available_balance_formatted || '$0.00';
+                        document.getElementById('vd-bank').textContent = stats.payout_bank || 'Not Configured';
+                        document.getElementById('vd-account').textContent = stats.payout_account || '••••';
+                        document.getElementById('vd-routing').textContent = stats.payout_routing || 'N/A';
+                        document.getElementById('vd-rating').textContent = (stats.rating || 5.0) + ' ★';
+
+                        // Events list
+                        const evList = document.getElementById('vd-host-events-list');
+                        evList.innerHTML = '';
+                        if (stats.events_history && stats.events_history.length > 0) {
+                            stats.events_history.forEach(ev => {
+                                const row = document.createElement('div');
+                                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:0.45rem 0.65rem; background:rgba(var(--muted),0.04); border-radius:8px; font-size:0.84rem;';
+                                row.innerHTML = `<strong>${ev.name}</strong> <span style="color:rgb(var(--muted)); font-size:0.78rem;">${ev.tickets_sold || 0} tickets &bull; <span class="au-status-badge is-${ev.status}">${ev.status}</span></span>`;
+                                evList.appendChild(row);
+                            });
+                        } else {
+                            evList.innerHTML = '<span style="font-size:0.82rem; color:rgb(var(--muted));">No events hosted yet.</span>';
+                        }
+
+                        // Payouts history
+                        const poList = document.getElementById('vd-host-payouts-list');
+                        poList.innerHTML = '';
+                        if (stats.payouts_history && stats.payouts_history.length > 0) {
+                            stats.payouts_history.forEach(po => {
+                                const row = document.createElement('div');
+                                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:0.45rem 0.65rem; background:rgba(var(--muted),0.04); border-radius:8px; font-size:0.84rem;';
+                                const typeBadge = (po.type === 'escrow') ? '<span style="font-size:0.7rem; background:rgba(251,146,60,0.15); color:#ea580c; padding:2px 6px; border-radius:6px; font-weight:700;">🛡️ Escrow</span>' : '';
+                                row.innerHTML = `<div><strong>${po.amount_formatted}</strong> ${typeBadge} <span style="font-size:0.75rem; color:rgb(var(--muted));">(${po.event_name || 'Event'})</span></div> <span class="au-status-badge is-${po.status}">${po.status}</span>`;
+                                poList.appendChild(row);
+                            });
+                        } else {
+                            poList.innerHTML = '<span style="font-size:0.82rem; color:rgb(var(--muted));">No payouts recorded yet.</span>';
+                        }
+                    } else {
+                        hostSection.classList.add('hidden');
+                        attendeeSection.classList.remove('hidden');
+
+                        document.getElementById('vd-tickets-bought').textContent = stats.tickets_bought || 0;
+                        document.getElementById('vd-total-spent').textContent = stats.total_spent_formatted || '$0.00';
+                        document.getElementById('vd-last-purchase').textContent = stats.last_purchase || 'Never purchased';
+                    }
+                })
+                .catch(err => {
+                    loading.classList.remove('hidden');
+                    loading.innerHTML = '<p style="color:#ef4444;">Failed to fetch user details. Please try again.</p>';
+                });
+        });
+    });
+});
+</script>
 @endsection

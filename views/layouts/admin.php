@@ -34,9 +34,11 @@
     $scriptVer = asset_version('assets/js/app.js');
     ?>
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">
+    @include('partials/theme-styles')
+    @include('partials/pwa-head')
 </head>
 
-<body>
+<body class="vn-shell">
     @include('partials/admin-header')
     <main class="container">
         @session('success')

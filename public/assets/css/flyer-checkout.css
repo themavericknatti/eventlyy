@@ -1,0 +1,629 @@
+/**
+ * Eventlyy — Dedicated Flyer Checkout Stylesheet
+ * Ultra-Modern Luxury Cinema / Concert Poster Single-Stage Checkout
+ * Responsive: Desktop (1280px+), Laptop (1024px), Tablet (768px-1023px), Mobile (<=767px)
+ */
+
+:root {
+    --flyer-dominant-rgb: 99, 102, 241;
+    --flyer-dominant: rgb(var(--flyer-dominant-rgb));
+    --flyer-dominant-glow: rgba(var(--flyer-dominant-rgb), 0.45);
+    --flyer-accent: #10b981;
+    --flyer-accent-rgb: 16, 185, 129;
+    --flyer-accent-glow: rgba(16, 185, 129, 0.35);
+    --flyer-gradient-duo: linear-gradient(135deg, var(--flyer-dominant) 0%, var(--flyer-accent) 100%);
+    --flyer-gradient-duo-h: linear-gradient(90deg, var(--flyer-dominant) 0%, var(--flyer-accent) 100%);
+    --flyer-gradient-duo-hover: linear-gradient(135deg, var(--flyer-accent) 0%, var(--flyer-dominant) 100%);
+    --flyer-shadow-duo: 0 10px 25px rgba(var(--flyer-dominant-rgb), 0.35), 0 4px 12px rgba(var(--flyer-accent-rgb), 0.25);
+    --flyer-shadow-duo-hover: 0 16px 36px rgba(var(--flyer-dominant-rgb), 0.45), 0 6px 16px rgba(var(--flyer-accent-rgb), 0.35);
+    --flyer-text-main: #ffffff;
+    --flyer-text-muted: #94a3b8;
+    --flyer-bg: #030712;
+    --overlay-glass: rgba(15, 23, 42, 0.78);
+    --overlay-glass-card: rgba(8, 12, 24, 0.65);
+    --overlay-border: rgba(255, 255, 255, 0.14);
+    --overlay-border-hover: rgba(255, 255, 255, 0.28);
+    --radius-xl: 24px;
+    --radius-lg: 18px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    background-color: var(--flyer-bg);
+    color: var(--flyer-text-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    line-height: 1.5;
+}
+
+/* ─── 1. Cinematic Background Stage with Ambient Motion ─── */
+.cinematic-bg-container {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+}
+
+.cinematic-halo {
+    position: absolute;
+    inset: -60px;
+    background-image: var(--event-bg-image, none);
+    background-size: cover;
+    background-position: center;
+    filter: blur(80px) brightness(0.26) saturate(220%);
+    transform: scale(1.15);
+    opacity: 0.9;
+}
+
+.cinematic-canvas {
+    position: absolute;
+    inset: 0;
+    background-image: var(--event-bg-image, none);
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    opacity: 0.35;
+    animation: cinematicBreath 22s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes cinematicBreath {
+    0% { transform: scale(1.0) translate(0, 0); }
+    50% { transform: scale(1.03) translate(-0.5%, -0.5%); }
+    100% { transform: scale(1.01) translate(0.5%, 0.5%); }
+}
+
+.cinematic-scrim {
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(ellipse at 50% 25%, rgba(var(--flyer-dominant-rgb), 0.18) 0%, transparent 65%),
+        linear-gradient(180deg, 
+            rgba(3, 7, 18, 0.5) 0%, 
+            rgba(3, 7, 18, 0.78) 45%, 
+            rgba(3, 7, 18, 0.97) 100%
+        );
+}
+
+.cinematic-grain {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
+    background-size: 28px 28px;
+    opacity: 0.45;
+}
+
+/* ─── 2. Single-Stage Stage Wrapper ─── */
+.checkout-single-stage {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+
+/* Top Navigation Bar */
+.checkout-top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.back-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #f1f5f9;
+    font-weight: 700;
+    font-size: 0.86rem;
+    text-decoration: none;
+    padding: 0.5rem 1.15rem;
+    min-height: 40px;
+    border-radius: 999px;
+    background: rgba(8, 12, 24, 0.75);
+    border: 1.5px solid var(--overlay-border);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.back-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateX(-3px);
+}
+
+.checkout-security-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--flyer-accent);
+    background: rgba(var(--flyer-accent-rgb), 0.12);
+    border: 1.5px solid rgba(var(--flyer-accent-rgb), 0.3);
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* ─── 3. The Glass Pod Container ─── */
+.checkout-glass-pod {
+    background: var(--overlay-glass);
+    border: 1.5px solid var(--overlay-border);
+    border-radius: var(--radius-xl);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    box-shadow: 
+        0 30px 80px -20px rgba(0, 0, 0, 0.7),
+        -15px 0 50px rgba(var(--flyer-dominant-rgb), 0.16),
+        15px 0 50px rgba(var(--flyer-accent-rgb), 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    display: grid;
+    grid-template-columns: minmax(360px, 1.1fr) minmax(340px, 1fr);
+    overflow: hidden;
+}
+
+/* ─── 4. Left Pane: Order Summary Column ─── */
+.summary-column {
+    padding: 2.5rem 2.25rem;
+    border-right: 1.5px solid var(--overlay-border);
+    background: rgba(8, 12, 24, 0.35);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.summary-header h1 {
+    font-family: var(--font-heading);
+    font-size: clamp(1.45rem, 2.4vw, 1.95rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin-bottom: 0.65rem;
+}
+
+.summary-meta-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--flyer-text-muted);
+}
+
+.summary-meta-text span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.summary-section-label {
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--flyer-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+/* Selected Tickets Card Stack */
+.selected-tickets-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+}
+
+.ticket-item-pill {
+    background: var(--overlay-glass-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1.15rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.ticket-item-pill:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.ticket-item-title {
+    font-size: 0.96rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: block;
+}
+
+.ticket-item-meta {
+    font-size: 0.76rem;
+    color: var(--flyer-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+}
+
+.ticket-item-price {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--flyer-accent);
+    white-space: nowrap;
+}
+
+/* Breakdown Charges Box */
+.breakdown-charges-box {
+    background: rgba(8, 12, 24, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.charge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88rem;
+    color: var(--flyer-text-muted);
+}
+
+.charge-row strong {
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.charge-row--discount {
+    color: var(--flyer-accent);
+}
+
+.charge-row--discount strong {
+    color: var(--flyer-accent);
+}
+
+.charge-row.grand-total {
+    padding-top: 0.85rem;
+    margin-top: 0.35rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.charge-row.grand-total span {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.charge-row.grand-total strong {
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: var(--flyer-accent);
+}
+
+/* Trust Badges in Left Footer */
+.summary-trust-badges {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--flyer-text-muted);
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+}
+
+.summary-trust-badges span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* ─── 5. Right Pane: Attendee & Payment Column ─── */
+.form-column {
+    padding: 2.5rem 2.25rem;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.form-header h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.form-header p {
+    font-size: 0.85rem;
+    color: var(--flyer-text-muted);
+}
+
+/* Input Fields & Groups */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1.15rem;
+}
+
+.input-group label {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cyber-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #ffffff;
+    background: rgba(8, 12, 24, 0.75);
+    border: 1.5px solid rgba(255, 255, 255, 0.16);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.cyber-input::placeholder {
+    color: #64748b;
+}
+
+.cyber-input:focus,
+.cyber-input:focus-visible {
+    border-color: var(--flyer-dominant);
+    background: rgba(8, 12, 24, 0.95);
+    box-shadow: 
+        0 0 0 3px rgba(var(--flyer-dominant-rgb), 0.28),
+        0 0 18px rgba(var(--flyer-accent-rgb), 0.18);
+}
+
+/* Promo Code Flex Wrap */
+.promo-flex-wrap {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.promo-apply-btn {
+    min-height: 48px;
+    padding: 0 1.25rem;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.promo-apply-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.promo-status-msg {
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 0.35rem;
+    display: block;
+}
+
+/* Payment Method Visual Badge */
+.payment-method-indicator {
+    background: rgba(8, 12, 24, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.payment-method-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.payment-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--flyer-accent);
+    background: rgba(var(--flyer-accent-rgb), 0.12);
+    border: 1px solid rgba(var(--flyer-accent-rgb), 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+}
+
+/* Primary Pay Action CTA (Duo-Tone Theme Aura) */
+.pay-action-btn {
+    width: 100%;
+    min-height: 54px;
+    padding: 0.85rem 1.5rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    background: var(--flyer-gradient-duo, linear-gradient(135deg, var(--flyer-dominant) 0%, var(--flyer-accent) 100%));
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    box-shadow: var(--flyer-shadow-duo, 0 10px 25px rgba(var(--flyer-dominant-rgb), 0.35), 0 4px 12px rgba(var(--flyer-accent-rgb), 0.25));
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pay-action-btn:hover:not(:disabled) {
+    background: var(--flyer-gradient-duo-hover, linear-gradient(135deg, var(--flyer-accent) 0%, var(--flyer-dominant) 100%));
+    transform: translateY(-2px);
+    box-shadow: var(--flyer-shadow-duo-hover, 0 16px 36px rgba(var(--flyer-dominant-rgb), 0.45), 0 6px 16px rgba(var(--flyer-accent-rgb), 0.35));
+}
+
+.pay-action-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.pay-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+}
+
+.form-trust-note {
+    font-size: 0.75rem;
+    color: var(--flyer-text-muted);
+    text-align: center;
+    margin-top: 0.85rem;
+    line-height: 1.45;
+}
+
+/* ─── 6. Multi-Device Responsiveness ─── */
+
+/* Desktop Large (>= 1200px) */
+@media (min-width: 1200px) {
+    .checkout-single-stage {
+        max-width: 1100px;
+    }
+}
+
+/* Tablet Landscape & Medium Screens (821px - 1023px) */
+@media (max-width: 1023px) and (min-width: 821px) {
+    .checkout-single-stage {
+        padding: 1.75rem 1.25rem 3rem;
+    }
+    .summary-column {
+        padding: 2rem 1.75rem;
+    }
+    .form-column {
+        padding: 2rem 1.75rem;
+    }
+}
+
+/* Mobile & Tablet Portrait (<= 820px) */
+@media (max-width: 820px) {
+    .checkout-single-stage {
+        padding: 1.25rem 1rem 3rem;
+        min-height: auto;
+    }
+
+    .checkout-top-nav {
+        margin-bottom: 1rem;
+    }
+
+    .checkout-glass-pod {
+        grid-template-columns: 1fr;
+        border-radius: var(--radius-lg);
+    }
+
+    .summary-column {
+        padding: 1.5rem 1.25rem;
+        border-right: none;
+        border-bottom: 1.5px solid var(--overlay-border);
+        gap: 1.5rem;
+    }
+
+    .summary-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .breakdown-charges-box {
+        padding: 1rem 1.15rem;
+    }
+
+    .form-column {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .pay-action-btn {
+        min-height: 50px;
+        font-size: 1rem;
+    }
+}
+
+/* Small Phones (<= 480px) */
+@media (max-width: 480px) {
+    .checkout-security-pill {
+        display: none;
+    }
+    .summary-column, .form-column {
+        padding: 1.25rem 1rem;
+    }
+    .ticket-item-pill {
+        padding: 0.75rem 0.95rem;
+    }
+    .ticket-item-title {
+        font-size: 0.9rem;
+    }
+    .ticket-item-price {
+        font-size: 0.98rem;
+    }
+}

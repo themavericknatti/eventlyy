@@ -14,6 +14,22 @@
 
 $siteName = site_setting('site_title', 'Eventlyy');
 
+// Default variable guards
+$total_staff = $total_staff ?? 0;
+$assigned_staff = $assigned_staff ?? ($deployed_staff ?? 0);
+$unassigned_staff = $unassigned_staff ?? 0;
+$events_covered = $events_covered ?? 0;
+$active_events_staff = $active_events_staff ?? ($events_covered ?? 0);
+$assigned_percent = $assigned_percent ?? ($total_staff > 0 ? round(($assigned_staff / $total_staff) * 100) : 0);
+$unassigned_percent = $unassigned_percent ?? ($total_staff > 0 ? round(($unassigned_staff / $total_staff) * 100) : 0);
+$inactive_percent = $inactive_percent ?? 0;
+$inactive_staff = $inactive_staff ?? 0;
+$teams = $teams ?? ($staff_members ?? []);
+$staff_members = $staff_members ?? $teams;
+$events = $events ?? [];
+$pending_requests = $pending_requests ?? [];
+$roles = $roles ?? [];
+
 // Dynamic role badge styling helper
 $getRoleBadge = function($roleName, $roleSlug = '') {
     $slug = strtolower($roleSlug ?: $roleName);
@@ -151,9 +167,9 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
 
         <!-- Segmented Progress Bar -->
         <div style="width:100%; height:12px; border-radius:99px; background:rgba(var(--muted),0.12); display:flex; overflow:hidden; margin-bottom:1rem;">
-            <div style="width:<?= max(0, min(100, $assigned_percent ?? 0)) ?>%; background:linear-gradient(90deg, #10b981, #059669); transition:width 0.4s ease;" title="Assigned Staff (<?= (int)$assigned_percent ?>%)"></div>
-            <div style="width:<?= max(0, min(100, $unassigned_percent ?? 0)) ?>%; background:linear-gradient(90deg, #f59e0b, #d97706); transition:width 0.4s ease;" title="Unassigned Staff (<?= (int)$unassigned_percent ?>%)"></div>
-            <div style="width:<?= max(0, min(100, $inactive_percent ?? 0)) ?>%; background:linear-gradient(90deg, #ef4444, #dc2626); transition:width 0.4s ease;" title="Inactive Staff (<?= (int)$inactive_percent ?>%)"></div>
+            <div style="width:<?= max(0, min(100, (int)($assigned_percent ?? 0))) ?>%; background:linear-gradient(90deg, #10b981, #059669); transition:width 0.4s ease;" title="Assigned Staff (<?= (int)($assigned_percent ?? 0) ?>%)"></div>
+            <div style="width:<?= max(0, min(100, (int)($unassigned_percent ?? 0))) ?>%; background:linear-gradient(90deg, #f59e0b, #d97706); transition:width 0.4s ease;" title="Unassigned Staff (<?= (int)($unassigned_percent ?? 0) ?>%)"></div>
+            <div style="width:<?= max(0, min(100, (int)($inactive_percent ?? 0))) ?>%; background:linear-gradient(90deg, #ef4444, #dc2626); transition:width 0.4s ease;" title="Inactive Staff (<?= (int)($inactive_percent ?? 0) ?>%)"></div>
         </div>
 
         <!-- Role Badges Breakdown -->

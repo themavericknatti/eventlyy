@@ -54,7 +54,8 @@ $passFee = $passFee ?? false;
 $fee = ($passFee && $subtotal > 0) ? ($fee ?? 0.0) : 0.0;
 $extraCharge = $subtotal > 0 ? ($extraCharge ?? 100.0) : 0.0;
 $totalAmount = $subtotal > 0 ? max(0, $subtotal + $fee + $extraCharge) : 0.0;
-$isFreeOrder = ($totalAmount <= 0.00 || $subtotal <= 0.00);
+$hasSelectedTickets = ($totalPasses > 0);
+$isFreeOrder = ($hasSelectedTickets && ($totalAmount <= 0.00 || $subtotal <= 0.00));
 
 if ($isFreeOrder) {
     $fee = 0.0;
@@ -82,6 +83,7 @@ $platformFeePercent = e($platformFeePercent ?? get_setting('platform_fee', 5));
 Checkout — <?= e($eventName) ?>
 @endsection
 
+
 @section('content')
 
 <!-- ═══ Checkout Header ═══ -->
@@ -101,11 +103,13 @@ Checkout — <?= e($eventName) ?>
 
     <div class="co-header__intro">
         <span class="eyebrow">Checkout</span>
-        <h1 class="co-title"><?= $isFreeOrder ? 'Complete Your Registration' : 'Confirm Your Order' ?></h1>
+        <h1 class="co-title"><?= $isFreeOrder ? 'Complete Your Registration' : ($hasSelectedTickets ? 'Confirm Your Order' : 'Review Your Order') ?></h1>
         <p class="co-subtitle">
             <?= $isFreeOrder 
                 ? 'Finish your free registration for <strong>' . e($eventName) . '</strong> to receive your instant digital ticket QR passes.' 
-                : 'Finish your purchase securely for <strong>' . e($eventName) . '</strong>.' ?>
+                : ($hasSelectedTickets 
+                    ? 'Finish your purchase securely for <strong>' . e($eventName) . '</strong>.' 
+                    : 'Select your admission passes to continue.') ?>
         </p>
     </div>
 </section>
@@ -319,8 +323,8 @@ Checkout — <?= e($eventName) ?>
 
                 <!-- Submit CTA -->
                 <div class="co-submit-wrap">
-                    <button type="submit" id="checkout-submit" class="checkout-btn co-submit-btn">
-                        <?= $isFreeOrder ? 'Get Free Tickets →' : 'Pay with Paystack →' ?>
+                    <button type="submit" id="checkout-submit" class="checkout-btn co-submit-btn" <?= !$hasSelectedTickets ? 'disabled' : '' ?>>
+                        <?= $isFreeOrder ? 'Get Free Tickets →' : ($hasSelectedTickets ? 'Pay with ' . ucfirst($defaultGateway) . ' →' : 'Select Tickets to Continue') ?>
                     </button>
                     <p class="co-trust-note">
                         🔒 Safe &amp; encrypted transaction. Digital passes delivered instantly to your email.
@@ -377,7 +381,7 @@ Checkout — <?= e($eventName) ?>
                 <div class="co-breakdown">
                     <div class="summary-row co-breakdown__row">
                         <span>Subtotal</span>
-                        <strong id="summary-subtotal"><?= $subtotal > 0 ? format_price($subtotal) : 'Free' ?></strong>
+                        <strong id="summary-subtotal"><?= ($hasSelectedTickets && $subtotal <= 0) ? 'Free' : format_price($subtotal) ?></strong>
                     </div>
 
                     <div class="summary-row co-breakdown__row co-breakdown__row--fee">
@@ -412,7 +416,7 @@ Checkout — <?= e($eventName) ?>
                 <!-- Total Amount -->
                 <div class="summary-total co-summary-total">
                     <span>Total Amount</span>
-                    <strong id="final-total-amount"><?= $totalAmount > 0 ? format_price($totalAmount) : 'Free' ?></strong>
+                    <strong id="final-total-amount"><?= ($hasSelectedTickets && $totalAmount <= 0) ? 'Free' : format_price($totalAmount) ?></strong>
                 </div>
             </div>
 

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Main Layout
+ * Main Layout — Archival & Heritage Edition
  *
  * This is the main layout for the application.
  *
@@ -9,7 +9,7 @@
  * @subpackage Views/Layouts
  * @author Your Name <Celio Natti>
  * @license MIT License
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 ?>
@@ -37,6 +37,8 @@
     $successVer = asset_version('assets/css/success.css');
     ?>
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= $styleVer ?>">
+    @include('partials/theme-styles')
+    @include('partials/pwa-head')
 
     <?php if (app()->request->is('success')): ?>
     <link rel="stylesheet" href="{{ route('assets/css/success.css') }}?v=<?= $successVer ?>">
@@ -45,7 +47,7 @@
     @yield('style')
 </head>
 
-<body>
+<body class="vn-shell">
     <?php if (app()->request->is('about') || app()->request->is('support')): ?>
         <!-- Floating decorative background elements -->
         <div class="hero-orb hero-orb-1" style="top: -10%; left: -10%; width: 50vw; height: 50vw; opacity: 0.15;"

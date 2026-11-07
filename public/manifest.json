@@ -1,0 +1,62 @@
+{
+  "name": "Eventlyy - Event Ticketing & Management",
+  "short_name": "Eventlyy",
+  "description": "Discover, book, manage and verify event tickets with Eventlyy.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
+  "categories": ["events", "tickets", "entertainment", "business"],
+  "icons": [
+    {
+      "src": "/assets/img/branding/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/img/branding/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/img/branding/pwa-icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Events",
+      "short_name": "Browse",
+      "description": "Browse upcoming and live events",
+      "url": "/",
+      "icons": [{ "src": "/assets/img/branding/pwa-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Tickets",
+      "short_name": "Tickets",
+      "description": "View admission passes and purchased tickets",
+      "url": "/profile",
+      "icons": [{ "src": "/assets/img/branding/pwa-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Host Dashboard",
+      "short_name": "Host",
+      "description": "Manage host events and ticket sales",
+      "url": "/host",
+      "icons": [{ "src": "/assets/img/branding/pwa-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Scan Tickets",
+      "short_name": "Scanner",
+      "description": "Fast admission check-in and QR ticket scanner",
+      "url": "/host/event/ticket-verification",
+      "icons": [{ "src": "/assets/img/branding/pwa-icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

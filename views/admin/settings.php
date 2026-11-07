@@ -3,667 +3,1601 @@
 /**
  * Admin Settings
  *
- * This file contains the HTML markup for the admin settings page of the application.
+ * Executive Platform Configuration Suite for Branding, Dynamic Themes,
+ * Multi-Gateway Payments, Timezones, Announcements, and System Parameters.
  *
  * @package Evently
  * @subpackage Views/Admin
- * @author Your Name <Celio Natti>
- * @license MIT License
- * @version 1.0.0
+ * @version 2.1.0
  */
 
+$pendingDomainsCount = 0;
+try {
+    $pendingDomainsCount = (int)\Ace\Application::$app->db->pdo->query("SELECT COUNT(*) FROM event_domain_requests WHERE status = 'pending'")->fetchColumn();
+} catch (\Throwable $e) {}
+
+$themePrimary = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$themeSecondary = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+$themePrimaryRgb = function_exists('theme_primary_color') ? implode(' ', sscanf(ltrim($themePrimary, '#'), '%02x%02x%02x')) : '16 138 85';
+
+$primaryColor = !empty($settings['theme_primary_color']) ? $settings['theme_primary_color'] : $themePrimary;
+$secondaryColor = !empty($settings['theme_secondary_color']) ? $settings['theme_secondary_color'] : $themeSecondary;
+$currentPreset = !empty($settings['theme_preset']) ? $settings['theme_preset'] : 'emerald';
+$isCustomDomainLive = !empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1';
+$isAnnLive = !empty($settings['announcement_enabled']) && $settings['announcement_enabled'] === '1';
+$enabledGateways = (array)($settings['enabled_gateways'] ?? ['paystack']);
 ?>
 
 @extends('layouts/admin')
 
 @section('title')
-Admin Settings - Manage Site & System Configurations
+Admin Settings - Manage Site &amp; System Configurations
 @endsection
 
 @section('content')
-<?php
-$pendingDomainsCount = 0;
-try {
-    $pendingDomainsCount = (int)\Ace\Application::$app->db->pdo->query("SELECT COUNT(*) FROM event_domain_requests WHERE status = 'pending'")->fetchColumn();
-} catch (\Throwable $e) {}
-?>
+<div class="as-shell">
 
-<section class="page-hero" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.25rem;">
-    <div>
-        <span class="panel-badge">Admin — Settings</span>
-        <h1 style="margin:0.25rem 0;">Admin Settings</h1>
-        <p class="lede" style="margin:0;">Configure site branding, logos, social links, payment gateways, timezone, and maintenance toggles.</p>
-    </div>
-    <div>
-        <a href="{{ route('admin/overview') }}" class="admin-action-btn" style="padding:0.6rem 1.15rem; font-size:0.88rem; border-radius:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:0.45rem; background:rgba(var(--text), 0.04); border:1px solid rgba(var(--muted),0.2);">
-            <span>←</span> Back to Dashboard
-        </a>
-    </div>
-</section>
+    <!-- ─── BREADCRUMB & EXECUTIVE HEADER ─── -->
+    <header class="as-header-card">
+        <div class="as-header-top">
+            <nav class="as-breadcrumb" aria-label="Breadcrumb">
+                <a href="{{ route('admin/overview') }}">Admin</a>
+                <span class="as-bc-sep">/</span>
+                <span class="as-bc-current">Settings &amp; Configuration</span>
+            </nav>
 
-<!-- Quick Action Shortcuts: Events, Domains, Attendees & Communications -->
-<div class="admin-shortcuts-grid">
-    <!-- Published Events Hub Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(2, 132, 199, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-        <div>
-            <span style="background:rgba(2, 132, 199, 0.15); color:#0284c7; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Platform Events</span>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">🎪 Published Events Hub</h2>
-            <p class="section-note" style="margin:0; font-size:0.86rem;">Inspect all organizer events, toggle featured status, monitor ticket capacities, and view audit reports.</p>
-        </div>
-        <div>
-            <a href="{{ route('admin/events') }}" class="admin-action-btn primary" style="background:#0284c7; border-color:#0284c7; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
-                Manage All Events →
-            </a>
-        </div>
-    </div>
-
-    <!-- Custom Domains & API Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(245, 158, 11, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-        <div>
-            <?php $isCustomDomainLive = !empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1'; ?>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:0.4rem;">
-                    <span style="background:rgba(245, 158, 11, 0.15); color:#d97706; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Integrations</span>
-                    <?php if ($isCustomDomainLive): ?>
-                        <span style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.55rem; border:1px solid rgba(16,185,129,0.3);">● Live for Hosts</span>
-                    <?php else: ?>
-                        <span style="background:rgba(239, 68, 68, 0.12); color:#ef4444; font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.55rem; border:1px solid rgba(239,68,68,0.25);">🔒 Disabled for Hosts</span>
-                    <?php endif; ?>
-                </div>
-                <?php if ($pendingDomainsCount > 0): ?>
-                    <span style="background:#f59e0b; color:#fff; font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.55rem;"><?= $pendingDomainsCount ?> Pending</span>
+            <div class="as-header-badges">
+                <span class="as-badge as-badge--brand">● System Engine v2.1</span>
+                <?php if ($isCustomDomainLive): ?>
+                    <span class="as-badge as-badge--success">Domains Active</span>
+                <?php endif; ?>
+                <?php if ($isAnnLive): ?>
+                    <span class="as-badge as-badge--warning">Announcement Live</span>
                 <?php endif; ?>
             </div>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">🌐 Custom Domains &amp; API</h2>
-            <p class="section-note" style="margin:0; font-size:0.86rem;">Review host domain connection requests, configure CNAME DNS routing, and activate headless ticketing.</p>
         </div>
-        <div>
-            <a href="{{ route('admin/domain-requests') }}" class="admin-action-btn primary" style="background:#d97706; border-color:#d97706; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
-                Review Domain Requests →
-            </a>
+
+        <div class="as-header-body">
+            <div class="as-header-info">
+                <h1 class="as-page-title">Admin System Settings</h1>
+                <p class="as-page-desc">Configure brand identity, custom themes, payment gateways, event lifecycle timing, and platform announcements.</p>
+            </div>
+            <div class="as-header-actions">
+                <a href="{{ route('admin/overview') }}" class="as-btn as-btn-ghost">
+                    <span>←</span> Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ─── QUICK OPERATIONAL SHORTCUTS ─── -->
+    <div class="as-shortcuts-grid">
+        <a href="{{ route('admin/events') }}" class="as-shortcut-tile as-shortcut--blue">
+            <span class="as-shortcut-icon">🎪</span>
+            <div>
+                <strong>Events Hub</strong>
+                <span>All organizer events &amp; audit reports</span>
+            </div>
+        </a>
+
+        <a href="{{ route('admin/domain-requests') }}" class="as-shortcut-tile as-shortcut--amber">
+            <span class="as-shortcut-icon">🌐</span>
+            <div>
+                <strong>Domain Requests</strong>
+                <span><?= $pendingDomainsCount ?> pending DNS approvals</span>
+            </div>
+        </a>
+
+        <a href="{{ route('admin/attendees') }}" class="as-shortcut-tile as-shortcut--green">
+            <span class="as-shortcut-icon">📇</span>
+            <div>
+                <strong>Attendee Directory</strong>
+                <span>Contact histories &amp; CSV export</span>
+            </div>
+        </a>
+
+        <a href="{{ route('admin/communications') }}" class="as-shortcut-tile as-shortcut--indigo">
+            <span class="as-shortcut-icon">📨</span>
+            <div>
+                <strong>Communications</strong>
+                <span>Broadcast emails &amp; host messaging</span>
+            </div>
+        </a>
+
+        <div class="as-shortcut-tile as-shortcut--rose">
+            <span class="as-shortcut-icon">⚡</span>
+            <div class="as-w-full">
+                <strong>View Cache</strong>
+                <form method="POST" action="{{ route('admin/cache/clear') }}" class="as-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="as-btn-cache-purge" onclick="return confirm('Purge all compiled view cache files now?');">
+                        Purge Cache 🧹
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Attendee Contact Directory Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(16, 185, 129, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-        <div>
-            <span style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Customer Records</span>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">📇 Attendee Contact Directory</h2>
-            <p class="section-note" style="margin:0; font-size:0.86rem;">View deduplicated contact records, purchase histories, and export CSV files for all registered and guest ticket buyers.</p>
-        </div>
-        <div>
-            <a href="{{ route('admin/attendees') }}" class="admin-action-btn primary" style="background:#10b981; border-color:#10b981; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
-                Open Attendee Directory →
-            </a>
-        </div>
-    </div>
+    <!-- ─── MAIN SETTINGS FORM WITH TABBED WORKSPACE ─── -->
+    <form method="POST" action="{{ route('admin/settings') }}" enctype="multipart/form-data" id="admin-settings-form">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="update_settings" />
+        <input type="hidden" name="theme_preset" id="theme-preset-input" value="<?= e($currentPreset) ?>" />
 
-    <!-- Email Communications Center Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(99, 102, 241, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-        <div>
-            <span style="background:rgba(99, 102, 241, 0.15); color:#6366f1; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Broadcast Mailer</span>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">📨 Communications Center</h2>
-            <p class="section-note" style="margin:0; font-size:0.86rem;">Compose and dispatch general broadcast emails or targeted messages to all hosts, individual hosts, or platform users.</p>
+        <!-- Segmented Tab Navigation -->
+        <div class="as-tabs-bar" role="tablist">
+            <button type="button" class="as-tab-btn active" data-tab="tab-appearance" role="tab" aria-selected="true">
+                <span class="as-tab-icon">🎨</span> Appearance &amp; Colors
+            </button>
+            <button type="button" class="as-tab-btn" data-tab="tab-branding" role="tab" aria-selected="false">
+                <span class="as-tab-icon">🏢</span> Identity &amp; Media
+            </button>
+            <button type="button" class="as-tab-btn" data-tab="tab-payments" role="tab" aria-selected="false">
+                <span class="as-tab-icon">💳</span> Payments &amp; Currency
+            </button>
+            <button type="button" class="as-tab-btn" data-tab="tab-lifecycle" role="tab" aria-selected="false">
+                <span class="as-tab-icon">⚙️</span> Timezone &amp; Security
+            </button>
+            <button type="button" class="as-tab-btn" data-tab="tab-marketing" role="tab" aria-selected="false">
+                <span class="as-tab-icon">📣</span> Announcement &amp; SEO
+            </button>
         </div>
-        <div>
-            <a href="{{ route('admin/communications') }}" class="admin-action-btn primary" style="background:#6366f1; border-color:#6366f1; text-decoration:none; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem;">
-                Open Communications Center →
-            </a>
-        </div>
-    </div>
 
-    <!-- System Cache & View Optimization Shortcut -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%), rgb(var(--card)); border: 1px solid rgba(239, 68, 68, 0.25); display:flex; flex-direction:column; justify-content:space-between; gap:1rem;">
-        <div>
-            <span style="background:rgba(239, 68, 68, 0.15); color:#ef4444; font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Maintenance</span>
-            <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.2rem; color:rgb(var(--text));">⚡ View Cache &amp; Storage</h2>
-            <p class="section-note" style="margin:0; font-size:0.86rem;">Instantly purge all compiled Blade view templates across the application. Useful when new design, auth, or layout updates are deployed.</p>
+        <!-- ══════════════════════════════════════════════════════════════
+             TAB 1: APPEARANCE & BRAND COLORS
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="tab-appearance" class="as-tab-pane active" role="tabpanel">
+            <div class="as-card">
+                <div class="as-card-header">
+                    <div class="as-card-title-group">
+                        <span class="as-card-icon">🎨</span>
+                        <div>
+                            <h2 class="as-card-title">Main Colors &amp; Platform Theme</h2>
+                            <p class="as-card-sub">Change brand highlights across all client pages, host dashboards, and admin consoles with instant synchronization.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="button" class="as-btn as-btn-ghost" id="btn-reset-theme-colors" onclick="resetThemeColors()">
+                            ↺ Reset to Default Emerald
+                        </button>
+                    </div>
+                </div>
+
+                <div class="as-card-body">
+                    <!-- Presets Grid -->
+                    <div class="as-presets-section">
+                        <label class="as-field-label">Quick Brand Color Presets</label>
+                        <div class="as-presets-grid" id="theme-presets-grid">
+                            <!-- Seasonal & Holiday Palettes -->
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'christmas' ? 'is-active' : '' ?>" data-preset="christmas" data-primary="#dc2626" data-secondary="#16a34a" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#dc2626;"></span>
+                                    <span style="background:#16a34a;"></span>
+                                </span>
+                                <span class="as-preset-name">🎄 Christmas Festive</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'halloween' ? 'is-active' : '' ?>" data-preset="halloween" data-primary="#ea580c" data-secondary="#7e22ce" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#ea580c;"></span>
+                                    <span style="background:#7e22ce;"></span>
+                                </span>
+                                <span class="as-preset-name">🎃 Halloween Spooky</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'winter' ? 'is-active' : '' ?>" data-preset="winter" data-primary="#0284c7" data-secondary="#6366f1" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#0284c7;"></span>
+                                    <span style="background:#6366f1;"></span>
+                                </span>
+                                <span class="as-preset-name">❄️ Winter Frost</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'summer' ? 'is-active' : '' ?>" data-preset="summer" data-primary="#f59e0b" data-secondary="#f43f5e" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#f59e0b;"></span>
+                                    <span style="background:#f43f5e;"></span>
+                                </span>
+                                <span class="as-preset-name">☀️ Summer Sunset</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <!-- Modern & Platform Brands -->
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'emerald' ? 'is-active' : '' ?>" data-preset="emerald" data-primary="#108a55" data-secondary="#1aae6c" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#108a55;"></span>
+                                    <span style="background:#1aae6c;"></span>
+                                </span>
+                                <span class="as-preset-name">🌿 Eventlyy Emerald</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'neon' ? 'is-active' : '' ?>" data-preset="neon" data-primary="#06b6d4" data-secondary="#d946ef" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#06b6d4;"></span>
+                                    <span style="background:#d946ef;"></span>
+                                </span>
+                                <span class="as-preset-name">⚡ Cyber Neon</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'indigo' ? 'is-active' : '' ?>" data-preset="indigo" data-primary="#4f46e5" data-secondary="#a855f7" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#4f46e5;"></span>
+                                    <span style="background:#a855f7;"></span>
+                                </span>
+                                <span class="as-preset-name">👑 Royal Indigo</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'ocean' ? 'is-active' : '' ?>" data-preset="ocean" data-primary="#0284c7" data-secondary="#14b8a6" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#0284c7;"></span>
+                                    <span style="background:#14b8a6;"></span>
+                                </span>
+                                <span class="as-preset-name">🌊 Ocean Azure</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'rose' ? 'is-active' : '' ?>" data-preset="rose" data-primary="#e11d48" data-secondary="#fb7185" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#e11d48;"></span>
+                                    <span style="background:#fb7185;"></span>
+                                </span>
+                                <span class="as-preset-name">🌹 Crimson Rose</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+
+                            <button type="button" class="as-preset-pill <?= $currentPreset === 'slate' ? 'is-active' : '' ?>" data-preset="slate" data-primary="#1e293b" data-secondary="#64748b" onclick="applyPreset(this)">
+                                <span class="as-preset-swatch">
+                                    <span style="background:#1e293b;"></span>
+                                    <span style="background:#64748b;"></span>
+                                </span>
+                                <span class="as-preset-name">🌌 Midnight Slate</span>
+                                <span class="as-preset-check">✓</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pickers & Live Preview Layout -->
+                    <div class="as-theme-controls-grid">
+                        <div class="as-color-inputs-box">
+                            <div class="as-color-field">
+                                <label for="primary-color-text" class="as-field-label">Primary Brand Color</label>
+                                <span class="as-field-hint">Primary action buttons, active navigation pills, badges, and accents.</span>
+                                <div class="as-color-input-wrap">
+                                    <input type="color" id="primary-color-picker" class="as-swatch-picker" value="<?= e($primaryColor) ?>" oninput="syncFromColorPicker('primary', this.value)" aria-label="Pick primary color">
+                                    <input type="text" id="primary-color-text" name="theme_primary_color" class="as-input as-font-mono" value="<?= e($primaryColor) ?>" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" spellcheck="false" oninput="syncFromTextInput('primary', this.value)" placeholder="#108a55" required>
+                                </div>
+                            </div>
+
+                            <div class="as-color-field">
+                                <label for="secondary-color-text" class="as-field-label">Secondary / Accent Color</label>
+                                <span class="as-field-hint">Secondary hover states, subtle gradient borders, and supporting chips.</span>
+                                <div class="as-color-input-wrap">
+                                    <input type="color" id="secondary-color-picker" class="as-swatch-picker" value="<?= e($secondaryColor) ?>" oninput="syncFromColorPicker('secondary', this.value)" aria-label="Pick secondary color">
+                                    <input type="text" id="secondary-color-text" name="theme_secondary_color" class="as-input as-font-mono" value="<?= e($secondaryColor) ?>" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" spellcheck="false" oninput="syncFromTextInput('secondary', this.value)" placeholder="#1aae6c" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Interactive Preview Box (Balanced Duo-Tone Real-Time Mix) -->
+                        <div class="as-live-preview-card" id="theme-live-preview-box" style="border-top:3px solid <?= e($primaryColor) ?>; border-bottom:2px solid <?= e($secondaryColor) ?>;">
+                            <div class="as-preview-head" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="as-badge" id="preview-badge" style="background:<?= e($secondaryColor) ?>; color:#ffffff; font-weight:800;">✨ Accent Badge</span>
+                                <span class="as-badge" id="preview-badge-primary" style="background:rgba(var(--primary-rgb), 0.14); color:<?= e($primaryColor) ?>; border:1px solid <?= e($primaryColor) ?>; font-weight:700;">● Primary Tag</span>
+                            </div>
+                            <div class="as-preview-body">
+                                <h3 class="as-preview-title" id="preview-title">Elevate Your Events Experience</h3>
+                                <p class="as-preview-desc">Buttons, highlights, progress indicators, and focus states immediately reflect your configured brand palette with balanced color mixing.</p>
+                                
+                                <div style="margin: 0.85rem 0 1.15rem;">
+                                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:0.35rem; font-weight:700;">
+                                        <span id="preview-label-1" style="color:<?= e($primaryColor) ?>;">Primary Metric</span>
+                                        <span id="preview-label-2" style="color:<?= e($secondaryColor) ?>;">Secondary Accent</span>
+                                    </div>
+                                    <div style="height:6px; border-radius:999px; background:linear-gradient(90deg, <?= e($primaryColor) ?> 0%, <?= e($secondaryColor) ?> 100%);" id="preview-bar"></div>
+                                </div>
+
+                                <div class="as-preview-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                                    <button type="button" class="as-btn" id="preview-btn-primary" style="background:linear-gradient(135deg, <?= e($primaryColor) ?> 0%, <?= e($secondaryColor) ?> 100%); color:#ffffff; border:none; box-shadow:0 4px 14px rgba(0,0,0,0.18);">Duo-Tone Action →</button>
+                                    <button type="button" class="as-btn" id="preview-btn-secondary" style="background:<?= e($secondaryColor) ?>; color:#ffffff; border:none;">Secondary Pill</button>
+                                    <button type="button" class="as-btn as-btn-outline" id="preview-btn-outline" style="border-color:<?= e($primaryColor) ?>; color:<?= e($primaryColor) ?>;">Outline</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-            <form method="POST" action="{{ route('admin/cache/clear') }}" style="margin:0;">
-                <?= csrf_field() ?>
-                <button type="submit" class="admin-action-btn primary" style="background:#ef4444; border-color:#ef4444; padding:0.6rem 1.2rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:12px; font-size:0.88rem; cursor:pointer;" onclick="return confirm('Purge all compiled view cache files now?');">
-                    Purge View Cache Now 🧹
-                </button>
-            </form>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             TAB 2: IDENTITY & MEDIA BRANDING
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="tab-branding" class="as-tab-pane" role="tabpanel">
+            <div class="as-card">
+                <div class="as-card-header">
+                    <div class="as-card-title-group">
+                        <span class="as-card-icon">🏢</span>
+                        <div>
+                            <h2 class="as-card-title">Site Identity &amp; Media Assets</h2>
+                            <p class="as-card-sub">Platform naming, support contact routing, maintenance screen, and uploaded branding graphics.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="as-card-body">
+                    <div class="as-grid-2">
+                        <div class="as-field">
+                            <label for="site_title" class="as-field-label">Site Title / Brand Name <span class="as-req">*</span></label>
+                            <input type="text" id="site_title" name="site_title" class="as-input" value="<?= e($settings['site_title'] ?? 'Eventlyy') ?>" placeholder="e.g. Eventlyy" required>
+                        </div>
+
+                        <div class="as-field">
+                            <label for="support_email" class="as-field-label">Platform Support Email <span class="as-req">*</span></label>
+                            <input type="email" id="support_email" name="support_email" class="as-input" value="<?= e($settings['support_email'] ?? 'support@eventlyy.com') ?>" placeholder="support@eventlyy.com" required>
+                        </div>
+                    </div>
+
+                    <div class="as-field as-mt-4">
+                        <label for="site_description" class="as-field-label">Site Tagline / Description</label>
+                        <input type="text" id="site_description" name="site_description" class="as-input" value="<?= e($settings['site_description'] ?? '') ?>" placeholder="e.g. Discover and book amazing events near you.">
+                    </div>
+
+                    <div class="as-field as-mt-4">
+                        <label for="maintenance_mode" class="as-field-label">Maintenance Mode Splash Screen</label>
+                        <select id="maintenance_mode" name="maintenance_mode" class="as-select">
+                            <option value="no" <?= ($settings['maintenance_mode'] ?? '') === 'no' ? 'selected' : '' ?>>Disabled (Platform Live for Visitors)</option>
+                            <option value="yes" <?= ($settings['maintenance_mode'] ?? '') === 'yes' ? 'selected' : '' ?>>Enabled (Maintenance Screen Active)</option>
+                        </select>
+                    </div>
+
+                    <!-- Uploads Grid: Logo & Favicon -->
+                    <div class="as-grid-2 as-mt-6">
+                        <!-- Logo Upload -->
+                        <div class="as-upload-box">
+                            <div class="as-upload-head">
+                                <strong>Brand Logo</strong>
+                                <span class="as-text-muted as-text-xs">PNG, JPG, SVG, WEBP (Max 2MB)</span>
+                            </div>
+                            <?php if (!empty($settings['site_logo'])): ?>
+                                <div class="as-thumb-preview-wrap">
+                                    <img src="<?= e(asset($settings['site_logo'])) ?>" alt="Current Logo" class="as-logo-preview" />
+                                    <label class="as-remove-label">
+                                        <input type="checkbox" name="remove_logo" value="1"> Remove Logo
+                                    </label>
+                                </div>
+                            <?php endif; ?>
+                            <input type="file" name="site_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" class="as-file-input">
+                        </div>
+
+                        <!-- Favicon Upload -->
+                        <div class="as-upload-box">
+                            <div class="as-upload-head">
+                                <strong>Browser Favicon</strong>
+                                <span class="as-text-muted as-text-xs">ICO, PNG, SVG (Max 2MB)</span>
+                            </div>
+                            <?php if (!empty($settings['site_favicon'])): ?>
+                                <div class="as-thumb-preview-wrap">
+                                    <img src="<?= e(asset($settings['site_favicon'])) ?>" alt="Current Favicon" class="as-favicon-preview" />
+                                    <label class="as-remove-label">
+                                        <input type="checkbox" name="remove_favicon" value="1"> Remove Favicon
+                                    </label>
+                                </div>
+                            <?php endif; ?>
+                            <input type="file" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml" class="as-file-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             TAB 3: PAYMENTS, FEES & CURRENCY
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="tab-payments" class="as-tab-pane" role="tabpanel">
+            <div class="as-card">
+                <div class="as-card-header">
+                    <div class="as-card-title-group">
+                        <span class="as-card-icon">💳</span>
+                        <div>
+                            <h2 class="as-card-title">Payment Gateways &amp; Fee Architecture</h2>
+                            <p class="as-card-sub">Manage active checkout processors, API integration credentials, currency modes, and platform commission percentages.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="as-card-body">
+                    <!-- Gateway Selection Checklist -->
+                    <div class="as-field">
+                        <label class="as-field-label">Active Checkout Gateways (Buyer Visible)</label>
+                        <div class="as-gateways-checklist">
+                            <label class="as-checkbox-pill">
+                                <input type="checkbox" name="enabled_gateways[]" value="paystack" <?= in_array('paystack', $enabledGateways) ? 'checked' : '' ?>>
+                                <span>🟢 Paystack (Cards, NUBAN, USSD)</span>
+                            </label>
+                            <label class="as-checkbox-pill">
+                                <input type="checkbox" name="enabled_gateways[]" value="stripe" <?= in_array('stripe', $enabledGateways) ? 'checked' : '' ?>>
+                                <span>🟣 Stripe (International Cards)</span>
+                            </label>
+                            <label class="as-checkbox-pill">
+                                <input type="checkbox" name="enabled_gateways[]" value="flutterwave" <?= in_array('flutterwave', $enabledGateways) ? 'checked' : '' ?>>
+                                <span>🟠 Flutterwave Gateway</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- API Keys Section -->
+                    <div class="as-api-keys-wrap as-mt-6">
+                        <h3 class="as-subheading">🔐 Payment Gateway API Credentials</h3>
+                        <p class="as-subheading-desc">Saved keys supersede <code>.env</code> values. Leave blank to inherit server environment defaults.</p>
+
+                        <div class="as-api-keys-grid">
+                            <!-- Paystack -->
+                            <div class="as-key-card">
+                                <div class="as-key-card-head">
+                                    <strong>🟢 Paystack Credentials</strong>
+                                </div>
+                                <div class="as-field as-mt-2">
+                                    <label class="as-field-label">Public Key</label>
+                                    <input type="text" name="paystack_public_key" value="<?= e($settings['paystack_public_key'] ?? '') ?>" placeholder="pk_test_xxxxxxxxxxxx" class="as-input as-font-mono" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="as-field as-mt-2">
+                                    <label class="as-field-label">Secret Key</label>
+                                    <div class="as-secret-wrap">
+                                        <input type="password" name="paystack_secret_key" id="paystack_secret_key_input" value="<?= e($settings['paystack_secret_key'] ?? '') ?>" placeholder="sk_test_xxxxxxxxxxxx" class="as-input as-font-mono" autocomplete="off" spellcheck="false">
+                                        <button type="button" class="as-secret-toggle" onclick="toggleKeyVisibility('paystack_secret_key_input', this)">Show</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stripe -->
+                            <div class="as-key-card">
+                                <div class="as-key-card-head">
+                                    <strong>🟣 Stripe Credentials</strong>
+                                </div>
+                                <div class="as-field as-mt-2">
+                                    <label class="as-field-label">Public Key</label>
+                                    <input type="text" name="stripe_public_key" value="<?= e($settings['stripe_public_key'] ?? '') ?>" placeholder="pk_test_xxxxxxxxxxxx" class="as-input as-font-mono" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="as-field as-mt-2">
+                                    <label class="as-field-label">Secret Key</label>
+                                    <div class="as-secret-wrap">
+                                        <input type="password" name="stripe_secret_key" id="stripe_secret_key_input" value="<?= e($settings['stripe_secret_key'] ?? '') ?>" placeholder="sk_test_xxxxxxxxxxxx" class="as-input as-font-mono" autocomplete="off" spellcheck="false">
+                                        <button type="button" class="as-secret-toggle" onclick="toggleKeyVisibility('stripe_secret_key_input', this)">Show</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Flutterwave -->
+                            <div class="as-key-card">
+                                <div class="as-key-card-head">
+                                    <strong>🟠 Flutterwave Credentials</strong>
+                                </div>
+                                <div class="as-field as-mt-2">
+                                    <label class="as-field-label">Public Key</label>
+                                    <input type="text" name="flutterwave_public_key" value="<?= e($settings['flutterwave_public_key'] ?? '') ?>" placeholder="FLWPUBK_TEST-xxxx" class="as-input as-font-mono" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="as-field as-mt-2">
+                                    <label class="as-field-label">Secret Key</label>
+                                    <div class="as-secret-wrap">
+                                        <input type="password" name="flutterwave_secret_key" id="flutterwave_secret_key_input" value="<?= e($settings['flutterwave_secret_key'] ?? '') ?>" placeholder="FLWSECK_TEST-xxxx" class="as-input as-font-mono" autocomplete="off" spellcheck="false">
+                                        <button type="button" class="as-secret-toggle" onclick="toggleKeyVisibility('flutterwave_secret_key_input', this)">Show</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fees & Currency Architecture -->
+                    <div class="as-grid-3 as-mt-6">
+                        <div class="as-field">
+                            <label class="as-field-label">Default Checkout Gateway</label>
+                            <select name="default_gateway" class="as-select">
+                                <option value="paystack" <?= ($settings['default_gateway'] ?? '') === 'paystack' ? 'selected' : '' ?>>Paystack Gateway</option>
+                                <option value="stripe" <?= ($settings['default_gateway'] ?? '') === 'stripe' ? 'selected' : '' ?>>Stripe Payments</option>
+                                <option value="flutterwave" <?= ($settings['default_gateway'] ?? '') === 'flutterwave' ? 'selected' : '' ?>>Flutterwave Gateway</option>
+                            </select>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Platform Commission Fee (%)</label>
+                            <input type="number" name="platform_fee" value="<?= e($settings['platform_fee'] ?? '5') ?>" min="0" max="100" step="0.1" class="as-input" required>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Extra Service Charge (<?= e(get_currency_symbol()) ?>)</label>
+                            <input type="number" name="extra_charge" value="<?= e($settings['extra_charge'] ?? '100.00') ?>" min="0" step="0.01" class="as-input" required>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Primary Currency Mode</label>
+                            <select name="currency" class="as-select">
+                                <option value="NGN" <?= ($settings['currency'] ?? 'NGN') === 'NGN' ? 'selected' : '' ?>>Nigerian Naira (₦ NGN)</option>
+                                <option value="USD" <?= ($settings['currency'] ?? 'NGN') === 'USD' ? 'selected' : '' ?>>US Dollar ($ USD)</option>
+                                <option value="EUR" <?= ($settings['currency'] ?? 'NGN') === 'EUR' ? 'selected' : '' ?>>Euro (€ EUR)</option>
+                                <option value="GBP" <?= ($settings['currency'] ?? 'NGN') === 'GBP' ? 'selected' : '' ?>>British Pound (£ GBP)</option>
+                                <option value="BOTH" <?= ($settings['currency'] ?? 'NGN') === 'BOTH' ? 'selected' : '' ?>>Dual Currency (Naira &amp; USD)</option>
+                            </select>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Exchange Rate (1 USD to NGN)</label>
+                            <input type="number" name="exchange_rate" value="<?= e($settings['exchange_rate'] ?? '1500.00') ?>" min="1" step="0.01" class="as-input" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             TAB 4: TIMEZONE, LIFECYCLE & SECURITY
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="tab-lifecycle" class="as-tab-pane" role="tabpanel">
+            <div class="as-card">
+                <div class="as-card-header">
+                    <div class="as-card-title-group">
+                        <span class="as-card-icon">⚙️</span>
+                        <div>
+                            <h2 class="as-card-title">Timezone, Lifecycle &amp; Domain Management</h2>
+                            <p class="as-card-sub">Platform clock synchronization, automated event completion windows, auto-payout timers, and custom domain access.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="as-card-body">
+                    <div class="as-grid-2">
+                        <div class="as-field">
+                            <label class="as-field-label">Platform Timezone (Current Server: <?= date('H:i:s T') ?>)</label>
+                            <?php
+                                $currentTz = $settings['timezone'] ?? config('timezone', 'Africa/Lagos');
+                                $commonTimezones = [
+                                    'Africa/Lagos' => 'Africa/Lagos (WAT, UTC+1)',
+                                    'Africa/Johannesburg' => 'Africa/Johannesburg (SAST, UTC+2)',
+                                    'Africa/Nairobi' => 'Africa/Nairobi (EAT, UTC+3)',
+                                    'Africa/Cairo' => 'Africa/Cairo (EET, UTC+2)',
+                                    'Africa/Casablanca' => 'Africa/Casablanca (WET, UTC+0)',
+                                    'America/New_York' => 'America/New_York (EST, UTC-5)',
+                                    'America/Chicago' => 'America/Chicago (CST, UTC-6)',
+                                    'America/Denver' => 'America/Denver (MST, UTC-7)',
+                                    'America/Los_Angeles' => 'America/Los_Angeles (PST, UTC-8)',
+                                    'America/Sao_Paulo' => 'America/Sao Paulo (BRT, UTC-3)',
+                                    'Europe/London' => 'Europe/London (GMT, UTC+0)',
+                                    'Europe/Paris' => 'Europe/Paris (CET, UTC+1)',
+                                    'Europe/Berlin' => 'Europe/Berlin (CET, UTC+1)',
+                                    'Europe/Moscow' => 'Europe/Moscow (MSK, UTC+3)',
+                                    'Asia/Dubai' => 'Asia/Dubai (GST, UTC+4)',
+                                    'Asia/Kolkata' => 'Asia/Kolkata (IST, UTC+5:30)',
+                                    'Asia/Shanghai' => 'Asia/Shanghai (CST, UTC+8)',
+                                    'Asia/Tokyo' => 'Asia/Tokyo (JST, UTC+9)',
+                                    'Australia/Sydney' => 'Australia/Sydney (AEST, UTC+10)',
+                                    'Pacific/Auckland' => 'Pacific/Auckland (NZST, UTC+12)',
+                                    'UTC' => 'UTC (Coordinated Universal Time)',
+                                ];
+                            ?>
+                            <select name="timezone" class="as-select">
+                                <?php foreach ($commonTimezones as $tz => $label): ?>
+                                    <option value="<?= e($tz) ?>" <?= $currentTz === $tz ? 'selected' : '' ?>><?= e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Event Live Window Duration (Hours)</label>
+                            <input type="number" name="event_completion_hours" value="<?= e($settings['event_completion_hours'] ?? '12') ?>" min="1" max="168" step="1" class="as-input" required>
+                            <span class="as-field-hint">Hours after event start time when an event automatically transitions to Completed.</span>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Payout Automation Box -->
+                    <div class="as-highlight-card as-mt-6">
+                        <label class="as-checkbox-pill as-checkbox-pill--lg">
+                            <input type="checkbox" name="auto_payout_enabled" value="1" <?= (!isset($settings['auto_payout_enabled']) || $settings['auto_payout_enabled'] === '1' || $settings['auto_payout_enabled'] === true) ? 'checked' : '' ?>>
+                            <span>⚡ Auto-Request Host Payouts upon Event Completion</span>
+                        </label>
+                        <p class="as-text-muted as-text-sm as-mt-2">
+                            When enabled, net ticket earnings (after platform commission) are automatically calculated and queued for payout once an event's completion window lapses.
+                        </p>
+                        <div class="as-field as-mt-3 as-max-w-sm">
+                            <label class="as-field-label">Auto-Payout Delay (Minutes)</label>
+                            <input type="number" name="auto_payout_delay_minutes" value="<?= e($settings['auto_payout_delay_minutes'] ?? '15') ?>" min="0" max="1440" step="1" class="as-input">
+                        </div>
+                    </div>
+
+                    <!-- Custom Domains Feature Switch -->
+                    <div class="as-highlight-card as-mt-4">
+                        <label class="as-checkbox-pill as-checkbox-pill--lg">
+                            <input type="checkbox" name="custom_domain_enabled" value="1" <?= (!empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1') ? 'checked' : '' ?>>
+                            <span>🌐 Enable Custom Domain &amp; Headless API for Hosts</span>
+                        </label>
+                        <p class="as-text-muted as-text-sm as-mt-2">
+                            Enables organizers to connect custom CNAME domains and access headless JSON checkout endpoints.
+                        </p>
+                        <div class="as-field as-mt-3 as-max-w-sm">
+                            <label class="as-field-label">One-Time Domain Setup Fee (<?= e(get_currency_symbol()) ?>)</label>
+                            <input type="number" name="custom_domain_fee" value="<?= e($settings['custom_domain_fee'] ?? '10000.00') ?>" min="0" step="0.01" class="as-input" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             TAB 5: ANNOUNCEMENT, SEO & MARKETING
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="tab-marketing" class="as-tab-pane" role="tabpanel">
+            <div class="as-card">
+                <div class="as-card-header">
+                    <div class="as-card-title-group">
+                        <span class="as-card-icon">📣</span>
+                        <div>
+                            <h2 class="as-card-title">Homepage Announcement &amp; Search Engine Optimization</h2>
+                            <p class="as-card-sub">Configure celebratory modal popups, SEO search metadata, and social media channel handles.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="as-card-body">
+                    <!-- Announcement Popup Configuration -->
+                    <div class="as-ann-config-box">
+                        <div class="as-grid-2">
+                            <div class="as-field">
+                                <label class="as-checkbox-pill as-checkbox-pill--lg">
+                                    <input type="checkbox" name="announcement_enabled" id="ann-toggle-checkbox" value="1" <?= $isAnnLive ? 'checked' : '' ?>>
+                                    <span>Enable Announcement Celebration Modal</span>
+                                </label>
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">Display Scope</label>
+                                <select name="announcement_location" class="as-select">
+                                    <option value="home" <?= ($settings['announcement_location'] ?? 'home') === 'home' ? 'selected' : '' ?>>Home Page Only (Recommended)</option>
+                                    <option value="sitewide" <?= ($settings['announcement_location'] ?? '') === 'sitewide' ? 'selected' : '' ?>>Site-Wide (All Public Pages)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="as-grid-2 as-mt-4">
+                            <div class="as-field">
+                                <label class="as-field-label">Badge Tag (Eyebrow)</label>
+                                <input type="text" name="announcement_badge" value="<?= e($settings['announcement_badge'] ?? '') ?>" placeholder="e.g. 🎉 Special Celebration" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">Headline Title</label>
+                                <input type="text" name="announcement_title" value="<?= e($settings['announcement_title'] ?? '') ?>" placeholder="e.g. Happy New Year from Eventlyy!" class="as-input">
+                            </div>
+                        </div>
+
+                        <div class="as-field as-mt-4">
+                            <label class="as-field-label">Announcement Body Message</label>
+                            <textarea name="announcement_message" rows="3" class="as-textarea" placeholder="Write your full update, holiday message, or celebratory announcement..."><?= e($settings['announcement_message'] ?? '') ?></textarea>
+                        </div>
+
+                        <div class="as-grid-3 as-mt-4">
+                            <div class="as-field">
+                                <label class="as-field-label">Action Button Text</label>
+                                <input type="text" name="announcement_link_text" value="<?= e($settings['announcement_link_text'] ?? '') ?>" placeholder="e.g. Explore Events →" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">Action Button Link URL</label>
+                                <input type="text" name="announcement_link_url" value="<?= e($settings['announcement_link_url'] ?? '') ?>" placeholder="e.g. /events" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">Dismiss Button Text</label>
+                                <input type="text" name="announcement_dismiss_text" value="<?= e($settings['announcement_dismiss_text'] ?? 'Continue to Site') ?>" class="as-input">
+                            </div>
+                        </div>
+
+                        <div class="as-mt-4">
+                            <button type="button" class="as-btn as-btn-outline" onclick="window.openAnnouncementPreview(event)">
+                                👁️ Test / Preview Modal Popup
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SEO Metadata -->
+                    <div class="as-field as-mt-6">
+                        <h3 class="as-subheading">🔍 Search Engine Optimization (SEO)</h3>
+                        <div class="as-field as-mt-3">
+                            <label class="as-field-label">Meta Description</label>
+                            <textarea name="meta_description" rows="2" class="as-textarea" placeholder="Default search engine snippet describing Eventlyy..."><?= e($settings['meta_description'] ?? '') ?></textarea>
+                        </div>
+                        <div class="as-field as-mt-3">
+                            <label class="as-field-label">Meta Keywords</label>
+                            <input type="text" name="meta_keywords" value="<?= e($settings['meta_keywords'] ?? '') ?>" placeholder="events, concerts, ticketing, festival booking" class="as-input">
+                        </div>
+                    </div>
+
+                    <!-- Social Channels -->
+                    <div class="as-field as-mt-6">
+                        <h3 class="as-subheading">🌐 Social Media Channel Links</h3>
+                        <div class="as-grid-3 as-mt-3">
+                            <div class="as-field">
+                                <label class="as-field-label">Twitter / X URL</label>
+                                <input type="url" name="social_twitter" value="<?= e($settings['social_twitter'] ?? '') ?>" placeholder="https://x.com/yourhandle" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">Instagram URL</label>
+                                <input type="url" name="social_instagram" value="<?= e($settings['social_instagram'] ?? '') ?>" placeholder="https://instagram.com/yourhandle" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">Facebook URL</label>
+                                <input type="url" name="social_facebook" value="<?= e($settings['social_facebook'] ?? '') ?>" placeholder="https://facebook.com/yourpage" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">LinkedIn URL</label>
+                                <input type="url" name="social_linkedin" value="<?= e($settings['social_linkedin'] ?? '') ?>" placeholder="https://linkedin.com/company/yourbrand" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">YouTube URL</label>
+                                <input type="url" name="social_youtube" value="<?= e($settings['social_youtube'] ?? '') ?>" placeholder="https://youtube.com/@yourchannel" class="as-input">
+                            </div>
+                            <div class="as-field">
+                                <label class="as-field-label">TikTok URL</label>
+                                <input type="url" name="social_tiktok" value="<?= e($settings['social_tiktok'] ?? '') ?>" placeholder="https://tiktok.com/@yourhandle" class="as-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── STICKY BOTTOM SAVE ACTIONS BAR ─── -->
+        <div class="as-save-bar">
+            <div class="as-save-bar-info">
+                <span>Save all configuration updates to platform memory</span>
+            </div>
+            <button type="submit" class="as-btn as-btn-primary as-btn-lg">
+                <span>💾</span> Save All Settings
+            </button>
+        </div>
+    </form>
+
+</div>
+
+<!-- ═══ LIVE ANNOUNCEMENT PREVIEW MODAL ═══ -->
+<div id="admin-announcement-preview-modal" class="as-modal-backdrop" style="display:none;">
+    <div class="as-modal-backdrop-hit" onclick="window.closeAnnouncementPreview()"></div>
+    <div id="prev-ann-card" class="as-ann-card">
+        <button type="button" onclick="window.closeAnnouncementPreview()" class="as-ann-close" aria-label="Close modal">&times;</button>
+        
+        <div id="prev-ann-media" class="as-ann-media" style="display:none;">
+            <img id="prev-ann-img" src="" alt="Banner Preview" class="as-ann-img">
+        </div>
+
+        <div id="prev-ann-body" class="as-ann-body">
+            <span id="prev-ann-badge" class="as-badge as-badge--brand">🎉 Special Announcement</span>
+            <h2 id="prev-ann-title" class="as-ann-title">Announcement Title</h2>
+            <div id="prev-ann-msg" class="as-ann-msg">
+                Announcement message will appear here.
+            </div>
+            <div id="prev-ann-actions-wrap" class="as-ann-actions">
+                <a href="javascript:void(0)" id="prev-ann-action-btn" class="as-btn as-btn-primary">Explore Events →</a>
+                <button type="button" id="btn-dismiss-ann-preview" onclick="window.closeAnnouncementPreview()" class="as-btn as-btn-ghost">Continue to Site</button>
+            </div>
         </div>
     </div>
 </div>
 
-<form method="POST" action="{{ route('admin/settings') }}" enctype="multipart/form-data" class="admin-settings-layout">
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="update_settings" />
+<!-- ─── MODERN RESPONSIVE STYLES ─── -->
+<style>
+.as-shell {
+    --as-primary: var(--primary, <?= $themePrimary ?>);
+    --as-primary-hover: var(--primary-hover, <?= $themeSecondary ?>);
+    --as-primary-light: rgba(var(--primary-rgb, <?= $themePrimaryRgb ?>), 0.12);
+    --as-primary-border: rgba(var(--primary-rgb, <?= $themePrimaryRgb ?>), 0.28);
+    
+    /* Default / Light Mode */
+    --as-bg-card: rgb(var(--card, 255 255 255));
+    --as-bg-subtle: #f8fafc;
+    --as-bg-subtle-hover: #f1f5f9;
+    --as-border: var(--border-color, #e2e8f0);
+    --as-text-main: rgb(var(--text, 15 23 42));
+    --as-text-muted: rgb(var(--muted, 100 116 139));
+    --as-pill-bg: #f1f5f9;
+    --as-pill-text: #475569;
+    --as-input-bg: #ffffff;
+    --as-input-border: var(--border-color, #cbd5e1);
+    --as-radius: 12px;
+    --as-radius-sm: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+}
 
-    <!-- General Settings & Site Branding -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>Site Identity &amp; Branding</h2>
-        <p class="section-note" style="margin-bottom:1.25rem;">Customize your platform brand name, tagline, and uploaded media assets.</p>
+/* ─── FULL DARK MODE SUPPORT ─── */
+:root[data-theme='dark'] .as-shell,
+[data-theme='dark'] .as-shell,
+body[data-theme='dark'] .as-shell {
+    --as-bg-card: rgb(var(--card, 18 21 27));
+    --as-bg-subtle: rgba(255, 255, 255, 0.04);
+    --as-bg-subtle-hover: rgba(255, 255, 255, 0.08);
+    --as-border: rgba(255, 255, 255, 0.09);
+    --as-text-main: rgb(var(--text, 243 245 247));
+    --as-text-muted: rgb(var(--muted, 152 162 173));
+    --as-pill-bg: rgba(255, 255, 255, 0.08);
+    --as-pill-text: #e2e8f0;
+    --as-input-bg: rgba(255, 255, 255, 0.05);
+    --as-input-border: rgba(255, 255, 255, 0.12);
+    --as-primary-light: rgba(var(--primary-rgb, <?= $themePrimaryRgb ?>), 0.22);
+    --as-primary-border: rgba(var(--primary-rgb, <?= $themePrimaryRgb ?>), 0.4);
+}
 
-        <div style="display:grid; gap:1rem;">
-            <label>Site Title / Brand Name
-                <input type="text" name="site_title" value="<?= e($settings['site_title'] ?? '') ?>" placeholder="e.g. Eventlyy" required>
-            </label>
+/* Header & Breadcrumbs */
+.as-header-card {
+    background: var(--as-bg-card);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius);
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+:root[data-theme='dark'] .as-header-card,
+[data-theme='dark'] .as-header-card {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+.as-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.as-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--as-text-muted);
+}
+.as-breadcrumb a {
+    color: var(--as-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+.as-breadcrumb a:hover {
+    text-decoration: underline;
+}
+.as-bc-sep {
+    color: var(--as-border);
+}
+.as-bc-current {
+    color: var(--as-text-main);
+    font-weight: 600;
+}
+.as-header-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.as-header-body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.as-header-info {
+    flex: 1 1 500px;
+}
+.as-page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--as-text-main);
+    line-height: 1.25;
+    margin: 0 0 0.35rem 0;
+}
+.as-page-desc {
+    font-size: 0.9rem;
+    color: var(--as-text-muted);
+    margin: 0;
+}
+.as-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
 
-            <label>Site Description / Tagline
-                <input type="text" name="site_description" value="<?= e($settings['site_description'] ?? '') ?>" placeholder="e.g. Discover and book amazing events near you.">
-            </label>
+/* Shortcuts Grid */
+.as-shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.75rem;
+}
+.as-shortcut-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--as-bg-card);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+:root[data-theme='dark'] .as-shortcut-tile,
+[data-theme='dark'] .as-shortcut-tile {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.as-shortcut-tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--as-primary);
+}
+.as-shortcut-icon {
+    font-size: 1.35rem;
+}
+.as-shortcut-tile strong {
+    display: block;
+    color: var(--as-text-main);
+    font-size: 0.88rem;
+}
+.as-shortcut-tile span {
+    font-size: 0.76rem;
+    color: var(--as-text-muted);
+}
+.as-btn-cache-purge {
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    border-radius: 4px;
+    background: #ef4444;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+}
+.as-btn-cache-purge:hover {
+    background: #dc2626;
+}
 
-            <label>Support Email Address
-                <input type="email" name="support_email" value="<?= e($settings['support_email'] ?? '') ?>" required>
-            </label>
+/* Tabs Bar */
+.as-tabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--as-border);
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+}
+.as-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--as-text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+}
+.as-tab-btn:hover {
+    color: var(--as-text-main);
+    background: var(--as-bg-subtle);
+    border-radius: var(--as-radius-sm) var(--as-radius-sm) 0 0;
+}
+.as-tab-btn.active {
+    color: var(--as-primary);
+    border-bottom-color: var(--as-primary);
+}
+.as-tab-icon {
+    font-size: 1.1rem;
+}
+.as-tab-pane {
+    display: none;
+}
+.as-tab-pane.active {
+    display: block;
+    animation: asFadeIn 0.2s ease-in-out;
+}
+@keyframes asFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-            <label>Maintenance Mode
-                <select name="maintenance_mode">
-                    <option value="no" <?= ($settings['maintenance_mode'] ?? '') === 'no' ? 'selected' : '' ?>>Disabled (Website Live)</option>
-                    <option value="yes" <?= ($settings['maintenance_mode'] ?? '') === 'yes' ? 'selected' : '' ?>>Enabled (Maintenance Splash Screen)</option>
-                </select>
-            </label>
-        </div>
+/* Cards */
+.as-card {
+    background: var(--as-bg-card);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    overflow: hidden;
+}
+:root[data-theme='dark'] .as-card,
+[data-theme='dark'] .as-card {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+.as-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--as-border);
+    background: var(--as-bg-subtle);
+}
+.as-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.as-card-icon {
+    font-size: 1.35rem;
+}
+.as-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--as-text-main);
+    margin: 0;
+}
+.as-card-sub {
+    font-size: 0.82rem;
+    color: var(--as-text-muted);
+    margin: 0.2rem 0 0 0;
+}
+.as-card-body {
+    padding: 1.5rem;
+}
 
-        <!-- Logo & Favicon Upload Cards -->
-        <div class="admin-grid-2" style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border-color, rgba(255,255,255,0.08));">
-            <!-- Logo Upload -->
-            <div style="background:var(--card-bg, rgba(255,255,255,0.03)); border:1px dashed var(--border-color, rgba(255,255,255,0.15)); border-radius:16px; padding:1.25rem; box-sizing:border-box;">
-                <h4 style="margin:0 0 0.5rem 0; font-size:0.95rem; font-weight:700;">Site Logo (Max 2MB)</h4>
-                <p style="font-size:0.8rem; color:var(--text-muted, #888); margin-bottom:0.75rem;">Supported formats: PNG, JPG, WEBP, SVG, GIF.</p>
-                
-                <?php if (!empty($settings['site_logo'])): ?>
-                    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; background:rgba(0,0,0,0.2); padding:0.5rem 0.75rem; border-radius:10px; flex-wrap:wrap;">
-                        <img src="<?= e(asset($settings['site_logo'])) ?>" alt="Current Logo" style="max-height:36px; max-width:120px; object-fit:contain;" />
-                        <label style="margin:0; cursor:pointer; font-size:0.8rem; color:#ef4444; display:flex; align-items:center; gap:0.25rem;">
-                            <input type="checkbox" name="remove_logo" value="1" style="width:auto; margin:0;"> Remove
-                        </label>
-                    </div>
-                <?php endif; ?>
+/* Presets */
+.as-presets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+}
+.as-preset-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--as-bg-subtle);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--as-text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.as-preset-pill:hover {
+    background: var(--as-bg-subtle-hover);
+    border-color: var(--as-primary);
+}
+.as-preset-pill.is-active {
+    border-color: var(--as-primary);
+    background: var(--as-primary-light);
+    color: var(--as-primary);
+}
+.as-preset-swatch {
+    display: flex;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+.as-preset-swatch span {
+    flex: 1;
+    height: 100%;
+}
+.as-preset-check {
+    margin-left: auto;
+    font-size: 0.85rem;
+    opacity: 0;
+}
+.as-preset-pill.is-active .as-preset-check {
+    opacity: 1;
+}
 
-                <input type="file" name="site_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
-            </div>
+/* Theme Controls Grid */
+.as-theme-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    align-items: start;
+}
+.as-color-inputs-box {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.as-color-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.as-color-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.35rem;
+}
+.as-swatch-picker {
+    width: 44px;
+    height: 44px;
+    padding: 2px;
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    background: var(--as-bg-card);
+    cursor: pointer;
+}
 
-            <!-- Favicon Upload -->
-            <div style="background:var(--card-bg, rgba(255,255,255,0.03)); border:1px dashed var(--border-color, rgba(255,255,255,0.15)); border-radius:16px; padding:1.25rem; box-sizing:border-box;">
-                <h4 style="margin:0 0 0.5rem 0; font-size:0.95rem; font-weight:700;">Site Favicon (Max 2MB)</h4>
-                <p style="font-size:0.8rem; color:var(--text-muted, #888); margin-bottom:0.75rem;">Supported formats: ICO, PNG, SVG.</p>
-                
-                <?php if (!empty($settings['site_favicon'])): ?>
-                    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; background:rgba(0,0,0,0.2); padding:0.5rem 0.75rem; border-radius:10px; flex-wrap:wrap;">
-                        <img src="<?= e(asset($settings['site_favicon'])) ?>" alt="Current Favicon" style="width:24px; height:24px; object-fit:contain;" />
-                        <label style="margin:0; cursor:pointer; font-size:0.8rem; color:#ef4444; display:flex; align-items:center; gap:0.25rem;">
-                            <input type="checkbox" name="remove_favicon" value="1" style="width:auto; margin:0;"> Remove
-                        </label>
-                    </div>
-                <?php endif; ?>
+/* Live Preview Card */
+.as-live-preview-card {
+    background: var(--as-bg-card);
+    border: 1px solid var(--as-primary);
+    border-radius: var(--as-radius);
+    padding: 1.25rem;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);
+}
+.as-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+.as-preview-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--as-text-main);
+    margin: 0 0 0.4rem 0;
+}
+.as-preview-desc {
+    font-size: 0.84rem;
+    color: var(--as-text-muted);
+    line-height: 1.5;
+    margin: 0 0 1rem 0;
+}
+.as-preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
 
-                <input type="file" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
-            </div>
-    </div>
+/* Form Controls */
+.as-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+.as-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+.as-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.as-field-label {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--as-text-main);
+}
+.as-field-hint {
+    font-size: 0.76rem;
+    color: var(--as-text-muted);
+}
+.as-input,
+.as-select,
+.as-textarea {
+    width: 100%;
+    padding: 0.65rem 0.95rem;
+    border-radius: var(--as-radius-sm);
+    border: 1px solid var(--as-input-border);
+    background: var(--as-input-bg);
+    color: var(--as-text-main);
+    font-size: 0.9rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+}
+.as-input:focus,
+.as-select:focus,
+.as-textarea:focus {
+    outline: none;
+    border-color: var(--as-primary);
+    box-shadow: 0 0 0 3px var(--as-primary-light);
+}
 
-    <!-- ═══ Platform Announcement & Holiday Celebration Modal ═══ -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem; border:1px solid rgba(var(--brand), 0.25); background: linear-gradient(135deg, rgba(var(--brand), 0.04) 0%, rgba(245, 158, 11, 0.04) 100%), rgb(var(--card));">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
-            <div>
-                <span style="background:rgba(var(--brand), 0.15); color:rgb(var(--brand)); font-size:0.75rem; font-weight:800; padding:0.25rem 0.65rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">Home Page Modal</span>
-                <h2 style="margin:0.35rem 0 0.25rem 0; font-size:1.25rem;">📣 Platform Announcement &amp; Celebration Popup</h2>
-            </div>
-            <div>
-                <?php $isAnnLive = !empty($settings['announcement_enabled']) && $settings['announcement_enabled'] === '1'; ?>
-                <span id="ann-status-pill" style="font-size:0.8rem; font-weight:800; border-radius:999px; padding:0.3rem 0.8rem; display:inline-flex; align-items:center; gap:0.4rem; <?= $isAnnLive ? 'background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(var(--muted),0.12); color:rgb(var(--muted)); border:1px solid rgba(var(--muted),0.2);' ?>">
-                    <span style="width:8px; height:8px; border-radius:50%; background:<?= $isAnnLive ? '#10b981' : 'rgb(var(--muted))' ?>; display:inline-block;"></span>
-                    <?= $isAnnLive ? 'Active on Platform' : 'Currently Inactive' ?>
-                </span>
-            </div>
-        </div>
-        <p class="section-note" style="margin-bottom:1.5rem;">
-            Display a centered, high-impact celebration modal card at the home page to inform all users about holidays, anniversaries, promotions, or platform notices. Visitors can read the update, click an action link to proceed, or clear the popup to continue.
-        </p>
+/* Uploads */
+.as-upload-box {
+    background: var(--as-bg-subtle);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    padding: 1.25rem;
+}
+.as-upload-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.85rem;
+}
+.as-upload-head strong {
+    color: var(--as-text-main);
+    font-size: 0.92rem;
+}
+.as-thumb-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    background: var(--as-bg-card);
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--as-border);
+}
+.as-logo-preview {
+    max-height: 48px;
+    max-width: 160px;
+    object-fit: contain;
+}
+.as-favicon-preview {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+.as-remove-label {
+    font-size: 0.8rem;
+    color: #ef4444;
+    cursor: pointer;
+}
+.as-file-input {
+    font-size: 0.84rem;
+    color: var(--as-text-muted);
+}
 
-        <div style="display:grid; gap:1.25rem;">
-            <!-- Active Toggle & Scope Grid -->
-            <div class="admin-grid-2">
-                <div style="background:rgba(var(--muted), 0.04); border:1px solid rgba(var(--muted), 0.12); border-radius:14px; padding:1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-                    <div>
-                        <strong style="display:block; font-size:0.95rem; margin-bottom:0.2rem;">Enable Announcement Popup</strong>
-                        <span style="font-size:0.8rem; color:rgb(var(--muted));">Show the notification card to visitors</span>
-                    </div>
-                    <label style="position:relative; display:inline-block; width:54px; height:30px; margin:0; cursor:pointer;" for="ann-toggle-checkbox">
-                        <input type="hidden" name="announcement_enabled" value="0">
-                        <input type="checkbox" name="announcement_enabled" id="ann-toggle-checkbox" value="1" <?= $isAnnLive ? 'checked' : '' ?> style="position:absolute; width:100%; height:100%; top:0; left:0; opacity:0; margin:0; cursor:pointer; z-index:2;">
-                        <span style="position:absolute; inset:0; background:<?= $isAnnLive ? 'rgb(var(--brand))' : 'rgba(var(--muted),0.3)' ?>; transition:background .25s ease; border-radius:30px; pointer-events:none;" id="ann-toggle-slider">
-                            <span style="position:absolute; height:24px; width:24px; top:3px; left:<?= $isAnnLive ? '27px' : '3px' ?>; background:white; transition:left .25s cubic-bezier(0.16, 1, 0.3, 1); border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.25);" id="ann-toggle-knob"></span>
-                        </span>
-                    </label>
-                </div>
+/* Gateways & Keys */
+.as-gateways-checklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+.as-checkbox-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    background: var(--as-bg-subtle);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--as-text-main);
+    cursor: pointer;
+}
+.as-checkbox-pill input {
+    accent-color: var(--as-primary);
+}
+.as-api-keys-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+.as-key-card {
+    background: var(--as-bg-subtle);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    padding: 1.15rem;
+}
+.as-key-card-head strong {
+    font-size: 0.92rem;
+    color: var(--as-text-main);
+}
+.as-secret-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.as-secret-toggle {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--as-input-border);
+    background: var(--as-bg-card);
+    color: var(--as-text-main);
+    border-radius: var(--as-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
 
-                <label>Display Scope
-                    <select name="announcement_location">
-                        <option value="home" <?= ($settings['announcement_location'] ?? 'home') === 'home' ? 'selected' : '' ?>>Home Page Only (Recommended)</option>
-                        <option value="sitewide" <?= ($settings['announcement_location'] ?? '') === 'sitewide' ? 'selected' : '' ?>>Site-Wide (All Public Pages)</option>
-                    </select>
-                </label>
-            </div>
+/* Highlight Cards */
+.as-highlight-card {
+    background: var(--as-bg-subtle);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    padding: 1.25rem;
+}
+.as-subheading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--as-text-main);
+    margin: 0 0 0.2rem 0;
+}
+.as-subheading-desc {
+    font-size: 0.8rem;
+    color: var(--as-text-muted);
+    margin: 0;
+}
 
-            <!-- Badge & Headline Title -->
-            <div class="admin-grid-2">
-                <label>Badge / Eyebrow Tag (Optional)
-                    <input type="text" name="announcement_badge" value="<?= e($settings['announcement_badge'] ?? '') ?>" placeholder="e.g. 🎉 Special Announcement (Leave blank to hide)">
-                </label>
+/* Sticky Save Actions Bar */
+.as-save-bar {
+    position: sticky;
+    bottom: 1rem;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--as-bg-card);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+    margin-top: 1.5rem;
+}
+:root[data-theme='dark'] .as-save-bar,
+[data-theme='dark'] .as-save-bar {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.as-save-bar-info {
+    font-size: 0.86rem;
+    color: var(--as-text-muted);
+    font-weight: 500;
+}
 
-                <label>Headline Title (Optional if banner image provided)
-                    <input type="text" name="announcement_title" value="<?= e($settings['announcement_title'] ?? '') ?>" placeholder="e.g. Celebrating 5 Years of Eventlyy! 🎉 (Leave blank for image-only)">
-                </label>
-            </div>
+/* Buttons */
+.as-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--as-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    white-space: nowrap;
+}
+.as-btn-primary {
+    background: var(--as-primary);
+    color: #ffffff !important;
+}
+.as-btn-primary:hover {
+    background: var(--as-primary-hover);
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb, <?= $themePrimaryRgb ?>), 0.35);
+}
+.as-btn-lg {
+    padding: 0.75rem 1.75rem;
+    font-size: 0.95rem;
+    border-radius: 10px;
+}
+.as-btn-outline {
+    background: transparent;
+    color: var(--as-primary);
+    border-color: var(--as-primary-border);
+}
+.as-btn-outline:hover {
+    background: var(--as-primary-light);
+}
+.as-btn-ghost {
+    background: transparent;
+    color: var(--as-text-muted);
+}
+.as-btn-ghost:hover {
+    background: var(--as-bg-subtle);
+    color: var(--as-text-main);
+}
 
-            <!-- Body Message -->
-            <label>Announcement Body Message (Optional)
-                <textarea name="announcement_message" rows="4" style="width:100%; box-sizing:border-box; border-radius:14px; padding:0.85rem 1rem; font-family:inherit; font-size:0.92rem; line-height:1.5; resize:vertical;" placeholder="Write your full celebration or announcement message here. Leave blank if using a visual flyer/poster only..."><?= e($settings['announcement_message'] ?? '') ?></textarea>
-            </label>
+/* Badges */
+.as-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+.as-badge--brand {
+    background: var(--as-primary-light);
+    color: var(--as-primary);
+}
+.as-badge--success {
+    background: #ecfdf5;
+    color: #059669;
+}
+:root[data-theme='dark'] .as-badge--success,
+[data-theme='dark'] .as-badge--success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+.as-badge--warning {
+    background: #fffbeb;
+    color: #d97706;
+}
+:root[data-theme='dark'] .as-badge--warning,
+[data-theme='dark'] .as-badge--warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
 
-            <!-- Media / Image Upload -->
-            <div style="background:rgba(var(--muted), 0.03); border:1px dashed rgba(var(--muted), 0.2); border-radius:16px; padding:1.25rem;">
-                <h4 style="margin:0 0 0.35rem 0; font-size:0.95rem; font-weight:700;">Announcement Banner Image (Optional, Max 3MB)</h4>
-                <p style="font-size:0.8rem; color:rgb(var(--muted)); margin:0 0 0.85rem 0;">Upload a festive graphic, celebration poster, or holiday banner (PNG, JPG, WEBP, GIF, SVG). If only an image is provided without text, it displays as a clean visual flyer.</p>
+/* Utilities */
+.as-mt-2 { margin-top: 0.5rem; }
+.as-mt-3 { margin-top: 0.75rem; }
+.as-mt-4 { margin-top: 1rem; }
+.as-mt-6 { margin-top: 1.5rem; }
+.as-inline { display: inline; }
+.as-w-full { width: 100%; }
+.as-max-w-sm { max-width: 320px; }
+.as-text-xs { font-size: 0.74rem; }
+.as-text-sm { font-size: 0.82rem; }
+.as-text-muted { color: var(--as-text-muted); }
+.as-font-mono { font-family: ui-monospace, monospace; }
 
-                <?php if (!empty($settings['announcement_image'])): 
-                    $annImgSrc = str_starts_with($settings['announcement_image'], 'http') ? $settings['announcement_image'] : asset($settings['announcement_image']);
-                ?>
-                    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.85rem; background:rgba(0,0,0,0.15); padding:0.6rem 0.85rem; border-radius:12px; flex-wrap:wrap;">
-                        <img src="<?= e($annImgSrc) ?>" alt="Announcement Banner" style="max-height:64px; max-width:140px; border-radius:8px; object-fit:cover;" />
-                        <label style="margin:0; cursor:pointer; font-size:0.8rem; color:#ef4444; display:flex; align-items:center; gap:0.35rem;">
-                            <input type="checkbox" name="remove_announcement_image" value="1" style="width:auto; margin:0;"> Remove Banner Image
-                        </label>
-                    </div>
-                <?php endif; ?>
+/* Announcement Modal Backdrop */
+.as-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+}
+.as-modal-backdrop-hit {
+    position: absolute;
+    inset: 0;
+}
+.as-ann-card {
+    position: relative;
+    background: var(--as-bg-card);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius);
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    overflow: hidden;
+    z-index: 1;
+}
+.as-ann-close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    background: rgba(0,0,0,0.3);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 2;
+}
+.as-ann-media {
+    width: 100%;
+    height: 200px;
+}
+.as-ann-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.as-ann-body {
+    padding: 1.5rem;
+}
+.as-ann-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--as-text-main);
+    margin: 0.5rem 0;
+}
+.as-ann-msg {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--as-text-muted);
+    margin-bottom: 1.25rem;
+}
+.as-ann-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
 
-                <div class="admin-grid-2">
-                    <div>
-                        <span style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); display:block; margin-bottom:0.25rem;">Upload File:</span>
-                        <input type="file" name="announcement_image" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
-                    </div>
-                    <div>
-                        <span style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); display:block; margin-bottom:0.25rem;">Or Image URL:</span>
-                        <input type="url" name="announcement_image_url" placeholder="https://example.com/banner.jpg" style="font-size:0.85rem; width:100%; box-sizing:border-box;" />
-                    </div>
-                </div>
-            </div>
+/* Responsive */
+@media (max-width: 1024px) {
+    .as-theme-controls-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 768px) {
+    .as-grid-2,
+    .as-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    .as-header-body {
+        flex-direction: column;
+    }
+    .as-header-actions {
+        width: 100%;
+    }
+    .as-save-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .as-save-bar .as-btn {
+        width: 100%;
+    }
+}
+</style>
 
-            <!-- Action Buttons Config -->
-            <div class="admin-grid-3">
-                <label>Action Button Label (Optional)
-                    <input type="text" name="announcement_link_text" value="<?= e($settings['announcement_link_text'] ?? '') ?>" placeholder="e.g. Check It Out → (Leave blank to hide)">
-                </label>
-
-                <label>Action Button URL (Optional)
-                    <input type="text" name="announcement_link_url" value="<?= e($settings['announcement_link_url'] ?? '') ?>" placeholder="e.g. /events or https://... (Leave blank to hide)">
-                </label>
-
-                <label>Cancel / Dismiss Button Label (Optional)
-                    <input type="text" name="announcement_dismiss_text" value="<?= e($settings['announcement_dismiss_text'] ?? 'Continue to Site') ?>" placeholder="e.g. Continue to Site (Leave blank to hide)">
-                </label>
-            </div>
-
-            <!-- Live Preview Trigger -->
-            <div style="display:flex; justify-content:flex-start; margin-top:0.5rem;">
-                <button type="button" class="admin-action-btn" id="btn-preview-announcement" onclick="window.openAnnouncementPreview(event)" style="padding:0.55rem 1.15rem; font-size:0.85rem; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:0.4rem; background:rgba(var(--brand), 0.12); color:rgb(var(--brand)); border:1px solid rgba(var(--brand), 0.25); cursor:pointer;">
-                    👁️ Test / Preview Modal Popup
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Social Media Links -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>Social Media Handles &amp; Links</h2>
-        <p class="section-note" style="margin-bottom:1.25rem;">Provide your official social media URLs. Icons will render dynamically in the footer for non-empty fields.</p>
-
-        <div class="admin-grid-2">
-            <label>Twitter / X URL
-                <input type="url" name="social_twitter" value="<?= e($settings['social_twitter'] ?? '') ?>" placeholder="https://twitter.com/yourhandle">
-            </label>
-
-            <label>Instagram URL
-                <input type="url" name="social_instagram" value="<?= e($settings['social_instagram'] ?? '') ?>" placeholder="https://instagram.com/yourhandle">
-            </label>
-
-            <label>Facebook URL
-                <input type="url" name="social_facebook" value="<?= e($settings['social_facebook'] ?? '') ?>" placeholder="https://facebook.com/yourpage">
-            </label>
-
-            <label>LinkedIn URL
-                <input type="url" name="social_linkedin" value="<?= e($settings['social_linkedin'] ?? '') ?>" placeholder="https://linkedin.com/company/yourcompany">
-            </label>
-
-            <label>YouTube URL
-                <input type="url" name="social_youtube" value="<?= e($settings['social_youtube'] ?? '') ?>" placeholder="https://youtube.com/@yourchannel">
-            </label>
-
-            <label>TikTok URL
-                <input type="url" name="social_tiktok" value="<?= e($settings['social_tiktok'] ?? '') ?>" placeholder="https://tiktok.com/@yourhandle">
-            </label>
-        </div>
-    </div>
-
-    <!-- SEO & Metadata -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>SEO &amp; Search Engine Metadata</h2>
-        <p class="section-note" style="margin-bottom:1.25rem;">Default metadata for search engines and social card previews.</p>
-
-        <div style="display:grid; gap:1rem;">
-            <label>Meta Description
-                <textarea name="meta_description" rows="2" style="width:100%; box-sizing:border-box; border-radius:12px; padding:0.75rem; font-family:inherit;" placeholder="Default search engine description for the platform..."><?= e($settings['meta_description'] ?? '') ?></textarea>
-            </label>
-
-            <label>Meta Keywords
-                <input type="text" name="meta_keywords" value="<?= e($settings['meta_keywords'] ?? '') ?>" placeholder="events, tickets, concert, booking, live shows">
-            </label>
-        </div>
-    </div>
-
-    <!-- Timezone & Event Lifecycle Configuration -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>Timezone &amp; Event Lifecycle</h2>
-        <p class="section-note" style="margin-bottom:1.25rem;">Set system timezone and configure the live window duration for event completion. Current server time: <strong><?= date('Y-m-d H:i:s T') ?></strong></p>
-
-        <div class="admin-grid-2">
-            <label>System Timezone
-                <?php
-                    $currentTz = $settings['timezone'] ?? config('timezone', 'Africa/Lagos');
-                    $commonTimezones = [
-                        'Africa/Lagos' => 'Africa/Lagos (WAT, UTC+1)',
-                        'Africa/Johannesburg' => 'Africa/Johannesburg (SAST, UTC+2)',
-                        'Africa/Nairobi' => 'Africa/Nairobi (EAT, UTC+3)',
-                        'Africa/Cairo' => 'Africa/Cairo (EET, UTC+2)',
-                        'Africa/Casablanca' => 'Africa/Casablanca (WET, UTC+0)',
-                        'America/New_York' => 'America/New_York (EST, UTC-5)',
-                        'America/Chicago' => 'America/Chicago (CST, UTC-6)',
-                        'America/Denver' => 'America/Denver (MST, UTC-7)',
-                        'America/Los_Angeles' => 'America/Los_Angeles (PST, UTC-8)',
-                        'America/Sao_Paulo' => 'America/Sao Paulo (BRT, UTC-3)',
-                        'Europe/London' => 'Europe/London (GMT, UTC+0)',
-                        'Europe/Paris' => 'Europe/Paris (CET, UTC+1)',
-                        'Europe/Berlin' => 'Europe/Berlin (CET, UTC+1)',
-                        'Europe/Moscow' => 'Europe/Moscow (MSK, UTC+3)',
-                        'Asia/Dubai' => 'Asia/Dubai (GST, UTC+4)',
-                        'Asia/Kolkata' => 'Asia/Kolkata (IST, UTC+5:30)',
-                        'Asia/Shanghai' => 'Asia/Shanghai (CST, UTC+8)',
-                        'Asia/Tokyo' => 'Asia/Tokyo (JST, UTC+9)',
-                        'Australia/Sydney' => 'Australia/Sydney (AEST, UTC+10)',
-                        'Pacific/Auckland' => 'Pacific/Auckland (NZST, UTC+12)',
-                        'UTC' => 'UTC (Coordinated Universal Time)',
-                    ];
-                ?>
-                <select name="timezone" style="width:100%; box-sizing:border-box;">
-                    <?php foreach ($commonTimezones as $tz => $label): ?>
-                        <option value="<?= e($tz) ?>" <?= $currentTz === $tz ? 'selected' : '' ?>><?= e($label) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-
-            <label>Event Live Window Duration (Hours)
-                <input type="number" name="event_completion_hours" value="<?= e($settings['event_completion_hours'] ?? '12') ?>" min="1" max="168" step="1" required placeholder="12">
-                <span style="font-size:0.78rem; color:var(--text-muted, #888); display:block; margin-top:0.35rem;">Hours after event start time when an event automatically transitions to Completed.</span>
-            </label>
-
-            <div style="grid-column: 1 / -1; background:rgba(var(--brand), 0.05); border:1px solid rgba(var(--brand), 0.2); border-radius:14px; padding:1.15rem 1.35rem; margin-top:0.5rem;">
-                <label style="display:flex; align-items:center; gap:0.65rem; font-weight:700; cursor:pointer; margin-bottom:0.75rem;">
-                    <input type="checkbox" name="auto_payout_enabled" value="1" <?= (!isset($settings['auto_payout_enabled']) || $settings['auto_payout_enabled'] === '1' || $settings['auto_payout_enabled'] === true) ? 'checked' : '' ?> style="width:1.15rem; height:1.15rem; cursor:pointer; accent-color:rgb(var(--brand));">
-                    <span>⚡ Auto-Request Host Payouts upon Event Completion</span>
-                </label>
-                <p style="font-size:0.82rem; color:var(--text-muted, #888); margin-bottom:0.85rem; line-height:1.45;">
-                    When enabled, if a host has not manually requested a payout after their event is completed, the system will automatically calculate the net ticket earnings (after platform fee deduction) and generate a pending payout request for the admin to review and disburse.
-                </p>
-                <div style="max-width:320px;">
-                    <label style="font-size:0.85rem; font-weight:600;">Auto-Payout Grace Delay (Minutes)
-                        <input type="number" name="auto_payout_delay_minutes" value="<?= e($settings['auto_payout_delay_minutes'] ?? '15') ?>" min="0" max="1440" step="1" placeholder="15" style="margin-top:0.35rem;">
-                        <span style="font-size:0.75rem; color:var(--text-muted, #888); display:block; margin-top:0.25rem;">Minutes to wait after event completion before automatically creating the payout request (0 for immediate).</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment & Currency Configuration -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>Payment &amp; Currency</h2>
-        <p class="section-note" style="margin-bottom:1.25rem;">Manage merchant integrations, currency configurations, and exchange rates.</p>
-
-        <?php $enabledGateways = (array)($settings['enabled_gateways'] ?? ['paystack']); ?>
-        <div style="margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));">
-            <label style="font-weight:700; display:block; margin-bottom:0.5rem;">Active Payment Gateways (Buyer Checkout Options)</label>
-            <p style="font-size:0.82rem; color:var(--text-muted, #888); margin-bottom:0.75rem;">Select which payment gateways are enabled for buyers during checkout. Unchecked gateways will be hidden.</p>
-            <div class="gateway-checkbox-group">
-                <label class="gateway-checkbox-item">
-                    <input type="checkbox" name="enabled_gateways[]" value="paystack" <?= in_array('paystack', $enabledGateways) ? 'checked' : '' ?> style="width:auto; margin:0;">
-                    <span>🟢 Paystack Gateway</span>
-                </label>
-                <label class="gateway-checkbox-item">
-                    <input type="checkbox" name="enabled_gateways[]" value="stripe" <?= in_array('stripe', $enabledGateways) ? 'checked' : '' ?> style="width:auto; margin:0;">
-                    <span>🟣 Stripe Payments</span>
-                </label>
-                <label class="gateway-checkbox-item">
-                    <input type="checkbox" name="enabled_gateways[]" value="flutterwave" <?= in_array('flutterwave', $enabledGateways) ? 'checked' : '' ?> style="width:auto; margin:0;">
-                    <span>🟠 Flutterwave Gateway</span>
-                </label>
-            </div>
-        </div>
-
-        <!-- Payment Gateway API Keys Sub-Section -->
-        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color, rgba(255,255,255,0.08));">
-            <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.5rem;">
-                <h3 style="margin:0; font-size:1.1rem; font-weight:800;">🔐 Payment Gateway API Keys</h3>
-            </div>
-            <p style="font-size:0.82rem; color:var(--text-muted, #888); margin-bottom:1.25rem;">Enter your API keys for each payment gateway below. Keys saved here take priority over <code style="background:rgba(255,255,255,0.06); padding:0.15rem 0.4rem; border-radius:4px; font-size:0.78rem;">.env</code> values. Leave fields blank to use <code style="background:rgba(255,255,255,0.06); padding:0.15rem 0.4rem; border-radius:4px; font-size:0.78rem;">.env</code> defaults.</p>
-
-            <div style="display:grid; gap:1.25rem;">
-
-                <!-- Paystack Keys -->
-                <div style="background:var(--card-bg, rgba(255,255,255,0.03)); border:1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius:16px; padding:1.25rem; box-sizing:border-box;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
-                        <span style="font-size:1.1rem;">🟢</span>
-                        <h4 style="margin:0; font-size:0.95rem; font-weight:700;">Paystack</h4>
-                        <?php if (empty($settings['paystack_secret_key']) && !empty($_ENV['PAYSTACK_SECRET_KEY'] ?? '')): ?>
-                            <span style="margin-left:auto; font-size:0.72rem; background:rgba(59,130,246,0.12); color:#60a5fa; padding:0.2rem 0.55rem; border-radius:8px; font-weight:600;">Using .env keys</span>
-                        <?php elseif (!empty($settings['paystack_secret_key'])): ?>
-                            <span style="margin-left:auto; font-size:0.72rem; background:rgba(16,185,129,0.12); color:#34d399; padding:0.2rem 0.55rem; border-radius:8px; font-weight:600;">Using admin keys</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="admin-grid-2">
-                        <label>Public Key
-                            <input type="text" name="paystack_public_key" value="<?= e($settings['paystack_public_key'] ?? '') ?>" placeholder="pk_test_xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-                        </label>
-                        <label>Secret Key
-                            <div style="position:relative; width:100%;">
-                                <input type="password" name="paystack_secret_key" value="<?= e($settings['paystack_secret_key'] ?? '') ?>" placeholder="sk_test_xxxxxxxxxxxx" autocomplete="off" spellcheck="false" style="padding-right:3.5rem; width:100%; box-sizing:border-box;" id="paystack_secret_key_input">
-                                <button type="button" onclick="toggleKeyVisibility('paystack_secret_key_input', this)" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted, #888); cursor:pointer; font-size:0.82rem; padding:0.25rem 0.5rem;" aria-label="Toggle visibility">Show</button>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Stripe Keys -->
-                <div style="background:var(--card-bg, rgba(255,255,255,0.03)); border:1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius:16px; padding:1.25rem; box-sizing:border-box;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
-                        <span style="font-size:1.1rem;">🟣</span>
-                        <h4 style="margin:0; font-size:0.95rem; font-weight:700;">Stripe</h4>
-                        <?php if (empty($settings['stripe_secret_key']) && !empty($_ENV['STRIPE_SECRET_KEY'] ?? '')): ?>
-                            <span style="margin-left:auto; font-size:0.72rem; background:rgba(59,130,246,0.12); color:#60a5fa; padding:0.2rem 0.55rem; border-radius:8px; font-weight:600;">Using .env keys</span>
-                        <?php elseif (!empty($settings['stripe_secret_key'])): ?>
-                            <span style="margin-left:auto; font-size:0.72rem; background:rgba(16,185,129,0.12); color:#34d399; padding:0.2rem 0.55rem; border-radius:8px; font-weight:600;">Using admin keys</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="admin-grid-2">
-                        <label>Public Key
-                            <input type="text" name="stripe_public_key" value="<?= e($settings['stripe_public_key'] ?? '') ?>" placeholder="pk_test_xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-                        </label>
-                        <label>Secret Key
-                            <div style="position:relative; width:100%;">
-                                <input type="password" name="stripe_secret_key" value="<?= e($settings['stripe_secret_key'] ?? '') ?>" placeholder="sk_test_xxxxxxxxxxxx" autocomplete="off" spellcheck="false" style="padding-right:3.5rem; width:100%; box-sizing:border-box;" id="stripe_secret_key_input">
-                                <button type="button" onclick="toggleKeyVisibility('stripe_secret_key_input', this)" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted, #888); cursor:pointer; font-size:0.82rem; padding:0.25rem 0.5rem;" aria-label="Toggle visibility">Show</button>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Flutterwave Keys -->
-                <div style="background:var(--card-bg, rgba(255,255,255,0.03)); border:1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius:16px; padding:1.25rem; box-sizing:border-box;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
-                        <span style="font-size:1.1rem;">🟠</span>
-                        <h4 style="margin:0; font-size:0.95rem; font-weight:700;">Flutterwave</h4>
-                        <?php if (empty($settings['flutterwave_secret_key']) && !empty($_ENV['FLUTTERWAVE_SECRET_KEY'] ?? '')): ?>
-                            <span style="margin-left:auto; font-size:0.72rem; background:rgba(59,130,246,0.12); color:#60a5fa; padding:0.2rem 0.55rem; border-radius:8px; font-weight:600;">Using .env keys</span>
-                        <?php elseif (!empty($settings['flutterwave_secret_key'])): ?>
-                            <span style="margin-left:auto; font-size:0.72rem; background:rgba(16,185,129,0.12); color:#34d399; padding:0.2rem 0.55rem; border-radius:8px; font-weight:600;">Using admin keys</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="admin-grid-2">
-                        <label>Public Key
-                            <input type="text" name="flutterwave_public_key" value="<?= e($settings['flutterwave_public_key'] ?? '') ?>" placeholder="FLWPUBK_TEST-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-                        </label>
-                        <label>Secret Key
-                            <div style="position:relative; width:100%;">
-                                <input type="password" name="flutterwave_secret_key" value="<?= e($settings['flutterwave_secret_key'] ?? '') ?>" placeholder="FLWSECK_TEST-xxxxxxxxxxxx" autocomplete="off" spellcheck="false" style="padding-right:3.5rem; width:100%; box-sizing:border-box;" id="flutterwave_secret_key_input">
-                                <button type="button" onclick="toggleKeyVisibility('flutterwave_secret_key_input', this)" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted, #888); cursor:pointer; font-size:0.82rem; padding:0.25rem 0.5rem;" aria-label="Toggle visibility">Show</button>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Currency, Fees & Exchange Rate -->
-        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color, rgba(255,255,255,0.08));">
-            <div class="admin-grid-3">
-                <label>Default Selected Gateway
-                    <select name="default_gateway" style="width:100%; box-sizing:border-box;">
-                        <option value="paystack" <?= ($settings['default_gateway'] ?? '') === 'paystack' ? 'selected' : '' ?>>Paystack Gateway</option>
-                        <option value="stripe" <?= ($settings['default_gateway'] ?? '') === 'stripe' ? 'selected' : '' ?>>Stripe Payments</option>
-                        <option value="flutterwave" <?= ($settings['default_gateway'] ?? '') === 'flutterwave' ? 'selected' : '' ?>>Flutterwave Gateway</option>
-                    </select>
-                </label>
-
-                <label>Platform Commission Fee (%)
-                    <input type="number" name="platform_fee" value="<?= e($settings['platform_fee'] ?? '5') ?>" min="0" max="100" step="0.1" required>
-                </label>
-
-                <label>Checkout Extra Charge (<?= e(get_currency_symbol()) ?>)
-                    <input type="number" name="extra_charge" value="<?= e($settings['extra_charge'] ?? '100.00') ?>" min="0" step="0.01" required>
-                </label>
-
-                <label>System Currency Mode
-                    <select name="currency" style="width:100%; box-sizing:border-box;">
-                        <option value="NGN" <?= ($settings['currency'] ?? 'NGN') === 'NGN' ? 'selected' : '' ?>>Nigerian Naira (₦)</option>
-                        <option value="USD" <?= ($settings['currency'] ?? 'NGN') === 'USD' ? 'selected' : '' ?>>US Dollars ($)</option>
-                        <option value="EUR" <?= ($settings['currency'] ?? 'NGN') === 'EUR' ? 'selected' : '' ?>>Euro (€)</option>
-                        <option value="GBP" <?= ($settings['currency'] ?? 'NGN') === 'GBP' ? 'selected' : '' ?>>British Pound (£)</option>
-                        <option value="BOTH" <?= ($settings['currency'] ?? 'NGN') === 'BOTH' ? 'selected' : '' ?>>Dual Currency (Naira &amp; USD)</option>
-                    </select>
-                </label>
-
-                <label>Exchange Rate (1 USD to NGN)
-                    <input type="number" name="exchange_rate" value="<?= e($settings['exchange_rate'] ?? '1500.00') ?>" min="1" step="0.01" required>
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <!-- Custom Domain & API Feature Availability -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
-            <div>
-                <h2 style="margin:0;">🌐 Custom Domain &amp; Headless API Integration</h2>
-                <p class="section-note" style="margin-top:0.25rem;">Control host access to custom branding domains, DNS routing, and headless REST API endpoints.</p>
-            </div>
-            <div>
-                <?php if ($isCustomDomainLive): ?>
-                    <span style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(16,185,129,0.12); color:#10b981; font-weight:800; font-size:0.78rem; padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(16,185,129,0.3);">
-                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span> Enabled for Hosts
-                    </span>
-                <?php else: ?>
-                    <span style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(239,68,68,0.12); color:#ef4444; font-weight:800; font-size:0.78rem; padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(239,68,68,0.25);">
-                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444;"></span> Currently Unavailable for Hosts
-                    </span>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <div style="background:rgba(var(--brand), 0.05); border:1px solid rgba(var(--brand), 0.2); border-radius:14px; padding:1.25rem 1.35rem; margin-bottom:1.25rem;">
-            <label style="display:flex; align-items:center; gap:0.75rem; font-weight:700; cursor:pointer; font-size:0.95rem; margin-bottom:0.5rem;">
-                <input type="checkbox" name="custom_domain_enabled" value="1" <?= (!empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1') ? 'checked' : '' ?> style="width:1.25rem; height:1.25rem; cursor:pointer; accent-color:rgb(var(--brand));">
-                <span>Enable Custom Domain &amp; Headless API for Hosts</span>
-            </label>
-            <p style="font-size:0.84rem; color:var(--text-muted, #888); margin:0; line-height:1.5;">
-                When disabled, hosts will not see the "Custom Domain &amp; API" tab in their event management dashboard, and cannot submit new domain requests or initiate setup fee payments. Once you are ready, check this box and save configurations to make the feature live for all event hosts.
-            </p>
-        </div>
-
-        <div class="admin-grid-2">
-            <label>One-Time Domain Setup Fee (<?= e(get_currency_symbol()) ?>)
-                <input type="number" name="custom_domain_fee" value="<?= e($settings['custom_domain_fee'] ?? '10000.00') ?>" min="0" step="0.01" required>
-                <span style="font-size:0.78rem; color:var(--text-muted, #888); display:block; margin-top:0.35rem;">Fee charged to event organizers when submitting a custom domain integration request.</span>
-            </label>
-            <div style="display:flex; flex-direction:column; justify-content:center; padding-top:0.5rem;">
-                <span style="font-size:0.84rem; font-weight:700; color:rgb(var(--text)); margin-bottom:0.25rem;">Manage Existing Requests</span>
-                <p style="font-size:0.8rem; color:var(--text-muted, #888); margin:0 0 0.5rem 0;">Admins and Super Admins can always review and test requests regardless of whether the feature is currently live for hosts.</p>
-                <a href="{{ route('admin/domain-requests') }}" class="admin-action-btn" style="display:inline-flex; align-items:center; gap:0.4rem; width:fit-content; padding:0.5rem 1rem; font-size:0.84rem;">
-                    <span>🌐</span> View Domain Requests (<?= $pendingDomainsCount ?> Pending) →
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Save Actions Row -->
-    <div class="form-card" style="border-radius:22px; padding:1.25rem 1.75rem; display:flex; justify-content:flex-end;">
-        <button type="submit" class="admin-action-btn primary"
-            style="padding:0.75rem 2rem; border-radius:12px; height:48px; font-weight:700; border:none; cursor:pointer;">
-            Save Configurations
-        </button>
-    </div>
-
-    <!-- Admin Navigation Shortcuts -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>Admin Panels</h2>
-        <p class="section-note" style="margin-bottom:1rem;">Access secondary admin modules:</p>
-        <div class="admin-grid-3">
-            <a href="{{ route('admin/users') }}" class="admin-action-btn"
-                style="display:flex; align-items:center; justify-content:center; gap:0.5rem; text-decoration:none; font-weight:600; padding:0.85rem 1rem; border-radius:12px; box-sizing:border-box;">
-                👤 Users Management
-            </a>
-            <a href="{{ route('admin/payouts') }}" class="admin-action-btn"
-                style="display:flex; align-items:center; justify-content:center; gap:0.5rem; text-decoration:none; font-weight:600; padding:0.85rem 1rem; border-radius:12px; box-sizing:border-box;">
-                💳 Payout Queue
-            </a>
-            <a href="{{ route('admin/events') }}" class="admin-action-btn"
-                style="display:flex; align-items:center; justify-content:center; gap:0.5rem; text-decoration:none; font-weight:600; padding:0.85rem 1rem; border-radius:12px; box-sizing:border-box;">
-                🎪 Events Management
-            </a>
-            <a href="{{ route('admin/teams') }}" class="admin-action-btn"
-                style="display:flex; align-items:center; justify-content:center; gap:0.5rem; text-decoration:none; font-weight:600; padding:0.85rem 1rem; border-radius:12px; box-sizing:border-box;">
-                🏢 Team Management
-            </a>
-            <a href="{{ route('admin/support') }}" class="admin-action-btn"
-                style="display:flex; align-items:center; justify-content:center; gap:0.5rem; text-decoration:none; font-weight:600; padding:0.85rem 1rem; border-radius:12px; box-sizing:border-box;">
-                📬 Support Inquiries
-            </a>
-            <a href="{{ route('admin/communications') }}" class="admin-action-btn"
-                style="display:flex; align-items:center; justify-content:center; gap:0.5rem; text-decoration:none; font-weight:600; padding:0.85rem 1rem; border-radius:12px; box-sizing:border-box;">
-                📨 Communications
-            </a>
-        </div>
-    </div>
-
-    <!-- Preferences Theme Toggler -->
-    <div class="form-card" style="border-radius:22px; padding:1.5rem 1.75rem;">
-        <h2>Preferences</h2>
-        <p class="section-note" style="margin-bottom:1rem;">Choose your visual interface style:</p>
-        <div>
-            <button type="button" class="admin-action-btn" data-theme-toggle="true" aria-label="Toggle theme"
-                style="display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; width:100%; height:48px; padding:0.85rem 1rem; border-radius:12px; cursor:pointer;">
-                🌓 Toggle Dark / Light Mode
-            </button>
-        </div>
-    </div>
-</form>
-
+<!-- ─── JAVASCRIPT: TABS, PRESETS & LIVE PREVIEW ─── -->
 <script>
+// ─── 1. Tab Navigation ───
+document.addEventListener('DOMContentLoaded', function() {
+    const tabBtns = document.querySelectorAll('.as-tab-btn');
+    const tabPanes = document.querySelectorAll('.as-tab-pane');
+
+    function activateTab(targetId) {
+        if (!targetId) return;
+        const targetBtn = document.querySelector(`.as-tab-btn[data-tab="${targetId}"]`);
+        const targetPane = document.getElementById(targetId);
+
+        if (targetBtn && targetPane) {
+            tabBtns.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+
+            targetBtn.classList.add('active');
+            targetBtn.setAttribute('aria-selected', 'true');
+            targetPane.classList.add('active');
+        }
+    }
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const target = this.getAttribute('data-tab');
+            activateTab(target);
+            history.replaceState(null, null, '#' + target.replace('tab-', ''));
+        });
+    });
+
+    if (window.location.hash) {
+        const hash = window.location.hash.replace('#', '');
+        const mappedTabId = 'tab-' + hash;
+        if (document.getElementById(mappedTabId)) {
+            activateTab(mappedTabId);
+        }
+    }
+});
+
+// ─── 2. Password Secret Key Visibility Toggle ───
 function toggleKeyVisibility(inputId, btn) {
     var input = document.getElementById(inputId);
     if (!input) return;
@@ -676,20 +1610,107 @@ function toggleKeyVisibility(inputId, btn) {
     }
 }
 
-// ── Globally Accessible Live Announcement Modal Previewer ──
+// ─── 3. Palette Presets & Color Synchronizer ───
+function syncFromColorPicker(type, hex) {
+    var textInput = document.getElementById(type + '-color-text');
+    if (textInput) textInput.value = hex.toLowerCase();
+    markCustomPreset();
+    updateThemeLivePreview();
+}
+
+function syncFromTextInput(type, hex) {
+    var picker = document.getElementById(type + '-color-picker');
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+        if (picker) picker.value = hex;
+        markCustomPreset();
+        updateThemeLivePreview();
+    }
+}
+
+function applyPreset(btn) {
+    var primary = btn.getAttribute('data-primary');
+    var secondary = btn.getAttribute('data-secondary');
+    var preset = btn.getAttribute('data-preset');
+
+    var pPicker = document.getElementById('primary-color-picker');
+    var pText = document.getElementById('primary-color-text');
+    var sPicker = document.getElementById('secondary-color-picker');
+    var sText = document.getElementById('secondary-color-text');
+    var presetInput = document.getElementById('theme-preset-input');
+
+    if (pPicker) pPicker.value = primary;
+    if (pText) pText.value = primary;
+    if (sPicker) sPicker.value = secondary;
+    if (sText) sText.value = secondary;
+    if (presetInput) presetInput.value = preset;
+
+    var pills = document.querySelectorAll('.as-preset-pill');
+    pills.forEach(p => p.classList.remove('is-active'));
+    btn.classList.add('is-active');
+
+    updateThemeLivePreview();
+}
+
+function markCustomPreset() {
+    var presetInput = document.getElementById('theme-preset-input');
+    if (presetInput) presetInput.value = 'custom';
+    var pills = document.querySelectorAll('.as-preset-pill');
+    pills.forEach(p => p.classList.remove('is-active'));
+}
+
+function resetThemeColors() {
+    var defaultEmeraldBtn = document.querySelector('.as-preset-pill[data-preset="emerald"]');
+    if (defaultEmeraldBtn) applyPreset(defaultEmeraldBtn);
+}
+
+function updateThemeLivePreview() {
+    var pText = document.getElementById('primary-color-text');
+    var sText = document.getElementById('secondary-color-text');
+    var previewCard = document.getElementById('theme-live-preview-box');
+    var previewBadge = document.getElementById('preview-badge');
+    var previewBadgePrimary = document.getElementById('preview-badge-primary');
+    var previewBtn = document.getElementById('preview-btn-primary');
+    var previewBtnSec = document.getElementById('preview-btn-secondary');
+    var previewOutline = document.getElementById('preview-btn-outline');
+    var previewBar = document.getElementById('preview-bar');
+    var previewLbl1 = document.getElementById('preview-label-1');
+    var previewLbl2 = document.getElementById('preview-label-2');
+
+    var primary = (pText && /^#[0-9a-fA-F]{6}$/.test(pText.value)) ? pText.value : '#108a55';
+    var secondary = (sText && /^#[0-9a-fA-F]{6}$/.test(sText.value)) ? sText.value : '#1aae6c';
+
+    if (previewCard) {
+        previewCard.style.borderTop = '3px solid ' + primary;
+        previewCard.style.borderBottom = '2px solid ' + secondary;
+    }
+    if (previewBadge) previewBadge.style.background = secondary;
+    if (previewBadgePrimary) {
+        previewBadgePrimary.style.color = primary;
+        previewBadgePrimary.style.borderColor = primary;
+    }
+    if (previewBar) {
+        previewBar.style.background = 'linear-gradient(90deg, ' + primary + ' 0%, ' + secondary + ' 100%)';
+    }
+    if (previewLbl1) previewLbl1.style.color = primary;
+    if (previewLbl2) previewLbl2.style.color = secondary;
+    if (previewBtn) {
+        previewBtn.style.background = 'linear-gradient(135deg, ' + primary + ' 0%, ' + secondary + ' 100%)';
+        previewBtn.style.boxShadow = '0 4px 14px rgba(0,0,0,0.18)';
+    }
+    if (previewBtnSec) {
+        previewBtnSec.style.background = secondary;
+    }
+    if (previewOutline) {
+        previewOutline.style.color = primary;
+        previewOutline.style.borderColor = primary;
+    }
+}
+
+// ─── 4. Live Announcement Modal Previewer ───
 window.openAnnouncementPreview = function(e) {
     if (e && e.preventDefault) e.preventDefault();
-
     var modal = document.getElementById('admin-announcement-preview-modal');
-    if (!modal) {
-        console.error('Modal preview element not found');
-        return;
-    }
-
-    // Ensure modal is directly under document.body to avoid parent container stacking/overflow clipping
-    if (modal.parentElement !== document.body) {
-        document.body.appendChild(modal);
-    }
+    if (!modal) return;
 
     var badgeInput = document.querySelector('input[name="announcement_badge"]');
     var titleInput = document.querySelector('input[name="announcement_title"]');
@@ -697,252 +1718,29 @@ window.openAnnouncementPreview = function(e) {
     var linkTextInput = document.querySelector('input[name="announcement_link_text"]');
     var linkUrlInput = document.querySelector('input[name="announcement_link_url"]');
     var dismissInput = document.querySelector('input[name="announcement_dismiss_text"]');
-    var imgUrlInput = document.querySelector('input[name="announcement_image_url"]');
-    var fileInput = document.querySelector('input[name="announcement_image"]');
-    var existingThumb = document.querySelector('img[alt="Announcement Banner"]');
-
-    var badgeVal = badgeInput ? badgeInput.value.trim() : '';
-    var titleVal = titleInput ? titleInput.value.trim() : '';
-    var msgVal = msgInput ? msgInput.value.trim() : '';
-    var linkTextVal = linkTextInput ? linkTextInput.value.trim() : '';
-    var linkUrlVal = linkUrlInput ? linkUrlInput.value.trim() : '';
-    var dismissVal = dismissInput ? dismissInput.value.trim() : '';
 
     var badgeEl = document.getElementById('prev-ann-badge');
-    if (badgeEl) {
-        if (badgeVal) {
-            badgeEl.textContent = badgeVal;
-            badgeEl.style.display = 'inline-flex';
-        } else {
-            badgeEl.style.display = 'none';
-        }
-    }
-
     var titleEl = document.getElementById('prev-ann-title');
-    if (titleEl) {
-        if (titleVal) {
-            titleEl.textContent = titleVal;
-            titleEl.style.display = 'block';
-        } else {
-            titleEl.style.display = 'none';
-        }
-    }
-
     var msgEl = document.getElementById('prev-ann-msg');
-    if (msgEl) {
-        if (msgVal) {
-            msgEl.innerHTML = msgVal.replace(/\n/g, '<br>');
-            msgEl.style.display = 'block';
-        } else {
-            msgEl.style.display = 'none';
-        }
-    }
-
     var actionBtn = document.getElementById('prev-ann-action-btn');
-    if (actionBtn) {
-        if (linkUrlVal) {
-            actionBtn.textContent = linkTextVal || 'Check It Out →';
-            actionBtn.style.display = 'inline-flex';
-        } else {
-            actionBtn.style.display = 'none';
-        }
-    }
+    var dismissBtn = document.getElementById('btn-dismiss-ann-preview');
 
-    var dismissBtn = document.getElementById('btn-dismiss-ann-preview') || document.getElementById('prev-ann-dismiss-btn');
-    if (dismissBtn) {
-        if (dismissVal) {
-            dismissBtn.textContent = dismissVal;
-            dismissBtn.style.display = 'inline-flex';
-        } else {
-            dismissBtn.style.display = 'none';
-        }
-    }
-
-    var actionsWrap = document.getElementById('prev-ann-actions-wrap');
-    if (actionsWrap) {
-        actionsWrap.style.display = (linkUrlVal || dismissVal) ? 'flex' : 'none';
-    }
-
-    var bodyEl = document.getElementById('prev-ann-body');
-    var hasBodyContent = Boolean(badgeVal || titleVal || msgVal || linkUrlVal || dismissVal);
-    if (bodyEl) {
-        bodyEl.style.display = hasBodyContent ? 'block' : 'none';
-    }
-
-    var mediaWrap = document.getElementById('prev-ann-media');
-    var mediaImg = document.getElementById('prev-ann-img');
-    var mediaBlend = document.getElementById('prev-ann-media-blend');
-    var cardEl = document.getElementById('prev-ann-card');
-    var hasImg = false;
-    
-    // Check if user has chosen a file locally or provided a URL or has an existing thumbnail
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-        try {
-            mediaImg.src = URL.createObjectURL(fileInput.files[0]);
-            hasImg = true;
-        } catch(err) {
-            hasImg = false;
-        }
-    } else if (imgUrlInput && imgUrlInput.value.trim()) {
-        mediaImg.src = imgUrlInput.value.trim();
-        hasImg = true;
-    } else if (existingThumb && existingThumb.src) {
-        mediaImg.src = existingThumb.src;
-        hasImg = true;
-    }
-
-    if (hasImg) {
-        mediaWrap.style.display = 'block';
-        if (!hasBodyContent) {
-            // Image-only poster layout: clean full image without gradient or empty body
-            mediaWrap.style.height = 'auto';
-            mediaWrap.style.maxHeight = 'min(82vh, 680px)';
-            mediaImg.style.maxHeight = 'min(82vh, 680px)';
-            mediaImg.style.objectFit = 'contain';
-            if (mediaBlend) mediaBlend.style.display = 'none';
-            if (cardEl) {
-                cardEl.style.background = 'transparent';
-                cardEl.style.border = 'none';
-                cardEl.style.boxShadow = 'none';
-            }
-        } else {
-            mediaWrap.style.height = 'clamp(160px, 32vw, 220px)';
-            mediaWrap.style.maxHeight = '';
-            mediaImg.style.maxHeight = '';
-            mediaImg.style.objectFit = 'cover';
-            if (mediaBlend) mediaBlend.style.display = 'block';
-            if (cardEl) {
-                cardEl.style.background = 'linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%)';
-                cardEl.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-                cardEl.style.boxShadow = '0 28px 70px -15px rgba(0,0,0,0.45)';
-            }
-        }
-    } else {
-        mediaWrap.style.display = 'none';
-        if (cardEl) {
-            cardEl.style.background = 'linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%)';
-            cardEl.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-            cardEl.style.boxShadow = '0 28px 70px -15px rgba(0,0,0,0.45)';
-        }
-        if (!hasBodyContent && bodyEl) {
-            bodyEl.style.display = 'block';
-            if (titleEl) {
-                titleEl.textContent = 'Preview: No Content Entered';
-                titleEl.style.display = 'block';
-            }
-            if (msgEl) {
-                msgEl.textContent = 'Add a banner image or enter a title/message above to see how your announcement will look to visitors.';
-                msgEl.style.display = 'block';
-            }
-        }
-    }
+    if (badgeEl) badgeEl.textContent = (badgeInput && badgeInput.value.trim()) || '🎉 Special Announcement';
+    if (titleEl) titleEl.textContent = (titleInput && titleInput.value.trim()) || 'Announcement Title';
+    if (msgEl) msgEl.innerHTML = (msgInput && msgInput.value.trim().replace(/\n/g, '<br>')) || 'Your announcement message will appear here.';
+    if (actionBtn) actionBtn.textContent = (linkTextInput && linkTextInput.value.trim()) || 'Explore Events →';
+    if (dismissBtn) dismissBtn.textContent = (dismissInput && dismissInput.value.trim()) || 'Continue to Site';
 
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
 };
 
 window.closeAnnouncementPreview = function() {
     var modal = document.getElementById('admin-announcement-preview-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
+    if (modal) modal.style.display = 'none';
 };
 
-// Bind keyboard & toggle handlers safely
-function initAdminAnnouncementHelpers() {
-    var btnPreview = document.getElementById('btn-preview-announcement');
-    if (btnPreview) {
-        btnPreview.onclick = window.openAnnouncementPreview;
-    }
-
-    var annCheckbox = document.getElementById('ann-toggle-checkbox');
-    var annSlider = document.getElementById('ann-toggle-slider');
-    var annKnob = document.getElementById('ann-toggle-knob');
-    var annStatusPill = document.getElementById('ann-status-pill');
-
-    if (annCheckbox && annSlider && annKnob) {
-        annCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                annSlider.style.background = 'rgb(var(--brand))';
-                annKnob.style.left = '27px';
-                if (annStatusPill) {
-                    annStatusPill.innerHTML = '<span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span> Active on Platform';
-                    annStatusPill.style.background = 'rgba(16,185,129,0.15)';
-                    annStatusPill.style.color = '#10b981';
-                    annStatusPill.style.borderColor = 'rgba(16,185,129,0.3)';
-                }
-            } else {
-                annSlider.style.background = 'rgba(var(--muted),0.3)';
-                annKnob.style.left = '3px';
-                if (annStatusPill) {
-                    annStatusPill.innerHTML = '<span style="width:8px; height:8px; border-radius:50%; background:rgb(var(--muted)); display:inline-block;"></span> Currently Inactive';
-                    annStatusPill.style.background = 'rgba(var(--muted),0.12)';
-                    annStatusPill.style.color = 'rgb(var(--muted))';
-                    annStatusPill.style.borderColor = 'rgba(var(--muted),0.2)';
-                }
-            }
-        });
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            window.closeAnnouncementPreview();
-        }
-    });
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdminAnnouncementHelpers);
-} else {
-    initAdminAnnouncementHelpers();
-}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') window.closeAnnouncementPreview();
+});
 </script>
-
-<!-- Live Announcement Preview Modal Dialog (Glassmorphic Admin Preview) -->
-<div id="admin-announcement-preview-modal" style="display:none; position:fixed; inset:0; background:radial-gradient(circle at 50% 35%, rgba(var(--brand), 0.22) 0%, rgba(0, 0, 0, 0.55) 100%); backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%); z-index:99999999 !important; align-items:center; justify-content:center; padding:clamp(0.75rem, 3vw, 1.75rem); box-sizing:border-box;">
-    <div id="admin-ann-preview-backdrop" onclick="window.closeAnnouncementPreview()" style="position:absolute; inset:0; cursor:pointer;"></div>
-    <div id="prev-ann-card" style="position:relative; width:100%; max-width:min(92vw, 520px); max-height:min(88vh, 740px); background:linear-gradient(145deg, rgba(var(--card), 0.82) 0%, rgba(var(--card), 0.92) 100%); color:rgb(var(--text)); border:1px solid rgba(255, 255, 255, 0.2); border-radius:clamp(20px, 4vw, 30px); box-shadow:0 28px 70px -15px rgba(0,0,0,0.45), 0 0 0 1px rgba(var(--brand), 0.15), 0 0 45px rgba(var(--brand), 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.3); backdrop-filter:blur(30px) saturate(190%); -webkit-backdrop-filter:blur(30px) saturate(190%); overflow-y:auto; overflow-x:hidden; z-index:1; animation:previewScale 0.28s cubic-bezier(0.16, 1, 0.3, 1);">
-        <button type="button" id="btn-close-ann-preview" onclick="window.closeAnnouncementPreview()" style="position:absolute; top:1rem; right:1rem; width:38px; height:38px; border-radius:50%; background:rgba(var(--card), 0.7); border:1px solid rgba(255,255,255,0.22); color:rgb(var(--text)); font-size:1.25rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 4px 14px rgba(0,0,0,0.2);">&times;</button>
-        
-        <div id="prev-ann-media" style="display:none; position:relative; width:100%; height:clamp(160px, 32vw, 220px); overflow:hidden;">
-            <img id="prev-ann-img" src="" alt="Banner Preview" style="width:100%; height:100%; object-fit:cover; display:block;">
-            <div id="prev-ann-media-blend" style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 35%, rgba(var(--card),0.85) 92%, rgba(var(--card),0.95) 100%); pointer-events:none;"></div>
-        </div>
-
-        <div id="prev-ann-body" style="padding:clamp(1.4rem, 4vw, 2.25rem) clamp(1.25rem, 3.5vw, 2rem) clamp(1.5rem, 4vw, 2.25rem); text-align:center; position:relative; z-index:2;">
-            <span id="prev-ann-badge" style="display:inline-flex; align-items:center; gap:0.45rem; padding:0.35rem 1rem; border-radius:999px; background:linear-gradient(135deg, rgba(var(--brand), 0.18) 0%, rgba(var(--brand), 0.08) 100%); color:rgb(var(--brand)); font-weight:800; font-size:0.82rem; letter-spacing:0.025em; border:1px solid rgba(var(--brand), 0.32); box-shadow:0 4px 14px rgba(var(--brand), 0.16); margin-bottom:0.85rem;">🎉 Special Announcement</span>
-            <h2 id="prev-ann-title" style="font-size:clamp(1.35rem, 3.8vw, 1.8rem); font-weight:900; line-height:1.24; margin:0 0 0.85rem; color:rgb(var(--text)); letter-spacing:-0.025em;">Announcement Title</h2>
-            <div id="prev-ann-msg" style="font-size:clamp(0.92rem, 1.8vw, 0.98rem); line-height:1.65; color:rgba(var(--text), 0.82); margin-bottom:1.75rem; text-align:center;">
-                Announcement message will appear here.
-            </div>
-            <div id="prev-ann-actions-wrap" style="display:flex; gap:0.75rem; justify-content:center; align-items:center; flex-wrap:wrap;">
-                <button type="button" id="prev-ann-action-btn" class="admin-action-btn primary" style="height:48px; padding:0 1.65rem; border-radius:14px; font-weight:800; cursor:pointer; flex:1; min-width:140px; background:linear-gradient(135deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 75%, #059669)); color:#fff; border:none; box-shadow:0 8px 24px -4px rgba(var(--brand), 0.45);">Check It Out →</button>
-                <button type="button" id="btn-dismiss-ann-preview" onclick="window.closeAnnouncementPreview()" class="admin-action-btn" style="height:48px; padding:0 1.5rem; border-radius:14px; font-weight:700; cursor:pointer; flex:1; min-width:130px; background:rgba(var(--muted),0.08); color:rgb(var(--text)); border:1px solid rgba(var(--muted),0.22); backdrop-filter:blur(8px);">Continue to Site</button>
-            </div>
-        </div>
-    </div>
-</div>
-<style>
-.admin-shortcuts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
-}
-@media (max-width: 640px) {
-    .admin-shortcuts-grid {
-        grid-template-columns: 1fr !important;
-        gap: 1rem !important;
-    }
-    .admin-shortcuts-grid .form-card {
-        padding: 1.25rem 1rem !important;
-        border-radius: 16px !important;
-    }
-}
-@keyframes previewScale {
-    from { transform: scale(0.92) translateY(12px); opacity: 0; }
-    to { transform: scale(1) translateY(0); opacity: 1; }
-}
-</style>
 @endsection

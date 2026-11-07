@@ -747,6 +747,25 @@ Create Event - <?= e($siteName) ?> Host
         width: 100%;
     }
 }
+
+/* --- Vintage Theme Enhancements for Create Event --- */
+.create-event-hero h1 {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-ink) !important;
+}
+.form-card, .tier-row, .wizard-step-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.form-card h2, .form-card h3 {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-ink) !important;
+}
+.form-publish-btn {
+    background: var(--vn-brass) !important;
+    box-shadow: 0 4px 14px var(--vn-brass-glow) !important;
+}
 </style>
 
 <div class="create-event-wrapper">

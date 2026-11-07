@@ -82,6 +82,21 @@ class Request
     }
 
     /**
+     * Get a specific HTTP header value by name
+     */
+    public function getHeader(string $name, ?string $default = null): ?string
+    {
+        $normalized = strtoupper(str_replace('-', '_', $name));
+        if (isset($_SERVER['HTTP_' . $normalized])) {
+            return (string)$_SERVER['HTTP_' . $normalized];
+        }
+        if (isset($_SERVER[$normalized])) {
+            return (string)$_SERVER[$normalized];
+        }
+        return $default;
+    }
+
+    /**
      * Retrieve and sanitize request input parameters
      */
     public function getBody(): array

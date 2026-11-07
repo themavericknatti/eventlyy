@@ -145,16 +145,39 @@ class HostService
 
         $totalPayoutsDeduction = $disbursedPayouts + $pendingPayouts;
 
+        // Payouts specifically tied to completed events
+        $stmt = $db->prepare("
+            SELECT COALESCE(SUM(p.amount), 0)
+            FROM payouts p
+            INNER JOIN events e ON p.event_id = e.id
+            WHERE p.organizer_id = :organizer_id
+              AND p.status IN ('processed', 'completed', 'pending')
+              AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . event_completion_hours() . " HOUR))
+        ");
+        $stmt->execute(['organizer_id' => $hostId]);
+        $completedPayoutsDeduction = (float)$stmt->fetchColumn();
+
+        // Payouts specifically tied to currently upcoming/active events (early escrow releases)
+        $stmt = $db->prepare("
+            SELECT COALESCE(SUM(p.amount), 0)
+            FROM payouts p
+            INNER JOIN events e ON p.event_id = e.id
+            WHERE p.organizer_id = :organizer_id
+              AND p.status IN ('processed', 'completed', 'pending')
+              AND e.status = 'published' AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
+        ");
+        $stmt->execute(['organizer_id' => $hostId]);
+        $escrowPayoutsDeduction = (float)$stmt->fetchColumn();
+
         // Completed events net balance available
-        $availableBalance = max(0.00, $completedNetRevenue - $totalPayoutsDeduction);
+        $availableBalance = max(0.00, $completedNetRevenue - $completedPayoutsDeduction);
 
         // Escrow revenue available / remaining after payouts drawn from escrow
-        $usedEscrow = max(0.00, $totalPayoutsDeduction - $completedNetRevenue);
-        $remainingEscrowBalance = max(0.00, $grossEscrowRevenue - $usedEscrow);
-        $availableEscrowBalance = $remainingEscrowBalance;
+        $availableEscrowBalance = max(0.00, $grossEscrowRevenue - $escrowPayoutsDeduction);
+        $remainingEscrowBalance = $availableEscrowBalance;
 
         // Total combined withdrawable balance (Completed + Escrow)
-        $totalAvailableBalance = max(0.00, ($completedNetRevenue + $grossEscrowRevenue) - $totalPayoutsDeduction);
+        $totalAvailableBalance = max(0.00, $availableBalance + $availableEscrowBalance);
 
         return [
             'totalEventsCount' => $totalEventsCount,

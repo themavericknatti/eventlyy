@@ -1,3 +1,8 @@
+<?php
+$primaryColor = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$secondaryColor = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+$primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_to_rgb_triple($primaryColor)) : '16, 138, 85';
+?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -37,7 +42,7 @@
                     
                     <!-- Organization Header -->
                     <tr>
-                        <td class="header-padding" align="center" style="background-color: #0B7366; background: linear-gradient(135deg, #0B7366 0%, #064e45 100%); padding: 32px 24px; text-align: center;">
+                        <td class="header-padding" align="center" style="background-color: <?= $primaryColor ?>; background: linear-gradient(135deg, <?= $primaryColor ?> 0%, <?= $secondaryColor ?> 100%); padding: 32px 24px; text-align: center;">
                             <div style="margin-bottom: 14px;">
                                 <?php if ($logoSrc = email_logo_src()): ?>
                                     <img src="<?= $logoSrc ?>" alt="<?= e(site_setting('site_title', 'Evently')) ?>" height="38" style="display:inline-block; max-height:38px; height:38px; width:auto; vertical-align:middle; border:0; margin-right:8px;" />
@@ -45,7 +50,7 @@
                                         <?= e(site_setting('site_title', 'Evently')) ?>
                                     </span>
                                 <?php else: ?>
-                                    <span style="display: inline-block; width: 36px; height: 36px; line-height: 36px; background-color: #ffffff; color: #0B7366; font-weight: 900; font-size: 22px; border-radius: 8px; text-align: center; vertical-align: middle;">
+                                    <span style="display: inline-block; width: 36px; height: 36px; line-height: 36px; background-color: #ffffff; color: <?= $primaryColor ?>; font-weight: 900; font-size: 22px; border-radius: 8px; text-align: center; vertical-align: middle;">
                                         <?= strtoupper(substr(site_setting('site_title', 'Evently'), 0, 1)) ?>
                                     </span>
                                     <span style="display: inline-block; color: #ffffff; font-size: 20px; font-weight: 700; margin-left: 10px; vertical-align: middle;">
@@ -74,7 +79,7 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 28px 0;">
                                 <tr>
                                     <td align="center">
-                                        <a href="<?= e($rUrl) ?>" class="btn-primary" style="display: inline-block; background-color: #0B7366; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(11, 115, 102, 0.25);">
+                                        <a href="<?= e($rUrl) ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
                                             Reset My Password &rarr;
                                         </a>
                                     </td>
@@ -99,9 +104,9 @@
                             </div>
                             <p style="margin: 0 0 8px;">&copy; <?= date('Y') ?> <?= e(site_setting('site_title', 'Evently')) ?>. All rights reserved.</p>
                             <p style="margin: 0 0 10px;">
-                                <a href="<?= \url('/privacy') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">Privacy Policy</a> &bull;
-                                <a href="<?= \url('/terms') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">Terms of Service</a> &bull;
-                                <a href="<?= \url('/support') ?>" style="color: #0B7366; text-decoration: none; font-weight: 600;">Support Desk</a>
+                                <a href="<?= \url('/privacy') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Privacy Policy</a> &bull;
+                                <a href="<?= \url('/terms') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Terms of Service</a> &bull;
+                                <a href="<?= \url('/support') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Support Desk</a>
                             </p>
                             <p style="margin: 0; font-size: 11px; color: #94a3b8;">
                                 This is an automated security communication regarding your <?= e(site_setting('site_title', 'Evently')) ?> account.

@@ -12,6 +12,20 @@
 
 $siteName = site_setting('site_title', 'Eventlyy');
 $defaultCname = 'cname.' . ($_SERVER['HTTP_HOST'] ?? 'eventlyy.com');
+
+// Default variable guards
+$statusFilter = $statusFilter ?? ($status ?? ($_GET['status'] ?? 'all'));
+$requests = $requests ?? [];
+$counts = $counts ?? [
+    'all' => $total_count ?? 0,
+    'pending' => $pending_count ?? 0,
+    'approved_active' => $active_count ?? 0,
+    'rejected' => $declined_count ?? 0,
+];
+$total_count = $total_count ?? ($counts['all'] ?? 0);
+$pending_count = $pending_count ?? ($counts['pending'] ?? 0);
+$active_count = $active_count ?? ($counts['approved_active'] ?? 0);
+$declined_count = $declined_count ?? ($counts['rejected'] ?? 0);
 ?>
 
 @extends('layouts/admin')

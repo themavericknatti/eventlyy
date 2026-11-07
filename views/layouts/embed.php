@@ -22,6 +22,7 @@
             -webkit-font-smoothing: antialiased;
         }
         @yield('styles')
+    @include('partials/theme-styles')
     </style>
 </head>
 <body>

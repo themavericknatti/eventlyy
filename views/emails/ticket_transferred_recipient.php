@@ -1,3 +1,8 @@
+<?php
+$primaryColor = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$secondaryColor = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+$primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_to_rgb_triple($primaryColor)) : '16, 138, 85';
+?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -44,7 +49,7 @@
                     
                     <!-- Header -->
                     <tr>
-                        <td class="header-padding" align="center" style="background-color: #0B7366; background: linear-gradient(135deg, #0B7366 0%, #064e45 100%); padding: 32px 24px; text-align: center;">
+                        <td class="header-padding" align="center" style="background-color: <?= $primaryColor ?>; background: linear-gradient(135deg, <?= $primaryColor ?> 0%, <?= $secondaryColor ?> 100%); padding: 32px 24px; text-align: center;">
                             <div style="display: inline-block; background: rgba(255,255,255,0.18); color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px;">
                                 🎟️ TICKET REASSIGNED TO YOU
                             </div>
@@ -97,7 +102,7 @@
                                     </tr>
                                     <tr>
                                         <td style="padding: 4px 0; vertical-align: top;">🎫</td>
-                                        <td style="padding: 4px 0; color: #0B7366; font-weight: 700;">
+                                        <td style="padding: 4px 0; color: <?= $primaryColor ?>; font-weight: 700;">
                                             <?= e($ticketType) ?> Pass
                                         </td>
                                     </tr>
@@ -118,7 +123,7 @@
                                 <div style="display: inline-block; background-color: #ffffff; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 12px;">
                                     <img src="<?= $qrUrl ?>" alt="Ticket QR Code" width="180" height="180" class="qr-code-img" style="display: block; width: 180px; height: 180px; border-radius: 6px; image-rendering: pixelated;" />
                                 </div>
-                                <div style="font-family: monospace; font-size: 18px; font-weight: 800; color: #0B7366; letter-spacing: 1.5px; margin-bottom: 6px;">
+                                <div style="font-family: monospace; font-size: 18px; font-weight: 800; color: <?= $primaryColor ?>; letter-spacing: 1.5px; margin-bottom: 6px;">
                                     <?= e($ticketCode) ?>
                                 </div>
                                 <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">
@@ -130,7 +135,7 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
                                 <tr>
                                     <td align="center">
-                                        <a href="<?= url('/profile') ?>" style="display: inline-block; background-color: #0B7366; color: #ffffff; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 12px rgba(11, 115, 102, 0.25);">
+                                        <a href="<?= url('/profile') ?>" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
                                             View in My Tickets Portal
                                         </a>
                                     </td>
@@ -138,7 +143,7 @@
                             </table>
 
                             <p style="margin: 20px 0 0; font-size: 13px; color: #94a3b8; text-align: center; line-height: 1.5;">
-                                If you don't have an Eventlyy account yet, simply <a href="<?= url('/register') ?>" style="color: #0B7366; font-weight: 600; text-decoration: underline;">create an account</a> with this email address (<strong><?= e($recipientEmail ?? '') ?></strong>) and your ticket will automatically appear in your portal.
+                                If you don't have an Eventlyy account yet, simply <a href="<?= url('/register') ?>" style="color: <?= $primaryColor ?>; font-weight: 600; text-decoration: underline;">create an account</a> with this email address (<strong><?= e($recipientEmail ?? '') ?></strong>) and your ticket will automatically appear in your portal.
                             </p>
                         </td>
                     </tr>

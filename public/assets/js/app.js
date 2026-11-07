@@ -406,3 +406,17 @@
   }
 })();
 
+
+
+/* --- Eventlyy PWA Service Worker Registration --- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        // Service worker registered successfully
+      })
+      .catch(function(err) {
+        console.debug('Service Worker registration skipped or failed:', err);
+      });
+  });
+}

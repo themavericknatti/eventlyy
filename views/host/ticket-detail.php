@@ -1,691 +1,1168 @@
 <?php
 
 /**
- * Host Ticket Detail View
+ * Host Ticket Detail View - Executive Boarding Pass Architecture
  *
- * This file contains the HTML markup for the host ticket detail page.
- *
- * @package Evently
+ * @package Eventlyy
  * @subpackage Views/Host
- *
- * @author Your Name <Celio Natti>
- * @license MIT License
- * @version 1.0.0
  */
 
 $siteName = site_setting('site_title', 'Eventlyy');
 $ticket = $ticket ?? [];
 $event = $event ?? [];
 
+$themePrimary = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+$themeSecondary = function_exists('theme_secondary_color') ? theme_secondary_color() : '#0284c7';
+
+$isEventStarted = !empty($ticket['event_date']) && strtotime($ticket['event_date']) <= time();
+$isCheckedIn = !empty($ticket['checked_in']);
+$isRefunded = in_array($ticket['status'] ?? '', ['Cancelled', 'Refunded']);
+$isComped = ($ticket['status'] === 'Comped') || !empty($ticket['is_issued']);
+$ticketId = $ticket['id'] ?? '';
+$attendeeName = $ticket['attendee_name'] ?? 'Guest';
+$initial = strtoupper(substr($attendeeName, 0, 1) ?: 'A');
 ?>
 
 @extends('layouts/host')
 
 @section('title')
-Host Ticket Detail - View Your <?= e($siteName) ?> Tickets
+Ticket #<?= e($ticketId) ?> - <?= e($siteName) ?> Host Portal
 @endsection
 
 @section('content')
-<div class="host-ticket-wrapper">
-    <div class="page-hero" style="margin-bottom:1rem;">
-        <div>
-            <span class="panel-badge">Host Ticket</span>
-            <h1>Ticket Details</h1>
-            <p class="lede">Review the attendee ticket and manage actions for this order.</p>
-        </div>
-    </div>
+<div class="htd-shell">
 
-    <!-- Breadcrumb back link -->
-    <a class="back-link" href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}" id="back-link" style="display:inline-flex; align-items:center; gap:0.4rem; font-weight:700; text-decoration:none; color:rgb(var(--brand)); font-size:0.88rem; margin-bottom:1.25rem;">
-        ← Back to event
-    </a>
-
-    <section class="ticket-detail-container" id="ticket-card">
-        <!-- Left side: The ticket body -->
-        <div class="ticket-body">
-            <div class="ticket-header-row">
-                <div class="ticket-title-block">
-                    <span class="ticket-label-badge">Ticket Pass</span>
-                    <h2 id="ticket-id-display">{{ $ticket['id'] }}</h2>
-                </div>
-                
-                <!-- Status badges group -->
-                <div class="ticket-badges-wrap">
-                    <?php
-                    $statusClass = 'pending';
-                    $ticketStatus = $ticket['status'] ?? '';
-                    if (in_array($ticketStatus, ['Paid', 'Comped'])) {
-                        $statusClass = 'confirmed';
-                    } elseif ($ticketStatus === 'Cancelled') {
-                        $statusClass = 'cancelled';
-                    }
-                    ?>
-                    <span id="ticket-status" class="status-badge <?= $statusClass ?>"><?= strtoupper($ticketStatus ?: 'Unknown') ?></span>
-                    
-                    <?php if (!empty($ticket['checked_in'])): ?>
-                        <span id="checkin-status" class="status-badge confirmed" style="background:rgba(16, 185, 129, 0.12); color:#059669; border:1px solid rgba(16, 185, 129, 0.25);">✓ Checked In (<?= date('h:i A', strtotime($ticket['checked_in_at'])) ?>)</span>
-                    <?php else: ?>
-                        <span id="checkin-status" class="status-badge pending" style="background:rgba(245, 158, 11, 0.12); color:#d97706; border:1px solid rgba(245, 158, 11, 0.25);">⏳ Awaiting Entry</span>
+    <!-- ─── TOP BREADCRUMB & CONTEXT HEADER ─── -->
+    <header class="htd-header">
+        <div class="htd-header-left">
+            <a href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}" class="htd-back-pill">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+                <span>Back to <?= e($event['name'] ?? 'Event') ?></span>
+            </a>
+            <div class="htd-title-group">
+                <div class="htd-badge-row">
+                    <span class="htd-pill htd-pill--brand">🎟️ Digital Pass</span>
+                    <?php if (!empty($ticket['is_issued'])): ?>
+                        <span class="htd-pill htd-pill--indigo">🏷️ Host Issued / Comp</span>
                     <?php endif; ?>
-                </div>
-            </div>
-
-            <div class="ticket-details-grid">
-                <!-- Event Info -->
-                <div class="detail-item full-width">
-                    <span class="detail-label">Event</span>
-                    <div class="detail-value event-name-val">
-                        <a id="event-link" href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}">{{ $event['name'] }}</a>
-                    </div>
-                </div>
-
-                <!-- Holder Info -->
-                <div class="detail-item">
-                    <span class="detail-label">Attendee / Holder</span>
-                    <div class="detail-value" id="holder-name"><?= e($ticket['attendee_name'] ?? 'Guest') ?></div>
-                    <div class="detail-subtext">
-                        <a id="holder-email" href="mailto:<?= e($ticket['attendee_email'] ?? '') ?>"><?= e($ticket['attendee_email'] ?? '') ?></a>
-                        <span id="holder-phone">—</span>
-                    </div>
-                </div>
-
-                <!-- Ticket Type & Quantity -->
-                <div class="detail-item">
-                    <span class="detail-label">Ticket Type &amp; Qty</span>
-                    <div class="detail-value">
-                        <span id="ticket-type"><?= e($ticket['ticket_type'] ?? 'General Admission') ?></span> &times;
-                        <span id="ticket-qty">1</span>
-                    </div>
-                </div>
-
-                <!-- Price & Purchased At -->
-                <div class="detail-item">
-                    <span class="detail-label">Total Price</span>
-                    <div class="detail-value" id="ticket-price" style="color:rgb(var(--brand)); font-weight:800;"><?= format_price($ticket['price'] ?? 0) ?></div>
-                </div>
-
-                <div class="detail-item">
-                    <span class="detail-label">Purchased On</span>
-                    <div class="detail-value" id="ticket-date"><?= isset($ticket['purchase_date']) ? date('M d, Y \a\t h:i A', strtotime($ticket['purchase_date'])) : 'N/A' ?></div>
-                </div>
-            </div>
-
-            <div class="ticket-status-note">
-                <span class="info-icon">ℹ</span>
-                <span id="status-detail"><?= e($ticket['status_detail'] ?? 'Payment confirmed') ?></span>
-            </div>
-
-            <?php if (!empty($ticket['is_issued'])): ?>
-                <div class="host-issued-badge">
-                    🏷️ Issued by Host<?php if (($ticket['status_detail'] ?? '') === 'Free ticket issued by host'): ?> (Free)<?php endif; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Right side: The tear-off ticket stub (QR & Actions) -->
-        <div class="ticket-stub">
-            <div class="stub-divider">
-                <div class="stub-cutout top"></div>
-                <div class="stub-cutout bottom"></div>
-            </div>
-            <div class="stub-content">
-                <div class="ticket-qr" id="ticket-qr">
-                    <img id="qr-img" src="<?= ticket_qr_url($ticket['id'], 220) ?>"
-                        alt="QR code for Ticket <?= e($ticket['id']) ?>" width="150" height="150">
-                    <span class="qr-caption">Scan for entry</span>
-                </div>
-
-                <div class="card-actions">
-                    <?php 
-                        $isEventStarted = !empty($ticket['event_date']) && strtotime($ticket['event_date']) <= time();
-                        $isCheckedIn = !empty($ticket['checked_in']);
-                        $isRefunded = in_array($ticket['status'] ?? '', ['Cancelled', 'Refunded']);
-                    ?>
-
-                    <!-- Check-in / Uncheck Toggle Button -->
-                    <?php if (!$isRefunded): ?>
-                        <?php if ($isCheckedIn): ?>
-                            <button type="button" id="action-uncheck" class="admin-action-btn btn-action-uncheck" data-action="uncheck" data-action-url="<?= route('host/event/ticket/' . $ticket['id'] . '/action') ?>" data-csrf-token="<?= csrf_token() ?>" title="Undo check-in">
-                                <span>↩️</span>
-                                Uncheck Ticket
-                            </button>
-                        <?php else: ?>
-                            <button type="button" id="action-checkin" class="admin-action-btn primary btn-action-checkin" data-action="check_in" data-action-url="<?= route('host/event/ticket/' . $ticket['id'] . '/action') ?>" data-csrf-token="<?= csrf_token() ?>" title="Check in this attendee">
-                                <span>🎟️</span>
-                                Check In Ticket
-                            </button>
-                        <?php endif; ?>
-                    <?php endif; ?>
-
-                    <button type="button" id="action-resend" class="admin-action-btn btn-action-resend" data-action="resend" data-action-url="<?= route('host/event/ticket/' . $ticket['id'] . '/action') ?>" data-csrf-token="<?= csrf_token() ?>" title="Resend confirmation email with ticket PDF">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        Resend Email
-                    </button>
-
                     <?php if ($isRefunded): ?>
-                        <button type="button" class="admin-action-btn danger" disabled style="opacity:0.5; cursor:not-allowed;" title="Ticket is already refunded">
-                            Refunded
-                        </button>
+                        <span class="htd-pill htd-pill--danger">Refunded</span>
                     <?php elseif ($isCheckedIn): ?>
-                        <button type="button" class="admin-action-btn danger" disabled style="opacity:0.5; cursor:not-allowed;" title="Cannot refund a ticket that has already been checked in (uncheck first if needed)">
-                            Refund (Checked In)
-                        </button>
-                    <?php elseif ($isEventStarted): ?>
-                        <button type="button" class="admin-action-btn danger" disabled style="opacity:0.5; cursor:not-allowed;" title="Cannot refund tickets after the event has started">
-                            Refund (Event Started)
-                        </button>
+                        <span class="htd-pill htd-pill--success">✓ Gate Admitted</span>
                     <?php else: ?>
-                        <button type="button" id="action-refund" class="admin-action-btn danger" data-action="refund" data-action-url="<?= route('host/event/ticket/' . $ticket['id'] . '/action') ?>" data-csrf-token="<?= csrf_token() ?>" title="Process refund for this ticket">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                            Refund
-                        </button>
+                        <span class="htd-pill htd-pill--warning">⏳ Awaiting Admission</span>
                     <?php endif; ?>
-
-                    <button type="button" id="action-flag" class="admin-action-btn btn-action-flag" data-action="flag" data-action-url="<?= route('host/event/ticket/' . $ticket['id'] . '/action') ?>" data-csrf-token="<?= csrf_token() ?>" title="Flag ticket for administrative review">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        Flag
-                    </button>
                 </div>
+                <h1 class="htd-page-title">
+                    Pass <span class="htd-mono">#<?= e($ticketId) ?></span>
+                </h1>
+                <p class="htd-page-sub">
+                    Issued for <strong><?= e($event['name'] ?? 'Event') ?></strong>
+                    <?php if (!empty($event['date'])): ?>
+                        &bull; <?= date('D, M j, Y \a\t g:i A', strtotime($event['date'])) ?>
+                    <?php endif; ?>
+                </p>
             </div>
         </div>
-    </section>
+
+        <div class="htd-header-actions">
+            <button type="button" class="htd-btn htd-btn--subtle" onclick="window.print()">
+                <span>🖨️</span> Print Pass
+            </button>
+            <a href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}#tab-attendees" class="htd-btn htd-btn--outline">
+                <span>📋</span> All Attendees
+            </a>
+        </div>
+    </header>
+
+    <!-- ─── EXECUTIVE BOARDING PASS WRAPPER ─── -->
+    <article class="htd-ticket-card" id="ticket-pass-card">
+        
+        <!-- LEFT: Primary Ticket Voucher -->
+        <div class="htd-ticket-main">
+            
+            <!-- Event Hero Banner inside ticket -->
+            <div class="htd-event-strip">
+                <div class="htd-event-info">
+                    <span class="htd-kicker">Event &amp; Venue</span>
+                    <h2 class="htd-event-name">
+                        <a href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}"><?= e($event['name'] ?? 'Event') ?></a>
+                    </h2>
+                    <?php if (!empty($event['location'])): ?>
+                        <p class="htd-event-venue">📍 <?= e($event['location']) ?></p>
+                    <?php endif; ?>
+                </div>
+                <div class="htd-event-status">
+                    <?php if ($isRefunded): ?>
+                        <div class="htd-gate-badge is-refunded">
+                            <span class="htd-gate-icon">✕</span>
+                            <div>
+                                <strong>Ticket Cancelled</strong>
+                                <span>Refunded &bull; Void</span>
+                            </div>
+                        </div>
+                    <?php elseif ($isCheckedIn): ?>
+                        <div class="htd-gate-badge is-checked">
+                            <span class="htd-gate-icon">✓</span>
+                            <div>
+                                <strong>Admitted at Gate</strong>
+                                <span><?= !empty($ticket['checked_in_at']) ? date('h:i A \o\n M j', strtotime($ticket['checked_in_at'])) : 'Verified Entry' ?></span>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="htd-gate-badge is-awaiting">
+                            <span class="htd-gate-icon">⏳</span>
+                            <div>
+                                <strong>Awaiting Entry</strong>
+                                <span>Ready to Scan</span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Attendee Profile Block -->
+            <div class="htd-attendee-row">
+                <div class="htd-avatar-wrap">
+                    <div class="htd-avatar"><?= $initial ?></div>
+                </div>
+                <div class="htd-attendee-meta">
+                    <span class="htd-kicker">Ticket Holder</span>
+                    <h3 class="htd-attendee-name"><?= e($attendeeName) ?></h3>
+                    <div class="htd-contact-links">
+                        <a href="mailto:<?= e($ticket['attendee_email'] ?? '') ?>" class="htd-link">
+                            <?= e($ticket['attendee_email'] ?? 'No email') ?>
+                        </a>
+                        <span class="htd-bullet">&bull;</span>
+                        <span class="htd-user-tier">
+                            <?= !empty($ticket['user_id']) ? 'Verified Platform Member' : 'Guest Attendee' ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4-Tile Order Metrics Bento -->
+            <div class="htd-metrics-bento">
+                <div class="htd-metric-box">
+                    <span class="htd-metric-lbl">Ticket Tier</span>
+                    <div class="htd-metric-val"><?= e($ticket['ticket_type'] ?? 'Standard Pass') ?></div>
+                    <span class="htd-metric-sub">Tier Quota: 1 Pass</span>
+                </div>
+
+                <div class="htd-metric-box">
+                    <span class="htd-metric-lbl">Order Value</span>
+                    <div class="htd-metric-val htd-text-success"><?= format_price($ticket['price'] ?? 0) ?></div>
+                    <span class="htd-metric-sub">
+                        <?= !empty($ticket['is_issued']) ? 'Complimentary' : 'Verified Payment' ?>
+                    </span>
+                </div>
+
+                <div class="htd-metric-box">
+                    <span class="htd-metric-lbl">Ticket Pass Code</span>
+                    <div class="htd-metric-val htd-mono htd-copy-val" id="copy-pass-code" title="Click to copy code">
+                        <span><?= e($ticketId) ?></span>
+                        <button type="button" class="htd-copy-icon" aria-label="Copy code">📋</button>
+                    </div>
+                    <span class="htd-metric-sub" id="copy-feedback">1-click copy code</span>
+                </div>
+
+                <div class="htd-metric-box">
+                    <span class="htd-metric-lbl">Purchase Date</span>
+                    <div class="htd-metric-val" style="font-size:0.95rem;">
+                        <?= !empty($ticket['purchase_date']) ? date('M j, Y', strtotime($ticket['purchase_date'])) : 'N/A' ?>
+                    </div>
+                    <span class="htd-metric-sub">
+                        <?= !empty($ticket['purchase_date']) ? date('h:i A', strtotime($ticket['purchase_date'])) : '' ?>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Security & Lifecycle Banner -->
+            <div class="htd-security-bar">
+                <div class="htd-sec-item">
+                    <span class="htd-sec-icon">🛡️</span>
+                    <div>
+                        <strong>Payment Status:</strong>
+                        <span><?= e($ticket['status_detail'] ?? ($ticket['status'] ?? 'Confirmed')) ?></span>
+                    </div>
+                </div>
+                <div class="htd-sec-item">
+                    <span class="htd-sec-icon">🔐</span>
+                    <div>
+                        <strong>Audit Ledger:</strong>
+                        <span><?= !empty($ticket['is_issued']) ? 'Host Manual Gateway' : 'Online Gateway Settlement' ?></span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PERFORATION DIVIDER (Horizontal on Mobile, Vertical on Desktop) -->
+        <div class="htd-perforation" aria-hidden="true">
+            <div class="htd-scallop top"></div>
+            <div class="htd-perf-line"></div>
+            <div class="htd-scallop bottom"></div>
+        </div>
+
+        <!-- RIGHT: Tear-off Stub (QR & Controls) -->
+        <div class="htd-ticket-stub">
+            
+            <div class="htd-stub-head">
+                <span class="htd-stub-badge">Gate Admission</span>
+                <span class="htd-stub-tag"><?= strtoupper(substr($ticket['ticket_type'] ?? 'PASS', 0, 10)) ?></span>
+            </div>
+
+            <!-- Scannable High-Contrast QR Code -->
+            <div class="htd-qr-container">
+                <div class="htd-qr-box">
+                    <img src="<?= ticket_qr_url($ticketId, 220) ?>" alt="QR Pass #<?= e($ticketId) ?>" width="150" height="150" loading="eager" />
+                </div>
+                <span class="htd-qr-note">Scan with Ticket Scanner</span>
+            </div>
+
+            <!-- Quick Management Controls -->
+            <div class="htd-controls-stack">
+                
+                <!-- Check-in / Uncheck Toggle -->
+                <?php if (!$isRefunded): ?>
+                    <?php if ($isCheckedIn): ?>
+                        <button type="button" class="htd-action-btn htd-btn--warning" id="btn-toggle-checkin" data-ticket-id="<?= e($ticketId) ?>" data-action="uncheck" data-action-url="<?= route('host/event/ticket/' . $ticketId . '/action') ?>">
+                            <span>↩️</span> Undo Check-In
+                        </button>
+                    <?php else: ?>
+                        <button type="button" class="htd-action-btn htd-btn--primary" id="btn-toggle-checkin" data-ticket-id="<?= e($ticketId) ?>" data-action="check_in" data-action-url="<?= route('host/event/ticket/' . $ticketId . '/action') ?>">
+                            <span>🎟️</span> Check In Attendee
+                        </button>
+                    <?php endif; ?>
+                <?php endif; ?>
+
+                <!-- Resend Email -->
+                <button type="button" class="htd-action-btn htd-btn--indigo" id="btn-resend-email" data-ticket-id="<?= e($ticketId) ?>" data-action-url="<?= route('host/event/ticket/' . $ticketId . '/action') ?>">
+                    <span>✉️</span> Resend Ticket Email
+                </button>
+
+                <!-- Refund Button -->
+                <?php if ($isRefunded): ?>
+                    <button type="button" class="htd-action-btn htd-btn--disabled" disabled>
+                        <span>✓</span> Ticket Refunded
+                    </button>
+                <?php elseif ($isCheckedIn): ?>
+                    <button type="button" class="htd-action-btn htd-btn--disabled" disabled title="Uncheck ticket first to allow refund">
+                        <span>🔒</span> Checked In (No Refund)
+                    </button>
+                <?php elseif ($isEventStarted): ?>
+                    <button type="button" class="htd-action-btn htd-btn--disabled" disabled title="Event has already started">
+                        <span>⏱️</span> Event Started
+                    </button>
+                <?php else: ?>
+                    <button type="button" class="htd-action-btn htd-btn--danger" id="btn-refund-ticket" data-ticket-id="<?= e($ticketId) ?>" data-action-url="<?= route('host/event/ticket/' . $ticketId . '/action') ?>">
+                        <span>💸</span> Refund Ticket
+                    </button>
+                <?php endif; ?>
+
+            </div>
+
+            <!-- Stub Footer -->
+            <div class="htd-stub-foot">
+                <span class="htd-mono">ID: <?= e(substr($ticketId, 0, 14)) ?></span>
+                <span>• Active</span>
+            </div>
+
+        </div>
+
+    </article>
+
 </div>
 
-<!-- Confirmation modal (hidden by default) -->
-<div id="modal-backdrop" class="modal-backdrop hidden">
-    <div class="modal" id="confirm-modal">
-        <h3>Confirm Action</h3>
-        <p id="confirm-message">Are you sure?</p>
-        <div class="modal-actions">
-            <button type="button" id="confirm-yes" class="admin-action-btn primary">Yes, proceed</button>
-            <button type="button" id="confirm-no" class="admin-action-btn">Cancel</button>
+<!-- Confirmation Modal for Destructive Actions -->
+<div class="htd-modal-backdrop hidden" id="htd-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="htd-modal-title">
+    <div class="htd-modal-card">
+        <div class="htd-modal-header">
+            <span class="htd-modal-icon">⚠️</span>
+            <div>
+                <h3 id="htd-modal-title" class="htd-modal-title">Confirm Action</h3>
+                <p id="htd-modal-desc" class="htd-modal-desc">Are you sure you wish to proceed?</p>
+            </div>
+        </div>
+        <div class="htd-modal-actions">
+            <button type="button" class="htd-btn htd-btn--subtle" id="htd-modal-cancel">Cancel</button>
+            <button type="button" class="htd-btn htd-btn--danger" id="htd-modal-confirm">Yes, Proceed</button>
         </div>
     </div>
 </div>
 
-<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+<!-- Toast Container -->
+<div id="htd-toast-container" class="htd-toast-container" aria-live="polite"></div>
 
+<!-- ─── MODERN RESPONSIVE STYLES ─── -->
 <style>
-/* ════════════════════════════════════════════════════════════════
-   HOST TICKET DETAIL RESPONSIVE & MOBILE-CENTERING STYLES
-   ════════════════════════════════════════════════════════════════ */
-
-.host-ticket-wrapper {
-    width: 100%;
-    max-width: 880px;
-    margin: 0 auto 3rem auto;
-    box-sizing: border-box;
-    min-width: 0;
-}
-
-.host-ticket-wrapper * {
-    box-sizing: border-box;
-    min-width: 0;
-}
-
-/* Ticket Detail Container */
-.ticket-detail-container {
-    max-width: 880px;
-    width: 100%;
-    margin: 1.5rem auto;
-    border-radius: 24px;
-    background: rgb(var(--card));
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+.htd-shell {
+    --htd-primary: var(--primary, <?= $themePrimary ?>);
+    --htd-primary-hover: var(--primary-hover, <?= $themeSecondary ?>);
+    --htd-primary-rgb: var(--primary-rgb, 16, 138, 85);
+    
+    /* Surface Colors (Light) */
+    --htd-card-bg: rgb(var(--card, 255 255 255));
+    --htd-subtle-bg: #f8fafc;
+    --htd-border: var(--border-color, #e2e8f0);
+    --htd-text: rgb(var(--text, 15 23 42));
+    --htd-muted: rgb(var(--muted, 100 116 139));
+    --htd-radius: 20px;
+    
+    max-width: 960px;
+    margin: 0 auto 3.5rem;
     display: flex;
-    overflow: hidden;
-    border: 1px solid rgba(var(--muted), 0.14);
-    position: relative;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-/* Ticket Main Body */
-.ticket-body {
+/* Dark Mode Overrides */
+:root[data-theme='dark'] .htd-shell,
+[data-theme='dark'] .htd-shell,
+body[data-theme='dark'] .htd-shell {
+    --htd-card-bg: rgb(var(--card, 18 21 27));
+    --htd-subtle-bg: rgba(255, 255, 255, 0.04);
+    --htd-border: rgba(255, 255, 255, 0.09);
+}
+
+/* ─── Header ─── */
+.htd-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+.htd-back-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--htd-primary);
+    text-decoration: none;
+    margin-bottom: 0.6rem;
+    transition: transform 0.15s ease;
+}
+.htd-back-pill:hover {
+    transform: translateX(-3px);
+}
+.htd-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.htd-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+.htd-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+}
+.htd-pill--brand {
+    background: rgba(var(--htd-primary-rgb), 0.12);
+    color: var(--htd-primary);
+    border: 1px solid rgba(var(--htd-primary-rgb), 0.25);
+}
+.htd-pill--indigo {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+.htd-pill--success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.htd-pill--warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.htd-pill--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.htd-page-title {
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+    font-weight: 900;
+    margin: 0;
+    color: var(--htd-text);
+    line-height: 1.2;
+}
+.htd-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.htd-page-sub {
+    font-size: 0.88rem;
+    color: var(--htd-muted);
+    margin: 0;
+}
+.htd-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ─── Buttons ─── */
+.htd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    border: 1px solid transparent;
+}
+.htd-btn--subtle {
+    background: var(--htd-subtle-bg);
+    color: var(--htd-text);
+    border-color: var(--htd-border);
+}
+.htd-btn--subtle:hover {
+    background: rgba(var(--htd-primary-rgb), 0.08);
+    border-color: var(--htd-primary);
+}
+.htd-btn--outline {
+    background: transparent;
+    color: var(--htd-primary);
+    border-color: rgba(var(--htd-primary-rgb), 0.35);
+}
+.htd-btn--outline:hover {
+    background: rgba(var(--htd-primary-rgb), 0.1);
+}
+
+/* ─── The Boarding Pass Ticket Card ─── */
+.htd-ticket-card {
+    background: var(--htd-card-bg);
+    border: 1px solid var(--htd-border);
+    border-radius: var(--htd-radius);
+    display: flex;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+/* Main Voucher Area (Left) */
+.htd-ticket-main {
     flex: 1 1 auto;
-    padding: 2.25rem;
+    padding: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     min-width: 0;
 }
 
-.ticket-header-row {
+.htd-kicker {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--htd-muted);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+/* Event Strip */
+.htd-event-strip {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 1rem;
-    border-bottom: 1px dashed rgba(var(--muted), 0.18);
     padding-bottom: 1.25rem;
-    width: 100%;
+    border-bottom: 1px solid var(--htd-border);
 }
-
-.ticket-title-block {
-    min-width: 0;
-}
-
-.ticket-label-badge {
-    display: inline-block;
-    font-size: 0.74rem;
+.htd-event-name {
+    font-size: 1.25rem;
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgb(var(--brand));
-    margin-bottom: 0.25rem;
-}
-
-#ticket-id-display {
-    font-size: clamp(1.4rem, 3.2vw, 2.1rem);
     margin: 0;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: rgb(var(--text));
-    word-break: break-all;
-    line-height: 1.2;
-}
-
-.ticket-badges-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
-}
-
-.status-badge {
-    font-size: 0.76rem;
-    font-weight: 700;
-    padding: 0.35rem 0.8rem;
-    border-radius: 20px;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
     line-height: 1.3;
 }
+.htd-event-name a {
+    color: var(--htd-text);
+    text-decoration: none;
+}
+.htd-event-name a:hover {
+    color: var(--htd-primary);
+}
+.htd-event-venue {
+    font-size: 0.82rem;
+    color: var(--htd-muted);
+    margin: 0.25rem 0 0;
+}
 
-.status-badge.confirmed {
+/* Gate Badge */
+.htd-gate-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.95rem;
+    border-radius: 12px;
+}
+.htd-gate-badge strong {
+    display: block;
+    font-size: 0.84rem;
+    line-height: 1.2;
+}
+.htd-gate-badge span {
+    font-size: 0.74rem;
+    opacity: 0.85;
+}
+.htd-gate-icon {
+    font-size: 1.1rem;
+    font-weight: 900;
+}
+.htd-gate-badge.is-checked {
     background: rgba(16, 185, 129, 0.12);
-    color: #059669;
+    color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.25);
 }
-
-.status-badge.pending {
+.htd-gate-badge.is-awaiting {
     background: rgba(245, 158, 11, 0.12);
-    color: #d97706;
+    color: #f59e0b;
     border: 1px solid rgba(245, 158, 11, 0.25);
 }
-
-.status-badge.cancelled {
+.htd-gate-badge.is-refunded {
     background: rgba(239, 68, 68, 0.12);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.25);
-    text-decoration: line-through;
 }
 
-/* Details Grid */
-.ticket-details-grid {
+/* Attendee Block */
+.htd-attendee-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.htd-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--htd-primary), var(--htd-primary-hover));
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(var(--htd-primary-rgb), 0.25);
+    flex-shrink: 0;
+}
+.htd-attendee-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--htd-text);
+}
+.htd-contact-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.84rem;
+    margin-top: 0.2rem;
+}
+.htd-link {
+    color: var(--htd-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+.htd-link:hover {
+    text-decoration: underline;
+}
+.htd-bullet {
+    color: var(--htd-muted);
+}
+.htd-user-tier {
+    color: var(--htd-muted);
+}
+
+/* Bento Metrics Grid */
+.htd-metrics-bento {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-    width: 100%;
+    gap: 0.85rem;
 }
-
-.detail-item {
-    min-width: 0;
+.htd-metric-box {
+    background: var(--htd-subtle-bg);
+    border: 1px solid var(--htd-border);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
 }
-
-.detail-item.full-width {
-    grid-column: span 2;
-}
-
-.detail-label {
-    font-size: 0.75rem;
-    font-weight: 700;
+.htd-metric-lbl {
+    font-size: 0.72rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: rgb(var(--muted));
-    display: block;
-    margin-bottom: 0.3rem;
+    letter-spacing: 0.05em;
+    color: var(--htd-muted);
 }
-
-.detail-value {
-    font-size: 1.02rem;
-    font-weight: 700;
-    color: rgb(var(--text));
-    line-height: 1.35;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-}
-
-.detail-value a {
-    color: rgb(var(--brand));
-    text-decoration: none;
-    font-weight: 700;
-}
-
-.detail-value a:hover {
-    text-decoration: underline;
-}
-
-.detail-subtext {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    margin-top: 0.35rem;
-    font-size: 0.85rem;
-    color: rgb(var(--muted));
-    word-break: break-word;
-    overflow-wrap: anywhere;
-}
-
-.detail-subtext a {
-    color: rgb(var(--text));
-    opacity: 0.85;
-    text-decoration: none;
-}
-
-.detail-subtext a:hover {
-    color: rgb(var(--brand));
-    opacity: 1;
-    text-decoration: underline;
-}
-
-.ticket-status-note {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.85rem 1.15rem;
-    border-radius: 12px;
-    background: rgba(var(--brand), 0.05);
-    border: 1px solid rgba(var(--brand), 0.15);
-    font-size: 0.85rem;
-    color: rgb(var(--brand));
-    font-weight: 600;
-    word-break: break-word;
-}
-
-.info-icon {
+.htd-metric-val {
     font-size: 1.1rem;
-    flex-shrink: 0;
+    font-weight: 800;
+    color: var(--htd-text);
+    word-break: break-all;
+}
+.htd-metric-sub {
+    font-size: 0.74rem;
+    color: var(--htd-muted);
+}
+.htd-text-success {
+    color: #10b981 !important;
 }
 
-.host-issued-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(99, 102, 241, 0.1);
-    color: #4f46e5;
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 0.35rem 0.85rem;
-    border-radius: 8px;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    width: fit-content;
-}
-
-/* ─── Tear-off Ticket Stub ─── */
-.ticket-stub {
-    width: 290px;
-    background: rgba(var(--muted), 0.03);
+.htd-copy-val {
     display: flex;
-    position: relative;
-    border-left: 1px dashed rgba(var(--muted), 0.18);
-    flex-shrink: 0;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+}
+.htd-copy-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.85rem;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+}
+.htd-copy-val:hover .htd-copy-icon {
+    opacity: 1;
 }
 
-.stub-divider {
-    position: absolute;
-    left: -1px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
+/* Security Bar */
+.htd-security-bar {
+    background: rgba(var(--htd-primary-rgb), 0.04);
+    border: 1px solid rgba(var(--htd-primary-rgb), 0.18);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.82rem;
+}
+.htd-sec-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--htd-text);
+}
+.htd-sec-item span {
+    color: var(--htd-muted);
+}
+
+/* ─── Perforation Divider ─── */
+.htd-perforation {
+    width: 24px;
+    position: relative;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: space-between;
     pointer-events: none;
+    flex-shrink: 0;
 }
-
-.stub-cutout {
-    width: 24px;
-    height: 24px;
-    background: rgb(var(--bg));
-    border-radius: 50%;
+.htd-perf-line {
     position: absolute;
-    left: -12px;
-    z-index: 10;
-    border: 1px solid rgba(var(--muted), 0.15);
+    top: 16px;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 2px dashed rgba(var(--htd-muted), 0.3);
+}
+.htd-scallop {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgb(var(--bg, 248 250 252));
+    border: 1px solid var(--htd-border);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+:root[data-theme='dark'] .htd-scallop,
+[data-theme='dark'] .htd-scallop {
+    background: rgb(var(--bg, 11 13 18));
+}
+.htd-scallop.top {
+    top: -13px;
+}
+.htd-scallop.bottom {
+    bottom: -13px;
 }
 
-.stub-cutout.top {
-    top: -12px;
-}
-
-.stub-cutout.bottom {
-    bottom: -12px;
-}
-
-.stub-content {
-    flex: 1;
+/* ─── Right Stub ─── */
+.htd-ticket-stub {
+    width: 300px;
+    background: var(--htd-subtle-bg);
     padding: 2rem 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 1.35rem;
+    justify-content: space-between;
+    gap: 1.25rem;
+    flex-shrink: 0;
+}
+.htd-stub-head {
     width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.htd-stub-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--htd-muted);
+}
+.htd-stub-tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    background: rgba(var(--htd-primary-rgb), 0.12);
+    color: var(--htd-primary);
 }
 
-.ticket-qr {
-    background: #ffffff;
-    padding: 0.65rem;
-    border-radius: 14px;
-    border: 1px solid rgba(var(--muted), 0.18);
-    text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+.htd-qr-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    width: auto;
+    gap: 0.45rem;
 }
-
-.ticket-qr img {
-    width: 150px;
-    height: 150px;
-    display: block;
-    image-rendering: pixelated;
-    border-radius: 6px;
+.htd-qr-box {
+    background: #ffffff;
+    padding: 0.55rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
-
-.qr-caption {
+.htd-qr-box img {
     display: block;
-    margin-top: 0.4rem;
+    border-radius: 4px;
+}
+.htd-qr-note {
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: rgb(var(--muted));
+    letter-spacing: 0.05em;
+    color: var(--htd-muted);
 }
 
-/* Card Actions Container & Buttons */
-.card-actions {
+/* Action Controls */
+.htd-controls-stack {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
-    width: 100%;
+    gap: 0.5rem;
 }
-
-.card-actions .admin-action-btn {
-    width: 100% !important;
-    min-height: 42px;
+.htd-action-btn {
+    width: 100%;
+    min-height: 40px;
+    padding: 0.55rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 800;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.45rem;
-    padding: 0.65rem 1rem;
-    font-size: 0.85rem;
-    font-weight: 700;
-    border-radius: 12px;
+    gap: 0.4rem;
     cursor: pointer;
-    text-align: center;
-    transition: all 0.2s ease;
     border: 1px solid transparent;
+    transition: all 0.15s ease;
 }
-
-.btn-action-uncheck {
-    background: rgba(245, 158, 11, 0.12) !important;
-    color: #d97706 !important;
-    border-color: rgba(245, 158, 11, 0.3) !important;
+.htd-btn--primary {
+    background: var(--htd-primary);
+    color: #ffffff;
 }
-
-.btn-action-uncheck:hover {
-    background: rgba(245, 158, 11, 0.2) !important;
+.htd-btn--primary:hover {
+    background: var(--htd-primary-hover);
     transform: translateY(-1px);
 }
-
-.btn-action-checkin {
-    background: rgb(var(--brand)) !important;
-    color: #ffffff !important;
-    border-color: transparent !important;
+.htd-btn--warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.28);
+}
+.htd-btn--warning:hover {
+    background: rgba(245, 158, 11, 0.2);
+}
+.htd-btn--indigo {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border-color: rgba(99, 102, 241, 0.25);
+}
+.htd-btn--indigo:hover {
+    background: rgba(99, 102, 241, 0.18);
+}
+.htd-btn--danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.25);
+}
+.htd-btn--danger:hover {
+    background: rgba(239, 68, 68, 0.18);
+}
+.htd-btn--disabled {
+    background: rgba(var(--htd-muted), 0.08);
+    color: var(--htd-muted);
+    border-color: rgba(var(--htd-muted), 0.15);
+    cursor: not-allowed;
+    opacity: 0.75;
 }
 
-.btn-action-checkin:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
+.htd-stub-foot {
+    font-size: 0.72rem;
+    color: var(--htd-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.btn-action-resend {
-    background: rgba(99, 102, 241, 0.1) !important;
-    color: #4f46e5 !important;
-    border-color: rgba(99, 102, 241, 0.25) !important;
+/* ─── Confirmation Modal ─── */
+.htd-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 9999;
+}
+.htd-modal-backdrop.hidden {
+    display: none !important;
+}
+.htd-modal-card {
+    background: var(--htd-card-bg);
+    border: 1px solid var(--htd-border);
+    border-radius: 16px;
+    max-width: 440px;
+    width: 100%;
+    padding: 1.5rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.htd-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.htd-modal-icon {
+    font-size: 1.5rem;
+}
+.htd-modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--htd-text);
+}
+.htd-modal-desc {
+    margin: 0.25rem 0 0;
+    font-size: 0.86rem;
+    color: var(--htd-muted);
+    line-height: 1.45;
+}
+.htd-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
-.btn-action-resend:hover {
-    background: rgba(99, 102, 241, 0.18) !important;
-    transform: translateY(-1px);
+/* ─── Toast Container ─── */
+.htd-toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
-
-.btn-action-flag {
-    background: rgba(var(--muted), 0.08) !important;
-    color: rgb(var(--text)) !important;
-    border-color: rgba(var(--muted), 0.2) !important;
+.htd-toast {
+    padding: 0.75rem 1.15rem;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.86rem;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    animation: htdSlideIn 0.2s ease;
 }
-
-.btn-action-flag:hover {
-    background: rgba(var(--muted), 0.15) !important;
-    transform: translateY(-1px);
+@keyframes htdSlideIn {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
+.htd-toast--success { background: #059669; }
+.htd-toast--error { background: #dc2626; }
+.htd-toast--info { background: #2563eb; }
 
-/* ════════════════════════════════════════════════════════════════
-   TABLET & iPAD RESPONSIVENESS (≤ 860px)
-   ════════════════════════════════════════════════════════════════ */
+/* ─── RESPONSIVE BREAKPOINTS ─── */
 @media (max-width: 860px) {
-    .ticket-detail-container {
+    .htd-ticket-card {
         flex-direction: column;
-        border-radius: 20px;
     }
-
-    .ticket-body {
-        padding: 1.75rem 1.5rem;
-        gap: 1.25rem;
-    }
-
-    .ticket-stub {
+    .htd-perforation {
         width: 100%;
-        border-left: none;
-        border-top: 2px dashed rgba(var(--muted), 0.18);
-    }
-
-    .stub-divider {
-        left: 0;
-        right: 0;
-        top: -1px;
-        bottom: auto;
-        height: 2px;
-        width: 100%;
+        height: 24px;
         flex-direction: row;
-        justify-content: space-between;
     }
-
-    .stub-cutout.top {
-        top: -12px;
-        left: -12px;
-    }
-
-    .stub-cutout.bottom {
-        top: -12px;
-        right: -12px;
+    .htd-perf-line {
+        top: 50%;
         bottom: auto;
+        left: 16px;
+        right: 16px;
+        width: auto;
+        height: 2px;
+        transform: translateY(-50%);
+        border-left: none;
+        border-top: 2px dashed rgba(var(--htd-muted), 0.3);
+    }
+    .htd-scallop {
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .htd-scallop.top {
+        left: -13px;
+        top: 50%;
+    }
+    .htd-scallop.bottom {
+        right: -13px;
         left: auto;
+        bottom: auto;
+        top: 50%;
     }
-
-    .stub-content {
+    .htd-ticket-stub {
+        width: 100%;
         padding: 1.75rem 1.5rem;
-        gap: 1.25rem;
     }
-
-    .card-actions {
+    .htd-controls-stack {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.65rem;
-        width: 100%;
-    }
-}
-
-/* ════════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVENESS (≤ 600px)
-   ════════════════════════════════════════════════════════════════ */
-@media (max-width: 600px) {
-    .ticket-body {
-        padding: 1.25rem 1rem;
-        gap: 1.15rem;
-    }
-
-    .ticket-header-row {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.75rem;
-    }
-
-    .ticket-badges-wrap {
-        width: 100%;
-    }
-
-    .ticket-details-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-
-    .detail-item.full-width {
-        grid-column: span 1;
-    }
-
-    .stub-content {
-        padding: 1.35rem 1rem;
-    }
-
-    .ticket-qr img {
-        width: 140px;
-        height: 140px;
-    }
-}
-
-/* ════════════════════════════════════════════════════════════════
-   EXTRA-SMALL MOBILE (≤ 460px)
-   ════════════════════════════════════════════════════════════════ */
-@media (max-width: 460px) {
-    .card-actions {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 0.5rem;
     }
+}
 
-    .modal {
-        width: calc(100% - 1.5rem);
+@media (max-width: 600px) {
+    .htd-ticket-main {
         padding: 1.25rem;
+    }
+    .htd-metrics-bento {
+        grid-template-columns: 1fr;
+    }
+    .htd-security-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .htd-controls-stack {
+        grid-template-columns: 1fr;
     }
 }
 </style>
+
+<!-- ─── INTERACTIVE PASS JAVASCRIPT ─── -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = "<?= csrf_token() ?>";
+
+    function showToast(msg, type = 'success') {
+        const c = document.getElementById('htd-toast-container');
+        if (!c) return;
+        const t = document.createElement('div');
+        t.className = `htd-toast htd-toast--${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => {
+            t.style.opacity = '0';
+            t.style.transition = 'opacity 0.25s ease';
+            setTimeout(() => t.remove(), 250);
+        }, 3200);
+    }
+
+    // 1-Click Code Copy
+    const copyWrap = document.getElementById('copy-pass-code');
+    if (copyWrap) {
+        copyWrap.addEventListener('click', function() {
+            const code = this.querySelector('span')?.textContent?.trim() || '';
+            if (!code) return;
+            navigator.clipboard.writeText(code).then(() => {
+                const fb = document.getElementById('copy-feedback');
+                if (fb) fb.textContent = '✓ Copied to clipboard!';
+                showToast('Ticket code copied to clipboard!', 'info');
+                setTimeout(() => {
+                    if (fb) fb.textContent = '1-click copy code';
+                }, 2500);
+            });
+        });
+    }
+
+    // Check-in / Uncheck Toggle Button
+    const checkinBtn = document.getElementById('btn-toggle-checkin');
+    if (checkinBtn) {
+        checkinBtn.addEventListener('click', function() {
+            const btn = this;
+            const action = btn.dataset.action;
+            const url = btn.dataset.actionUrl;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Processing...';
+
+            const formData = new FormData();
+            formData.append('_token', csrfToken);
+            formData.append('action', action);
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    showToast(data.message || 'Admission status updated!', 'success');
+                    // Reload to update gate status badge cleanly
+                    setTimeout(() => window.location.reload(), 400);
+                } else {
+                    showToast(data.message || 'Failed to update check-in.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                showToast('Connection error. Please try again.', 'error');
+            });
+        });
+    }
+
+    // Resend Email Button
+    const resendBtn = document.getElementById('btn-resend-email');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', function() {
+            const btn = this;
+            const url = btn.dataset.actionUrl;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Sending Email...';
+
+            const formData = new FormData();
+            formData.append('_token', csrfToken);
+            formData.append('action', 'resend');
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<span>✉️</span> Resend Ticket Email';
+                if (data.success) {
+                    showToast(data.message || 'Ticket pass resent successfully!', 'success');
+                } else {
+                    showToast(data.message || 'Failed to resend email.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<span>✉️</span> Resend Ticket Email';
+                showToast('Network error while resending pass.', 'error');
+            });
+        });
+    }
+
+    // Refund Confirmation Modal Trigger
+    const refundBtn = document.getElementById('btn-refund-ticket');
+    const modal = document.getElementById('htd-confirm-modal');
+    const modalCancel = document.getElementById('htd-modal-cancel');
+    const modalConfirm = document.getElementById('htd-modal-confirm');
+
+    if (refundBtn && modal) {
+        refundBtn.addEventListener('click', function() {
+            document.getElementById('htd-modal-title').textContent = 'Refund Ticket Order';
+            document.getElementById('htd-modal-desc').textContent = 'Are you sure you want to refund this ticket? The ticket will be marked as Cancelled/Void and gateway refund requested.';
+            modal.classList.remove('hidden');
+        });
+
+        if (modalCancel) {
+            modalCancel.addEventListener('click', () => modal.classList.add('hidden'));
+        }
+
+        if (modalConfirm) {
+            modalConfirm.addEventListener('click', function() {
+                modal.classList.add('hidden');
+                refundBtn.disabled = true;
+                refundBtn.innerHTML = '<span>⏳</span> Processing Refund...';
+
+                const formData = new FormData();
+                formData.append('_token', csrfToken);
+                formData.append('action', 'refund');
+
+                fetch(refundBtn.dataset.actionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Ticket refunded successfully!', 'success');
+                        setTimeout(() => window.location.reload(), 600);
+                    } else {
+                        refundBtn.disabled = false;
+                        refundBtn.innerHTML = '<span>💸</span> Refund Ticket';
+                        showToast(data.message || 'Refund failed.', 'error');
+                    }
+                })
+                .catch(() => {
+                    refundBtn.disabled = false;
+                    refundBtn.innerHTML = '<span>💸</span> Refund Ticket';
+                    showToast('Connection error while processing refund.', 'error');
+                });
+            });
+        }
+    }
+});
+</script>
 @endsection

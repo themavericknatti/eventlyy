@@ -30,6 +30,8 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     <link rel="icon" href="<?= e(asset($favicon)) ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= asset_version('assets/css/style.css') ?>">
+    @include('partials/theme-styles')
+    @include('partials/pwa-head')
 
     <script src="{{ route('assets/js/html5qrcode.min.js') }}?v=<?= asset_version('assets/js/html5qrcode.min.js') ?>"></script>
 
@@ -196,7 +198,7 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     @yield('style')
 </head>
 
-<body class="<?= $isLoginPage ? 'auth-body' : 'team-workstation-body' ?>">
+<body class="vn-shell <?= $isLoginPage ? 'auth-body' : 'team-workstation-body' ?>">
     <?php if ($isLoginPage): ?>
         <div class="hero-orb hero-orb-1" style="top: -10%; left: -10%; width: 50vw; height: 50vw; opacity: 0.12;"
             aria-hidden="true"></div>

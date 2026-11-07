@@ -743,7 +743,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                         </td>
                         <td>
                             <strong style="color:rgb(var(--text)); font-size:1.02rem; font-weight:800; display:block;">
-                                <?= format_price($p['amount']) ?>
+                                <?= format_price($p['amount'] ?? 0) ?>
                             </strong>
                             <?php if (!empty($p['is_partial']) && ($p['event_prior_disbursed'] ?? 0) > 0): ?>
                                 <span style="font-size:0.7rem; color:#6366f1; font-weight:600; display:block; margin-top:2px;" title="Prior disbursements have been made for this event">
@@ -795,7 +795,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                                     <button type="button" class="payout-btn-process au-process-btn" 
                                         data-payout-id="<?= $p['id'] ?>"
                                         data-host-name="<?= e($p['host_name'] ?? 'Host') ?>" 
-                                        data-amount="<?= format_price($p['amount']) ?>"
+                                        data-amount="<?= format_price($p['amount'] ?? 0) ?>"
                                         data-bank="<?= e($p['payout_bank'] ?: 'Not Configured') ?>" 
                                         data-account="<?= e($p['payout_account'] ?: 'Not Configured') ?>"
                                         data-routing="<?= e($p['payout_routing'] ?: 'N/A') ?>"
@@ -859,7 +859,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                 <div class="payout-card-row">
                     <span class="payout-card-label">Payout Amount:</span>
                     <span class="payout-card-value" style="color: rgb(var(--brand)); font-size: 1.05rem; font-weight: 800;">
-                        <?= format_price($p['amount']) ?>
+                        <?= format_price($p['amount'] ?? 0) ?>
                         <?php if (!empty($p['is_partial']) && ($p['event_prior_disbursed'] ?? 0) > 0): ?>
                             <span style="font-size:0.7rem; color:#6366f1; font-weight:600; display:block; margin-top:2px;">
                                 🛡️ <?= format_price($p['event_prior_disbursed']) ?> prior disbursed
@@ -914,7 +914,7 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
                         <button type="button" class="payout-btn-process au-process-btn" 
                             data-payout-id="<?= $p['id'] ?>"
                             data-host-name="<?= e($p['host_name'] ?? 'Host') ?>" 
-                            data-amount="<?= format_price($p['amount']) ?>"
+                            data-amount="<?= format_price($p['amount'] ?? 0) ?>"
                             data-bank="<?= e($p['payout_bank'] ?: 'Not Configured') ?>" 
                             data-account="<?= e($p['payout_account'] ?: 'Not Configured') ?>"
                             data-routing="<?= e($p['payout_routing'] ?: 'N/A') ?>"

@@ -144,15 +144,20 @@ Admin Attendees Directory - Deduplicated Contact Records
 <section class="admin-users-table-section">
     <div class="au-table-header">
         <h2>Deduplicated Contact Records</h2>
-        <a href="{{ route('admin/attendees/export') }}?q=<?= urlencode($search ?? '') ?>&type=<?= urlencode($type ?? '') ?>&event_id=<?= urlencode($eventId ?? '') ?>" class="admin-action-btn primary" style="background:#10b981; border-color:#10b981;">
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ route('admin/attendees/export-pdf') }}?q=<?= urlencode($search ?? '') ?>&type=<?= urlencode($type ?? '') ?>&event_id=<?= urlencode($eventId ?? '') ?>" target="_blank" class="admin-action-btn primary" style="background:#0284c7; border-color:#0284c7; display:inline-flex; align-items:center; gap:0.35rem;">
+                <span>📄</span> Export A4 PDF
+            </a>
+            <a href="{{ route('admin/attendees/export') }}?q=<?= urlencode($search ?? '') ?>&type=<?= urlencode($type ?? '') ?>&event_id=<?= urlencode($eventId ?? '') ?>" class="admin-action-btn primary" style="background:#10b981; border-color:#10b981;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Export CSV Directory
-        </a>
+            Export CSV
+            </a>
+        </div>
     </div>
 
     <!-- Desktop Table View -->
@@ -212,7 +217,7 @@ Admin Attendees Directory - Deduplicated Contact Records
                             <span style="font-size:0.88rem; font-weight:700; color:rgb(var(--text));"><?= (int)$att['total_tickets'] ?> ticket(s)</span>
                         </td>
                         <td>
-                            <strong style="color:#10b981; font-size:0.92rem; font-weight:800;"><?= format_price($att['total_spent']) ?></strong>
+                            <strong style="color:#10b981; font-size:0.92rem; font-weight:800;"><?= format_price($att['total_spent'] ?? 0) ?></strong>
                         </td>
                         <td>
                             <span style="font-size:0.82rem; color:rgb(var(--muted));"><?= date('M d, Y • g:i A', strtotime($att['last_purchase_date'])) ?></span>
@@ -249,7 +254,7 @@ Admin Attendees Directory - Deduplicated Contact Records
                 </div>
                 <div class="au-card-meta" style="flex-direction: column; align-items: flex-start; gap: 0.35rem;">
                     <span style="font-weight:700; font-size:0.88rem; color:rgb(var(--text));">🎟️ Events: <?= e($att['event_names'] ?? 'N/A') ?></span>
-                    <span style="font-size:0.8rem; color:rgb(var(--muted));">Tickets: <?= (int)$att['total_tickets'] ?> • Total Spent: <strong style="color:#10b981;"><?= format_price($att['total_spent']) ?></strong></span>
+                    <span style="font-size:0.8rem; color:rgb(var(--muted));">Tickets: <?= (int)$att['total_tickets'] ?> • Total Spent: <strong style="color:#10b981;"><?= format_price($att['total_spent'] ?? 0) ?></strong></span>
                     <span style="font-size:0.76rem; color:rgb(var(--muted));">Last Active: <?= date('M d, Y', strtotime($att['last_purchase_date'])) ?></span>
                 </div>
             </article>

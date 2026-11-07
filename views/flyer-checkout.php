@@ -6,381 +6,83 @@
  * Cinematic modern single-page checkout experience with ambient motion,
  * dynamic halo lighting, and high-contrast glassmorphism.
  *
- * @package Evently
+ * @package Eventlyy
  * @subpackage Views/Flyer
  * @author Celio Natti
- * @version 5.0.0
+ * @version 6.0.0
  */
 
 $eventImg = !empty($event->image) ? $event->image : 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1600&q=85&auto=format&fit=crop';
 $eventDate = strtotime($event->date ?? '');
 $currencySymbol = get_currency_symbol();
 $flyerUrl = $flyerUrl ?? event_flyer_url($event);
+$totalPassesCount = 0;
+if (!empty($selectedItems) && is_array($selectedItems)) {
+    foreach ($selectedItems as $item) {
+        $totalPassesCount += (int)($item['qty'] ?? 0);
+    }
+}
+$isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout — <?= e($event->name) ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Express Checkout — <?= e($event->name) ?></title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --flyer-dominant-rgb: 99, 102, 241;
-            --flyer-dominant: rgb(var(--flyer-dominant-rgb));
-            --flyer-dominant-glow: rgba(var(--flyer-dominant-rgb), 0.45);
-            --flyer-accent: #10b981;
-            --flyer-text-main: #ffffff;
-            --flyer-text-muted: #cbd5e1;
-            --overlay-glass: rgba(8, 12, 24, 0.78);
-            --overlay-border: rgba(255, 255, 255, 0.18);
-        }
+    <?php $flyerCheckoutVer = asset_version('assets/css/flyer-checkout.css'); ?>
+    <link rel="stylesheet" href="{{ route('assets/css/flyer-checkout.css') }}?v=<?= $flyerCheckoutVer ?>">
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    <?php
+    /* ── Admin-Configurable Theme Color Injection ──
+       Override CSS custom properties so checkout follows admin theme colors. */
+    $thPrimaryHex   = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
+    $thSecondaryHex = function_exists('theme_secondary_color') ? theme_secondary_color() : '#1aae6c';
+    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $thPrimaryHex))   $thPrimaryHex   = '#108a55';
+    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $thSecondaryHex)) $thSecondaryHex = '#1aae6c';
 
-        html, body {
-            min-height: 100vh;
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #030712;
-            color: var(--flyer-text-main);
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
+    $thToRgb = function (string $hex): string {
+        $hex = ltrim($hex, '#');
+        return hexdec(substr($hex, 0, 2)) . ', ' . hexdec(substr($hex, 2, 2)) . ', ' . hexdec(substr($hex, 4, 2));
+    };
 
-        /* ─── 1. Cinematic Background Stage with Ambient Motion ─── */
-        .cinematic-bg-container {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            overflow: hidden;
-            pointer-events: none;
-        }
+    $thDarken = function (string $hex, float $factor = 0.12): string {
+        $hex = ltrim($hex, '#');
+        $r = max(0, (int)round(hexdec(substr($hex, 0, 2)) * (1 - $factor)));
+        $g = max(0, (int)round(hexdec(substr($hex, 2, 2)) * (1 - $factor)));
+        $b = max(0, (int)round(hexdec(substr($hex, 4, 2)) * (1 - $factor)));
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
+    };
 
-        .cinematic-halo {
-            position: absolute;
-            inset: -40px;
-            background-image: url('<?= e($eventImg) ?>');
-            background-size: cover;
-            background-position: center;
-            filter: blur(60px) brightness(0.35) saturate(180%);
-            transform: scale(1.18);
-        }
-
-        .cinematic-canvas {
-            position: absolute;
-            inset: 0;
-            background-image: url('<?= e($eventImg) ?>');
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            animation: cinematicBreath 18s ease-in-out infinite alternate;
-            will-change: transform;
-        }
-
-        @keyframes cinematicBreath {
-            0% { transform: scale(1.0) translate(0, 0); }
-            50% { transform: scale(1.04) translate(-0.5%, -0.5%); }
-            100% { transform: scale(1.02) translate(0.5%, 0.5%); }
-        }
-
-        .cinematic-scrim {
-            position: absolute;
-            inset: 0;
-            background: 
-                radial-gradient(circle at 50% 35%, rgba(var(--flyer-dominant-rgb), 0.18) 0%, transparent 60%),
-                linear-gradient(180deg, 
-                    rgba(3, 7, 18, 0.45) 0%, 
-                    rgba(3, 7, 18, 0.7) 45%, 
-                    rgba(3, 7, 18, 0.95) 100%
-                );
-        }
-
-        .cinematic-grain {
-            position: absolute;
-            inset: 0;
-            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 0);
-            background-size: 28px 28px;
-            opacity: 0.6;
-        }
-
-        /* ─── 2. Checkout Overlay Container ─── */
-        .checkout-single-stage {
-            position: relative;
-            z-index: 10;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 2.25rem 1.5rem;
-        }
-
-        .checkout-top-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.25rem;
-        }
-
-        .back-pill-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            color: #f1f5f9;
-            font-weight: 800;
-            font-size: 0.86rem;
-            text-decoration: none;
-            padding: 0.5rem 1.1rem;
-            border-radius: 14px;
-            background: rgba(8, 12, 24, 0.65);
-            border: 1.5px solid rgba(255, 255, 255, 0.18);
-            transition: all 0.15s ease;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-
-        .back-pill-btn:hover {
-            background: rgba(255, 255, 255, 0.18);
-            transform: translateY(-2px);
-        }
-
-        /* ─── Checkout Main Glass Card ─── */
-        .checkout-glass-pod {
-            background: var(--overlay-glass);
-            border: 1.5px solid var(--overlay-border);
-            border-radius: 28px;
-            backdrop-filter: blur(40px) saturate(200%);
-            -webkit-backdrop-filter: blur(40px) saturate(200%);
-            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.75), 0 0 1px 1px rgba(255,255,255,0.14) inset;
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-        }
-
-        .summary-column {
-            padding: 2rem 2.25rem;
-            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.3) 100%);
-            border-right: 1px solid rgba(255, 255, 255, 0.09);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 1.5rem;
-        }
-
-        .summary-header h1 {
-            font-size: 1.45rem;
-            font-weight: 900;
-            line-height: 1.25;
-            color: #fff;
-            margin-bottom: 0.35rem;
-        }
-
-        .summary-meta-text {
-            font-size: 0.84rem;
-            color: var(--flyer-text-muted);
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-        }
-
-        .selected-tickets-box {
-            display: flex;
-            flex-direction: column;
-            gap: 0.65rem;
-            margin-top: 1rem;
-        }
-
-        .ticket-item-pill {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            padding: 0.7rem 0.95rem;
-            font-size: 0.88rem;
-        }
-
-        .breakdown-charges-box {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-            padding-top: 0.95rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.86rem;
-            color: var(--flyer-text-muted);
-        }
-
-        .charge-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .charge-row.grand-total {
-            font-size: 1.3rem;
-            font-weight: 900;
-            color: #fff;
-            margin-top: 0.45rem;
-            padding-top: 0.45rem;
-            border-top: 1px dashed rgba(255, 255, 255, 0.18);
-        }
-
-        /* ─── Form Column ─── */
-        .form-column {
-            padding: 2rem 2.25rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 1.25rem;
-        }
-
-        .form-header h2 {
-            font-size: 1.3rem;
-            font-weight: 900;
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .form-header p {
-            font-size: 0.82rem;
-            color: var(--flyer-text-muted);
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-            margin-bottom: 0.85rem;
-        }
-
-        .input-group label {
-            font-size: 0.76rem;
-            font-weight: 800;
-            color: var(--flyer-text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .cyber-input {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border-radius: 14px;
-            background: rgba(0, 0, 0, 0.45);
-            border: 1.5px solid rgba(255, 255, 255, 0.14);
-            color: #fff;
-            font-size: 0.92rem;
-            font-family: inherit;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .cyber-input:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
-        }
-
-        .promo-flex-wrap {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .promo-apply-btn {
-            padding: 0.8rem 1.2rem;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            color: #fff;
-            font-weight: 800;
-            font-size: 0.86rem;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            white-space: nowrap;
-        }
-
-        .promo-apply-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .pay-action-btn {
-            width: 100%;
-            padding: 1.1rem 1.5rem;
-            border-radius: 16px;
-            border: none;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            color: #fff;
-            font-size: 1.08rem;
-            font-weight: 900;
-            cursor: pointer;
-            box-shadow: 0 12px 32px var(--flyer-dominant-glow);
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.55rem;
-        }
-
-        .pay-action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 40px rgba(99, 102, 241, 0.75);
-        }
-
-        @media (max-width: 860px) {
-            .checkout-glass-pod {
-                grid-template-columns: 1fr;
-            }
-            .summary-column {
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-                padding: 1.5rem;
-            }
-            .form-column {
-                padding: 1.5rem;
-            }
-            .checkout-single-stage {
-                padding: 1.5rem 1rem;
-            }
-        }
-
-        @media (max-width: 540px) {
-            .checkout-single-stage {
-                padding: 1rem 0.75rem 2.5rem;
-            }
-            .checkout-glass-pod {
-                border-radius: 20px;
-            }
-            .summary-column,
-            .form-column {
-                padding: 1.25rem 1.1rem;
-            }
-            .summary-header h1 {
-                font-size: 1.25rem;
-            }
-            .ticket-item-pill {
-                padding: 0.6rem 0.8rem;
-                font-size: 0.82rem;
-            }
-            .pay-action-btn {
-                padding: 0.95rem 1.25rem;
-                font-size: 1rem;
-            }
-        }
+    $thPrimaryRgb     = $thToRgb($thPrimaryHex);
+    $thSecondaryRgb   = $thToRgb($thSecondaryHex);
+    $thPrimaryDark    = $thDarken($thPrimaryHex);
+    $thPrimaryDarker  = $thDarken($thPrimaryHex, 0.22);
+    ?>
+    <style id="flyer-checkout-theme-overrides">
+    :root {
+        --flyer-dominant-rgb: <?= $thPrimaryRgb ?>;
+        --flyer-dominant: <?= $thPrimaryHex ?>;
+        --flyer-dominant-glow: rgba(<?= $thPrimaryRgb ?>, 0.45);
+        --flyer-accent: <?= $thSecondaryHex ?>;
+        --flyer-accent-rgb: <?= $thSecondaryRgb ?>;
+        --flyer-accent-glow: rgba(<?= $thSecondaryRgb ?>, 0.35);
+        --flyer-dominant-dark: <?= $thPrimaryDark ?>;
+        --flyer-dominant-darker: <?= $thPrimaryDarker ?>;
+        --flyer-gradient-duo: linear-gradient(135deg, <?= $thPrimaryHex ?> 0%, <?= $thSecondaryHex ?> 100%);
+        --flyer-gradient-duo-h: linear-gradient(90deg, <?= $thPrimaryHex ?> 0%, <?= $thSecondaryHex ?> 100%);
+        --flyer-gradient-duo-hover: linear-gradient(135deg, <?= $thSecondaryHex ?> 0%, <?= $thPrimaryHex ?> 100%);
+        --flyer-shadow-duo: 0 10px 25px rgba(<?= $thPrimaryRgb ?>, 0.35), 0 4px 12px rgba(<?= $thSecondaryRgb ?>, 0.25);
+        --flyer-shadow-duo-hover: 0 16px 36px rgba(<?= $thPrimaryRgb ?>, 0.45), 0 6px 16px rgba(<?= $thSecondaryRgb ?>, 0.35);
+    }
     </style>
 </head>
-<body>
+<body style="--event-bg-image: url('<?= e($eventImg) ?>');">
 
     <!-- 1. Cinematic Background Stage with Ambient Motion -->
     <div class="cinematic-bg-container" aria-hidden="true">
@@ -393,19 +95,21 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
     <!-- 2. Centered Checkout Flow -->
     <main class="checkout-single-stage">
         
-        <div class="checkout-top-nav">
-            <a href="<?= e($flyerUrl) ?>" class="back-pill-btn">
-                ← Back to Flyer
+        <!-- Top Navigation -->
+        <header class="checkout-top-nav">
+            <a href="<?= e($flyerUrl) ?>" class="back-pill-btn" title="Return to flyer poster">
+                <span>←</span> <span>Back to Flyer</span>
             </a>
-            <span style="font-size:0.8rem; font-weight:800; color:var(--flyer-accent); background:rgba(16,185,129,0.14); padding:0.4rem 0.95rem; border-radius:12px; border:1px solid rgba(16,185,129,0.35);">
-                🔒 Secure SSL Checkout
+            <span class="checkout-security-pill">
+                <span>🔒</span> 256-Bit SSL Checkout
             </span>
-        </div>
+        </header>
 
+        <!-- Glass Pod Container -->
         <div class="checkout-glass-pod">
             
             <!-- Left: Order Summary Pane -->
-            <section class="summary-column">
+            <section class="summary-column" aria-label="Order Summary">
                 <div>
                     <div class="summary-header">
                         <h1><?= e($event->name) ?></h1>
@@ -415,65 +119,89 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
                         </div>
                     </div>
 
-                    <div style="margin-top:1.25rem;">
-                        <h3 style="font-size:0.8rem; font-weight:800; color:var(--flyer-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.6rem;">
-                            Selected Tickets
-                        </h3>
+                    <div style="margin-top:1.5rem;">
+                        <span class="summary-section-label">Selected Passes (<?= $totalPassesCount ?>)</span>
 
                         <div class="selected-tickets-box">
-                            <?php foreach ($selectedItems as $item): ?>
-                                <div class="ticket-item-pill">
-                                    <div>
-                                        <strong style="color:#fff;"><?= e($item['name']) ?></strong>
-                                        <span style="color:var(--flyer-text-muted); font-size:0.75rem; display:block;">Qty: <?= (int)$item['qty'] ?></span>
+                            <?php if (empty($selectedItems)): ?>
+                                <p style="font-size:0.86rem; color:var(--flyer-text-muted); padding:1rem 0;">No tickets currently selected.</p>
+                            <?php else: ?>
+                                <?php foreach ($selectedItems as $item): ?>
+                                    <div class="ticket-item-pill">
+                                        <div>
+                                            <strong class="ticket-item-title"><?= e($item['name']) ?></strong>
+                                            <div class="ticket-item-meta">
+                                                <span>Qty: <strong><?= (int)$item['qty'] ?></strong></span>
+                                                <?php if (!empty($item['admits']) && (int)$item['admits'] > 1): ?>
+                                                    <span>•</span>
+                                                    <span>Admits <?= (int)$item['admits'] ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <strong class="ticket-item-price">
+                                            <?= (float)$item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
+                                        </strong>
                                     </div>
-                                    <strong style="color:var(--flyer-accent);">
-                                        <?= (float)$item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
-                                    </strong>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-                <div class="breakdown-charges-box">
-                    <div class="charge-row">
-                        <span>Subtotal</span>
-                        <strong><?= $subtotal > 0 ? format_price($subtotal) : '0.00' ?></strong>
+                <div>
+                    <!-- Financial Ledger Breakdown -->
+                    <div class="breakdown-charges-box">
+                        <div class="charge-row">
+                            <span>Subtotal</span>
+                            <strong id="val-subtotal"><?= (!empty($selectedItems) && $subtotal <= 0) ? 'Free' : format_price($subtotal) ?></strong>
+                        </div>
+
+                        <?php if ($fee > 0): ?>
+                            <div class="charge-row">
+                                <span>Platform Fee (<?= $platformFeePercent ?>%)</span>
+                                <strong><?= format_price($fee) ?></strong>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($extraCharge > 0): ?>
+                            <div class="charge-row">
+                                <span>Processing</span>
+                                <strong><?= format_price($extraCharge) ?></strong>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Dynamic Discount Row (shown when promo applied) -->
+                        <div class="charge-row charge-row--discount" id="row-discount" style="display:none;">
+                            <span>Discount Applied</span>
+                            <strong id="val-discount">-</strong>
+                        </div>
+
+                        <div class="charge-row grand-total">
+                            <span>Total Due</span>
+                            <strong id="val-total">
+                                <?= (!empty($selectedItems) && $totalAmount <= 0) ? 'Free' : format_price($totalAmount) ?>
+                            </strong>
+                        </div>
                     </div>
 
-                    <?php if ($fee > 0): ?>
-                        <div class="charge-row">
-                            <span>Platform Fee (<?= $platformFeePercent ?>%)</span>
-                            <strong><?= format_price($fee) ?></strong>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($extraCharge > 0): ?>
-                        <div class="charge-row">
-                            <span>Processing</span>
-                            <strong><?= format_price($extraCharge) ?></strong>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="charge-row grand-total">
-                        <span>Total Due</span>
-                        <strong style="color:var(--flyer-accent);">
-                            <?= $totalAmount > 0 ? format_price($totalAmount) : '0.00' ?>
-                        </strong>
+                    <!-- Trust Footnote -->
+                    <div class="summary-trust-badges">
+                        <span><span>🔒</span> SSL Encrypted</span>
+                        <span><span>⚡</span> Instant QR Issuance</span>
+                        <span><span>✓</span> Verified Host</span>
                     </div>
                 </div>
             </section>
 
             <!-- Right: Attendee & Payment Action Pane -->
-            <section class="form-column">
+            <section class="form-column" aria-label="Attendee Details and Payment">
                 <div>
                     <div class="form-header">
                         <h2><span>🎟️</span> Attendee Details</h2>
-                        <p>Your tickets and digital QR code will be sent to this email.</p>
+                        <p>Your tickets and digital QR code will be delivered instantly to this address.</p>
                     </div>
 
-                    <form method="POST" action="<?= e(url('f/' . (!empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id)) . '/checkout')) ?>" id="flyer-checkout-form" style="margin-top:1.15rem;">
+                    <form method="POST" action="<?= e(url('f/' . (!empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id)) . '/checkout')) ?>" id="flyer-checkout-form" style="margin-top:1.25rem;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="event_id" value="<?= e($event->id) ?>">
                         <?php if (!empty($refCode)): ?>
@@ -485,31 +213,82 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
                             <input type="hidden" name="qty[<?= (int)$ttId ?>]" value="<?= (int)$q ?>">
                         <?php endforeach; ?>
 
+                        <!-- Full Name Input -->
                         <div class="input-group">
                             <label for="att-name">Full Name *</label>
-                            <input type="text" id="att-name" name="name" class="cyber-input" required placeholder="Jane Doe" value="<?= e($currentUser->name ?? '') ?>">
+                            <input 
+                                type="text" 
+                                id="att-name" 
+                                name="name" 
+                                class="cyber-input" 
+                                required 
+                                autocomplete="name"
+                                placeholder="e.g. Jane Doe" 
+                                value="<?= e($currentUser->name ?? '') ?>">
                         </div>
 
+                        <!-- Email Address Input -->
                         <div class="input-group">
                             <label for="att-email">Email Address *</label>
-                            <input type="email" id="att-email" name="email" class="cyber-input" required placeholder="jane@example.com" value="<?= e($currentUser->email ?? '') ?>">
+                            <input 
+                                type="email" 
+                                id="att-email" 
+                                name="email" 
+                                class="cyber-input" 
+                                required 
+                                autocomplete="email"
+                                autocorrect="off" 
+                                autocapitalize="off" 
+                                spellcheck="false"
+                                placeholder="e.g. jane@example.com" 
+                                value="<?= e($currentUser->email ?? '') ?>">
                         </div>
 
+                        <!-- Promo Code Accordion/Input -->
                         <div class="input-group">
                             <label for="promo-code">Promo Code</label>
                             <div class="promo-flex-wrap">
-                                <input type="text" id="promo-code" name="promo_code" class="cyber-input" placeholder="DISCOUNT20" style="text-transform:uppercase;">
+                                <input 
+                                    type="text" 
+                                    id="promo-code" 
+                                    name="promo_code" 
+                                    class="cyber-input" 
+                                    placeholder="e.g. DISCOUNT20" 
+                                    autocomplete="off"
+                                    style="text-transform:uppercase;">
                                 <button type="button" class="promo-apply-btn" id="btn-apply-code">Apply</button>
                             </div>
-                            <span id="promo-status-msg" style="font-size:0.75rem; margin-top:0.25rem; display:block;"></span>
+                            <span id="promo-status-msg" class="promo-status-msg" aria-live="polite"></span>
                         </div>
 
-                        <input type="hidden" name="payment_method" value="paystack">
+                        <!-- Payment Method Indicator -->
+                        <div class="payment-method-indicator">
+                            <div class="payment-method-info">
+                                <span id="pm-icon"><?= $isFreeOrder ? '🎁' : '💳' ?></span>
+                                <span id="pm-label"><?= $isFreeOrder ? 'Complimentary Registration (No Payment Required)' : 'Secured via Paystack Gateway' ?></span>
+                            </div>
+                            <span class="payment-badge" id="pm-badge"><?= $isFreeOrder ? 'FREE' : 'SECURE' ?></span>
+                        </div>
 
+                        <input type="hidden" name="payment_method" id="input-payment-method" value="<?= $isFreeOrder ? 'free' : 'paystack' ?>">
+
+                        <!-- Submit CTA -->
                         <div style="margin-top:1.25rem;">
-                            <button type="submit" class="pay-action-btn" id="btn-pay-action">
-                                <span>🔒</span> <?= $totalAmount > 0 ? 'Pay ' . format_price($totalAmount) . ' with Paystack' : 'Claim Free Tickets' ?>
+                            <button type="submit" class="pay-action-btn" id="btn-pay-action" <?= empty($selectedItems) ? 'disabled' : '' ?>>
+                                <span id="pay-btn-icon"><?= $isFreeOrder ? '⚡' : '🔒' ?></span>
+                                <span id="pay-btn-text">
+                                    <?php if (empty($selectedItems)): ?>
+                                        Select Tickets to Continue
+                                    <?php elseif ($isFreeOrder): ?>
+                                        Claim Free Tickets
+                                    <?php else: ?>
+                                        Pay <?= format_price($totalAmount) ?> with Paystack
+                                    <?php endif; ?>
+                                </span>
                             </button>
+                            <p class="form-trust-note">
+                                🔒 By completing this order, you agree to the Terms of Service. Your admission passes will be generated instantly.
+                            </p>
                         </div>
                     </form>
                 </div>
@@ -524,6 +303,18 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
         const promoBtn = document.getElementById('btn-apply-code');
         const promoInput = document.getElementById('promo-code');
         const promoMsg = document.getElementById('promo-status-msg');
+        const rowDiscount = document.getElementById('row-discount');
+        const valDiscount = document.getElementById('val-discount');
+        const valTotal = document.getElementById('val-total');
+        const payBtn = document.getElementById('btn-pay-action');
+        const payBtnText = document.getElementById('pay-btn-text');
+        const payBtnIcon = document.getElementById('pay-btn-icon');
+        const pmLabel = document.getElementById('pm-label');
+        const pmBadge = document.getElementById('pm-badge');
+        const pmIcon = document.getElementById('pm-icon');
+        const pmInput = document.getElementById('input-payment-method');
+        const form = document.getElementById('flyer-checkout-form');
+
         const eventId = '<?= $event->id ?>';
         const subtotal = <?= (float)$subtotal ?>;
 
@@ -531,31 +322,77 @@ $flyerUrl = $flyerUrl ?? event_flyer_url($event);
             promoBtn.addEventListener('click', function() {
                 const code = promoInput.value.trim();
                 if (!code) {
-                    promoMsg.textContent = 'Please enter a code.';
+                    promoMsg.textContent = 'Please enter a coupon code.';
                     promoMsg.style.color = '#ef4444';
                     return;
                 }
 
+                promoBtn.disabled = true;
+                promoBtn.textContent = 'Verifying...';
+
                 fetch('/checkout/validate-promo', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: JSON.stringify({ code: code, event_id: eventId, subtotal: subtotal })
                 })
                 .then(r => r.json())
                 .then(data => {
+                    promoBtn.disabled = false;
+                    promoBtn.textContent = 'Apply';
+
                     if (data.success) {
-                        promoMsg.textContent = '✓ ' + data.message;
+                        promoMsg.textContent = '✓ ' + (data.message || 'Coupon code applied successfully!');
                         promoMsg.style.color = '#10b981';
                         promoInput.style.borderColor = '#10b981';
+
+                        // Reveal discount in summary ledger
+                        if (rowDiscount && valDiscount) {
+                            rowDiscount.style.display = 'flex';
+                            valDiscount.textContent = '-' + data.formatted_discount;
+                        }
+
+                        // Update grand total
+                        if (valTotal) {
+                            valTotal.textContent = data.is_free ? 'Free' : data.formatted_new_total;
+                        }
+
+                        // Update CTA text and payment method
+                        if (data.is_free) {
+                            if (payBtnText) payBtnText.textContent = 'Claim Free Tickets';
+                            if (payBtnIcon) payBtnIcon.textContent = '⚡';
+                            if (pmLabel) pmLabel.textContent = 'Complimentary Registration (No Payment Required)';
+                            if (pmBadge) pmBadge.textContent = 'FREE';
+                            if (pmIcon) pmIcon.textContent = '🎁';
+                            if (pmInput) pmInput.value = 'free';
+                        } else {
+                            if (payBtnText) payBtnText.textContent = 'Pay ' + data.formatted_new_total + ' with Paystack';
+                            if (payBtnIcon) payBtnIcon.textContent = '🔒';
+                            if (pmInput) pmInput.value = 'paystack';
+                        }
                     } else {
-                        promoMsg.textContent = '✕ ' + data.message;
+                        promoMsg.textContent = '✕ ' + (data.message || 'Invalid promo code.');
                         promoMsg.style.color = '#ef4444';
+                        promoInput.style.borderColor = '#ef4444';
                     }
                 })
                 .catch(() => {
-                    promoMsg.textContent = 'Could not validate promo code.';
+                    promoBtn.disabled = false;
+                    promoBtn.textContent = 'Apply';
+                    promoMsg.textContent = 'Network error while validating promo code.';
                     promoMsg.style.color = '#ef4444';
                 });
+            });
+        }
+
+        // Prevent double submit
+        if (form && payBtn) {
+            form.addEventListener('submit', function() {
+                payBtn.disabled = true;
+                if (payBtnText) payBtnText.textContent = 'Processing Secure Checkout...';
+                if (payBtnIcon) payBtnIcon.textContent = '⏳';
             });
         }
     });

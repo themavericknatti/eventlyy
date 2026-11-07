@@ -194,6 +194,41 @@ Accounting Report - <?= e($event->name) ?>
         font-size: 1.3rem !important;
     }
 }
+
+/* --- Vintage Theme Enhancements for Accounting Report --- */
+.report-hero-card, .accounting-panel-card, .reconciliation-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.report-hero-card h1, .accounting-panel-card h2, .reconciliation-card h2 {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-ink) !important;
+}
+.accounting-kpi-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.kpi-val {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-brass) !important;
+}
+.accounting-table th {
+    background: var(--vn-parchment-warm) !important;
+    color: var(--vn-ink-soft) !important;
+    border-bottom: 2px solid var(--vn-border-dark) !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+}
+.accounting-table td {
+    border-bottom: 1px solid var(--vn-border) !important;
+    color: var(--vn-ink) !important;
+}
+.accounting-table tr:hover td {
+    background: var(--vn-parchment-subtle) !important;
+}
 </style>
 <div class="accounting-report-wrapper" style="margin-bottom: 3rem;">
 

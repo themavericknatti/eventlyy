@@ -78,6 +78,9 @@ class AdminSettingsController extends Controller
             'announcement_link_url' => '',
             'announcement_dismiss_text' => '',
             'announcement_updated_at' => '0',
+            'theme_primary_color' => '#108a55',
+            'theme_secondary_color' => '#1aae6c',
+            'theme_preset' => 'emerald',
         ];
 
         if (!file_exists($this->settingsFile)) {
@@ -158,6 +161,9 @@ class AdminSettingsController extends Controller
                 'announcement_link_url' => trim($data['announcement_link_url'] ?? ''),
                 'announcement_dismiss_text' => trim($data['announcement_dismiss_text'] ?? ''),
                 'announcement_updated_at' => (string)time(),
+                'theme_primary_color' => !empty($data['theme_primary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $data['theme_primary_color']) ? strtolower($data['theme_primary_color']) : ($currentSettings['theme_primary_color'] ?? '#108a55'),
+                'theme_secondary_color' => !empty($data['theme_secondary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $data['theme_secondary_color']) ? strtolower($data['theme_secondary_color']) : ($currentSettings['theme_secondary_color'] ?? '#1aae6c'),
+                'theme_preset' => trim($data['theme_preset'] ?? 'custom'),
             ];
 
             // Also update the runtime timezone immediately

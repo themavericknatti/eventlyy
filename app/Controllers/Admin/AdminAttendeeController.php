@@ -98,4 +98,49 @@ class AdminAttendeeController extends Controller
         fclose($output);
         exit;
     }
+
+    public function exportPdf(Request $request)
+    {
+        $search = $request->getBody()['q'] ?? '';
+        $type = $request->getBody()['type'] ?? '';
+        $eventId = $request->getBody()['event_id'] ?? '';
+
+        $db = \Ace\Application::$app->db->pdo;
+        $event = null;
+        $host = null;
+
+        if (!empty($eventId)) {
+            $evtStmt = $db->prepare("SELECT * FROM events WHERE id = :id LIMIT 1");
+            $evtStmt->execute(['id' => $eventId]);
+            $eventRow = $evtStmt->fetch(\PDO::FETCH_ASSOC);
+            if ($eventRow) {
+                $event = (object)$eventRow;
+                $hostStmt = $db->prepare("SELECT name, email FROM users WHERE id = :id LIMIT 1");
+                $hostStmt->execute(['id' => $event->organizer_id]);
+                $host = $hostStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+            }
+
+            $stmt = $db->prepare("
+                SELECT t.id, t.attendee_name, t.attendee_email, 
+                       tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                       t.checked_in_at, t.purchase_date
+                FROM tickets t
+                LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+                WHERE t.event_id = :event_id
+                ORDER BY t.purchase_date DESC
+            ");
+            $stmt->execute(['event_id' => $eventId]);
+            $attendees = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } else {
+            $attendees = $this->attendeeService->getAllAttendeesForExport($search, $type, '');
+        }
+
+        return $this->render('reports/attendee-pdf', [
+            'event' => $event,
+            'attendees' => $attendees,
+            'host' => $host,
+            'search' => $search,
+            'type' => $type
+        ]);
+    }
 }

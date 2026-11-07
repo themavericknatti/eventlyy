@@ -101,11 +101,11 @@ if (str_contains($roleSlug, 'scanner') || str_contains($roleSlug, 'security')) {
     }
 
     .team-brand-img {
-        height: clamp(34px, 4.5vw, 42px);
-        max-width: clamp(120px, 20vw, 180px);
+        height: clamp(28px, 3.5vw, 36px);
+        max-width: clamp(110px, 16vw, 150px);
         object-fit: contain;
         display: block;
-        border-radius: 6px;
+        border-radius: 10px;
     }
 
     .team-brand-badge-icon {

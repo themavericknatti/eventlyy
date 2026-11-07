@@ -413,6 +413,34 @@ $checkedInCount = count($verified_tickets ?? []);
         gap: 0.5rem;
     }
 }
+
+/* --- Vintage Theme Enhancements for Ticket Verification --- */
+.verification-card, .tv-history-panel {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.tv-page-hero h1 {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-ink) !important;
+}
+.tv-stat-card {
+    background: var(--vn-parchment-card) !important;
+    border: 1.5px solid var(--vn-border) !important;
+    box-shadow: var(--vn-shadow-elevated) !important;
+}
+.tv-stat-val {
+    font-family: var(--vn-font-serif) !important;
+    color: var(--vn-brass) !important;
+}
+.verified-attendee-card {
+    background: var(--vn-parchment-warm) !important;
+    border: 1.5px solid var(--vn-border) !important;
+}
+.tv-tab-btn.active {
+    background: var(--vn-brass) !important;
+    color: #fff !important;
+}
 </style>
 
 <!-- Hero Section -->
