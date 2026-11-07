@@ -17929,55 +17929,8 @@ button[type="submit"]:disabled,
 
 
 
-/* ── 9. Vintage Authentication Suite (.auth-*) ────────────────────────────── */
-.auth-split {
-    max-width: 1020px;
-    margin: 2rem auto 4rem;
-    border-radius: 20px;
-    border: 2px solid var(--vn-border);
-    background: var(--vn-parchment-card);
-    box-shadow: 0 16px 45px -12px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-}
-
-.auth-panel {
-    background: var(--vn-parchment-warm) !important;
-    border-right: 1.5px solid var(--vn-border-dark) !important;
-}
-
-.auth-panel h2 {
-    font-family: var(--vn-font-serif) !important;
-    font-size: 2.2rem !important;
-    font-weight: normal !important;
-    color: var(--vn-ink) !important;
-}
-
-.auth-card {
-    background: var(--vn-parchment-card) !important;
-}
-
-.auth-card h1 {
-    font-family: var(--vn-font-serif) !important;
-    font-size: 2rem !important;
-    font-weight: normal !important;
-    color: var(--vn-ink) !important;
-}
-
-.auth-submit-btn,
-.btn-primary.auth-btn {
-    background: var(--vn-brass) !important;
-    border: 1px solid var(--vn-brass-light) !important;
-    color: #ffffff !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 14px var(--vn-brass-glow) !important;
-    font-weight: 700 !important;
-}
-
-.auth-submit-btn:hover,
-.btn-primary.auth-btn:hover {
-    background: var(--vn-brass-light) !important;
-    transform: translateY(-2px) !important;
-}
+/* ── 9. Modern Authentication Suite (.auth-*) ────────────────────────────── */
+/* Legacy vintage overrides retired in favor of high-converting, theme-adaptive auth suite */
 
 /* ── 10. Vintage Admin & Host Panel System ────────────────────────────────── */
 

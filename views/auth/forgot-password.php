@@ -3,16 +3,17 @@
 /**
  * Forgot Password View
  *
- * This view displays the forgot password form for users.
+ * Professional password recovery request form with theme-adaptive styling.
  *
  * @package Evently
  * @subpackage Views/Auth
- * @author Your Name <Celio Natti>
+ * @author Celio Natti
  * @license MIT License
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 $siteName = site_setting('site_title', 'Eventlyy');
+$siteLogo = site_setting('site_logo');
 ?>
 
 @extends('layouts/auth')
@@ -23,101 +24,155 @@ Forgot Password - <?= e($siteName) ?>
 
 @section('content')
 <div class="auth-top-bar">
-    <a href="{{ route('login') }}" class="auth-back-link">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
+    <a href="{{ route('login') }}" class="auth-back-link" title="Return to sign in">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-        Back to sign in
+        <span>Back to sign in</span>
     </a>
-    <button id="theme-toggle" data-theme-toggle="true" class="auth-theme-btn" aria-label="Toggle theme"
-        aria-pressed="false">🌓</button>
+
+    <div class="auth-top-brand" aria-hidden="true">
+        <?php if (!empty($siteLogo)): ?>
+            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-top-logo" />
+        <?php else: ?>
+            <span class="auth-top-monogram"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
+            <span class="auth-top-name"><?= e($siteName) ?></span>
+        <?php endif; ?>
+    </div>
+
+    <div class="auth-top-actions">
+        <button id="theme-toggle" data-theme-toggle="true" class="auth-theme-btn" aria-label="Toggle dark/light theme" aria-pressed="false" title="Switch theme mode">
+            <span class="theme-icon-indicator">🌓</span>
+        </button>
+    </div>
 </div>
 
 <div class="auth-split">
-    <!-- Left Panel: Brand info / Promo -->
-    <section class="auth-panel">
-        <div class="auth-brand-badge">
-            <?php $siteLogo = site_setting('site_logo'); ?>
-            <?php if (!empty($siteLogo)): ?>
-                <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-brand-logo" />
-            <?php else: ?>
-                <span class="brand-letter"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
-                <span><?= e($siteName) ?></span>
-            <?php endif; ?>
-        </div>
-        <div class="auth-panel-hero">
-            <span class="panel-badge">Forgot password</span>
-            <h2>Reset your password easily</h2>
-            <p class="lede">We'll send a recovery link to your registered email address so you can regain access
-                immediately without interruptions.</p>
-        </div>
+    <!-- Left Showcase: Reassurance & Help -->
+    <section class="auth-showcase" aria-label="Platform Highlights">
+        <div class="auth-showcase-content">
+            <div class="auth-brand-badge">
+                <?php if (!empty($siteLogo)): ?>
+                    <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-brand-logo" />
+                <?php else: ?>
+                    <span class="brand-letter"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
+                    <span class="brand-title"><?= e($siteName) ?></span>
+                <?php endif; ?>
+            </div>
 
-        <ul class="auth-features-list">
-            <li>
-                <span class="feature-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
+            <div class="auth-showcase-hero">
+                <span class="showcase-pill">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                        <path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4-6.2-4.5-6.2 4.5 2.4-7.4-6.2-4.5h7.6z"/>
                     </svg>
+                    Account Recovery
                 </span>
-                <div>
-                    <strong>Secure recovery flow</strong>
-                    <span>Encrypted token links ensure safe password modification.</span>
+                <h2>We'll get you back to the front row.</h2>
+                <p class="showcase-lede">Lost your key? Don't worry. Enter your registered email address and we'll transmit a secure, one-click password recovery link immediately.</p>
+            </div>
+
+            <!-- Recovery Security Card -->
+            <div class="auth-ticket-preview recovery-preview" aria-hidden="true">
+                <div class="ticket-header-strip">
+                    <span class="ticket-type-tag">ENCRYPTED RECOVERY • 60-MIN VALIDITY</span>
+                    <span class="ticket-live-dot"><span class="pulsing-dot"></span> SECURE</span>
                 </div>
-            </li>
-            <li>
-                <span class="feature-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                </span>
-                <div>
-                    <strong>Clear status guidance</strong>
-                    <span>Immediate confirmations notify you once email passes through.</span>
+                <div class="ticket-body">
+                    <div class="ticket-meta">
+                        <span class="ticket-eyebrow">Recovery Flow</span>
+                        <h4 class="ticket-event-title">Fast, Safe Re-entry</h4>
+                        <p class="ticket-venue">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            End-to-End Cryptographic Token
+                        </p>
+                    </div>
+                    <div class="ticket-qr-box">
+                        <div class="ticket-qr-matrix">
+                            <div class="qr-corner top-left"></div>
+                            <div class="qr-corner top-right"></div>
+                            <div class="qr-corner bottom-left"></div>
+                            <div class="qr-pattern-grid"></div>
+                        </div>
+                        <span class="ticket-qr-label">Token Auth</span>
+                    </div>
                 </div>
-            </li>
-            <li>
-                <span class="feature-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                </span>
-                <div>
-                    <strong>Fast mobile-friendly layout</strong>
-                    <span>Request recoveries easily on any smartphone or tablet.</span>
+                <div class="ticket-stub-perforation">
+                    <span class="perforation-notch left"></span>
+                    <span class="perforation-line"></span>
+                    <span class="perforation-notch right"></span>
                 </div>
-            </li>
-        </ul>
+                <div class="ticket-footer-strip">
+                    <span>Check spam or junk if not received</span>
+                    <span>Single-use token</span>
+                </div>
+            </div>
+
+            <!-- Trust Strip -->
+            <div class="auth-trust-strip">
+                <div class="trust-stat">
+                    <strong>Instant</strong>
+                    <span>Email Dispatch</span>
+                </div>
+                <div class="trust-divider"></div>
+                <div class="trust-stat">
+                    <strong>60 Mins</strong>
+                    <span>Token Expiry</span>
+                </div>
+                <div class="trust-divider"></div>
+                <div class="trust-stat">
+                    <strong>100%</strong>
+                    <span>Secure Reset</span>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Right Panel: Form Card -->
     <div class="auth-card">
         <div class="auth-card-header">
-            <h1>Reset password</h1>
-            <p class="lede" style="margin-top:0.25rem;">Enter your email address below and we'll transmit a password
-                recovery link.</p>
+            <h1>Reset your password</h1>
+            <p>Enter your email below and we'll send you a password recovery link.</p>
         </div>
 
         <div class="auth-message" aria-live="polite" style="display:none;"></div>
 
-        <form id="forgot-form" method="POST" action="{{ route('forgot-password') }}">
+        <form id="forgot-form" method="POST" action="{{ route('forgot-password') }}" novalidate>
             @csrf
-            <label>Email Address
-                <input type="email" name="email" id="forgot-email" required placeholder="you@example.com"
-                    autocomplete="email">
-            </label>
+            
+            <div class="auth-field-group">
+                <label for="forgot-email" class="auth-label">Email Address</label>
+                <div class="auth-input-wrapper">
+                    <span class="auth-input-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </span>
+                    <input type="email" name="email" id="forgot-email" class="auth-input" value="{{ old('email') }}" required placeholder="you@example.com" autocomplete="email" />
+                </div>
+                @error('email')
+                    <span class="text-error-message">{{ $message }}</span>
+                @enderror
+            </div>
 
-            <button type="submit" class="admin-action-btn primary auth-submit-btn">
-                Send Reset Link
+            <button type="submit" class="auth-submit-btn">
+                <span>Send Recovery Link</span>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
             </button>
         </form>
 
+        <div class="auth-card-divider">
+            <span>Remembered your password?</span>
+        </div>
+
         <div class="auth-foot">
-            <a href="{{ route('login') }}" class="auth-link" style="font-size:0.88rem;">Back to sign in</a>
+            <a href="{{ route('login') }}" class="auth-secondary-btn">
+                Back to Sign In
+            </a>
         </div>
     </div>
 </div>
