@@ -53,25 +53,7 @@ class UpdateEventAction
             $location = $event->location;
         }
 
-        $oldImage = $event->image ?? '';
-        $newImageUploaded = false;
-        $imagePath = $oldImage;
-        if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $uploadService = new \Ace\UploadService();
-            $targetDir = function_exists('public_dir') ? public_dir('uploads/events') : (Application::$ROOT_DIR . '/public/uploads/events');
-            $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
-
-            if (!$result['success']) {
-                $event->addError('image', 'Event cover image error: ' . $result['error']);
-                return false;
-            }
-
-            $imagePath = '/uploads/events/' . $result['filename'];
-            $newImageUploaded = true;
-        }
-
         $category = trim($data['event_category'] ?? $data['category'] ?? $event->category ?? 'Concerts');
-
         $flyerPageEnabled = !empty($data['flyer_page_enabled']) ? 1 : 0;
 
         // Recurrence parameters & conversion check
@@ -138,6 +120,59 @@ class UpdateEventAction
                 }
             } catch (\Exception $e) {
                 // Ignore schedule generation errors and proceed as non-recurring
+            }
+        }
+
+        // Handle event image upload via UploadService
+        // Isolate recurring event series images in their own dedicated directory
+        $oldImage = $event->image ?? '';
+        $newImageUploaded = false;
+        $imagePath = $oldImage;
+        if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $uploadService = new \Ace\UploadService();
+            if (!empty($recurrenceGroupId)) {
+                $targetDir = function_exists('public_dir') 
+                    ? public_dir('uploads/events/' . $recurrenceGroupId) 
+                    : (Application::$ROOT_DIR . '/public/uploads/events/' . $recurrenceGroupId);
+                $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
+
+                if (!$result['success']) {
+                    $event->addError('image', 'Event cover image error: ' . $result['error']);
+                    return false;
+                }
+
+                $imagePath = '/uploads/events/' . $recurrenceGroupId . '/' . $result['filename'];
+            } else {
+                $targetDir = function_exists('public_dir') 
+                    ? public_dir('uploads/events') 
+                    : (Application::$ROOT_DIR . '/public/uploads/events');
+                $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
+
+                if (!$result['success']) {
+                    $event->addError('image', 'Event cover image error: ' . $result['error']);
+                    return false;
+                }
+
+                $imagePath = '/uploads/events/' . $result['filename'];
+            }
+            $newImageUploaded = true;
+        } elseif ($convertRecurring && !empty($recurrenceGroupId) && !empty($oldImage)) {
+            // If converting to recurring and not uploading a new file, copy existing image into series folder
+            if (!str_starts_with($oldImage, 'http://') && !str_starts_with($oldImage, 'https://')) {
+                $cleanOld = ltrim($oldImage, '/\\');
+                $sourcePath = function_exists('public_dir') ? public_dir($cleanOld) : (Application::$ROOT_DIR . '/' . $cleanOld);
+                if (file_exists($sourcePath) && is_file($sourcePath) && !str_contains($cleanOld, $recurrenceGroupId)) {
+                    $targetDir = function_exists('public_dir') 
+                        ? public_dir('uploads/events/' . $recurrenceGroupId) 
+                        : (Application::$ROOT_DIR . '/public/uploads/events/' . $recurrenceGroupId);
+                    \Ace\UploadService::ensureDirectory($targetDir);
+                    $newFileName = basename($cleanOld);
+                    $newDest = $targetDir . DIRECTORY_SEPARATOR . $newFileName;
+                    if (@copy($sourcePath, $newDest)) {
+                        $imagePath = '/uploads/events/' . $recurrenceGroupId . '/' . $newFileName;
+                        (new DeleteEventAction())->deleteImageFileIfUnused($oldImage);
+                    }
+                }
             }
         }
 
@@ -424,9 +459,9 @@ class UpdateEventAction
 
             $db->commit();
 
-            // Clean up old image from disk if a new one was uploaded
+            // Clean up old image from disk ONLY if it is not used by any other event/occurrence
             if ($newImageUploaded && !empty($oldImage) && $oldImage !== $imagePath) {
-                (new DeleteEventAction())->deleteImageFile($oldImage);
+                (new DeleteEventAction())->deleteImageFileIfUnused($oldImage);
             }
 
             return true;

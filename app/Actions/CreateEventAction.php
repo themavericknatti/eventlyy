@@ -38,25 +38,10 @@ class CreateEventAction
         // Ensure uniqueness by appending suffix if needed
         $customUrl = $this->ensureUniqueSlug($customUrl);
 
-        // Handle event image upload via UploadService
-        $imagePath = '';
-        if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $uploadService = new \Ace\UploadService();
-            $targetDir = function_exists('public_dir') ? public_dir('uploads/events') : (Application::$ROOT_DIR . '/public/uploads/events');
-            $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
-
-            if (!$result['success']) {
-                $event->addError('image', 'Event cover image error: ' . $result['error']);
-                return false;
-            }
-
-            $imagePath = '/uploads/events/' . $result['filename'];
-        }
-
         $category = trim($data['event_category'] ?? $data['category'] ?? 'Concerts');
         $flyerPageEnabled = !empty($data['flyer_page_enabled']) ? 1 : 0;
 
-        // Recurrence parameters
+        // Recurrence parameters & occurrence schedule generation
         $isRecurring = !empty($data['is_recurring']) ? 1 : 0;
         $recurrenceType = in_array($data['recurrence_type'] ?? '', ['daily', 'weekly', 'biweekly', 'monthly']) 
             ? $data['recurrence_type'] 
@@ -112,6 +97,38 @@ class CreateEventAction
                 $isRecurring = 0;
                 $recurrenceType = 'none';
                 $totalOccurrences = 1;
+            }
+        }
+
+        // Handle event image upload via UploadService
+        // If this is a recurring series, isolate all pictures inside a dedicated series folder
+        $imagePath = '';
+        if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $uploadService = new \Ace\UploadService();
+            if (!empty($recurrenceGroupId)) {
+                $targetDir = function_exists('public_dir') 
+                    ? public_dir('uploads/events/' . $recurrenceGroupId) 
+                    : (Application::$ROOT_DIR . '/public/uploads/events/' . $recurrenceGroupId);
+                $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
+
+                if (!$result['success']) {
+                    $event->addError('image', 'Event cover image error: ' . $result['error']);
+                    return false;
+                }
+
+                $imagePath = '/uploads/events/' . $recurrenceGroupId . '/' . $result['filename'];
+            } else {
+                $targetDir = function_exists('public_dir') 
+                    ? public_dir('uploads/events') 
+                    : (Application::$ROOT_DIR . '/public/uploads/events');
+                $result = $uploadService->uploadFile($_FILES['event_image'], $targetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 1600, 1200, 82);
+
+                if (!$result['success']) {
+                    $event->addError('image', 'Event cover image error: ' . $result['error']);
+                    return false;
+                }
+
+                $imagePath = '/uploads/events/' . $result['filename'];
             }
         }
 

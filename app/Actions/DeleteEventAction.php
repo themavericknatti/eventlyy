@@ -47,7 +47,7 @@ class DeleteEventAction
     }
 
     /**
-     * Delete all events in a recurring series.
+     * Delete all events in a recurring series and completely purge the series images directory.
      *
      * @param string $recurrenceGroupId
      * @param int|string|null $organizerId
@@ -71,20 +71,65 @@ class DeleteEventAction
             return false;
         }
 
+        // Collect all distinct images used in this series
+        $seriesImages = [];
+        foreach ($events as $evt) {
+            if (!empty($evt['image'])) {
+                $seriesImages[] = $evt['image'];
+            }
+        }
+        $seriesImages = array_unique($seriesImages);
+
         $allDeleted = true;
         foreach ($events as $evt) {
-            if (!$this->deleteSingleEvent($evt)) {
+            if (!$this->deleteSingleEventRecord($evt)) {
                 $allDeleted = false;
             }
         }
+
+        // Clean up any legacy or external images if they are no longer referenced by any remaining event
+        foreach ($seriesImages as $img) {
+            $this->deleteImageFileIfUnused($img);
+        }
+
+        // Completely remove the entire recurring series directory and any images/files stored inside it
+        $this->deleteSeriesDirectory($recurrenceGroupId);
 
         return $allDeleted;
     }
 
     /**
-     * Internal helper to delete an individual event record and its relationships.
+     * Internal helper to delete an individual event record, its relationships, and its unshared image.
      */
     protected function deleteSingleEvent(array $event): bool
+    {
+        $deleted = $this->deleteSingleEventRecord($event);
+
+        if ($deleted) {
+            // Safely delete this occurrence's image ONLY if no other event in the database is using it
+            if (!empty($event['image'])) {
+                $this->deleteImageFileIfUnused($event['image']);
+            }
+
+            // If this occurrence belonged to a recurrence group, check if any occurrences remain
+            if (!empty($event['recurrence_group_id'])) {
+                $db = Application::$app->db->pdo;
+                $remainStmt = $db->prepare("SELECT COUNT(*) FROM events WHERE recurrence_group_id = :gid");
+                $remainStmt->execute(['gid' => $event['recurrence_group_id']]);
+                if ((int)$remainStmt->fetchColumn() === 0) {
+                    // No occurrences left in the series, purge the entire series folder
+                    $this->deleteSeriesDirectory($event['recurrence_group_id']);
+                }
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Delete child relational records and the event record from the database.
+     */
+    protected function deleteSingleEventRecord(array $event): bool
     {
         $db = Application::$app->db->pdo;
         $eventId = $event['id'];
@@ -95,27 +140,51 @@ class DeleteEventAction
         $db->prepare("DELETE FROM event_staff_assignments WHERE event_id = :event_id")->execute(['event_id' => $eventId]);
         $db->prepare("DELETE FROM promo_codes WHERE event_id = :event_id")->execute(['event_id' => $eventId]);
         $db->prepare("DELETE FROM event_reviews WHERE event_id = :event_id")->execute(['event_id' => $eventId]);
+        $db->prepare("DELETE FROM event_guests WHERE event_id = :event_id")->execute(['event_id' => $eventId]);
+        $db->prepare("DELETE FROM event_referrals WHERE event_id = :event_id")->execute(['event_id' => $eventId]);
         $db->prepare("DELETE FROM payouts WHERE event_id = :event_id AND status = 'pending'")->execute(['event_id' => $eventId]);
 
         // Delete the event database record
         $deleteStmt = $db->prepare("DELETE FROM events WHERE id = :id");
-        $deleted = $deleteStmt->execute(['id' => $eventId]);
-
-        // Safely delete the event image from disk if DB delete succeeded
-        // Check if other events in DB are sharing this exact image path before deleting
-        if ($deleted && !empty($event['image'])) {
-            $countStmt = $db->prepare("SELECT COUNT(*) FROM events WHERE image = :img");
-            $countStmt->execute(['img' => $event['image']]);
-            if ((int)$countStmt->fetchColumn() === 0) {
-                $this->deleteImageFile($event['image']);
-            }
-        }
-
-        return (bool)$deleted;
+        return (bool)$deleteStmt->execute(['id' => $eventId]);
     }
 
     /**
-     * Safely delete a local image file from disk.
+     * Safely delete a local image file from disk ONLY if no other event references it.
+     *
+     * @param string|null $imagePath
+     * @param int|string $excludeEventId Optional event ID to exclude from reference check
+     */
+    public function deleteImageFileIfUnused(?string $imagePath, int|string $excludeEventId = 0): void
+    {
+        if (empty($imagePath)) {
+            return;
+        }
+
+        // Do not attempt to delete remote CDN or external URLs (e.g. Unsplash placeholders)
+        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+            return;
+        }
+
+        $db = Application::$app->db->pdo;
+        $query = "SELECT COUNT(*) FROM events WHERE image = :img";
+        $params = ['img' => $imagePath];
+        if ($excludeEventId > 0) {
+            $query .= " AND id != :ex_id";
+            $params['ex_id'] = $excludeEventId;
+        }
+
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
+        $count = (int)$stmt->fetchColumn();
+
+        if ($count === 0) {
+            $this->deleteImageFile($imagePath);
+        }
+    }
+
+    /**
+     * Safely delete a local image file from disk unconditionally.
      *
      * @param string|null $imagePath
      */
@@ -136,5 +205,56 @@ class DeleteEventAction
         if (file_exists($fullPath) && is_file($fullPath)) {
             @unlink($fullPath);
         }
+    }
+
+    /**
+     * Recursively delete an entire recurring series folder and all files/images within it.
+     *
+     * @param string $recurrenceGroupId
+     * @return bool
+     */
+    public function deleteSeriesDirectory(string $recurrenceGroupId): bool
+    {
+        $cleanGid = preg_replace('/[^a-zA-Z0-9_\-]/', '', $recurrenceGroupId);
+        if (empty($cleanGid)) {
+            return false;
+        }
+
+        $dir = function_exists('public_dir') 
+            ? public_dir('uploads/events/' . $cleanGid) 
+            : (Application::$ROOT_DIR . '/public/uploads/events/' . $cleanGid);
+
+        if (!is_dir($dir)) {
+            return false;
+        }
+
+        return $this->deleteDirectoryRecursively($dir);
+    }
+
+    /**
+     * Recursive filesystem folder purge.
+     */
+    protected function deleteDirectoryRecursively(string $dir): bool
+    {
+        if (!is_dir($dir)) {
+            return false;
+        }
+
+        $items = @scandir($dir);
+        if ($items !== false) {
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') {
+                    continue;
+                }
+                $path = $dir . DIRECTORY_SEPARATOR . $item;
+                if (is_dir($path) && !is_link($path)) {
+                    $this->deleteDirectoryRecursively($path);
+                } else {
+                    @unlink($path);
+                }
+            }
+        }
+
+        return @rmdir($dir);
     }
 }
