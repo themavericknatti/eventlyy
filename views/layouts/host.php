@@ -25,9 +25,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <title>@yield('title')</title>
 	<meta name="csrf-token" content="<?= csrf_token() ?>" />
-    <?php if ($favicon = site_setting('site_favicon')): ?>
-    <link rel="icon" href="<?= e(asset($favicon)) ?>">
-    <?php endif; ?>
+    <?= site_favicon_tags() ?>
 
 
     <?php if (app()->request->is('host/event/create', 'host/event/edit/*')): ?>

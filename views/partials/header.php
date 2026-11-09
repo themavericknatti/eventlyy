@@ -13,15 +13,9 @@
 
 ?>
 <header class="top-nav" role="banner">
-    <?php $siteLogo = site_setting('site_logo'); ?>
-    <?php if (!empty($siteLogo)): ?>
-        <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e(site_setting('site_title', 'Eventlyy')) ?> home">
-            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" />
-        </a>
-    <?php else: ?>
-        <?php $siteTitle = site_setting('site_title', 'Eventlyy'); ?>
-        <a href="{{ route('/') }}" class="brand" aria-label="<?= e($siteTitle) ?> home"><span class="brand-letter"><?= e(strtoupper(mb_substr($siteTitle, 0, 1))) ?></span></a>
-    <?php endif; ?>
+    <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e(site_setting('site_title', 'Eventlyy')) ?> home">
+        <?= site_logo_render('header') ?>
+    </a>
     <nav class="nav-desktop" role="navigation" aria-label="Top navigation">
         <a href="{{ route('/') }}" class="nav-link{{ app()->request->is('/') ? ' active' : '' }}" data-nav-index="0"
             aria-current="{{ app()->request->is('/') ? " true" : "false" }}">Browse</a>

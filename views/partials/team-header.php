@@ -496,12 +496,8 @@ if (str_contains($roleSlug, 'scanner') || str_contains($roleSlug, 'security')) {
     <div class="team-navbar-container">
         <!-- Brand & Event Context (desktop: logo + text + switcher) -->
         <div class="team-navbar-brand">
-            <a href="<?= route('/teams') ?>" class="team-brand-logo <?= !empty($siteLogo) ? 'team-brand-logo--has-image' : '' ?>">
-                <?php if (!empty($siteLogo)): ?>
-                    <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" class="team-brand-img" />
-                <?php else: ?>
-                    <span class="team-brand-badge-icon"><?= e($firstLetter) ?></span>
-                <?php endif; ?>
+            <a href="<?= route('/teams') ?>" class="team-brand-logo brand-custom-logo">
+                <?= site_logo_render('team', 'team-brand-img') ?>
                 <span class="team-brand-text">Workstation</span>
             </a>
 

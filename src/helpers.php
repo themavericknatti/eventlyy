@@ -1111,7 +1111,10 @@ if (!function_exists('site_setting')) {
                 'site_title' => 'Eventlyy',
                 'site_description' => 'Discover and book amazing events near you.',
                 'site_logo' => '',
+                'site_logo_dark' => '',
+                'site_logo_backdrop' => 'auto',
                 'site_favicon' => '',
+                'site_favicon_dark' => '',
                 'support_email' => 'support@eventlyy.com',
                 'maintenance_mode' => 'no',
                 'enabled_gateways' => ['paystack'],
@@ -1410,6 +1413,96 @@ if (!function_exists('email_logo_src')) {
         return email_logo_url();
     }
 }
+
+if (!function_exists('site_logo_render')) {
+    /**
+     * Render the site brand logo with full support for light/dark variants,
+     * transparent backgrounds, and adaptive contrast containers.
+     *
+     * @param string $context     Display context ('header', 'footer', 'admin', 'host', 'team', 'auth-badge', 'auth-top', 'flyer', 'raw')
+     * @param string $customClass Additional CSS classes
+     * @param string|null $alt    Optional custom alt text
+     * @return string Rendered HTML
+     */
+    function site_logo_render(string $context = 'header', string $customClass = '', ?string $alt = null): string
+    {
+        $siteTitle = site_setting('site_title', 'Eventlyy');
+        $siteLogo = site_setting('site_logo');
+        $siteLogoDark = site_setting('site_logo_dark');
+        $backdropMode = site_setting('site_logo_backdrop', 'auto');
+        $altText = $alt ?? $siteTitle;
+
+        $validBackdrops = ['auto', 'capsule', 'solid-white', 'solid-dark', 'none'];
+        $cleanBackdrop = in_array($backdropMode, $validBackdrops) ? $backdropMode : 'auto';
+        $backdropClass = 'logo-backdrop-' . $cleanBackdrop;
+
+        $classes = trim("brand-logo-wrap {$backdropClass} context-{$context} {$customClass}");
+
+        if (!empty($siteLogo) && !empty($siteLogoDark)) {
+            $lightUrl = e(asset($siteLogo));
+            $darkUrl  = e(asset($siteLogoDark));
+            $escapedAlt = e($altText);
+            return '<span class="' . e($classes) . ' logo-has-variants">'
+                . '<img src="' . $lightUrl . '" alt="' . $escapedAlt . '" class="brand-logo-img brand-logo-light" loading="eager" />'
+                . '<img src="' . $darkUrl . '" alt="' . $escapedAlt . '" class="brand-logo-img brand-logo-dark" loading="eager" />'
+                . '</span>';
+        } elseif (!empty($siteLogo) || !empty($siteLogoDark)) {
+            $logoUrl = e(asset(!empty($siteLogo) ? $siteLogo : $siteLogoDark));
+            $escapedAlt = e($altText);
+            return '<span class="' . e($classes) . ' logo-single">'
+                . '<img src="' . $logoUrl . '" alt="' . $escapedAlt . '" class="brand-logo-img" loading="eager" />'
+                . '</span>';
+        }
+
+        $firstLetter = e(strtoupper(mb_substr($siteTitle, 0, 1)));
+        return '<span class="brand-letter ' . e($customClass) . '">' . $firstLetter . '</span>';
+    }
+}
+
+if (!function_exists('site_favicon_tags')) {
+    /**
+     * Render complete, browser-adaptive favicon tags including light/dark scheme support.
+     *
+     * @return string Rendered HTML link tags
+     */
+    function site_favicon_tags(): string
+    {
+        $favicon = site_setting('site_favicon');
+        $faviconDark = site_setting('site_favicon_dark');
+
+        if (empty($favicon) && empty($faviconDark)) {
+            return '';
+        }
+
+        $html = '';
+
+        if (!empty($favicon) && !empty($faviconDark)) {
+            $lightUrl = e(asset($favicon));
+            $darkUrl  = e(asset($faviconDark));
+            $lightType = str_ends_with(strtolower($favicon), '.svg') ? ' type="image/svg+xml"' : '';
+            $darkType  = str_ends_with(strtolower($faviconDark), '.svg') ? ' type="image/svg+xml"' : '';
+
+            $html .= '<link rel="icon" href="' . $lightUrl . '"' . $lightType . ' media="(prefers-color-scheme: light)">' . "
+";
+            $html .= '    <link rel="icon" href="' . $darkUrl . '"' . $darkType . ' media="(prefers-color-scheme: dark)">' . "
+";
+            $html .= '    <link rel="apple-touch-icon" href="' . $lightUrl . '">' . "
+";
+        } else {
+            $fav = !empty($favicon) ? $favicon : $faviconDark;
+            $url = e(asset($fav));
+            $type = str_ends_with(strtolower($fav), '.svg') ? ' type="image/svg+xml"' : '';
+
+            $html .= '<link rel="icon" href="' . $url . '"' . $type . '>' . "
+";
+            $html .= '    <link rel="apple-touch-icon" href="' . $url . '">' . "
+";
+        }
+
+        return $html;
+    }
+}
+
 
 if (!function_exists('event_calendar_times')) {
     /**

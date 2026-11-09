@@ -19,13 +19,9 @@
         $siteTitle = site_setting('site_title', 'Eventlyy');
         $siteLogo  = site_setting('site_logo');
     ?>
-    <?php if (!empty($siteLogo)): ?>
-        <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
-            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" />
-        </a>
-    <?php else: ?>
-        <a href="{{ route('/') }}" class="brand" aria-label="<?= e($siteTitle) ?> home"><span class="brand-letter"><?= e(strtoupper(mb_substr($siteTitle, 0, 1))) ?></span></a>
-    <?php endif; ?>
+    <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
+        <?= site_logo_render('admin') ?>
+    </a>
     <button id="admin-mobile-menu" class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false" style="position:relative;">
         ☰
         <?php if ($pendingPayouts > 0): ?>

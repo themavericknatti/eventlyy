@@ -23,9 +23,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>@yield('title')</title>
-    <?php if ($favicon = site_setting('site_favicon')): ?>
-    <link rel="icon" href="<?= e(asset($favicon)) ?>">
-    <?php endif; ?>
+    <?= site_favicon_tags() ?>
     <?php if ($metaDesc = site_setting('meta_description')): ?>
     <meta name="description" content="<?= e($metaDesc) ?>">
     <?php endif; ?>

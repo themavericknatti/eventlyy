@@ -47,13 +47,11 @@ $restOfTitle = mb_substr($siteTitle, 1);
     <div class="footer-content">
         <!-- Brand Column -->
         <div class="footer-section footer-brand-col">
-            <div class="footer-brand-row">
-                <?php if (!empty($siteLogo)): ?>
-                    <a href="{{ route('/') }}" class="brand footer-brand-icon brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
-                        <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" />
-                    </a>
-                <?php else: ?>
-                    <a href="{{ route('/') }}" class="brand footer-brand-icon" aria-label="<?= e($siteTitle) ?> home"><span class="brand-letter"><?= e($firstLetter) ?></span></a>
+                        <div class="footer-brand-row">
+                <a href="{{ route('/') }}" class="brand footer-brand-icon brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
+                    <?= site_logo_render('footer') ?>
+                </a>
+                <?php if (empty(site_setting('site_logo')) && empty(site_setting('site_logo_dark'))): ?>
                     <span class="footer-brand-name"><?= e($restOfTitle) ?></span>
                 <?php endif; ?>
             </div>

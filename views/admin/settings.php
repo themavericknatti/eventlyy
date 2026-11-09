@@ -355,40 +355,176 @@ Admin Settings - Manage Site &amp; System Configurations
                         </select>
                     </div>
 
-                    <!-- Uploads Grid: Logo & Favicon -->
-                    <div class="as-grid-2 as-mt-6">
-                        <!-- Logo Upload -->
-                        <div class="as-upload-box">
-                            <div class="as-upload-head">
-                                <strong>Brand Logo</strong>
-                                <span class="as-text-muted as-text-xs">PNG, JPG, SVG, WEBP (Max 2MB)</span>
+                                        <!-- Uploads Grid: Logo & Favicon Suite -->
+                    <div class="as-branding-suite as-mt-6">
+                        <div class="as-branding-suite-header">
+                            <div>
+                                <h3 class="as-text-base as-font-bold" style="margin:0 0 0.25rem;">Brand Identity &amp; Logo Matrix</h3>
+                                <p class="as-text-muted as-text-xs" style="margin:0;">Configure light, dark, and transparent logo variants to guarantee crisp visibility across all themes and device backgrounds.</p>
                             </div>
-                            <?php if (!empty($settings['site_logo'])): ?>
-                                <div class="as-thumb-preview-wrap">
-                                    <img src="<?= e(asset($settings['site_logo'])) ?>" alt="Current Logo" class="as-logo-preview" />
-                                    <label class="as-remove-label">
-                                        <input type="checkbox" name="remove_logo" value="1"> Remove Logo
-                                    </label>
-                                </div>
-                            <?php endif; ?>
-                            <input type="file" name="site_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" class="as-file-input">
                         </div>
 
-                        <!-- Favicon Upload -->
-                        <div class="as-upload-box">
-                            <div class="as-upload-head">
-                                <strong>Browser Favicon</strong>
-                                <span class="as-text-muted as-text-xs">ICO, PNG, SVG (Max 2MB)</span>
-                            </div>
-                            <?php if (!empty($settings['site_favicon'])): ?>
-                                <div class="as-thumb-preview-wrap">
-                                    <img src="<?= e(asset($settings['site_favicon'])) ?>" alt="Current Favicon" class="as-favicon-preview" />
-                                    <label class="as-remove-label">
-                                        <input type="checkbox" name="remove_favicon" value="1"> Remove Favicon
-                                    </label>
+                        <div class="as-grid-2 as-mt-4">
+                            <!-- Primary Logo (Light Mode / Colored) -->
+                            <div class="as-upload-box">
+                                <div class="as-upload-head">
+                                    <div>
+                                        <strong>Primary Brand Logo</strong>
+                                        <span class="as-badge-pill as-badge-light" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:6px; background:rgba(var(--muted),0.12); margin-left:0.35rem;">Default &bull; Light Theme</span>
+                                    </div>
+                                    <span class="as-text-muted as-text-xs">PNG, JPG, SVG, WEBP (Max 2MB)</span>
                                 </div>
-                            <?php endif; ?>
-                            <input type="file" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml" class="as-file-input">
+                                <p class="as-text-xs as-text-muted" style="margin:0.25rem 0 0.75rem;">Used on light pages, top headers, checkout receipts, and outbound confirmation emails.</p>
+                                
+                                <?php if (!empty($settings['site_logo'])): ?>
+                                    <div class="as-dual-preview-wrap">
+                                        <div class="as-preview-box as-preview-light" title="Preview on Light Surface">
+                                            <span class="as-preview-tag">Light Surface</span>
+                                            <img src="<?= e(asset($settings['site_logo'])) ?>" alt="Current Primary Logo" class="as-logo-preview" />
+                                        </div>
+                                        <div class="as-preview-box as-preview-dark" title="Preview on Dark Surface">
+                                            <span class="as-preview-tag">Dark Surface</span>
+                                            <img src="<?= e(asset($settings['site_logo'])) ?>" alt="Current Primary Logo" class="as-logo-preview" />
+                                        </div>
+                                    </div>
+                                    <label class="as-remove-label" style="margin:0.5rem 0 0.75rem; display:inline-flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:#ef4444; cursor:pointer;">
+                                        <input type="checkbox" name="remove_logo" value="1"> Remove Primary Logo
+                                    </label>
+                                <?php endif; ?>
+                                <input type="file" name="site_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" class="as-file-input">
+                            </div>
+
+                            <!-- Dark Mode / Inverted Logo -->
+                            <div class="as-upload-box">
+                                <div class="as-upload-head">
+                                    <div>
+                                        <strong>Dark Mode Logo</strong>
+                                        <span class="as-badge-pill as-badge-dark" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:6px; background:rgba(0,0,0,0.7); color:#fff; margin-left:0.35rem;">Night Theme &bull; Inverted</span>
+                                    </div>
+                                    <span class="as-text-muted as-text-xs">Optional &bull; PNG, SVG, WEBP</span>
+                                </div>
+                                <p class="as-text-xs as-text-muted" style="margin:0.25rem 0 0.75rem;">White or light-colored version automatically displayed in Dark Mode and dark surface sections.</p>
+                                
+                                <?php if (!empty($settings['site_logo_dark'])): ?>
+                                    <div class="as-dual-preview-wrap">
+                                        <div class="as-preview-box as-preview-dark" title="Preview on Dark Surface">
+                                            <span class="as-preview-tag">Dark Surface</span>
+                                            <img src="<?= e(asset($settings['site_logo_dark'])) ?>" alt="Current Dark Mode Logo" class="as-logo-preview" />
+                                        </div>
+                                    </div>
+                                    <label class="as-remove-label" style="margin:0.5rem 0 0.75rem; display:inline-flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:#ef4444; cursor:pointer;">
+                                        <input type="checkbox" name="remove_logo_dark" value="1"> Remove Dark Mode Logo
+                                    </label>
+                                <?php else: ?>
+                                    <div class="as-info-tip" style="padding:0.65rem 0.85rem; border-radius:10px; background:rgba(var(--brand),0.06); border:1px solid rgba(var(--brand),0.15); margin-bottom:0.75rem; font-size:0.78rem; line-height:1.4;">
+                                        💡 If no dark logo is uploaded, Eventlyy will display your primary logo with intelligent contrast protection so it never blends in.
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" name="site_logo_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" class="as-file-input">
+                            </div>
+                        </div>
+
+                        <!-- Contrast & Backdrop Treatment Setting -->
+                        <div class="as-upload-box as-mt-4" style="background:rgba(var(--card),0.6);">
+                            <div class="as-upload-head">
+                                <strong>Logo Contrast &amp; Container Style</strong>
+                                <span class="as-text-muted as-text-xs">Guarantees 100% legibility on any background</span>
+                            </div>
+                            <p class="as-text-xs as-text-muted" style="margin:0.25rem 0 0.75rem;">
+                                Select how transparent logos are framed across headers, banners, flyers, and auth forms.
+                            </p>
+                            <?php $currBackdrop = $settings['site_logo_backdrop'] ?? 'auto'; ?>
+                            <div class="as-grid-2 as-backdrop-options" style="gap:0.75rem;">
+                                <label class="as-radio-pill-card <?= $currBackdrop === 'auto' ? 'active' : '' ?>">
+                                    <input type="radio" name="site_logo_backdrop" value="auto" <?= $currBackdrop === 'auto' ? 'checked' : '' ?> style="display:none;">
+                                    <span class="as-radio-pill-icon">✨</span>
+                                    <div class="as-radio-pill-info">
+                                        <strong>Adaptive Contrast (Recommended)</strong>
+                                        <small>Preserves natural transparency with smart contour protection so black or white logos never vanish.</small>
+                                    </div>
+                                </label>
+
+                                <label class="as-radio-pill-card <?= $currBackdrop === 'capsule' ? 'active' : '' ?>">
+                                    <input type="radio" name="site_logo_backdrop" value="capsule" <?= $currBackdrop === 'capsule' ? 'checked' : '' ?> style="display:none;">
+                                    <span class="as-radio-pill-icon">💊</span>
+                                    <div class="as-radio-pill-info">
+                                        <strong>Frosted Glass Capsule</strong>
+                                        <small>Encloses the logo in a soft translucent pill with subtle border and blur. Looks ultra high-end.</small>
+                                    </div>
+                                </label>
+
+                                <label class="as-radio-pill-card <?= $currBackdrop === 'solid-white' ? 'active' : '' ?>">
+                                    <input type="radio" name="site_logo_backdrop" value="solid-white" <?= $currBackdrop === 'solid-white' ? 'checked' : '' ?> style="display:none;">
+                                    <span class="as-radio-pill-icon">⚪</span>
+                                    <div class="as-radio-pill-info">
+                                        <strong>Crisp White Pill</strong>
+                                        <small>A clean white rounded badge behind your logo. Ideal for colorful or dark logos on colored themes.</small>
+                                    </div>
+                                </label>
+
+                                <label class="as-radio-pill-card <?= $currBackdrop === 'solid-dark' ? 'active' : '' ?>">
+                                    <input type="radio" name="site_logo_backdrop" value="solid-dark" <?= $currBackdrop === 'solid-dark' ? 'checked' : '' ?> style="display:none;">
+                                    <span class="as-radio-pill-icon">⚫</span>
+                                    <div class="as-radio-pill-info">
+                                        <strong>Dark Slate Pill</strong>
+                                        <small>A sleek dark rounded badge behind your logo. Ideal for white or neon logos.</small>
+                                    </div>
+                                </label>
+
+                                <label class="as-radio-pill-card <?= $currBackdrop === 'none' ? 'active' : '' ?>">
+                                    <input type="radio" name="site_logo_backdrop" value="none" <?= $currBackdrop === 'none' ? 'checked' : '' ?> style="display:none;">
+                                    <span class="as-radio-pill-icon">🔲</span>
+                                    <div class="as-radio-pill-info">
+                                        <strong>Raw Transparent</strong>
+                                        <small>No background container or drop-shadow styling.</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Favicon Suite (Light & Dark Tab Icons) -->
+                        <div class="as-grid-2 as-mt-4">
+                            <!-- Standard Favicon -->
+                            <div class="as-upload-box">
+                                <div class="as-upload-head">
+                                    <strong>Browser Favicon (Primary)</strong>
+                                    <span class="as-text-muted as-text-xs">ICO, PNG, SVG (Max 2MB)</span>
+                                </div>
+                                <p class="as-text-xs as-text-muted" style="margin:0.25rem 0 0.75rem;">Appears in browser tabs, bookmarks, and mobile home screen shortcuts.</p>
+                                <?php if (!empty($settings['site_favicon'])): ?>
+                                    <div class="as-thumb-preview-wrap">
+                                        <div class="as-tab-simulator as-tab-sim-light">
+                                            <img src="<?= e(asset($settings['site_favicon'])) ?>" alt="Current Favicon" class="as-favicon-preview" />
+                                            <span><?= e($settings['site_title'] ?? 'Eventlyy') ?></span>
+                                        </div>
+                                        <label class="as-remove-label" style="margin-left:0.75rem; color:#ef4444; font-size:0.82rem; cursor:pointer;">
+                                            <input type="checkbox" name="remove_favicon" value="1"> Remove
+                                        </label>
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml" class="as-file-input">
+                            </div>
+
+                            <!-- Dark Mode Favicon -->
+                            <div class="as-upload-box">
+                                <div class="as-upload-head">
+                                    <strong>Dark Mode Favicon</strong>
+                                    <span class="as-text-muted as-text-xs">Optional &bull; PNG, SVG, ICO</span>
+                                </div>
+                                <p class="as-text-xs as-text-muted" style="margin:0.25rem 0 0.75rem;">Optimized light-colored icon served when the visitor's browser or OS is in Dark Mode.</p>
+                                <?php if (!empty($settings['site_favicon_dark'])): ?>
+                                    <div class="as-thumb-preview-wrap">
+                                        <div class="as-tab-simulator as-tab-sim-dark">
+                                            <img src="<?= e(asset($settings['site_favicon_dark'])) ?>" alt="Current Dark Favicon" class="as-favicon-preview" />
+                                            <span><?= e($settings['site_title'] ?? 'Eventlyy') ?></span>
+                                        </div>
+                                        <label class="as-remove-label" style="margin-left:0.75rem; color:#ef4444; font-size:0.82rem; cursor:pointer;">
+                                            <input type="checkbox" name="remove_favicon_dark" value="1"> Remove
+                                        </label>
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" name="site_favicon_dark" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml" class="as-file-input">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1585,6 +1721,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const target = this.getAttribute('data-tab');
             activateTab(target);
             history.replaceState(null, null, '#' + target.replace('tab-', ''));
+        });
+    });
+
+    // Logo Backdrop Selector interaction
+    const backdropCards = document.querySelectorAll('.as-radio-pill-card');
+    backdropCards.forEach(card => {
+        card.addEventListener('click', function() {
+            backdropCards.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
         });
     });
 

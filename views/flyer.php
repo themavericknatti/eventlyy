@@ -62,9 +62,7 @@ $encodedFlyerUrl = urlencode($flyerUrl);
     <meta name="twitter:description" content="<?= e($shortDesc) ?>">
     <meta name="twitter:image" content="<?= e($eventImg) ?>">
 
-    <?php if ($favicon): ?>
-        <link rel="icon" href="<?= e(asset($favicon)) ?>">
-    <?php endif; ?>
+    <?= site_favicon_tags() ?>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,13 +150,8 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                 </a>
 
                 <!-- Upgraded Premium Brand Emblem & Logo -->
-                <a href="<?= url('/') ?>" class="flyer-brand-badge" title="<?= e($siteTitle) ?> Home">
-                    <?php if (!empty($siteLogo)): ?>
-                        <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" class="flyer-brand-logo-img">
-                    <?php else: ?>
-                        <span class="flyer-brand-emblem">⚡</span>
-                        <span class="flyer-brand-text"><?= e($siteTitle) ?></span>
-                    <?php endif; ?>
+                <a href="<?= url('/') ?>" class="flyer-brand-badge brand-custom-logo" title="<?= e($siteTitle) ?> Home">
+                    <?= site_logo_render('flyer', 'flyer-brand-logo-img') ?>
                     <span class="flyer-brand-verified">✓</span>
                 </a>
             </div>

@@ -2192,4 +2192,303 @@ textarea:focus,
     font-size: 0.82rem;
   }
 }
+
+/* ── 7. Universal Brand Logo & Favicon Display Engine (Transparent & Theme-Adaptive) ── */
+.brand-custom-logo,
+.brand-logo-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  height: clamp(34px, 4.2vw, 42px);
+  max-height: 44px;
+  max-width: clamp(140px, 22vw, 240px);
+  position: relative;
+  overflow: visible !important;
+  vertical-align: middle;
+  text-decoration: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+
+.brand-custom-logo:hover,
+.brand-logo-wrap:hover {
+  transform: translateY(-1px);
+}
+
+.brand-logo-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-height: 40px;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 8px;
+  transition: filter 0.25s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Dual Logo Switching: Light vs Dark */
+.brand-logo-wrap.logo-has-variants .brand-logo-light {
+  display: block !important;
+}
+.brand-logo-wrap.logo-has-variants .brand-logo-dark {
+  display: none !important;
+}
+
+:root[data-theme='dark'] .brand-logo-wrap.logo-has-variants .brand-logo-light {
+  display: none !important;
+}
+:root[data-theme='dark'] .brand-logo-wrap.logo-has-variants .brand-logo-dark {
+  display: block !important;
+}
+
+/* Dark Surface Contexts (always show dark logo if available) */
+.auth-showcase .brand-logo-wrap.logo-has-variants .brand-logo-light {
+  display: none !important;
+}
+.auth-showcase .brand-logo-wrap.logo-has-variants .brand-logo-dark {
+  display: block !important;
+}
+
+/* Intelligent Dynamic Contrast for Transparent Logos (logo-backdrop-auto) */
+.logo-backdrop-auto.logo-single .brand-logo-img,
+.logo-backdrop-auto .brand-logo-light {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
+}
+
+:root[data-theme='dark'] .logo-backdrop-auto.logo-single .brand-logo-img {
+  /* Soft luminous contour: guarantees pure black/dark transparent logos remain 100% visible on dark mode */
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45)) !important;
+}
+
+.auth-showcase .logo-backdrop-auto.logo-single .brand-logo-img {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.85)) drop-shadow(0 3px 10px rgba(0, 0, 0, 0.5)) !important;
+}
+
+/* Frosted Glass Capsule Container */
+.logo-backdrop-capsule {
+  padding: 4px 12px !important;
+  border-radius: 14px !important;
+  background: rgba(var(--card), 0.78) !important;
+  border: 1px solid var(--border-color) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+}
+.logo-backdrop-capsule:hover {
+  background: rgba(var(--card), 0.95) !important;
+  border-color: rgba(<?= $primaryRgb ?>, 0.35) !important;
+  box-shadow: 0 6px 18px rgba(<?= $primaryRgb ?>, 0.12) !important;
+}
+:root[data-theme='dark'] .logo-backdrop-capsule {
+  background: rgba(22, 27, 38, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Crisp White Pill Container */
+.logo-backdrop-solid-white {
+  padding: 4px 12px !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+}
+.logo-backdrop-solid-white .brand-logo-img {
+  filter: none !important;
+}
+
+/* Dark Slate Pill Container */
+.logo-backdrop-solid-dark {
+  padding: 4px 12px !important;
+  border-radius: 14px !important;
+  background: #11141c !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+.logo-backdrop-solid-dark .brand-logo-img {
+  filter: none !important;
+}
+
+/* Raw Transparent Container */
+.logo-backdrop-none {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.logo-backdrop-none .brand-logo-img {
+  filter: none !important;
+}
+
+/* Context Specific Sizes */
+.brand-logo-wrap.context-footer {
+  height: clamp(28px, 3.6vw, 34px);
+  max-height: 36px;
+}
+.brand-logo-wrap.context-footer .brand-logo-img {
+  max-height: 32px;
+}
+
+.brand-logo-wrap.context-auth-badge {
+  height: clamp(38px, 4.5vw, 48px);
+  max-height: 50px;
+}
+.brand-logo-wrap.context-auth-badge .brand-logo-img {
+  max-height: 46px;
+}
+
+.brand-logo-wrap.context-auth-top {
+  height: 34px;
+  max-height: 34px;
+}
+.brand-logo-wrap.context-auth-top .brand-logo-img {
+  max-height: 32px;
+}
+
+.brand-logo-wrap.context-flyer {
+  height: clamp(32px, 4vw, 40px);
+  max-height: 40px;
+}
+.brand-logo-wrap.context-flyer .brand-logo-img {
+  max-height: 38px;
+}
+
+/* ── Admin Settings Branding Suite UI ── */
+.as-dual-preview-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.as-preview-box {
+  position: relative;
+  padding: 1.25rem 1rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.as-preview-light {
+  background: #ffffff;
+  background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+.as-preview-dark {
+  background: #12161f;
+  background-image: linear-gradient(45deg, #1a202c 25%, transparent 25%), linear-gradient(-45deg, #1a202c 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a202c 75%), linear-gradient(-45deg, transparent 75%, #1a202c 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+.as-preview-tag {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+}
+
+.as-preview-light .as-preview-tag {
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a202c;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.as-logo-preview {
+  max-height: 48px;
+  max-width: 160px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.as-tab-simulator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 10px 10px 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+}
+
+.as-tab-sim-light {
+  background: #ffffff;
+  color: #1a202c;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.as-tab-sim-dark {
+  background: #1e2430;
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.as-tab-simulator img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.as-radio-pill-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 2px solid var(--border-color);
+  background: rgba(var(--card), 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.as-radio-pill-card:hover {
+  border-color: rgba(<?= $primaryRgb ?>, 0.4);
+  background: rgb(var(--card));
+  transform: translateY(-1px);
+}
+
+.as-radio-pill-card.active {
+  border-color: <?= $primaryHex ?> !important;
+  background: rgba(<?= $primaryRgb ?>, 0.06) !important;
+  box-shadow: 0 0 0 1px <?= $primaryHex ?>, 0 4px 12px rgba(<?= $primaryRgb ?>, 0.15) !important;
+}
+
+.as-radio-pill-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.as-radio-pill-info strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgb(var(--text));
+  margin-bottom: 0.15rem;
+}
+
+.as-radio-pill-info small {
+  display: block;
+  font-size: 0.74rem;
+  color: rgb(var(--muted));
+  line-height: 1.4;
+}
+
 </style>

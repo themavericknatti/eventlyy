@@ -24,9 +24,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>@yield('title')</title>
-    <?php if ($favicon = site_setting('site_favicon')): ?>
-    <link rel="icon" href="<?= e(asset($favicon)) ?>">
-    <?php endif; ?>
+    <?= site_favicon_tags() ?>
     <meta name="description" content="Overview of registered users, hosts, and payouts." />
 	<meta name="csrf-token" content="<?= e(csrf_token()) ?>" />
     <?php

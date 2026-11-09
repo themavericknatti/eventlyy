@@ -34,12 +34,7 @@ Resend Verification - <?= e($siteName) ?>
     </a>
 
     <div class="auth-top-brand" aria-hidden="true">
-        <?php if (!empty($siteLogo)): ?>
-            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-top-logo" />
-        <?php else: ?>
-            <span class="auth-top-monogram"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
-            <span class="auth-top-name"><?= e($siteName) ?></span>
-        <?php endif; ?>
+        <?= site_logo_render('auth-top', 'auth-top-logo') ?>
     </div>
 
     <div class="auth-top-actions">
@@ -54,10 +49,8 @@ Resend Verification - <?= e($siteName) ?>
     <section class="auth-showcase" aria-label="Platform Highlights">
         <div class="auth-showcase-content">
             <div class="auth-brand-badge">
-                <?php if (!empty($siteLogo)): ?>
-                    <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteName) ?>" class="auth-brand-logo" />
-                <?php else: ?>
-                    <span class="brand-letter"><?= e(strtoupper(mb_substr($siteName, 0, 1))) ?></span>
+                <?= site_logo_render('auth-badge', 'auth-brand-logo') ?>
+                <?php if (empty(site_setting('site_logo')) && empty(site_setting('site_logo_dark'))): ?>
                     <span class="brand-title"><?= e($siteName) ?></span>
                 <?php endif; ?>
             </div>

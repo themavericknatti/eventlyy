@@ -18,13 +18,9 @@
         $siteTitle = site_setting('site_title', 'Eventlyy');
         $siteLogo  = site_setting('site_logo');
     ?>
-    <?php if (!empty($siteLogo)): ?>
-        <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
-            <img src="<?= e(asset($siteLogo)) ?>" alt="<?= e($siteTitle) ?>" />
-        </a>
-    <?php else: ?>
-        <a href="{{ route('/') }}" class="brand" aria-label="<?= e($siteTitle) ?> home"><span class="brand-letter"><?= e(strtoupper(mb_substr($siteTitle, 0, 1))) ?></span></a>
-    <?php endif; ?>
+    <a href="{{ route('/') }}" class="brand brand-custom-logo" aria-label="<?= e($siteTitle) ?> home">
+        <?= site_logo_render('host') ?>
+    </a>
     <button id="host-mobile-menu" class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">☰</button>
     <nav class="nav-desktop" role="navigation" aria-label="Top navigation">
         <a href="{{ route('host/dashboard') }}" class="nav-link{{ app()->request->is('host/dashboard', 'host') ? ' active' : '' }}" aria-current="{{ app()->request->is('host/dashboard', 'host') ? 'true' : 'false' }}">Overview</a>

@@ -26,9 +26,7 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="csrf-token" content="<?= csrf_token() ?>" />
     <title>@yield('title')</title>
-    <?php if ($favicon = site_setting('site_favicon')): ?>
-    <link rel="icon" href="<?= e(asset($favicon)) ?>">
-    <?php endif; ?>
+    <?= site_favicon_tags() ?>
     <link rel="stylesheet" href="{{ route('assets/css/style.css') }}?v=<?= asset_version('assets/css/style.css') ?>">
     @include('partials/theme-styles')
     @include('partials/pwa-head')

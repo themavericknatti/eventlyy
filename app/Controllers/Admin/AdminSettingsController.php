@@ -39,7 +39,10 @@ class AdminSettingsController extends Controller
             'site_title' => 'Eventlyy',
             'site_description' => 'Discover and book amazing events near you.',
             'site_logo' => '',
+            'site_logo_dark' => '',
+            'site_logo_backdrop' => 'auto',
             'site_favicon' => '',
+            'site_favicon_dark' => '',
             'support_email' => 'support@eventlyy.com',
             'maintenance_mode' => 'no',
             'enabled_gateways' => ['paystack'],
@@ -122,7 +125,10 @@ class AdminSettingsController extends Controller
                 'site_title' => trim($data['site_title'] ?? 'Eventlyy'),
                 'site_description' => trim($data['site_description'] ?? ''),
                 'site_logo' => $currentSettings['site_logo'] ?? '',
+                'site_logo_dark' => $currentSettings['site_logo_dark'] ?? '',
+                'site_logo_backdrop' => in_array($data['site_logo_backdrop'] ?? '', ['auto', 'capsule', 'solid-white', 'solid-dark', 'none']) ? $data['site_logo_backdrop'] : 'auto',
                 'site_favicon' => $currentSettings['site_favicon'] ?? '',
+                'site_favicon_dark' => $currentSettings['site_favicon_dark'] ?? '',
                 'support_email' => trim($data['support_email'] ?? 'support@eventlyy.com'),
                 'maintenance_mode' => trim($data['maintenance_mode'] ?? 'no'),
                 'enabled_gateways' => is_array($data['enabled_gateways'] ?? null) && !empty($data['enabled_gateways']) ? $data['enabled_gateways'] : ['paystack'],
@@ -223,6 +229,23 @@ class AdminSettingsController extends Controller
                 }
             }
 
+            // Process Dark Mode / Inverted Logo: Option to remove or replace
+            if (!empty($data['remove_logo_dark'])) {
+                $deleteOldAsset($currentSettings['site_logo_dark'] ?? '');
+                $settings['site_logo_dark'] = '';
+            }
+            if (isset($_FILES['site_logo_dark']) && !empty($_FILES['site_logo_dark']['name']) && $_FILES['site_logo_dark']['error'] === UPLOAD_ERR_OK) {
+                $result = $uploadService->uploadFile($_FILES['site_logo_dark'], $uploadDir, ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'], 2097152, 1200, 400, 92);
+                if ($result['success']) {
+                    $deleteOldAsset($currentSettings['site_logo_dark'] ?? '');
+                    $settings['site_logo_dark'] = 'img/branding/' . $result['filename'];
+                } else {
+                    Application::$app->session->setFlash('error', 'Dark mode logo upload failed: ' . $result['error']);
+                    return redirect('/admin/settings');
+                }
+            }
+
+
             // Process Favicon: Option to remove or replace
             if (!empty($data['remove_favicon'])) {
                 $deleteOldAsset($currentSettings['site_favicon'] ?? '');
@@ -238,6 +261,23 @@ class AdminSettingsController extends Controller
                     return redirect('/admin/settings');
                 }
             }
+
+            // Process Dark Mode Favicon: Option to remove or replace
+            if (!empty($data['remove_favicon_dark'])) {
+                $deleteOldAsset($currentSettings['site_favicon_dark'] ?? '');
+                $settings['site_favicon_dark'] = '';
+            }
+            if (isset($_FILES['site_favicon_dark']) && !empty($_FILES['site_favicon_dark']['name']) && $_FILES['site_favicon_dark']['error'] === UPLOAD_ERR_OK) {
+                $result = $uploadService->uploadFile($_FILES['site_favicon_dark'], $uploadDir, ['ico', 'png', 'svg', 'jpg', 'jpeg'], 2097152, 256, 256, 92);
+                if ($result['success']) {
+                    $deleteOldAsset($currentSettings['site_favicon_dark'] ?? '');
+                    $settings['site_favicon_dark'] = 'img/branding/' . $result['filename'];
+                } else {
+                    Application::$app->session->setFlash('error', 'Dark favicon upload failed: ' . $result['error']);
+                    return redirect('/admin/settings');
+                }
+            }
+
 
             // Process Announcement Image: Option to remove or replace
             if (!empty($data['remove_announcement_image'])) {
