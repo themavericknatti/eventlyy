@@ -41,6 +41,7 @@
         <a href="{{ route('admin/support') }}" class="nav-link{{ app()->request->is('admin/support*') ? ' active' : '' }}">Support</a>
         <a href="{{ route('admin/teams') }}" class="nav-link{{ app()->request->is('admin/teams*') ? ' active' : '' }}">Teams</a>
         <a href="{{ route('admin/settings') }}" class="nav-link{{ app()->request->is('admin/settings*') ? ' active' : '' }}">Settings</a>
+        <a href="{{ route('host/event/ticket-verification') }}" class="nav-link{{ app()->request->is('host/event/ticket-verification*') ? ' active' : '' }}" title="Gate Scanner & Attendance Verification"><span>🎟️</span> Scanner</a>
         <a href="{{ route('host/dashboard') }}" class="nav-link" title="Switch to Host Dashboard to create and manage events" style="display:inline-flex; align-items:center; gap:0.3rem; color:var(--vn-brass); font-weight:700;">
             <span>🎪</span> Host View
         </a>

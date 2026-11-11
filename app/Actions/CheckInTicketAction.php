@@ -14,6 +14,28 @@ class CheckInTicketAction
     {
         $db = Application::$app->db->pdo;
         $code = trim($ticketCode);
+
+        // 1. If scanned code is a URL (e.g. https://domain.com/ticket/EV-12345 or /ticket/qr/12345)
+        if (filter_var($code, FILTER_VALIDATE_URL) || str_contains($code, '://') || str_contains($code, '/ticket/')) {
+            if (preg_match('/(?:ticket\/|qr\/|code=)([A-Za-z0-9\-_]+)/i', $code, $m)) {
+                $code = trim($m[1]);
+            } else {
+                $path = parse_url($code, PHP_URL_PATH) ?? '';
+                $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+                if (!empty($segments)) {
+                    $code = trim(end($segments));
+                }
+            }
+        }
+
+        // 2. If scanned code is JSON payload (e.g. {"id":"EV-12345"} or {"code":"EV-12345"})
+        if (str_starts_with($code, '{') && str_ends_with($code, '}')) {
+            $json = json_decode($code, true);
+            if (is_array($json)) {
+                $code = trim($json['ticket_code'] ?? $json['code'] ?? $json['id'] ?? $code);
+            }
+        }
+
         $cleanCode = preg_replace('/^EV-/i', '', $code);
         $evCode = str_starts_with(strtoupper($code), 'EV-') ? $code : ('EV-' . $code);
 

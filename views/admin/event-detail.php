@@ -189,6 +189,9 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
                 <a href="{{ route('host/event/edit/{id}', ['id' => $event['id']]) }}" class="ed-btn ed-btn-primary" title="Edit Event Details">
                     <span>✏️</span> Edit
                 </a>
+                <a href="{{ route('host/event/ticket-verification/' . $event['id']) }}" class="ed-btn ed-btn-secondary" title="Gate Scanner & Ticket Verification">
+                    <span>🎟️</span> Verify Tickets
+                </a>
                 <a href="{{ route('host/event/management/{id}', ['id' => $event['id']]) }}" class="ed-btn ed-btn-secondary" title="Event Management & Staff">
                     <span>⚙️</span> Manage &amp; Staff
                 </a>

@@ -1092,33 +1092,70 @@ function startQrScanner() {
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
 
     var config = {
-        fps: 10,
-        qrbox: { width: 240, height: 240 },
-        aspectRatio: 1.0
+        fps: 15,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            var minDim = Math.min(viewfinderWidth || 300, viewfinderHeight || 300);
+            var boxSize = Math.max(160, Math.min(260, Math.floor(minDim * 0.72)));
+            return { width: boxSize, height: boxSize };
+        }
     };
 
-    // Try back camera first
-    html5QrcodeScanner.start(
-        { facingMode: { exact: "environment" } },
-        config,
-        onQrCodeScanned,
-        function(err) { /* ignore frame scan errors */ }
-    ).catch(function(err1) {
-        // Fallback to user camera
-        html5QrcodeScanner.start(
-            { facingMode: "user" },
-            config,
-            onQrCodeScanned,
-            function(err) { /* ignore frame scan errors */ }
-        ).catch(function(err2) {
-            console.warn('Camera start error:', err2);
+    function onCamStarted() {
+        var videos = readerEl.querySelectorAll('video');
+        videos.forEach(function(v) {
+            v.setAttribute('playsinline', 'true');
+            v.setAttribute('webkit-playsinline', 'true');
+            v.setAttribute('muted', 'true');
+            v.muted = true;
+            v.autoplay = true;
+        });
+    }
+
+    if (typeof Html5Qrcode.getCameras === 'function') {
+        Html5Qrcode.getCameras().then(function(cameras) {
+            var targetCamera = null;
+            if (cameras && cameras.length > 0) {
+                for (var i = 0; i < cameras.length; i++) {
+                    var lbl = (cameras[i].label || '').toLowerCase();
+                    if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
+                        targetCamera = cameras[i];
+                        break;
+                    }
+                }
+                if (!targetCamera) {
+                    targetCamera = cameras[cameras.length - 1];
+                }
+            }
+
+            if (targetCamera && targetCamera.id) {
+                return html5QrcodeScanner.start(targetCamera.id, config, onQrCodeScanned, function() {});
+            }
+            return html5QrcodeScanner.start({ facingMode: "environment" }, config, onQrCodeScanned, function() {});
+        }).catch(function() {
+            return html5QrcodeScanner.start({ facingMode: "environment" }, config, onQrCodeScanned, function() {});
+        }).catch(function() {
+            return html5QrcodeScanner.start({ facingMode: "user" }, config, onQrCodeScanned, function() {});
+        }).then(onCamStarted).catch(function(err) {
+            console.warn('Camera start error:', err);
             var reason = 'Camera permission denied or camera not found.';
             if (!isSecure) {
                 reason = 'Browser blocks live camera over unsecure HTTP. Use HTTPS or the "Snap Photo / Upload QR Image" option below.';
             }
             renderCameraError(reason);
         });
-    });
+    } else {
+        html5QrcodeScanner.start({ facingMode: "environment" }, config, onQrCodeScanned, function() {})
+        .catch(function() {
+            return html5QrcodeScanner.start({ facingMode: "user" }, config, onQrCodeScanned, function() {});
+        }).then(onCamStarted).catch(function(err) {
+            console.warn('Camera start error:', err);
+            var reason = 'Camera permission denied or camera not found.';
+            if (!isSecure) {
+                reason = 'Browser blocks live camera over unsecure HTTP. Use HTTPS or the "Snap Photo / Upload QR Image" option below.';
+            }
+            renderCameraError(reason);
+        });
+    }
 }
 
 function stopQrScanner() {
@@ -1150,9 +1187,27 @@ function renderCameraError(msg) {
         '</div></div>';
 }
 
+function extractTicketCode(raw) {
+    if (!raw) return '';
+    var str = String(raw).trim();
+    var urlMatch = str.match(/(?:ticket\/|qr\/|code=)([A-Za-z0-9\-_]+)/i);
+    if (urlMatch && urlMatch[1]) {
+        return urlMatch[1].trim();
+    }
+    if (str.startsWith('{') && str.endsWith('}')) {
+        try {
+            var parsed = JSON.parse(str);
+            if (parsed.ticket_code || parsed.code || parsed.id) {
+                return String(parsed.ticket_code || parsed.code || parsed.id).trim();
+            }
+        } catch (e) {}
+    }
+    return str;
+}
+
 function onQrCodeScanned(decodedText) {
     var now = Date.now();
-    var code = (decodedText || '').trim();
+    var code = extractTicketCode(decodedText);
     if (!code) return;
 
     // Isolate group passes: prevent scanning next pass until previous scan is concluded
@@ -1216,7 +1271,7 @@ function scanQrFromPhoto(input) {
     tempScanner.scanFile(file, true)
         .then(function(decodedText) {
             if (processingOverlay) processingOverlay.style.display = 'none';
-            performCheckIn(decodedText.trim(), false);
+            performCheckIn(extractTicketCode(decodedText), false);
             input.value = '';
         })
         .catch(function(err) {

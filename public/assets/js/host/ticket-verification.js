@@ -153,6 +153,54 @@
 
     // ─── Camera Scanner Logic ───────────────────────────────
 
+    function extractTicketCode(raw) {
+        if (!raw) return '';
+        var str = String(raw).trim();
+        // Extract from URLs (e.g. https://domain.com/ticket/EV-12345 or /ticket/qr/12345)
+        var urlMatch = str.match(/(?:ticket\/|qr\/|code=)([A-Za-z0-9\-_]+)/i);
+        if (urlMatch && urlMatch[1]) {
+            return urlMatch[1].trim();
+        }
+        // Extract from JSON payload if QR was structured as JSON
+        if (str.startsWith('{') && str.endsWith('}')) {
+            try {
+                var parsed = JSON.parse(str);
+                if (parsed.ticket_code || parsed.code || parsed.id) {
+                    return String(parsed.ticket_code || parsed.code || parsed.id).trim();
+                }
+            } catch (e) {}
+        }
+        return str;
+    }
+
+    function enforcePlaysInline(elementId) {
+        var container = document.getElementById(elementId);
+        if (!container) return;
+        var videos = container.querySelectorAll('video');
+        videos.forEach(function (v) {
+            v.setAttribute('playsinline', 'true');
+            v.setAttribute('webkit-playsinline', 'true');
+            v.setAttribute('muted', 'true');
+            v.muted = true;
+            v.autoplay = true;
+        });
+    }
+
+    var videoObserver = null;
+    function setupVideoObserver(elementId) {
+        if (videoObserver) {
+            videoObserver.disconnect();
+            videoObserver = null;
+        }
+        var container = document.getElementById(elementId);
+        if (!container || !window.MutationObserver) return;
+
+        videoObserver = new MutationObserver(function () {
+            enforcePlaysInline(elementId);
+        });
+        videoObserver.observe(container, { childList: true, subtree: true });
+    }
+
     function updateScannerStatus(message, type) {
         type = type || 'info';
         if (!scannerStatus) return;
@@ -165,6 +213,10 @@
         if (resumeTimer) {
             clearTimeout(resumeTimer);
             resumeTimer = null;
+        }
+        if (videoObserver) {
+            videoObserver.disconnect();
+            videoObserver = null;
         }
         if (!html5QrcodeScanner) return;
         var instance = html5QrcodeScanner;
@@ -210,8 +262,9 @@
             return;
         }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            updateScannerStatus('❌ Camera access requires HTTPS or localhost.', 'error');
+        var isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isSecure && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
+            updateScannerStatus('⚠️ Live camera requires HTTPS on iPhone/Android. Use "Snap Photo / Upload QR" below or type code manually.', 'warning');
             return;
         }
 
@@ -225,7 +278,7 @@
 
         var onScanSuccess = function (decodedText) {
             var now = Date.now();
-            var code = (decodedText || '').trim();
+            var code = extractTicketCode(decodedText);
             if (!code) return;
 
             // Isolate group passes: prevent scanning next pass until previous scan is concluded
@@ -257,29 +310,147 @@
             // Suppress frame scan failures
         };
 
+        // Notice: do NOT specify aspectRatio: 1.0! Safari WebKit on iOS throws OverconstrainedError on non-native stream ratios
         var config = {
-            fps: 10,
+            fps: 15,
             qrbox: function (viewfinderWidth, viewfinderHeight) {
-                var minDim = Math.min(viewfinderWidth, viewfinderHeight);
+                var w = viewfinderWidth || 300;
+                var h = viewfinderHeight || 300;
+                var minDim = Math.min(w, h);
+                var boxSize = Math.max(160, Math.min(260, Math.floor(minDim * 0.72)));
                 return {
-                    width: Math.floor(minDim * 0.72),
-                    height: Math.floor(minDim * 0.72)
+                    width: boxSize,
+                    height: boxSize
                 };
-            },
-            aspectRatio: 1.0
+            }
         };
 
-        html5QrcodeScanner.start(
-            { facingMode: 'environment' },
-            config,
-            onScanSuccess,
-            onScanError
-        ).catch(function (err) {
-            var errMsg = (err && err.message) ? err.message : String(err);
-            updateScannerStatus('❌ Camera access error: ' + errMsg, 'error');
-            stopScanner();
-        });
+        updateScannerStatus('📷 Starting camera...', 'info');
+        setupVideoObserver('qr-scanner');
+
+        // Multi-level camera fallback ladder for iOS (Safari) and Android
+        if (typeof Html5Qrcode.getCameras === 'function') {
+            Html5Qrcode.getCameras().then(function (cameras) {
+                var targetCamera = null;
+                if (cameras && cameras.length > 0) {
+                    // Try to identify the rear/back camera on multi-camera iPhones & Androids
+                    for (var i = 0; i < cameras.length; i++) {
+                        var lbl = (cameras[i].label || '').toLowerCase();
+                        if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
+                            targetCamera = cameras[i];
+                            break;
+                        }
+                    }
+                    if (!targetCamera) {
+                        targetCamera = cameras[cameras.length - 1]; // Rear cameras are typically listed last on mobile
+                    }
+                }
+
+                if (targetCamera && targetCamera.id) {
+                    return html5QrcodeScanner.start(
+                        targetCamera.id,
+                        config,
+                        onScanSuccess,
+                        onScanError
+                    );
+                }
+
+                // If no camera identified or labels are blank (common on iOS before first permission grant)
+                return html5QrcodeScanner.start(
+                    { facingMode: 'environment' },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+            }).catch(function (err1) {
+                console.warn('Camera ID / environment facingMode attempt failed, trying facingMode environment fallback:', err1);
+                return html5QrcodeScanner.start(
+                    { facingMode: 'environment' },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+            }).catch(function (err2) {
+                console.warn('facingMode environment failed, trying front/user camera:', err2);
+                return html5QrcodeScanner.start(
+                    { facingMode: 'user' },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+            }).then(function () {
+                updateScannerStatus('Point camera at attendee QR code', 'info');
+                enforcePlaysInline('qr-scanner');
+            }).catch(function (finalErr) {
+                handleCameraError(finalErr);
+            });
+        } else {
+            // Fallback for browsers without getCameras API
+            html5QrcodeScanner.start(
+                { facingMode: 'environment' },
+                config,
+                onScanSuccess,
+                onScanError
+            ).catch(function () {
+                return html5QrcodeScanner.start(
+                    { facingMode: 'user' },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+            }).then(function () {
+                updateScannerStatus('Point camera at attendee QR code', 'info');
+                enforcePlaysInline('qr-scanner');
+            }).catch(function (finalErr) {
+                handleCameraError(finalErr);
+            });
+        }
     }
+
+    function handleCameraError(err) {
+        var errMsg = (err && err.message) ? err.message : String(err);
+        var reason = 'Camera access was denied or could not be initialized.';
+        if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            reason = 'Camera access strictly requires an HTTPS secure connection on iPhone & Android devices in production. Please use "Snap Photo / Upload QR" below.';
+        } else if (errMsg.indexOf('NotAllowedError') !== -1 || errMsg.indexOf('Permission') !== -1) {
+            reason = 'Camera permission was denied. On iPhone: check iOS Settings > Safari > Camera, set to "Allow", or use "Snap Photo / Upload QR" below.';
+        } else if (errMsg.indexOf('OverconstrainedError') !== -1) {
+            reason = 'Camera hardware constraints could not be satisfied. Please use "Snap Photo / Upload QR" below.';
+        }
+        updateScannerStatus('⚠️ ' + reason, 'error');
+        stopScanner();
+    }
+
+    // ─── Scan QR Code from Photo / File Capture (100% Infallible Mobile Fallback) ───
+    window.scanQrFromPhoto = function (input) {
+        if (!input.files || input.files.length === 0) return;
+        var file = input.files[0];
+
+        if (typeof Html5Qrcode === 'undefined') {
+            updateScannerStatus('❌ QR Code scanner library not loaded. Please refresh.', 'error');
+            return;
+        }
+
+        updateScannerStatus('🔍 Scanning photo for QR code...', 'info');
+        stopScanner();
+
+        var tempScanner = new Html5Qrcode('qr-scanner');
+        tempScanner.scanFile(file, true)
+            .then(function (decodedText) {
+                var code = extractTicketCode(decodedText);
+                updateScannerStatus('Found code: ' + code + '. Verifying...', 'info');
+                if (ticketCodeInput) ticketCodeInput.value = code;
+                verifyTicketAjax(code);
+                input.value = '';
+                try { tempScanner.clear(); } catch (e) {}
+            })
+            .catch(function (err) {
+                console.warn('scanFile error:', err);
+                updateScannerStatus('⚠️ Could not find a valid QR code in that photo. Please ensure it is well lit, close-up, and try again.', 'error');
+                input.value = '';
+                try { tempScanner.clear(); } catch (e) {}
+            });
+    };
 
     // ─── Seamless AJAX Check-In Handler ─────────────────────
 

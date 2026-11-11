@@ -254,18 +254,20 @@ $checkedInCount = count($verified_tickets ?? []);
 
 .scanner-preview-wrapper {
     width: 100%;
-    max-height: 300px;
-    aspect-ratio: 4 / 3;
+    max-height: 320px;
     margin: 0 auto;
     position: relative;
     overflow: hidden;
     background: #000;
+    border-radius: 14px;
 }
 
 .scanner-preview-wrapper video {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
 /* Result Ticket Cards (Fluid & High-Contrast) */
@@ -562,6 +564,20 @@ $checkedInCount = count($verified_tickets ?? []);
                     <small style="color: rgb(var(--muted));">Center code within the frame to verify automatically</small>
                 </div>
                 <div id="scanner-status" class="scanner-status"></div>
+                <div class="scanner-photo-fallback" style="padding: 0.65rem 0.85rem 0.95rem; text-align: center; border-top: 1px dashed rgba(var(--muted), 0.2); background: rgba(var(--card), 0.5);">
+                    <label class="btn-secondary" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.55rem 1.15rem; font-size: 0.85rem; font-weight: 700; border-radius: 11px; cursor: pointer; width: 100%; box-sizing: border-box; background: rgba(var(--brand), 0.08); border-color: rgba(var(--brand), 0.25); color: rgb(var(--brand));">
+                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        Snap Photo / Upload QR Image
+                        <input type="file" id="qr-photo-input" accept="image/*" capture="environment" onchange="scanQrFromPhoto(this)" style="display:none;">
+                    </label>
+                    <span style="font-size: 0.74rem; color: rgb(var(--muted)); display: block; margin-top: 0.35rem;">
+                        Instant photo capture fallback for iPhone Safari and restricted mobile browsers.
+                    </span>
+                </div>
             </div>
 
             <!-- Manual Code Entry View -->
@@ -578,9 +594,20 @@ $checkedInCount = count($verified_tickets ?? []);
                             aria-label="Ticket code input" />
                         <button type="submit" id="verify-ticket-btn" class="btn-primary">Verify Ticket</button>
                     </div>
-                    <small class="form-hint" style="margin-top: 0.35rem; display: block; font-size: 0.78rem;">
-                        Instant check-in updates real-time capacity and entry counters.
-                    </small>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <small class="form-hint" style="margin: 0; font-size: 0.78rem;">
+                            Instant check-in updates real-time capacity and entry counters.
+                        </small>
+                        <label class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 700; border-radius: 9px; cursor: pointer; background: rgba(var(--brand), 0.06); border-color: rgba(var(--brand), 0.2); color: rgb(var(--brand));" title="Take a photo of QR pass">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            Snap QR Photo
+                            <input type="file" accept="image/*" capture="environment" onchange="scanQrFromPhoto(this)" style="display:none;">
+                        </label>
+                    </div>
                 </form>
             </div>
 
