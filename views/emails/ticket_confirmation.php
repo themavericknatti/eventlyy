@@ -148,7 +148,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                             $totalTicketCount = count($tickets ?? []);
                             foreach (($tickets ?? []) as $index => $t): 
                                 $tCode = $t['ticket_code'] ?? ($t['id'] ?? 'EV-' . ($index + 1));
-                                $qrSrc = ticket_qr_url($tCode, 260);
+                                $qrSrc = function_exists('ticket_qr_email_src') ? ticket_qr_email_src($tCode, 260) : ticket_qr_url($tCode, 260);
                                 $tPrice = (float)($t['price'] ?? 0);
                                 $tAttendeeName = !empty($t['attendee_name']) ? $t['attendee_name'] : ($attendee_name ?? 'Attendee');
                             ?>

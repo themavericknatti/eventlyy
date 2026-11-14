@@ -20,8 +20,15 @@ class PaymentService
      * @param array $gatewayData Optional raw Paystack transaction verification/webhook data
      * @return array Result containing success status, tickets, and event info
      */
-    public function finalizeSuccessfulPayment(string $reference, array $gatewayData = []): array
+    public function finalizeSuccessfulPayment(string $reference, array $gatewayData = [], bool $forceResend = false): array
     {
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
         $db = Application::$app->db->pdo;
         $reference = trim($reference);
 
@@ -54,6 +61,16 @@ class PaymentService
             $eventStmt = $db->prepare("SELECT * FROM events WHERE id = :event_id LIMIT 1");
             $eventStmt->execute(['event_id' => $tx['event_id'] ?? ($existingTickets[0]['event_id'] ?? 0)]);
             $existingEvent = $eventStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+            // If forceResend is requested, re-dispatch the confirmation & passes
+            if ($forceResend && !empty($attendeeEmail) && !empty($existingEvent) && !empty($existingTickets)) {
+                $orderData = [];
+                if (!empty($tx['gateway_response'])) {
+                    $parsed = json_decode($tx['gateway_response'], true);
+                    $orderData = $parsed['order_data'] ?? [];
+                }
+                $this->dispatchOrderEmails($reference, $existingEvent, $existingTickets, $attendeeName, $attendeeEmail, (float)($tx['total_amount'] ?? 0), $orderData);
+            }
 
             return [
                 'success' => true,
@@ -389,91 +406,8 @@ class PaymentService
             ];
         }
 
-        // 3. Dispatch Ticket / Layaway Confirmation Email
-        $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
-        if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            try {
-                if (!empty($orderData['is_layaway'])) {
-                    $depPaid = (float)($orderData['deposit_amount'] ?? $totalAmount);
-                    $fullTotal = (float)($orderData['total_full_amount'] ?? $calculatedSubtotal);
-                    $remBalance = max(0, $fullTotal - $depPaid);
-                    $minPct = (int)($event['partial_payment_min_percent'] ?? 25);
-                    \Ace\Mail::send(
-                        $email,
-                        'Your Layaway Reservation Confirmed - ' . $event['name'],
-                        'emails/layaway_confirmation',
-                        [
-                            'attendee_name' => $name,
-                            'event_name' => $event['name'],
-                            'event_date' => $formattedDate,
-                            'event_location' => $event['location'] ?? 'Venue',
-                            'ticket_type' => count($createdTickets) . ' Ticket(s) Reserved',
-                            'total_price' => $fullTotal,
-                            'deposit_paid' => $depPaid,
-                            'remaining_balance' => $remBalance,
-                            'min_percent' => $minPct,
-                            'ticket_code' => $createdTickets[0]['ticket_code'] ?? $reference,
-                            'tickets' => $createdTickets
-                        ]
-                    );
-                } else {
-                    \Ace\Mail::send(
-                        $email,
-                        'Your Tickets for ' . $event['name'],
-                        'emails/ticket_confirmation',
-                        [
-                            'attendee_name' => $name,
-                            'event_name' => $event['name'],
-                            'event_date' => $formattedDate,
-                            'event_location' => $event['location'] ?? 'Venue',
-                            'payment_method' => 'Paystack Card / Bank Transfer',
-                            'total_amount' => $totalAmount,
-                            'tickets' => $createdTickets
-                        ]
-                    );
-                }
-            } catch (\Throwable $e) {
-                error_log("Failed to send ticket confirmation email to {$email}: " . $e->getMessage());
-            }
-        }
-
-        // 4. Dispatch Individual Pass Emails to Guest Attendees
-        $guestPassesByEmail = [];
-        foreach ($createdTickets as $ticket) {
-            $gEmail = strtolower(trim($ticket['attendee_email'] ?? ''));
-            if (!empty($gEmail) && filter_var($gEmail, FILTER_VALIDATE_EMAIL) && $gEmail !== strtolower($email)) {
-                $guestPassesByEmail[$gEmail][] = $ticket;
-            }
-        }
-
-        foreach ($guestPassesByEmail as $gEmail => $gTickets) {
-            // Brief pause between SMTP dispatches to prevent rate-limiting or session rejection
-            sleep(1);
-            try {
-                $gName = $gTickets[0]['attendee_name'] ?? 'Valued Guest';
-                $sent = \Ace\Mail::send(
-                    $gEmail,
-                    'Your Admission Pass for ' . $event['name'],
-                    'emails/issued_ticket',
-                    [
-                        'header_title' => 'Your Event Admission Pass',
-                        'header_subtitle' => 'Official admission pass reserved by ' . ($name ?: 'a friend'),
-                        'greeting_text' => 'An admission pass for <strong>' . e($event['name']) . '</strong> has been reserved for you by <strong>' . e($name) . '</strong>. Your scannable pass and admission details are below.',
-                        'attendee_name' => $gName,
-                        'event_name' => $event['name'],
-                        'event_date' => $formattedDate,
-                        'event_location' => $event['location'] ?? 'Venue',
-                        'payment_method' => 'Paystack Card / Bank Transfer',
-                        'tickets' => $gTickets
-                    ]
-                );
-                if (!$sent) {
-                    error_log("PaymentService: Guest ticket email to {$gEmail} failed: " . \Ace\Mail::getLastError());
-                }
-            } catch (\Throwable $e) {
-                error_log("Failed to send guest ticket email to {$gEmail}: " . $e->getMessage());
-            }
-        }
+        // 3. Dispatch Ticket / Layaway Confirmation and Individual Guest Passes Resiliently
+        $this->dispatchOrderEmails($reference, $event, $createdTickets, $name, $email, $totalAmount, $orderData);
 
         // Clear session pending order if set
         if (class_exists('\Ace\Application') && Application::$app->session) {
@@ -511,7 +445,7 @@ class PaymentService
             $verification = $paystack->verifyTransaction($reference);
 
             if (isset($verification['status']) && $verification['status'] === 'success') {
-                return $this->finalizeSuccessfulPayment($reference, $verification);
+                return $this->finalizeSuccessfulPayment($reference, $verification, true);
             }
 
             // If not successful, update status in transactions table if pending
@@ -594,6 +528,183 @@ class PaymentService
             'recovered_references' => $recovered,
             'failed_count' => count($failed),
             'failed_details' => $failed
+        ];
+    }
+
+    /**
+     * Dispatch ticket confirmation and individual guest pass emails resiliently.
+     * Uses a single persistent SMTP connection (Keep-Alive) with automated retry and fallback.
+     */
+    public function dispatchOrderEmails(
+        string $reference,
+        array $event,
+        array $tickets,
+        string $buyerName,
+        string $buyerEmail,
+        float $totalAmount,
+        array $orderData = []
+    ): array {
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
+        $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
+        $messagesToSend = [];
+        $isLayaway = !empty($orderData['is_layaway']);
+
+        // Check if any ticket has 'Layaway' status if orderData wasn't passed
+        if (!$isLayaway && !empty($tickets)) {
+            foreach ($tickets as $t) {
+                if (($t['status'] ?? '') === 'Layaway') {
+                    $isLayaway = true;
+                    break;
+                }
+            }
+        }
+
+        // 1. Primary Buyer Confirmation Message
+        if (!empty($buyerEmail) && filter_var($buyerEmail, FILTER_VALIDATE_EMAIL)) {
+            if ($isLayaway) {
+                $depPaid = (float)($orderData['deposit_amount'] ?? $totalAmount);
+                $fullTotal = (float)($orderData['total_full_amount'] ?? $totalAmount);
+                $remBalance = max(0, $fullTotal - $depPaid);
+                $minPct = (int)($event['partial_payment_min_percent'] ?? 25);
+
+                $messagesToSend[] = [
+                    'to' => $buyerEmail,
+                    'name' => $buyerName,
+                    'subject' => 'Your Layaway Reservation Confirmed - ' . ($event['name'] ?? 'Event'),
+                    'view' => 'emails/layaway_confirmation',
+                    'params' => [
+                        'attendee_name' => $buyerName,
+                        'event_name' => $event['name'] ?? 'Event',
+                        'event_date' => $formattedDate,
+                        'event_location' => $event['location'] ?? 'Venue',
+                        'ticket_type' => count($tickets) . ' Ticket(s) Reserved',
+                        'total_price' => $fullTotal,
+                        'deposit_paid' => $depPaid,
+                        'remaining_balance' => $remBalance,
+                        'min_percent' => $minPct,
+                        'ticket_code' => $tickets[0]['ticket_code'] ?? ($tickets[0]['id'] ?? $reference),
+                        'tickets' => $tickets
+                    ]
+                ];
+            } else {
+                $messagesToSend[] = [
+                    'to' => $buyerEmail,
+                    'name' => $buyerName,
+                    'subject' => 'Your Tickets for ' . ($event['name'] ?? 'Event'),
+                    'view' => 'emails/ticket_confirmation',
+                    'params' => [
+                        'attendee_name' => $buyerName,
+                        'event_name' => $event['name'] ?? 'Event',
+                        'event_date' => $formattedDate,
+                        'event_location' => $event['location'] ?? 'Venue',
+                        'payment_method' => 'Paystack Card / Bank Transfer',
+                        'total_amount' => $totalAmount,
+                        'tickets' => $tickets
+                    ]
+                ];
+            }
+        }
+
+        // 2. Individual Guest Passes
+        $guestPassesByEmail = [];
+        foreach ($tickets as $ticket) {
+            $gEmail = strtolower(trim($ticket['attendee_email'] ?? ''));
+            if (!empty($gEmail) && filter_var($gEmail, FILTER_VALIDATE_EMAIL) && $gEmail !== strtolower($buyerEmail)) {
+                $guestPassesByEmail[$gEmail][] = $ticket;
+            }
+        }
+
+        foreach ($guestPassesByEmail as $gEmail => $gTickets) {
+            $gName = $gTickets[0]['attendee_name'] ?? 'Valued Guest';
+            $messagesToSend[] = [
+                'to' => $gEmail,
+                'name' => $gName,
+                'subject' => 'Your Admission Pass for ' . ($event['name'] ?? 'Event'),
+                'view' => 'emails/issued_ticket',
+                'params' => [
+                    'header_title' => 'Your Event Admission Pass',
+                    'header_subtitle' => 'Official admission pass reserved by ' . ($buyerName ?: 'a friend'),
+                    'greeting_text' => 'An admission pass for <strong>' . e($event['name'] ?? 'your event') . '</strong> has been reserved for you by <strong>' . e($buyerName) . '</strong>. Your scannable pass and admission details are below.',
+                    'attendee_name' => $gName,
+                    'event_name' => $event['name'] ?? 'Event',
+                    'event_date' => $formattedDate,
+                    'event_location' => $event['location'] ?? 'Venue',
+                    'payment_method' => 'Paystack Card / Bank Transfer',
+                    'tickets' => $gTickets
+                ]
+            ];
+        }
+
+        // Send all messages in persistent session with auto-retry and mail() fallback
+        $result = \Ace\Mail::sendMessages($messagesToSend);
+
+        if ($result['failed'] > 0) {
+            error_log("PaymentService: Notice: Some emails encountered issues for ref {$reference}: " . json_encode($result));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Resend all ticket passes for an existing order by reference.
+     */
+    public function resendOrderTickets(string $reference, ?string $targetEmail = null): array
+    {
+        $db = Application::$app->db->pdo;
+        $reference = trim($reference);
+
+        $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = :reference LIMIT 1");
+        $stmt->execute(['reference' => $reference]);
+        $tx = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$tx) {
+            return ['success' => false, 'message' => 'Order reference not found.'];
+        }
+
+        $existingTicketsStmt = $db->prepare("
+            SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+            FROM tickets t 
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+            WHERE t.status_detail LIKE :ref OR t.id = :tx_id
+        ");
+        $existingTicketsStmt->execute([
+            'ref' => '%' . $reference . '%',
+            'tx_id' => $reference
+        ]);
+        $tickets = $existingTicketsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        if (empty($tickets)) {
+            return ['success' => false, 'message' => 'No tickets found for this order.'];
+        }
+
+        $eventStmt = $db->prepare("SELECT * FROM events WHERE id = :event_id LIMIT 1");
+        $eventStmt->execute(['event_id' => $tx['event_id'] ?? ($tickets[0]['event_id'] ?? 0)]);
+        $event = $eventStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+        $buyerName = !empty($tx['payer_name']) ? $tx['payer_name'] : ($tickets[0]['attendee_name'] ?? 'Attendee');
+        $buyerEmail = !empty($targetEmail) ? trim($targetEmail) : (!empty($tx['payer_email']) ? $tx['payer_email'] : ($tickets[0]['attendee_email'] ?? ''));
+
+        $orderData = [];
+        if (!empty($tx['gateway_response'])) {
+            $parsed = json_decode($tx['gateway_response'], true);
+            $orderData = $parsed['order_data'] ?? [];
+        }
+
+        $dispatch = $this->dispatchOrderEmails($reference, $event, $tickets, $buyerName, $buyerEmail, (float)($tx['total_amount'] ?? 0), $orderData);
+
+        return [
+            'success' => ($dispatch['sent'] > 0),
+            'sent' => $dispatch['sent'],
+            'failed' => $dispatch['failed'],
+            'message' => ($dispatch['sent'] > 0)
+                ? 'Your admission passes have been resent to ' . $buyerEmail . '! Please check your inbox and spam folder.'
+                : 'Could not deliver emails. Please verify your email address or contact support.'
         ];
     }
 }

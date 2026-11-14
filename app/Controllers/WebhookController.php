@@ -24,6 +24,13 @@ class WebhookController extends Controller
      */
     public function paystack(Request $request)
     {
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
         // Only accept POST requests
         if (strtoupper($request->method()) !== 'POST') {
             http_response_code(405);
@@ -67,6 +74,11 @@ class WebhookController extends Controller
                         $db->prepare("UPDATE event_domain_requests SET payment_status = 'paid' WHERE payment_reference = :ref")->execute(['ref' => $reference]);
                         $db->prepare("UPDATE transactions SET status = 'completed', updated_at = NOW() WHERE reference = :ref")->execute(['ref' => $reference]);
                         error_log("Paystack Webhook: Custom domain fee marked as paid for ref [{$reference}]");
+                    } elseif (str_starts_with($reference, 'INST-') || str_starts_with($reference, 'LAY-INST-') || ($eventData['metadata']['type'] ?? '') === 'layaway_installment') {
+                        // Layaway installment payment: finalize and dispatch receipt/completion emails
+                        $layawayService = new \App\Services\LayawayService();
+                        $result = $layawayService->finalizeInstallmentPayment($reference);
+                        error_log("Paystack Webhook layaway installment for ref [{$reference}]: " . ($result['message'] ?? 'Processed'));
                     } else {
                         $eventData['source'] = 'paystack_webhook';
                         $result = $this->paymentService->finalizeSuccessfulPayment($reference, $eventData);

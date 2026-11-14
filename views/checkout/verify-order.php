@@ -59,6 +59,19 @@
                 </span>
             </div>
 
+            <div>
+                <label for="email" style="display: block; font-size: 0.85rem; font-weight: 700; color: rgb(var(--text)); margin-bottom: 0.45rem;">
+                    Deliver Passes to Email (Optional)
+                </label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="Enter your email if you want passes resent here" 
+                    style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid rgba(var(--muted), 0.25); border-radius: 12px; font-size: 0.95rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;"
+                >
+            </div>
+
             <button 
                 type="submit" 
                 class="admin-action-btn primary" 

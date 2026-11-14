@@ -1254,6 +1254,75 @@ if (!function_exists('ticket_qr_url')) {
     }
 }
 
+if (!function_exists('ticket_qr_email_src')) {
+    /**
+     * Get the email-ready QR Code image source for admission tickets.
+     * Generates a unique Content-ID (CID) reference that Mail::send / Mail::sendMessages
+     * automatically converts to an embedded inline PNG image attachment.
+     *
+     * @param string|int $ticketCode Unique ticket admission code
+     * @param int $size Dimension in pixels (default 240)
+     * @return string cid:qr_{cleanCode}
+     */
+    function ticket_qr_email_src(string|int $ticketCode, int $size = 240): string
+    {
+        $code = trim((string)$ticketCode);
+        if ($code === '') {
+            $code = 'UNKNOWN';
+        }
+        $clean = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $code);
+        return 'cid:qr_' . $clean;
+    }
+}
+
+if (!function_exists('resolve_site_logo_path')) {
+    /**
+     * Resolve the absolute local disk path for the organization logo file.
+     *
+     * @return string|null Absolute path to logo file on disk, or null if not found
+     */
+    function resolve_site_logo_path(): ?string
+    {
+        $logo = site_setting('site_logo');
+        if (empty($logo)) {
+            return null;
+        }
+
+        if (str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://')) {
+            return null;
+        }
+
+        $cleanPath = ltrim($logo, '/\\');
+        $rawPath = preg_replace('#^assets/#', '', $cleanPath);
+        $root = defined('\Ace\Application::$ROOT_DIR') ? \Ace\Application::$ROOT_DIR : (defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__));
+
+        $candidatePaths = [
+            public_dir('assets/' . $rawPath),
+            public_dir($cleanPath),
+            $root . '/assets/' . $rawPath,
+            $root . '/public/assets/' . $rawPath,
+            $root . '/public_html/assets/' . $rawPath,
+            $root . '/' . $cleanPath,
+            $root . '/' . $rawPath,
+        ];
+
+        if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+            $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
+            $candidatePaths[] = $docRoot . '/assets/' . $rawPath;
+            $candidatePaths[] = $docRoot . '/' . $cleanPath;
+            $candidatePaths[] = $docRoot . '/' . $rawPath;
+        }
+
+        foreach ($candidatePaths as $p) {
+            if (file_exists($p) && is_readable($p) && !is_dir($p)) {
+                return $p;
+            }
+        }
+
+        return null;
+    }
+}
+
 if (!function_exists('ticket_qr_data_uri')) {
     /**
      * Generate an embedded Base64 Data URI for an admission ticket QR code.
@@ -1350,11 +1419,9 @@ if (!function_exists('email_logo_url')) {
 if (!function_exists('email_logo_src')) {
     /**
      * Get the image source for the organization logo in emails.
-     * - In Development (localhost / .test / Mailtrap sandbox): Returns base64 data URI so
-     *   Mailtrap's HTTPS UI renders it without browser mixed-content blocks or local DNS failure.
-     * - In Production (live public domain): Returns the fully-qualified public HTTPS URL
-     *   (e.g. https://eventlyy.com/assets/img/branding/...) which Gmail, Outlook, Yahoo,
-     *   and mobile clients proxy and render without blocking.
+     * Uses inline MIME CID embedding ('cid:site_logo') if local logo file exists,
+     * ensuring it renders in 100% of email clients (Gmail, Outlook, Yahoo, Apple Mail)
+     * without being blocked by proxy, mixed content, or cross-domain rules.
      */
     function email_logo_src(): ?string
     {
@@ -1363,51 +1430,13 @@ if (!function_exists('email_logo_src')) {
             return null;
         }
 
-        if (str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://')) {
-            return $logo;
+        // When sending through Mail, prefer inline CID attachment
+        if (function_exists('resolve_site_logo_path') && resolve_site_logo_path()) {
+            return 'cid:site_logo';
         }
 
-        $appUrl = app_base_url();
-        $isLocal = str_contains($appUrl, 'localhost') || str_contains($appUrl, '.test') || str_contains($appUrl, '127.0.0.1');
-
-        if ($isLocal) {
-            $cleanPath = ltrim($logo, '/\\');
-            $rawPath = preg_replace('#^assets/#', '', $cleanPath);
-            $root = \Ace\Application::$ROOT_DIR;
-
-            $candidatePaths = [
-                public_dir('assets/' . $rawPath),
-                public_dir($cleanPath),
-                $root . '/assets/' . $rawPath,
-                $root . '/public/assets/' . $rawPath,
-                $root . '/public_html/assets/' . $rawPath,
-                $root . '/' . $cleanPath,
-                $root . '/' . $rawPath,
-            ];
-            if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-                $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
-                $candidatePaths[] = $docRoot . '/assets/' . $rawPath;
-                $candidatePaths[] = $docRoot . '/' . $cleanPath;
-                $candidatePaths[] = $docRoot . '/' . $rawPath;
-            }
-
-            foreach ($candidatePaths as $p) {
-                if (file_exists($p) && is_readable($p) && !is_dir($p)) {
-                    $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION));
-                    $mime = match($ext) {
-                        'png' => 'image/png',
-                        'jpg', 'jpeg' => 'image/jpeg',
-                        'gif' => 'image/gif',
-                        'svg' => 'image/svg+xml',
-                        'webp' => 'image/webp',
-                        default => 'image/png'
-                    };
-                    $content = @file_get_contents($p);
-                    if ($content !== false && strlen($content) > 0 && strlen($content) < 800000) {
-                        return "data:{$mime};base64," . base64_encode($content);
-                    }
-                }
-            }
+        if (str_starts_with($logo, 'http://') || str_starts_with($logo, 'https://')) {
+            return $logo;
         }
 
         return email_logo_url();

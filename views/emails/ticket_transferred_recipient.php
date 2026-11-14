@@ -121,7 +121,8 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
                                     Digital Admission Pass
                                 </span>
                                 <div style="display: inline-block; background-color: #ffffff; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 12px;">
-                                    <img src="<?= $qrUrl ?>" alt="Ticket QR Code" width="180" height="180" class="qr-code-img" style="display: block; width: 180px; height: 180px; border-radius: 6px; image-rendering: pixelated;" />
+                                    <?php $qrDisplay = function_exists('ticket_qr_email_src') && !empty($ticketCode) ? ticket_qr_email_src($ticketCode, 260) : ($qrUrl ?? ''); ?>
+                                    <img src="<?= $qrDisplay ?>" alt="Ticket QR Code" width="180" height="180" class="qr-code-img" style="display: block; width: 180px; height: 180px; border-radius: 6px; image-rendering: pixelated;" />
                                 </div>
                                 <div style="font-family: monospace; font-size: 18px; font-weight: 800; color: <?= $primaryColor ?>; letter-spacing: 1.5px; margin-bottom: 6px;">
                                     <?= e($ticketCode) ?>

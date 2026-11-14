@@ -57,6 +57,12 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
     <h1 class="suc-title">You're Going to <?= e($order['event_name']) ?>!</h1>
     <p class="suc-subtitle">
         Your order is complete. Digital admission passes have been delivered to <strong><?= e($order['attendee_email']) ?></strong>.
+        <?php if (!empty($orderRef)): ?>
+            <br/>
+            <span style="display: inline-block; margin-top: 6px; font-size: 0.88rem; color: var(--muted, #64748b);">
+                Didn't see the email? Check your spam folder or <a href="<?= \url('/order/resend-email/' . urlencode($orderRef)) ?>" style="color: var(--primary, #108a55); font-weight: 700; text-decoration: underline;">click here to resend passes</a>.
+            </span>
+        <?php endif; ?>
     </p>
 </section>
 

@@ -726,6 +726,13 @@ class CheckoutController extends Controller
      */
     public function paystackCallback(Request $request)
     {
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
         $data = $request->getBody();
         $reference = trim((string)($data['reference'] ?? ($data['trxref'] ?? '')));
 
@@ -843,6 +850,7 @@ class CheckoutController extends Controller
     {
         $data = $request->getBody();
         $reference = trim((string)($data['reference'] ?? ''));
+        $targetEmail = trim((string)($data['email'] ?? ''));
 
         if (empty($reference)) {
             Application::$app->session->setFlash('error', 'Please provide a valid payment reference.');
@@ -853,12 +861,63 @@ class CheckoutController extends Controller
         $result = $paymentService->reverifyTransaction($reference);
 
         if ($result['success']) {
+            if (!empty($targetEmail)) {
+                $paymentService->resendOrderTickets($reference, $targetEmail);
+            }
             Application::$app->session->setFlash('success', 'Your payment was successfully verified! Your tickets have been activated and emailed to you.');
             return redirect('/order/verify/' . urlencode($reference));
         }
 
         Application::$app->session->setFlash('error', $result['message'] ?? 'Payment verification was not successful on Paystack.');
         return redirect('/order/verify/' . urlencode($reference));
+    }
+
+    /**
+     * Public Self-Service Action: Resend ticket confirmation email to customer.
+     */
+    public function resendOrderEmail(Request $request)
+    {
+        $data = $request->getBody();
+        $reference = trim((string)($data['reference'] ?? ''));
+        $email = trim((string)($data['email'] ?? ''));
+
+        if (empty($reference)) {
+            Application::$app->session->setFlash('error', 'Please provide a valid payment reference.');
+            return redirect('/order/verify');
+        }
+
+        $paymentService = new \App\Services\PaymentService();
+        $res = $paymentService->resendOrderTickets($reference, $email ?: null);
+
+        if ($res['success']) {
+            Application::$app->session->setFlash('success', $res['message']);
+        } else {
+            Application::$app->session->setFlash('error', $res['message']);
+        }
+
+        return redirect('/order/verify/' . urlencode($reference));
+    }
+
+    /**
+     * Direct GET link to re-dispatch ticket passes to buyer email.
+     */
+    public function resendOrderEmailGet(Request $request, $reference = null)
+    {
+        $ref = trim((string)($reference ?: ($request->getBody()['reference'] ?? '')));
+        if (empty($ref)) {
+            return redirect('/');
+        }
+
+        $paymentService = new \App\Services\PaymentService();
+        $res = $paymentService->resendOrderTickets($ref);
+
+        if ($res['success']) {
+            Application::$app->session->setFlash('success', $res['message']);
+        } else {
+            Application::$app->session->setFlash('error', $res['message']);
+        }
+
+        return redirect('/success?ref=' . urlencode($ref));
     }
 
     /**

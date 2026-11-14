@@ -92,6 +92,8 @@ $router->get('/webhook/paystack', [\App\Controllers\WebhookController::class, 'h
 // Public Self-Service Ticket & Order Recovery (Disconnection Protection)
 $router->get('/order/verify/{reference?}', [CheckoutController::class, 'verifyOrderView']);
 $router->post('/order/verify', [CheckoutController::class, 'verifyOrderPost']);
+$router->get('/order/resend-email/{reference}', [CheckoutController::class, 'resendOrderEmailGet']);
+$router->post('/order/resend-email', [CheckoutController::class, 'resendOrderEmail']);
 $router->get('/cron/reconcile-payments', [CheckoutController::class, 'reconcilePaymentsCron']);
 
 // Layaway & Installment Payment System
