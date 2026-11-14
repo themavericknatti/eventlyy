@@ -26,6 +26,10 @@ $currentPreset = !empty($settings['theme_preset']) ? $settings['theme_preset'] :
 $isCustomDomainLive = !empty($settings['custom_domain_enabled']) && $settings['custom_domain_enabled'] === '1';
 $isAnnLive = !empty($settings['announcement_enabled']) && $settings['announcement_enabled'] === '1';
 $enabledGateways = (array)($settings['enabled_gateways'] ?? ['paystack']);
+$isHolidayFxLive = !empty($settings['holiday_fx_enabled']) && $settings['holiday_fx_enabled'] === '1';
+$currentHolidayFxMode = !empty($settings['holiday_fx_mode']) ? $settings['holiday_fx_mode'] : 'auto';
+$currentHolidayFxIntensity = !empty($settings['holiday_fx_intensity']) ? $settings['holiday_fx_intensity'] : 'standard';
+$isHolidayFxToggleAllowed = !empty($settings['holiday_fx_allow_toggle']) && $settings['holiday_fx_allow_toggle'] === '1';
 ?>
 
 @extends('layouts/admin')
@@ -307,6 +311,175 @@ Admin Settings - Manage Site &amp; System Configurations
                                     <button type="button" class="as-btn" id="preview-btn-secondary" style="background:<?= e($secondaryColor) ?>; color:#ffffff; border:none;">Secondary Pill</button>
                                     <button type="button" class="as-btn as-btn-outline" id="preview-btn-outline" style="border-color:<?= e($primaryColor) ?>; color:<?= e($primaryColor) ?>;">Outline</button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atmospheric Seasonal Effects & Holiday Floating FX Card -->
+            <div class="as-card as-mt-4">
+                <div class="as-card-header">
+                    <div class="as-card-title-group">
+                        <span class="as-card-icon">❄️</span>
+                        <div>
+                            <h2 class="as-card-title">Seasonal Atmospheric &amp; Holiday Floating FX</h2>
+                            <p class="as-card-sub">Enable smooth, zero-lag floating holiday particles (snowflakes for winter, Santa heads &amp; doves for Christmas, celebration confetti, etc.) across desktop, tablet, and mobile.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <button type="button" class="as-btn as-btn-ghost" id="btn-test-holiday-fx" onclick="triggerHolidayFxPreview()">
+                            ✨ Live Preview FX
+                        </button>
+                    </div>
+                </div>
+
+                <div class="as-card-body">
+                    <!-- Master Toggle Switch -->
+                    <div class="as-switch-row" style="padding:1rem; background:rgba(var(--primary-rgb), 0.04); border:1px solid rgba(var(--primary-rgb), 0.12); border-radius:12px; margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                        <div>
+                            <div style="font-weight:700; font-size:0.95rem; display:flex; align-items:center; gap:0.5rem;">
+                                <span>Enable Floating Seasonal Effects</span>
+                                <span class="as-badge <?= $isHolidayFxLive ? 'as-badge--brand' : 'as-badge--neutral' ?>" id="holiday-fx-status-badge">
+                                    <?= $isHolidayFxLive ? '● Live Active' : '○ Disabled' ?>
+                                </span>
+                            </div>
+                            <div class="as-field-hint" style="margin-top:0.25rem;">
+                                Uses lightweight GPU-accelerated canvas technology with offscreen sprite caching for 60/120 FPS zero-lag rendering.
+                            </div>
+                        </div>
+                        <label class="as-toggle-switch">
+                            <input type="checkbox" name="holiday_fx_enabled" id="holiday_fx_enabled" value="1" <?= $isHolidayFxLive ? 'checked' : '' ?> onchange="toggleHolidayFxStatus(this)">
+                            <span class="as-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Holiday Mode Selection Grid -->
+                    <div class="as-field">
+                        <label class="as-field-label">Active Season / Holiday Theme</label>
+                        <span class="as-field-hint">Choose whether the platform automatically detects holidays based on calendar dates, syncs with color presets, or forces a specific seasonal effect.</span>
+                        
+                        <div class="as-presets-grid as-mt-2" id="holiday-mode-grid" style="grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));">
+                            
+                            <!-- Auto Detection -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'auto' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="auto" <?= $currentHolidayFxMode === 'auto' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'auto')">
+                                <span class="as-preset-swatch"><span style="background:linear-gradient(135deg, #38bdf8, #818cf8);"></span></span>
+                                <span class="as-preset-name">🗓️ Auto (By Date)</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Sync with Color Preset -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'sync_theme' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="sync_theme" <?= $currentHolidayFxMode === 'sync_theme' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'sync_theme')">
+                                <span class="as-preset-swatch"><span style="background:linear-gradient(135deg, #108a55, #f59e0b);"></span></span>
+                                <span class="as-preset-name">🎨 Sync With Preset</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Christmas -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'christmas' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="christmas" <?= $currentHolidayFxMode === 'christmas' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'christmas')">
+                                <span class="as-preset-swatch"><span style="background:#dc2626;"></span><span style="background:#16a34a;"></span></span>
+                                <span class="as-preset-name">🎄 Christmas &amp; Santa</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Winter -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'winter' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="winter" <?= $currentHolidayFxMode === 'winter' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'winter')">
+                                <span class="as-preset-swatch"><span style="background:#0284c7;"></span><span style="background:#e0f2fe;"></span></span>
+                                <span class="as-preset-name">❄️ Winter Snowfall</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- New Year -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'new_year' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="new_year" <?= $currentHolidayFxMode === 'new_year' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'new_year')">
+                                <span class="as-preset-swatch"><span style="background:#f59e0b;"></span><span style="background:#d946ef;"></span></span>
+                                <span class="as-preset-name">🎆 New Year Confetti</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Valentine -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'valentine' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="valentine" <?= $currentHolidayFxMode === 'valentine' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'valentine')">
+                                <span class="as-preset-swatch"><span style="background:#e11d48;"></span><span style="background:#fda4af;"></span></span>
+                                <span class="as-preset-name">💖 Valentine Hearts</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Easter / Spring -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'easter' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="easter" <?= $currentHolidayFxMode === 'easter' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'easter')">
+                                <span class="as-preset-swatch"><span style="background:#f472b6;"></span><span style="background:#86efac;"></span></span>
+                                <span class="as-preset-name">🕊️ Easter &amp; Flora</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Halloween -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'halloween' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="halloween" <?= $currentHolidayFxMode === 'halloween' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'halloween')">
+                                <span class="as-preset-swatch"><span style="background:#ea580c;"></span><span style="background:#1e1b4b;"></span></span>
+                                <span class="as-preset-name">🎃 Halloween Bats</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Independence Day -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'independence_ng' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="independence_ng" <?= $currentHolidayFxMode === 'independence_ng' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'independence_ng')">
+                                <span class="as-preset-swatch"><span style="background:#008751;"></span><span style="background:#ffffff; border:1px solid #cbd5e1;"></span></span>
+                                <span class="as-preset-name">🇳🇬 Independence Day</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Ramadan / Eid -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'ramadan' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="ramadan" <?= $currentHolidayFxMode === 'ramadan' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'ramadan')">
+                                <span class="as-preset-swatch"><span style="background:#f59e0b;"></span><span style="background:#1e3a8a;"></span></span>
+                                <span class="as-preset-name">🌙 Ramadan &amp; Eid</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Summer -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'summer' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="summer" <?= $currentHolidayFxMode === 'summer' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'summer')">
+                                <span class="as-preset-swatch"><span style="background:#f59e0b;"></span><span style="background:#06b6d4;"></span></span>
+                                <span class="as-preset-name">☀️ Summer Bokeh</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+
+                            <!-- Autumn -->
+                            <label class="as-preset-pill <?= $currentHolidayFxMode === 'autumn' ? 'is-active' : '' ?>" style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                                <input type="radio" name="holiday_fx_mode" value="autumn" <?= $currentHolidayFxMode === 'autumn' ? 'checked' : '' ?> style="display:none;" onchange="selectHolidayMode(this, 'autumn')">
+                                <span class="as-preset-swatch"><span style="background:#d97706;"></span><span style="background:#991b1b;"></span></span>
+                                <span class="as-preset-name">🍂 Autumn Leaves</span>
+                                <span class="as-preset-check">✓</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Density / Intensity & User Controls Grid -->
+                    <div class="as-grid-2 as-mt-4">
+                        <div class="as-field">
+                            <label for="holiday_fx_intensity" class="as-field-label">Particle Density &amp; Intensity</label>
+                            <span class="as-field-hint">Particles automatically adapt down for tablets (18-22) and mobile phones (10-14).</span>
+                            <select id="holiday_fx_intensity" name="holiday_fx_intensity" class="as-input" onchange="changeHolidayFxIntensity(this.value)">
+                                <option value="subtle" <?= $currentHolidayFxIntensity === 'subtle' ? 'selected' : '' ?>>🌱 Calm &amp; Subtle (Gentle minimal float)</option>
+                                <option value="standard" <?= $currentHolidayFxIntensity === 'standard' ? 'selected' : '' ?>>✨ Standard (Balanced festive atmosphere - Recommended)</option>
+                                <option value="festive" <?= $currentHolidayFxIntensity === 'festive' ? 'selected' : '' ?>>🎉 Festive (Rich celebration particles)</option>
+                            </select>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Visitor Interaction</label>
+                            <span class="as-field-hint">Allow site visitors to pause the floating atmosphere if they wish.</span>
+                            <div style="margin-top:0.6rem; display:flex; align-items:center; gap:0.75rem;">
+                                <label class="as-toggle-switch">
+                                    <input type="checkbox" name="holiday_fx_allow_toggle" id="holiday_fx_allow_toggle" value="1" <?= $isHolidayFxToggleAllowed ? 'checked' : '' ?>>
+                                    <span class="as-toggle-slider"></span>
+                                </label>
+                                <span style="font-size:0.85rem; font-weight:600;">Display subtle floating pause/play pill button</span>
                             </div>
                         </div>
                     </div>
@@ -1791,17 +1964,26 @@ function applyPreset(btn) {
     if (sText) sText.value = secondary;
     if (presetInput) presetInput.value = preset;
 
-    var pills = document.querySelectorAll('.as-preset-pill');
+    var pills = document.querySelectorAll('#theme-presets-grid .as-preset-pill');
     pills.forEach(p => p.classList.remove('is-active'));
     btn.classList.add('is-active');
 
     updateThemeLivePreview();
+
+    // If Holiday FX is in sync_theme mode, automatically synchronize particles
+    if (window.HolidayFX) {
+        var modeRadio = document.querySelector('input[name="holiday_fx_mode"]:checked');
+        if (modeRadio && modeRadio.value === 'sync_theme') {
+            var map = { christmas: 'christmas', winter: 'winter', summer: 'summer', halloween: 'halloween', rose: 'valentine', neon: 'new_year', indigo: 'new_year' };
+            window.HolidayFX.setMode(map[preset] || 'winter');
+        }
+    }
 }
 
 function markCustomPreset() {
     var presetInput = document.getElementById('theme-preset-input');
     if (presetInput) presetInput.value = 'custom';
-    var pills = document.querySelectorAll('.as-preset-pill');
+    var pills = document.querySelectorAll('#theme-presets-grid .as-preset-pill');
     pills.forEach(p => p.classList.remove('is-active'));
 }
 
@@ -1889,5 +2071,73 @@ window.closeAnnouncementPreview = function() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') window.closeAnnouncementPreview();
 });
+
+// ─── 5. Seasonal Atmospheric Holiday FX Controls ───
+function selectHolidayMode(label, mode) {
+    var pills = document.querySelectorAll('#holiday-mode-grid .as-preset-pill');
+    pills.forEach(function(p) { p.classList.remove('is-active'); });
+    label.classList.add('is-active');
+    var radio = label.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+
+    // Dynamically preview the effect in real time if engine is loaded
+    if (window.HolidayFX) {
+        if (mode === 'auto') {
+            window.HolidayFX.setMode('christmas');
+        } else if (mode === 'sync_theme') {
+            var presetInput = document.getElementById('theme-preset-input');
+            var preset = presetInput ? presetInput.value : 'emerald';
+            var map = { christmas: 'christmas', winter: 'winter', summer: 'summer', halloween: 'halloween', rose: 'valentine', neon: 'new_year', indigo: 'new_year' };
+            window.HolidayFX.setMode(map[preset] || 'winter');
+        } else {
+            window.HolidayFX.setMode(mode);
+        }
+        window.HolidayFX.start();
+    }
+}
+
+function toggleHolidayFxStatus(checkbox) {
+    var badge = document.getElementById('holiday-fx-status-badge');
+    if (badge) {
+        if (checkbox.checked) {
+            badge.className = 'as-badge as-badge--brand';
+            badge.textContent = '● Live Active';
+            if (window.HolidayFX) window.HolidayFX.start();
+        } else {
+            badge.className = 'as-badge as-badge--neutral';
+            badge.textContent = '○ Disabled';
+            if (window.HolidayFX) window.HolidayFX.stop();
+        }
+    }
+}
+
+function changeHolidayFxIntensity(intensity) {
+    if (window.HolidayFX) {
+        window.HolidayFX.setIntensity(intensity);
+    }
+}
+
+function triggerHolidayFxPreview() {
+    if (window.HolidayFX) {
+        var selectedRadio = document.querySelector('input[name="holiday_fx_mode"]:checked');
+        var mode = selectedRadio ? selectedRadio.value : 'christmas';
+        if (mode === 'auto') mode = 'christmas';
+        else if (mode === 'sync_theme') {
+            var presetInput = document.getElementById('theme-preset-input');
+            var preset = presetInput ? presetInput.value : 'christmas';
+            var map = { christmas: 'christmas', winter: 'winter', summer: 'summer', halloween: 'halloween', rose: 'valentine', neon: 'new_year', indigo: 'new_year' };
+            mode = map[preset] || 'christmas';
+        }
+        window.HolidayFX.setMode(mode);
+        window.HolidayFX.start();
+
+        var btn = document.getElementById('btn-test-holiday-fx');
+        if (btn) {
+            var oldHtml = btn.innerHTML;
+            btn.innerHTML = '✨ Previewing ' + mode.toUpperCase() + ' FX...';
+            setTimeout(function() { btn.innerHTML = oldHtml; }, 2600);
+        }
+    }
+}
 </script>
 @endsection

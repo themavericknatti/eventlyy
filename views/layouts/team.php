@@ -238,6 +238,7 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     <script src="{{ route('assets/js/app.js') }}?v=<?= asset_version('assets/js/app.js') ?>" defer></script>
     @yield('script')
     <div id="theme-announcer" class="visually-hidden" aria-live="polite"></div>
+    <?php echo $this->include('partials/holiday-fx', []); ?>
 </body>
 
 </html>

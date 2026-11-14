@@ -197,3 +197,5 @@ $restOfTitle = mb_substr($siteTitle, 1);
         <p>&copy; <?= $year ?> <?= e($siteTitle) ?>. All rights reserved.</p>
     </div>
 </footer>
+
+<?php echo $this->include('partials/holiday-fx', []); ?>

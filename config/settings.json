@@ -2,7 +2,10 @@
     "site_title": "Eventlyy",
     "site_description": "Discover and book amazing events near you.",
     "site_logo": "img\/branding\/3dffd0b59b3a1001_1793969143.png",
+    "site_logo_dark": "",
+    "site_logo_backdrop": "auto",
     "site_favicon": "img\/branding\/91dd39adf5097bab_1793973486.png",
+    "site_favicon_dark": "",
     "support_email": "support@eventlyy.com",
     "maintenance_mode": "no",
     "enabled_gateways": [
@@ -42,8 +45,12 @@
     "announcement_link_text": "",
     "announcement_link_url": "",
     "announcement_dismiss_text": "",
-    "announcement_updated_at": "1794051550",
-    "theme_primary_color": "#0284c7",
-    "theme_secondary_color": "#6366f1",
-    "theme_preset": "winter"
+    "announcement_updated_at": "1794671203",
+    "theme_primary_color": "#108a55",
+    "theme_secondary_color": "#1aae6c",
+    "theme_preset": "emerald",
+    "holiday_fx_enabled": "1",
+    "holiday_fx_mode": "sync_theme",
+    "holiday_fx_intensity": "festive",
+    "holiday_fx_allow_toggle": "1"
 }

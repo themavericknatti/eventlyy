@@ -112,6 +112,7 @@ $siteName = site_setting('site_title', 'Eventlyy');
     <script src="{{ route('assets/js/auth.js') }}?v=<?= $authJsVer ?>" defer></script>
     @yield('script')
     <div id="theme-announcer" class="visually-hidden" aria-live="polite"></div>
+    <?php echo $this->include('partials/holiday-fx', []); ?>
 </body>
 
 </html>

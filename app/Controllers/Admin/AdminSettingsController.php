@@ -84,6 +84,10 @@ class AdminSettingsController extends Controller
             'theme_primary_color' => '#108a55',
             'theme_secondary_color' => '#1aae6c',
             'theme_preset' => 'emerald',
+            'holiday_fx_enabled' => '1',
+            'holiday_fx_mode' => 'auto',
+            'holiday_fx_intensity' => 'standard',
+            'holiday_fx_allow_toggle' => '1',
         ];
 
         if (!file_exists($this->settingsFile)) {
@@ -170,6 +174,13 @@ class AdminSettingsController extends Controller
                 'theme_primary_color' => !empty($data['theme_primary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $data['theme_primary_color']) ? strtolower($data['theme_primary_color']) : ($currentSettings['theme_primary_color'] ?? '#108a55'),
                 'theme_secondary_color' => !empty($data['theme_secondary_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', $data['theme_secondary_color']) ? strtolower($data['theme_secondary_color']) : ($currentSettings['theme_secondary_color'] ?? '#1aae6c'),
                 'theme_preset' => trim($data['theme_preset'] ?? 'custom'),
+                'holiday_fx_enabled' => (!empty($data['holiday_fx_enabled']) && $data['holiday_fx_enabled'] === '1') ? '1' : '0',
+                'holiday_fx_mode' => in_array($data['holiday_fx_mode'] ?? '', [
+                    'auto', 'sync_theme', 'christmas', 'winter', 'new_year', 'valentine',
+                    'easter', 'halloween', 'summer', 'independence_ng', 'ramadan', 'autumn', 'disabled'
+                ], true) ? $data['holiday_fx_mode'] : 'auto',
+                'holiday_fx_intensity' => in_array($data['holiday_fx_intensity'] ?? '', ['subtle', 'standard', 'festive'], true) ? $data['holiday_fx_intensity'] : 'standard',
+                'holiday_fx_allow_toggle' => (!empty($data['holiday_fx_allow_toggle']) && $data['holiday_fx_allow_toggle'] === '1') ? '1' : '0',
             ];
 
             // Also update the runtime timezone immediately

@@ -99,6 +99,107 @@ if (!function_exists('theme_secondary_color')) {
     }
 }
 
+if (!function_exists('holiday_fx_config')) {
+    /**
+     * Resolve the active atmospheric holiday/seasonal effects configuration.
+     * Evaluates admin settings, preset synchronization, and calendar date boundaries.
+     *
+     * @return array{active: bool, mode: string, title: string, intensity: string, allow_toggle: bool}
+     */
+    function holiday_fx_config(): array
+    {
+        $enabled = function_exists('site_setting') ? site_setting('holiday_fx_enabled', '1') : '1';
+        if ($enabled !== '1' && $enabled !== true && $enabled !== 1) {
+            return ['active' => false, 'mode' => 'disabled', 'title' => 'Disabled', 'intensity' => 'standard', 'allow_toggle' => false];
+        }
+
+        $mode = function_exists('site_setting') ? (string) site_setting('holiday_fx_mode', 'auto') : 'auto';
+        $intensity = function_exists('site_setting') ? (string) site_setting('holiday_fx_intensity', 'standard') : 'standard';
+        $allowToggle = function_exists('site_setting') ? ((string) site_setting('holiday_fx_allow_toggle', '1') === '1') : true;
+
+        if ($mode === 'disabled') {
+            return ['active' => false, 'mode' => 'disabled', 'title' => 'Disabled', 'intensity' => $intensity, 'allow_toggle' => false];
+        }
+
+        // If mode is set to sync with current theme preset:
+        if ($mode === 'sync_theme') {
+            $preset = function_exists('site_setting') ? (string) site_setting('theme_preset', 'emerald') : 'emerald';
+            $modeMap = [
+                'christmas' => 'christmas',
+                'winter'    => 'winter',
+                'summer'    => 'summer',
+                'halloween' => 'halloween',
+                'rose'      => 'valentine',
+                'neon'      => 'new_year',
+                'indigo'    => 'new_year',
+            ];
+            $mode = $modeMap[$preset] ?? 'auto';
+        }
+
+        // If mode is 'auto', detect season/holiday by current calendar date
+        if ($mode === 'auto') {
+            $month = (int) date('n');
+            $day   = (int) date('j');
+
+            // Christmas & Festive Holiday Season: Dec 15 to Jan 5 (except New Year peak)
+            if ($month === 12 && $day >= 15 && $day < 31) {
+                $mode = 'christmas';
+            } elseif ($month === 12 && $day >= 31) {
+                // New Year Eve
+                $mode = 'new_year';
+            } elseif ($month === 1 && $day <= 7) {
+                // New Year week
+                $mode = 'new_year';
+            } elseif ($month === 1 && $day > 7) {
+                // Rest of January: Winter snowfall
+                $mode = 'winter';
+            } elseif ($month === 2 && $day >= 1 && $day <= 20) {
+                // Valentine's season: Feb 1 - Feb 20
+                $mode = 'valentine';
+            } elseif (($month === 3 && $day >= 15) || ($month === 4 && $day <= 30)) {
+                // Easter / Spring blossom: mid March to end of April
+                $mode = 'easter';
+            } elseif ($month >= 6 && $month <= 8) {
+                // Summer party season: June to August
+                $mode = 'summer';
+            } elseif (($month === 9 && $day >= 25) || ($month === 10 && $day <= 6)) {
+                // Nigerian Independence / National Day: Sept 25 - Oct 6
+                $mode = 'independence_ng';
+            } elseif (($month === 10 && $day >= 15) || ($month === 11 && $day <= 3)) {
+                // Halloween: Oct 15 - Nov 3
+                $mode = 'halloween';
+            } elseif ($month === 11 && $day > 3) {
+                // Autumn / Fall: November
+                $mode = 'autumn';
+            } else {
+                // Fallback default: gentle winter snowfall
+                $mode = 'winter';
+            }
+        }
+
+        $titles = [
+            'christmas'       => 'Christmas Festive (Snowflakes, Doves & Santa)',
+            'winter'          => 'Winter Snowfall',
+            'new_year'        => 'New Year Celebration',
+            'valentine'       => 'Valentine Romance & Hearts',
+            'easter'          => 'Easter & Spring Floral Doves',
+            'halloween'       => 'Halloween Spooky Bats & Embers',
+            'summer'          => 'Summer Warm Bokeh & Bubbles',
+            'independence_ng' => 'National Independence Day (Green & White)',
+            'ramadan'         => 'Ramadan & Eid Moon & Stars',
+            'autumn'          => 'Autumn Golden Leaves',
+        ];
+
+        return [
+            'active'       => true,
+            'mode'         => $mode,
+            'title'        => $titles[$mode] ?? ucfirst($mode),
+            'intensity'    => $intensity,
+            'allow_toggle' => $allowToggle,
+        ];
+    }
+}
+
 if (!function_exists('hex_to_rgb_triple')) {
     /**
      * Convert 6-character hex color to space-separated RGB string (e.g. "16 138 85")
