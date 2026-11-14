@@ -1028,6 +1028,35 @@ Your Account Hub — Eventlyy
                                 <?php endif; ?>
 
                                 <?php if (!$tkIsPast): ?>
+                                    <?php
+                                    $tkRawImg = $tk['event_image'] ?? '';
+                                    $tkImgUrl = '';
+                                    if (!empty($tkRawImg)) {
+                                        if (preg_match('#^https?://#i', $tkRawImg)) {
+                                            $tkImgUrl = $tkRawImg;
+                                        } elseif (str_starts_with(ltrim($tkRawImg, '/\\'), 'assets/')) {
+                                            $tkImgUrl = asset($tkRawImg);
+                                        } else {
+                                            $tkImgUrl = url($tkRawImg);
+                                        }
+                                    }
+                                    if (empty($tkImgUrl)) {
+                                        $tkImgUrl = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1600&q=85&auto=format&fit=crop';
+                                    }
+                                    ?>
+                                    <button type="button" class="btn-ticket-story"
+                                            data-story-trigger
+                                            data-event-name="<?= htmlspecialchars($tk['event_name'], ENT_QUOTES) ?>"
+                                            data-event-date="<?= htmlspecialchars($tkEventDate . ' • ' . $tkEventTime, ENT_QUOTES) ?>"
+                                            data-event-location="<?= htmlspecialchars($tk['event_location'], ENT_QUOTES) ?>"
+                                            data-event-image="<?= htmlspecialchars($tkImgUrl, ENT_QUOTES) ?>"
+                                            data-attendee-name="<?= htmlspecialchars($tk['attendee_name'] ?? 'Attendee', ENT_QUOTES) ?>"
+                                            data-ticket-type="<?= htmlspecialchars($tk['ticket_type'] ?? 'General Admission', ENT_QUOTES) ?>"
+                                            data-site-title="<?= htmlspecialchars(site_setting('site_title', 'Eventlyy'), ENT_QUOTES) ?>"
+                                            data-event-url="<?= url('/e/' . (!empty($tk['event_custom_url']) ? $tk['event_custom_url'] : ($tk['event_slug'] ?? $tk['event_id']))) ?>"
+                                            title="Create Instagram &amp; WhatsApp Story Card">
+                                        <span>📸</span> Story Pass
+                                    </button>
                                     <a href="<?= event_google_calendar_url(['name' => $tk['event_name'], 'date' => $tk['event_date'], 'location' => $tk['event_location'], 'description' => 'Admission Ticket #' . $tk['ticket_id'] . ' for ' . $tk['event_name'], 'id' => $tk['event_id']]) ?>" target="_blank" rel="noopener" class="pf-btn pf-btn--secondary pf-btn--sm" title="Add this event to Google Calendar">
                                         <span>📅 Calendar</span>
                                     </a>
@@ -1441,4 +1470,7 @@ function printTicket(idx) {
     });
 }
 </script>
+
+<?php echo $this->include('partials/story-card-modal', []); ?>
+
 @endsection

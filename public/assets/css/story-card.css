@@ -1,0 +1,734 @@
+/**
+ * Eventlyy - "I'm Going!" Human Editorial Story Pass Generator
+ * Refined, authentic, typography-driven UI/UX with photo upload capabilities.
+ * Perfectly calibrated with platform admin theme styles.
+ */
+
+:root {
+    --sc-brand: var(--primary, #108a55);
+    --sc-brand-soft: rgba(var(--primary-rgb, 16, 138, 85), 0.14);
+    --sc-brand-glow: rgba(var(--primary-rgb, 16, 138, 85), 0.28);
+    --sc-accent: var(--secondary, #1aae6c);
+    --sc-accent-rgb: var(--secondary-rgb, 26, 174, 108);
+    --sc-on-brand: var(--on-primary, #ffffff);
+    
+    --sc-bg: #0b0f19;
+    --sc-surface: #111827;
+    --sc-surface-elevated: #1a2234;
+    --sc-border: rgba(255, 255, 255, 0.08);
+    --sc-border-focus: var(--sc-brand);
+    --sc-text: #f3f4f6;
+    --sc-text-muted: #9ca3af;
+    --sc-text-dim: #6b7280;
+    --sc-radius-sm: 8px;
+    --sc-radius-md: 12px;
+    --sc-radius-lg: 16px;
+    --sc-radius-pill: 9999px;
+}
+
+/* Modal Backing */
+.sc-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(4, 7, 14, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sc-modal.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* Modal Dialog Box */
+.sc-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 980px;
+    height: 88vh;
+    max-height: 840px;
+    background: var(--sc-surface);
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-lg);
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75),
+                0 0 0 1px rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--sc-text);
+    animation: scModalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scModalSlideUp {
+    from {
+        transform: translateY(18px) scale(0.98);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Header */
+.sc-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.5rem;
+    border-bottom: 1px solid var(--sc-border);
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(8px);
+}
+
+.sc-header-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sc-header-title h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #fff;
+}
+
+.sc-header-title span {
+    font-size: 0.75rem;
+    color: var(--sc-text-dim);
+    letter-spacing: 0.02em;
+    font-weight: 400;
+}
+
+.sc-close-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--sc-text-muted);
+    width: 34px;
+    height: 34px;
+    border-radius: var(--sc-radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.sc-close-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Body: Two columns (Fixed Preview Left + Single Scrolling Controls Right) */
+.sc-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    overflow: hidden; /* STRICT: No scrollbar here on desktop! */
+    height: 100%;
+    min-height: 0;
+}
+
+/* Left: Live Preview (Centered and locked in place) */
+.sc-preview-panel {
+    background: #080c14;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--sc-border);
+    position: relative;
+    overflow: hidden; /* No scrollbar here! */
+    height: 100%;
+}
+
+.sc-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 270px;
+    aspect-ratio: 9 / 16;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    background: #000;
+}
+
+.sc-canvas-wrapper canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+.sc-preview-badge {
+    position: absolute;
+    bottom: 0.85rem;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--sc-text-muted);
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--sc-radius-pill);
+    letter-spacing: 0.06em;
+    pointer-events: none;
+}
+
+/* Right: Editor Controls (The ONLY scrollable container on desktop!) */
+.sc-editor-panel {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    overflow-y: auto; /* The single scrollbar on desktop! */
+    height: 100%;
+    min-height: 0;
+}
+
+/* Discreet custom scrollbar for right panel */
+.sc-editor-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.sc-editor-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sc-editor-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+}
+.sc-editor-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.sc-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sc-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sc-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sc-label-hint {
+    font-size: 0.7rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--sc-text-dim);
+}
+
+/* Photo Switcher Tabs */
+.sc-photo-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: var(--sc-radius-md);
+    border: 1px solid var(--sc-border);
+}
+
+.sc-photo-tab {
+    background: transparent;
+    border: none;
+    color: var(--sc-text-muted);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+}
+
+.sc-photo-tab:hover {
+    color: #fff;
+}
+
+.sc-photo-tab.active {
+    background: var(--sc-brand);
+    color: var(--sc-on-brand);
+    font-weight: 600;
+    box-shadow: 0 2px 8px var(--sc-brand-glow);
+}
+
+/* Attendee Photo Upload Zone */
+.sc-upload-zone {
+    border: 1.5px dashed var(--sc-border);
+    border-radius: var(--sc-radius-md);
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
+}
+
+.sc-upload-zone:hover,
+.sc-upload-zone.dragover {
+    border-color: var(--sc-brand);
+    background: var(--sc-brand-soft);
+}
+
+.sc-upload-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--sc-text-muted);
+}
+
+.sc-upload-text {
+    font-size: 0.8rem;
+    color: var(--sc-text);
+    font-weight: 500;
+}
+
+.sc-upload-subtext {
+    font-size: 0.7rem;
+    color: var(--sc-text-dim);
+}
+
+/* Uploaded Photo Preview Bar */
+.sc-photo-preview-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: var(--sc-surface-elevated);
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-md);
+}
+
+.sc-photo-preview-bar.active {
+    display: flex;
+}
+
+.sc-photo-thumb-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.sc-photo-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid var(--sc-border);
+}
+
+.sc-photo-thumb-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.sc-photo-thumb-title {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.sc-photo-thumb-desc {
+    font-size: 0.68rem;
+    color: var(--sc-text-dim);
+}
+
+.sc-photo-remove-btn {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.sc-photo-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+/* Style / Template Selector (Editorial Cards) */
+.sc-template-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.sc-template-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-md);
+    padding: 0.75rem 0.65rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sc-template-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sc-template-card.active {
+    border-color: var(--sc-brand);
+    background: var(--sc-surface-elevated);
+    box-shadow: 0 0 0 1px var(--sc-brand), 0 4px 14px var(--sc-brand-soft);
+}
+
+.sc-template-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sc-template-name svg {
+    width: 14px;
+    height: 14px;
+    color: var(--sc-brand);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.sc-template-card.active .sc-template-name svg {
+    opacity: 1;
+}
+
+.sc-template-desc {
+    font-size: 0.68rem;
+    color: var(--sc-text-dim);
+    line-height: 1.25;
+}
+
+/* Badge Selector */
+.sc-badge-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.sc-badge-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-pill);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--sc-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.03em;
+}
+
+.sc-badge-pill:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sc-badge-pill.active {
+    background: var(--sc-brand);
+    color: var(--sc-on-brand);
+    font-weight: 600;
+    border-color: var(--sc-brand);
+    box-shadow: 0 2px 8px var(--sc-brand-glow);
+}
+
+/* Text Inputs */
+.sc-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sc-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-md);
+    padding: 0.65rem 0.85rem;
+    color: #fff;
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sc-input:focus {
+    border-color: var(--sc-brand);
+    box-shadow: 0 0 0 2px var(--sc-brand-soft);
+}
+
+.sc-input::placeholder {
+    color: var(--sc-text-dim);
+}
+
+/* Actions Bar */
+.sc-actions-bar {
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sc-border);
+    display: flex;
+    gap: 0.65rem;
+}
+
+.sc-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: var(--sc-radius-md);
+    font-size: 0.84rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    text-decoration: none;
+}
+
+.sc-btn-primary {
+    background: var(--sc-brand);
+    color: var(--sc-on-brand);
+    box-shadow: 0 4px 14px var(--sc-brand-glow);
+}
+
+.sc-btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px var(--sc-brand-glow);
+}
+
+.sc-btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sc-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.sc-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive adjustments (Mobile: Single overall scroll container) */
+@media (max-width: 768px) {
+    .sc-dialog {
+        height: 94vh;
+        max-height: 94vh;
+    }
+
+    .sc-body {
+        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto; /* ONLY SCROLL CONTAINER ON MOBILE */
+        height: auto;
+    }
+
+    .sc-preview-panel {
+        padding: 1rem;
+        border-right: none;
+        border-bottom: 1px solid var(--sc-border);
+        flex-shrink: 0;
+        height: auto;
+    }
+
+    .sc-canvas-wrapper {
+        max-width: 180px;
+    }
+
+    .sc-editor-panel {
+        padding: 1rem;
+        gap: 1rem;
+        overflow: visible; /* NO NESTED SCROLLBAR ON MOBILE */
+        height: auto;
+    }
+
+    .sc-template-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-actions-bar {
+        position: sticky;
+        bottom: 0;
+        background: var(--sc-surface);
+        padding-bottom: 0.5rem;
+    }
+}
+
+/* =========================================================================
+ * Trigger Banners & Action Buttons (Success Page & User Profile)
+ * Calibrated with platform admin theme styles
+ * ========================================================================= */
+
+.suc-story-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    background: linear-gradient(135deg, #0b0f19 0%, #131a29 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.45);
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.suc-story-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100%;
+    background: radial-gradient(circle at right center, var(--sc-brand-soft) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.suc-story-banner__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    z-index: 1;
+}
+
+.suc-story-banner__badge {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--sc-brand-soft);
+    border: 1px solid rgba(var(--primary-rgb, 16, 138, 85), 0.35);
+    color: var(--sc-brand);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+}
+
+.suc-story-banner__title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+.suc-story-banner__text {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #94a3b8;
+    line-height: 1.45;
+    max-width: 620px;
+}
+
+.suc-story-banner__action {
+    flex-shrink: 0;
+    z-index: 1;
+}
+
+.suc-story-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--sc-brand);
+    color: var(--sc-on-brand);
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem 1.4rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--sc-brand-glow);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.suc-story-trigger-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 8px 24px var(--sc-brand-glow);
+}
+
+/* Individual Ticket Pass Story Button */
+.btn-ticket-story {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #0f172a;
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-ticket-story:hover {
+    background: var(--sc-brand-soft);
+    border-color: var(--sc-brand);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .suc-story-banner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1.25rem;
+        gap: 1.1rem;
+    }
+
+    .suc-story-trigger-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

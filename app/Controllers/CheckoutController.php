@@ -1203,6 +1203,30 @@ class CheckoutController extends Controller
             }
         }
 
+        if ($order) {
+            if (empty($order['event_image']) || empty($order['event_slug'])) {
+                $evStmt = null;
+                if (!empty($order['event_id'])) {
+                    $evStmt = $db->prepare("SELECT id, name, slug, custom_url, image, category, flyer_page_enabled FROM events WHERE id = :id LIMIT 1");
+                    $evStmt->execute(['id' => $order['event_id']]);
+                } elseif (!empty($order['event_name'])) {
+                    $evStmt = $db->prepare("SELECT id, name, slug, custom_url, image, category, flyer_page_enabled FROM events WHERE name = :name ORDER BY id DESC LIMIT 1");
+                    $evStmt->execute(['name' => $order['event_name']]);
+                }
+                if ($evStmt) {
+                    $ev = $evStmt->fetch(\PDO::FETCH_ASSOC);
+                    if ($ev) {
+                        $order['event_id'] = $ev['id'];
+                        $order['event_image'] = !empty($ev['image']) ? $ev['image'] : '';
+                        $order['event_slug'] = !empty($ev['custom_url']) ? $ev['custom_url'] : ($ev['slug'] ?? $ev['id']);
+                        $order['event_category'] = $ev['category'] ?? '';
+                        $order['flyer_page_enabled'] = $ev['flyer_page_enabled'] ?? 0;
+                        Application::$app->session->set('order_success', $order);
+                    }
+                }
+            }
+        }
+
         if (!$order) {
             redirect('/');
             return '';

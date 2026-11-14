@@ -68,6 +68,79 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
 
 <div class="suc-container">
     
+    <!-- ═══ Viral "I'm Going!" Story Card Launch Banner ═══ -->
+    <?php
+    $firstTicket = $order['tickets'][0] ?? [];
+    $firstTicketCode = $firstTicket['ticket_code'] ?? ($firstTicket['id'] ?? $orderRef);
+    $firstTicketType = !empty($firstTicket['ticket_type']) ? $firstTicket['ticket_type'] : 'General Admission';
+    $primaryAttendeeName = !empty($order['attendee_name']) && $order['attendee_name'] !== 'Attendee' 
+        ? $order['attendee_name'] 
+        : (!empty($firstTicket['attendee_name']) && $firstTicket['attendee_name'] !== 'Attendee' ? $firstTicket['attendee_name'] : 'Attendee');
+    $evDateStr = $eventDate ? date('D, M d, Y • g:i A', $eventDate) : 'Date TBA';
+    $rawImg = $order['event_image'] ?? '';
+    if (empty($rawImg)) {
+        try {
+            $dbInstance = \Core\Application::$app->db->pdo ?? null;
+            if ($dbInstance) {
+                if (!empty($order['event_id'])) {
+                    $fallbackStmt = $dbInstance->prepare("SELECT image FROM events WHERE id = :id LIMIT 1");
+                    $fallbackStmt->execute(['id' => $order['event_id']]);
+                } elseif (!empty($order['event_name'])) {
+                    $fallbackStmt = $dbInstance->prepare("SELECT image FROM events WHERE name = :name ORDER BY id DESC LIMIT 1");
+                    $fallbackStmt->execute(['name' => $order['event_name']]);
+                }
+                if (!empty($fallbackStmt)) {
+                    $imgRow = $fallbackStmt->fetch(\PDO::FETCH_ASSOC);
+                    if (!empty($imgRow['image'])) {
+                        $rawImg = $imgRow['image'];
+                    }
+                }
+            }
+        } catch (\Throwable $th) {}
+    }
+
+    $evImg = '';
+    if (!empty($rawImg)) {
+        if (preg_match('#^https?://#i', $rawImg)) {
+            $evImg = $rawImg;
+        } elseif (str_starts_with(ltrim($rawImg, '/\\'), 'assets/')) {
+            $evImg = asset($rawImg);
+        } else {
+            $evImg = url($rawImg);
+        }
+    }
+    if (empty($evImg)) {
+        $evImg = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1600&q=85&auto=format&fit=crop';
+    }
+    $evShareUrl = url('/e/' . ($order['event_slug'] ?? ($order['event_id'] ?? '')));
+    ?>
+    <div class="suc-story-banner no-print">
+        <div class="suc-story-banner__content">
+            <span class="suc-story-banner__badge">✦ OFFICIAL SOCIAL PASS</span>
+            <h2 class="suc-story-banner__title">Share Your Story Pass</h2>
+            <p class="suc-story-banner__text">
+                Generate a 9:16 vertical card for your <strong>Instagram Story &amp; WhatsApp Status</strong>. Feature the official artwork or upload your own selfie.
+                <span style="display:block; margin-top:6px; font-size:0.82rem; color:var(--primary, #108a55); font-weight:500;">
+                    🔒 Safe to share online &bull; Your entry QR code is kept private in your tickets below.
+                </span>
+            </p>
+        </div>
+        <div class="suc-story-banner__action">
+            <button type="button" class="suc-story-trigger-btn"
+                    data-story-trigger
+                    data-event-name="<?= e($order['event_name']) ?>"
+                    data-event-date="<?= e($evDateStr) ?>"
+                    data-event-location="<?= e($order['event_location']) ?>"
+                    data-event-image="<?= e($evImg) ?>"
+                    data-attendee-name="<?= e($primaryAttendeeName) ?>"
+                    data-ticket-type="<?= e($firstTicketType) ?>"
+                    data-site-title="<?= e($siteTitle) ?>"
+                    data-event-url="<?= e($evShareUrl) ?>">
+                <span>📸</span> <span>Generate Story Pass</span>
+            </button>
+        </div>
+    </div>
+
     <!-- ═══ Action Toolbar ═══ -->
     <div class="suc-actions no-print">
         <a href="{{ route('/') }}" class="suc-btn suc-btn--secondary">
@@ -174,8 +247,21 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                             <h2 class="suc-pass-event"><?= e($order['event_name']) ?></h2>
                         </div>
                     </div>
-                    <div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                         <span class="suc-pass-type-badge"><?= e($ticketType) ?></span>
+                        <button type="button" class="btn-ticket-story no-print"
+                                data-story-trigger
+                                data-event-name="<?= e($order['event_name']) ?>"
+                                data-event-date="<?= e($evDateStr) ?>"
+                                data-event-location="<?= e($order['event_location']) ?>"
+                                data-event-image="<?= e($evImg) ?>"
+                                data-attendee-name="<?= e($holderName) ?>"
+                                data-ticket-type="<?= e($ticketType) ?>"
+                                data-site-title="<?= e($siteTitle) ?>"
+                                data-event-url="<?= e($evShareUrl) ?>"
+                                title="Generate Instagram &amp; WhatsApp Story Card for this ticket">
+                            <span>📸</span> Story Pass
+                        </button>
                     </div>
                 </div>
 
@@ -299,5 +385,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+<?php echo $this->include('partials/story-card-modal', []); ?>
 
 @endsection

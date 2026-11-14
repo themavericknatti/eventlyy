@@ -217,6 +217,8 @@ class ProfileController extends Controller
                 e.date AS event_date,
                 e.location AS event_location,
                 e.image AS event_image,
+                e.slug AS event_slug,
+                e.custom_url AS event_custom_url,
                 tt.name AS ticket_type
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
