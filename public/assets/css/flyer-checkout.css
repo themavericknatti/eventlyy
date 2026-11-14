@@ -326,6 +326,25 @@ body {
     color: var(--flyer-accent);
 }
 
+.charge-row--layaway-dep {
+    color: #34d399;
+}
+
+.charge-row--layaway-dep strong {
+    color: #34d399;
+}
+
+.charge-row--layaway-remain {
+    color: #a5b4fc;
+    font-size: 0.85rem;
+    padding-top: 0.2rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.charge-row--layaway-remain strong {
+    color: #a5b4fc;
+}
+
 .charge-row.grand-total {
     padding-top: 0.85rem;
     margin-top: 0.35rem;
@@ -468,6 +487,201 @@ body {
     font-weight: 700;
     margin-top: 0.35rem;
     display: block;
+}
+
+/* ─── Layaway & Payment Plan Options (Flyer Dark Luxury) ─── */
+.payment-plan-section {
+    margin-bottom: 1.35rem;
+}
+
+.payment-plan-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--flyer-text-muted);
+    margin-bottom: 0.65rem;
+}
+
+.payment-plan-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+}
+
+@media (max-width: 600px) {
+    .payment-plan-grid {
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
+    }
+}
+
+.payment-plan-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-md);
+    padding: 0.95rem 1.05rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.payment-plan-card:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(15, 23, 42, 0.85);
+    transform: translateY(-1px);
+}
+
+.payment-plan-card--active {
+    border-color: var(--flyer-dominant) !important;
+    background: rgba(var(--flyer-dominant-rgb), 0.12) !important;
+    box-shadow: 0 0 0 1px var(--flyer-dominant), 0 8px 24px rgba(var(--flyer-dominant-rgb), 0.2);
+}
+
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.plan-card-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.plan-card-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.plan-card-title {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
+.plan-card-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.plan-card-badge--full {
+    background: rgba(var(--flyer-dominant-rgb), 0.25);
+    color: #c7d2fe;
+    border: 1px solid rgba(var(--flyer-dominant-rgb), 0.4);
+}
+
+.plan-card-badge--layaway {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.plan-card-desc {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--flyer-text-muted);
+    margin: 0;
+}
+
+.plan-card-desc strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Layaway Breakdown Box */
+.layaway-plan-details {
+    margin-top: 0.85rem;
+    padding: 1rem 1.15rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    color: #e2e8f0;
+    animation: flyerFadeIn 0.22s ease-out;
+}
+
+@keyframes flyerFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.layaway-details-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #c7d2fe;
+    font-size: 0.86rem;
+    font-weight: 800;
+    margin-bottom: 0.6rem;
+}
+
+.layaway-details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.55rem 0;
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.layaway-details-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+}
+
+.layaway-details-row strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.layaway-details-row--total {
+    padding-top: 0.45rem;
+    margin-top: 0.2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.86rem;
+}
+
+.layaway-details-row--total strong {
+    color: #34d399;
+    font-size: 0.95rem;
+    font-weight: 900;
+}
+
+.layaway-details-row--remain {
+    color: #c7d2fe;
+    font-weight: 600;
+}
+
+.layaway-details-row--remain strong {
+    color: #a5b4fc;
+}
+
+.layaway-details-note {
+    margin-top: 0.6rem;
+    font-size: 0.74rem;
+    color: #94a3b8;
+    line-height: 1.4;
 }
 
 /* Payment Method Visual Badge */

@@ -242,6 +242,10 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                         <?php if (!empty($event->is_recurring)): ?>
                             <span class="flyer-status-badge flyer-status-badge--recurring">🔄 Recurring Event</span>
                         <?php endif; ?>
+
+                        <?php if (!empty($event->allow_partial_payment)): ?>
+                            <span class="flyer-status-badge flyer-status-badge--layaway" style="background:rgba(99, 102, 241, 0.16); color:#a5b4fc; border:1px solid rgba(99, 102, 241, 0.35);">💳 Layaway Plan Available</span>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Event Title -->
@@ -329,7 +333,12 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                         <section class="flyer-tickets-desk" id="tickets-section">
                             <div class="flyer-tickets-header">
                                 <h2><span>🎟️</span> Select Your Tickets</h2>
-                                <span class="flyer-instant-badge">⚡ Instant QR Delivery</span>
+                                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                                    <?php if (!empty($event->allow_partial_payment)): ?>
+                                        <span class="flyer-instant-badge" style="background:rgba(99, 102, 241, 0.18); border-color:rgba(99, 102, 241, 0.35); color:#c7d2fe;">💳 Layaway Available</span>
+                                    <?php endif; ?>
+                                    <span class="flyer-instant-badge">⚡ Instant QR Delivery</span>
+                                </div>
                             </div>
 
                             <?php if ($isCompleted): ?>

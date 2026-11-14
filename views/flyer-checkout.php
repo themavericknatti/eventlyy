@@ -23,6 +23,17 @@ if (!empty($selectedItems) && is_array($selectedItems)) {
     }
 }
 $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
+
+// Layaway (Partial Payment / Installment Plan) Configuration
+$allowLayaway = !empty($event->allow_partial_payment);
+$minPercent = (int)($event->partial_payment_min_percent ?? 25);
+if ($minPercent < 10 || $minPercent > 90) {
+    $minPercent = 25;
+}
+$depositTicketSubtotal = round($subtotal * ($minPercent / 100), 2);
+$totalCharges = ($passFee && $subtotal > 0 ? $fee : 0.00) + ($subtotal > 0 ? $extraCharge : 0.00);
+$layawayDueToday = $depositTicketSubtotal + $totalCharges;
+$layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -176,8 +187,18 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
                             <strong id="val-discount">-</strong>
                         </div>
 
+                        <!-- Dynamic Layaway Rows (shown when Layaway is active) -->
+                        <div class="charge-row charge-row--layaway-dep" id="row-layaway-deposit" style="display:none;">
+                            <span>Deposit Portion (<?= $minPercent ?>%)</span>
+                            <strong id="val-layaway-deposit"><?= format_price($depositTicketSubtotal) ?></strong>
+                        </div>
+                        <div class="charge-row charge-row--layaway-remain" id="row-layaway-remaining" style="display:none;">
+                            <span>Remaining Balance Later</span>
+                            <strong id="val-layaway-remaining"><?= format_price($layawayRemainingBalance) ?></strong>
+                        </div>
+
                         <div class="charge-row grand-total">
-                            <span>Total Due</span>
+                            <span id="label-total-due">Total Due</span>
                             <strong id="val-total">
                                 <?= (!empty($selectedItems) && $totalAmount <= 0) ? 'Free' : format_price($totalAmount) ?>
                             </strong>
@@ -261,6 +282,81 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
                             <span id="promo-status-msg" class="promo-status-msg" aria-live="polite"></span>
                         </div>
 
+                        <!-- Payment Plan Option (Full vs Layaway Option) -->
+                        <?php if ($allowLayaway && !$isFreeOrder && !empty($selectedItems)): ?>
+                        <div class="payment-plan-section">
+                            <label class="payment-plan-label">Payment Plan Option</label>
+                            <input type="hidden" name="payment_type" id="input-payment-type" value="full">
+                            <input type="hidden" name="deposit_percent" id="input-deposit-percent" value="<?= (int)$minPercent ?>">
+
+                            <div class="payment-plan-grid">
+                                <!-- Full Payment Option -->
+                                <button type="button" class="payment-plan-card payment-plan-card--active" id="plan-btn-full" onclick="selectFlyerPaymentType('full')">
+                                    <div class="plan-card-header">
+                                        <div class="plan-card-title-wrap">
+                                            <span class="plan-card-icon">💰</span>
+                                            <strong class="plan-card-title">Pay in Full</strong>
+                                        </div>
+                                        <span class="plan-card-badge plan-card-badge--full" id="plan-badge-full">Active</span>
+                                    </div>
+                                    <p class="plan-card-desc">
+                                        Pay <strong id="plan-full-text"><?= format_price($totalAmount) ?></strong> today &amp; receive your instant digital ticket passes.
+                                    </p>
+                                </button>
+
+                                <!-- Layaway / Installment Option -->
+                                <button type="button" class="payment-plan-card" id="plan-btn-layaway" onclick="selectFlyerPaymentType('layaway')">
+                                    <div class="plan-card-header">
+                                        <div class="plan-card-title-wrap">
+                                            <span class="plan-card-icon">💳</span>
+                                            <strong class="plan-card-title">Reserve with Deposit</strong>
+                                        </div>
+                                        <span class="plan-card-badge plan-card-badge--layaway"><?= $minPercent ?>% Min</span>
+                                    </div>
+                                    <p class="plan-card-desc">
+                                        Pay <strong id="plan-layaway-due-text"><?= format_price($layawayDueToday) ?></strong> today to lock your spot. Pay remaining <span id="plan-layaway-remain-text"><?= format_price($layawayRemainingBalance) ?></span> before the event.
+                                    </p>
+                                </button>
+                            </div>
+
+                            <!-- Layaway Plan Breakdown Card -->
+                            <div class="layaway-plan-details" id="layaway-plan-details" style="display:none;">
+                                <div class="layaway-details-title">
+                                    <span>✨</span> <strong>Layaway Reservation Breakdown:</strong>
+                                </div>
+                                <div class="layaway-details-grid">
+                                    <div class="layaway-details-row">
+                                        <span>• Ticket Reservation Deposit (<?= $minPercent ?>%):</span>
+                                        <strong id="layaway-box-deposit"><?= format_price($depositTicketSubtotal) ?></strong>
+                                    </div>
+                                    <?php if ($fee > 0): ?>
+                                    <div class="layaway-details-row">
+                                        <span>• Ticketing Platform Fee (<?= $platformFeePercent ?>%):</span>
+                                        <strong><?= format_price($fee) ?></strong>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if ($extraCharge > 0): ?>
+                                    <div class="layaway-details-row">
+                                        <span>• Service / Processing Charge:</span>
+                                        <strong><?= format_price($extraCharge) ?></strong>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="layaway-details-row layaway-details-row--total">
+                                        <span>💳 Total Due Today (Deposit + Fees):</span>
+                                        <strong id="layaway-box-due-today"><?= format_price($layawayDueToday) ?></strong>
+                                    </div>
+                                    <div class="layaway-details-row layaway-details-row--remain">
+                                        <span>⏳ Remaining Balance Due Later:</span>
+                                        <strong id="layaway-box-remaining"><?= format_price($layawayRemainingBalance) ?></strong>
+                                    </div>
+                                </div>
+                                <div class="layaway-details-note">
+                                    🔒 Your admission pass is locked in instantly. Your digital QR ticket activates once your remaining balance is paid before the event.
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Payment Method Indicator -->
                         <div class="payment-method-indicator">
                             <div class="payment-method-info">
@@ -297,7 +393,7 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
         </div>
     </main>
 
-    <!-- Promo Code AJAX Validation Script -->
+    <!-- Layaway & Promo Code Interactive Logic -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const promoBtn = document.getElementById('btn-apply-code');
@@ -306,6 +402,7 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
         const rowDiscount = document.getElementById('row-discount');
         const valDiscount = document.getElementById('val-discount');
         const valTotal = document.getElementById('val-total');
+        const labelTotal = document.getElementById('label-total-due');
         const payBtn = document.getElementById('btn-pay-action');
         const payBtnText = document.getElementById('pay-btn-text');
         const payBtnIcon = document.getElementById('pay-btn-icon');
@@ -317,6 +414,58 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
 
         const eventId = '<?= $event->id ?>';
         const subtotal = <?= (float)$subtotal ?>;
+        const fee = <?= (float)$fee ?>;
+        const extraCharge = <?= (float)$extraCharge ?>;
+        const minPercent = <?= (int)$minPercent ?>;
+        const currencySymbol = '<?= e($currencySymbol) ?>';
+
+        let currentPaymentType = 'full';
+        let formattedTotalFull = '<?= format_price($totalAmount) ?>';
+        let formattedLayawayDue = '<?= format_price($layawayDueToday) ?>';
+        let formattedDepositTicket = '<?= format_price($depositTicketSubtotal) ?>';
+        let formattedLayawayRemaining = '<?= format_price($layawayRemainingBalance) ?>';
+
+        function formatMoney(amount) {
+            return currencySymbol + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ── Layaway / Full Payment Selection ──
+        window.selectFlyerPaymentType = function(type) {
+            currentPaymentType = type;
+            const input = document.getElementById('input-payment-type');
+            const details = document.getElementById('layaway-plan-details');
+            const btnFull = document.getElementById('plan-btn-full');
+            const btnLayaway = document.getElementById('plan-btn-layaway');
+            const badgeFull = document.getElementById('plan-badge-full');
+            const rowDeposit = document.getElementById('row-layaway-deposit');
+            const rowRemaining = document.getElementById('row-layaway-remaining');
+
+            if (input) input.value = type;
+
+            if (type === 'layaway') {
+                if (details) details.style.display = 'block';
+                if (btnLayaway) btnLayaway.classList.add('payment-plan-card--active');
+                if (btnFull) btnFull.classList.remove('payment-plan-card--active');
+                if (badgeFull) badgeFull.style.display = 'none';
+                if (rowDeposit) rowDeposit.style.display = 'flex';
+                if (rowRemaining) rowRemaining.style.display = 'flex';
+                if (labelTotal) labelTotal.textContent = 'Due Today (Deposit + Fees)';
+                if (valTotal) valTotal.textContent = formattedLayawayDue;
+                if (payBtnText) payBtnText.textContent = `Pay Deposit (${formattedLayawayDue}) with Paystack`;
+                if (pmLabel) pmLabel.textContent = 'Secured Deposit via Paystack Gateway';
+            } else {
+                if (details) details.style.display = 'none';
+                if (btnFull) btnFull.classList.add('payment-plan-card--active');
+                if (btnLayaway) btnLayaway.classList.remove('payment-plan-card--active');
+                if (badgeFull) badgeFull.style.display = 'inline-block';
+                if (rowDeposit) rowDeposit.style.display = 'none';
+                if (rowRemaining) rowRemaining.style.display = 'none';
+                if (labelTotal) labelTotal.textContent = 'Total Due';
+                if (valTotal) valTotal.textContent = formattedTotalFull;
+                if (payBtnText) payBtnText.textContent = `Pay ${formattedTotalFull} with Paystack`;
+                if (pmLabel) pmLabel.textContent = 'Secured via Paystack Gateway';
+            }
+        };
 
         if (promoBtn && promoInput) {
             promoBtn.addEventListener('click', function() {
@@ -354,23 +503,50 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
                             valDiscount.textContent = '-' + data.formatted_discount;
                         }
 
-                        // Update grand total
-                        if (valTotal) {
-                            valTotal.textContent = data.is_free ? 'Free' : data.formatted_new_total;
-                        }
-
-                        // Update CTA text and payment method
                         if (data.is_free) {
+                            formattedTotalFull = 'Free';
+                            if (valTotal) valTotal.textContent = 'Free';
                             if (payBtnText) payBtnText.textContent = 'Claim Free Tickets';
                             if (payBtnIcon) payBtnIcon.textContent = '⚡';
                             if (pmLabel) pmLabel.textContent = 'Complimentary Registration (No Payment Required)';
                             if (pmBadge) pmBadge.textContent = 'FREE';
                             if (pmIcon) pmIcon.textContent = '🎁';
                             if (pmInput) pmInput.value = 'free';
+
+                            const planSection = document.querySelector('.payment-plan-section');
+                            if (planSection) planSection.style.display = 'none';
                         } else {
-                            if (payBtnText) payBtnText.textContent = 'Pay ' + data.formatted_new_total + ' with Paystack';
-                            if (payBtnIcon) payBtnIcon.textContent = '🔒';
-                            if (pmInput) pmInput.value = 'paystack';
+                            formattedTotalFull = data.formatted_new_total || formattedTotalFull;
+                            const discountAmount = parseFloat(data.discount_amount || 0);
+                            const netSubtotal = Math.max(0, subtotal - discountAmount);
+                            const newDepositTicket = Math.round(netSubtotal * (minPercent / 100) * 100) / 100;
+                            const newLayawayDue = Math.round((newDepositTicket + fee + extraCharge) * 100) / 100;
+                            const newLayawayRemain = Math.max(0, Math.round((netSubtotal - newDepositTicket) * 100) / 100);
+
+                            formattedLayawayDue = formatMoney(newLayawayDue);
+                            formattedDepositTicket = formatMoney(newDepositTicket);
+                            formattedLayawayRemaining = formatMoney(newLayawayRemain);
+
+                            const planFullText = document.getElementById('plan-full-text');
+                            const planDueText = document.getElementById('plan-layaway-due-text');
+                            const planRemainText = document.getElementById('plan-layaway-remain-text');
+                            const boxDeposit = document.getElementById('layaway-box-deposit');
+                            const boxDue = document.getElementById('layaway-box-due-today');
+                            const boxRemain = document.getElementById('layaway-box-remaining');
+                            const valDep = document.getElementById('val-layaway-deposit');
+                            const valRemain = document.getElementById('val-layaway-remaining');
+
+                            if (planFullText) planFullText.textContent = formattedTotalFull;
+                            if (planDueText) planDueText.textContent = formattedLayawayDue;
+                            if (planRemainText) planRemainText.textContent = formattedLayawayRemaining;
+                            if (boxDeposit) boxDeposit.textContent = formattedDepositTicket;
+                            if (boxDue) boxDue.textContent = formattedLayawayDue;
+                            if (boxRemain) boxRemain.textContent = formattedLayawayRemaining;
+                            if (valDep) valDep.textContent = formattedDepositTicket;
+                            if (valRemain) valRemain.textContent = formattedLayawayRemaining;
+
+                            // Re-sync UI with selected payment type
+                            selectFlyerPaymentType(currentPaymentType);
                         }
                     } else {
                         promoMsg.textContent = '✕ ' + (data.message || 'Invalid promo code.');
