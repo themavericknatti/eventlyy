@@ -133,10 +133,9 @@ $encodedFlyerUrl = urlencode($flyerUrl);
         <!-- 2. Sticky Glass Top Navigation -->
         <header class="flyer-nav-bar">
             <div class="flyer-nav-left">
-                <a href="<?= e($eventUrl) ?>" class="flyer-back-btn" title="View standard event details page">
-                    <span class="flyer-back-btn-arrow">←</span>
-                    <span class="flyer-back-btn-text-full">Full Details</span>
-                    <span class="flyer-back-btn-text-short">Back</span>
+                <!-- Brand Logo (Official Site Anchor) -->
+                <a href="<?= url('/') ?>" class="flyer-brand-link brand-custom-logo" title="<?= e($siteTitle) ?> Home" aria-label="<?= e($siteTitle) ?> Home">
+                    <?= site_logo_render('flyer', 'flyer-brand-logo-img') ?>
                 </a>
                 <span class="flyer-nav-mode-badge">
                     <span>🎨</span> Flyer Mode
@@ -144,15 +143,16 @@ $encodedFlyerUrl = urlencode($flyerUrl);
             </div>
 
             <div class="flyer-nav-right">
+                <!-- Standard Event Details Link -->
+                <a href="<?= e($eventUrl) ?>" class="flyer-back-btn" title="View standard event details page">
+                    <span class="flyer-back-btn-arrow">←</span>
+                    <span class="flyer-back-btn-text-full">Event Details</span>
+                    <span class="flyer-back-btn-text-short">Details</span>
+                </a>
+
                 <!-- Quick jump to tickets -->
                 <a href="#tickets-section" class="flyer-nav-jump-btn" title="Jump directly to ticket selection">
                     <span>🎟️</span> <span>Get Tickets</span>
-                </a>
-
-                <!-- Upgraded Premium Brand Emblem & Logo -->
-                <a href="<?= url('/') ?>" class="flyer-brand-badge brand-custom-logo" title="<?= e($siteTitle) ?> Home">
-                    <?= site_logo_render('flyer', 'flyer-brand-logo-img') ?>
-                    <span class="flyer-brand-verified">✓</span>
                 </a>
             </div>
         </header>
@@ -708,5 +708,6 @@ $encodedFlyerUrl = urlencode($flyerUrl);
     });
     </script>
     <div id="flyer-toast-box" class="flyer-toast-box" aria-live="polite"></div>
+    <?php echo $this->include('partials/holiday-fx', []); ?>
 </body>
 </html>

@@ -397,5 +397,6 @@ $isFreeOrder = (!empty($selectedItems) && $totalAmount <= 0.00);
         }
     });
     </script>
+    <?php echo $this->include('partials/holiday-fx', []); ?>
 </body>
 </html>
