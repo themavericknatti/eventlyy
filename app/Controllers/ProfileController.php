@@ -43,10 +43,14 @@ class ProfileController extends Controller
     public function profile(Request $request): string
     {
         $user = Application::$app->user;
+        if (!$user) {
+            Application::$app->response->redirect('/login');
+            return '';
+        }
         $db = Application::$app->db->pdo;
 
         // Determine if the user is a host (has events to manage)
-        $isHost = method_exists($user, 'isHost') && $user->isHost();
+        $isHost = is_object($user) && method_exists($user, 'isHost') && $user->isHost();
 
         // ── Host Data ──
         $profile = [];
@@ -54,6 +58,9 @@ class ProfileController extends Controller
         $totalEventsHosted = 0;
         $payoutConfigured = false;
         $supportedBanks = [];
+        $eventPage = 1;
+        $totalEventPages = 1;
+        $totalEventItems = 0;
 
         if ($isHost) {
             // 1. Fetch host profile
@@ -83,13 +90,94 @@ class ProfileController extends Controller
                 ORDER BY e.date DESC
             ");
             $stmt->execute(['user_id' => $user->id]);
-            $events = $stmt->fetchAll() ?: [];
+            $rawEvents = $stmt->fetchAll() ?: [];
 
             // 3. Compute stats
-            $totalEventsHosted = count($events);
+            $totalEventsHosted = count($rawEvents);
             $payoutConfigured = !empty($profile['payout_bank']) && !empty($profile['payout_account']);
-
             $supportedBanks = \Ace\PaystackService::getSupportedBanks();
+
+            // 4. Group recurring events into single series items with occurrence drawers
+            $groupedEvents = [];
+            $recurringMap = [];
+
+            foreach ($rawEvents as $ev) {
+                $isRecurring = !empty($ev['is_recurring']) && !empty($ev['recurrence_group_id']);
+                if ($isRecurring) {
+                    $groupId = $ev['recurrence_group_id'];
+                    if (!isset($recurringMap[$groupId])) {
+                        $recurringMap[$groupId] = [
+                            'is_group' => true,
+                            'id' => $ev['id'],
+                            'name' => $ev['name'],
+                            'description' => $ev['description'] ?? '',
+                            'category' => $ev['category'] ?? '',
+                            'location' => $ev['location'] ?? '',
+                            'image' => $ev['image'] ?? '',
+                            'recurrence_type' => $ev['recurrence_type'] ?? 'recurring',
+                            'recurrence_group_id' => $groupId,
+                            'tickets_sold' => 0,
+                            'total_capacity' => 0,
+                            'occurrences' => [],
+                            'total_occurrences' => 0,
+                            'date' => $ev['date'],
+                            'status' => $ev['status']
+                        ];
+                    }
+                    $recurringMap[$groupId]['occurrences'][] = $ev;
+                    $recurringMap[$groupId]['total_occurrences']++;
+                    $recurringMap[$groupId]['tickets_sold'] += (int)($ev['tickets_sold'] ?? 0);
+                    $recurringMap[$groupId]['total_capacity'] += (int)($ev['total_capacity'] ?? 0);
+                } else {
+                    $ev['is_group'] = false;
+                    $groupedEvents[] = $ev;
+                }
+            }
+
+            // Post-process recurring groups: sort occurrences chronologically and identify next occurrence
+            foreach ($recurringMap as $groupId => &$group) {
+                usort($group['occurrences'], function($a, $b) {
+                    return strtotime($a['date']) <=> strtotime($b['date']);
+                });
+
+                $nextOcc = null;
+                $now = time();
+                foreach ($group['occurrences'] as $occ) {
+                    if (strtotime($occ['date']) >= $now) {
+                        $nextOcc = $occ;
+                        break;
+                    }
+                }
+                if (!$nextOcc && !empty($group['occurrences'])) {
+                    $nextOcc = end($group['occurrences']);
+                }
+
+                $group['next_occurrence'] = $nextOcc;
+                $group['id'] = $nextOcc ? $nextOcc['id'] : $group['occurrences'][0]['id'];
+                $group['date'] = $nextOcc ? $nextOcc['date'] : $group['occurrences'][0]['date'];
+                $group['status'] = $nextOcc ? $nextOcc['status'] : $group['occurrences'][0]['status'];
+
+                $groupedEvents[] = $group;
+            }
+            unset($group);
+
+            // Sort all grouped items by date descending
+            usort($groupedEvents, function($a, $b) {
+                return strtotime($b['date']) <=> strtotime($a['date']);
+            });
+
+            // 5. Pagination for Host Events ("My Drops")
+            $eventPage = max(1, (int)($request->getBody()['event_page'] ?? ($_GET['event_page'] ?? 1)));
+            $eventsPerPage = 6;
+            $totalEventItems = count($groupedEvents);
+            $totalEventPages = max(1, (int)ceil($totalEventItems / $eventsPerPage));
+            if ($eventPage > $totalEventPages) {
+                $eventPage = $totalEventPages;
+            }
+            $eventOffset = ($eventPage - 1) * $eventsPerPage;
+            $events = array_slice($groupedEvents, $eventOffset, $eventsPerPage);
+        } else {
+            $events = [];
         }
 
         // ── Purchased Tickets (for all user roles, with Pagination) ──
@@ -145,6 +233,11 @@ class ProfileController extends Controller
         $stmt->execute();
         $purchasedTickets = $stmt->fetchAll() ?: [];
 
+        // ── Active Layaway Plans & Available Credits ──
+        $layawayService = new \App\Services\LayawayService();
+        $activeLayaways = $layawayService->getUserLayaways((int)$user->id, $user->email);
+        $availableCredits = $layawayService->getUserCredits($user->email, (int)$user->id);
+
         $memberSince = !empty($user->created_at) ? date('M Y', strtotime($user->created_at)) : date('M Y');
 
         return $this->render('profile', [
@@ -152,12 +245,17 @@ class ProfileController extends Controller
             'user' => $user,
             'profile' => $profile,
             'events' => $events,
+            'eventPage' => $eventPage,
+            'totalEventPages' => $totalEventPages,
+            'totalEventItems' => $totalEventItems,
             'total_events_hosted' => $totalEventsHosted,
             'payout_configured' => $payoutConfigured,
             'member_since' => $memberSince,
             'supportedBanks' => $supportedBanks,
             'isHost' => $isHost,
             'purchasedTickets' => $purchasedTickets,
+            'activeLayaways' => $activeLayaways,
+            'availableCredits' => $availableCredits,
             'ticketPage' => $ticketPage,
             'totalPages' => $totalPages,
             'totalTickets' => $totalTickets,

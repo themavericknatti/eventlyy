@@ -29,6 +29,8 @@ class UpdateEventAction
 
         // Pass fee checkbox setting
         $passFee = isset($data['pass_fee']) ? 1 : 0;
+        $allowPartialPayment = !empty($data['allow_partial_payment']) ? 1 : 0;
+        $partialPaymentMinPercent = isset($data['partial_payment_min_percent']) ? max(10, min(90, (int)$data['partial_payment_min_percent'])) : 25;
 
         // 2. Handle custom_url & secure slug
         $customUrl = trim($data['custom_url'] ?? '');
@@ -183,6 +185,8 @@ class UpdateEventAction
             'date' => $dateTimeStr,
             'location' => $location,
             'pass_fee' => $passFee,
+            'allow_partial_payment' => $allowPartialPayment,
+            'partial_payment_min_percent' => $partialPaymentMinPercent,
             'slug' => $slug,
             'custom_url' => $customUrl,
             'flyer_page_enabled' => $flyerPageEnabled,
@@ -214,6 +218,8 @@ class UpdateEventAction
                     date = :date, 
                     location = :location, 
                     pass_fee = :pass_fee, 
+                    allow_partial_payment = :allow_partial_payment,
+                    partial_payment_min_percent = :partial_payment_min_percent, 
                     slug = :slug,
                     custom_url = :custom_url,
                     flyer_page_enabled = :flyer_page_enabled,
@@ -236,6 +242,8 @@ class UpdateEventAction
                 'date' => $event->date,
                 'location' => $event->location,
                 'pass_fee' => $event->pass_fee,
+                'allow_partial_payment' => $allowPartialPayment,
+                'partial_payment_min_percent' => $partialPaymentMinPercent,
                 'slug' => $slug,
                 'custom_url' => $event->custom_url,
                 'flyer_page_enabled' => $flyerPageEnabled,
@@ -267,7 +275,9 @@ class UpdateEventAction
                         location = :location, 
                         custom_url = :custom_url,
                         slug = :slug,
-                        pass_fee = :pass_fee,
+                        pass_fee = :pass_fee, 
+                    allow_partial_payment = :allow_partial_payment,
+                    partial_payment_min_percent = :partial_payment_min_percent,
                         flyer_page_enabled = :flyer_page_enabled,
                         image = :image,
                         updated_at = NOW()
@@ -282,6 +292,8 @@ class UpdateEventAction
                     'custom_url' => $customUrl,
                     'slug' => $slug,
                     'pass_fee' => $event->pass_fee,
+                'allow_partial_payment' => $allowPartialPayment,
+                'partial_payment_min_percent' => $partialPaymentMinPercent,
                     'flyer_page_enabled' => $flyerPageEnabled,
                     'image' => $event->image,
                     'group_id' => $event->recurrence_group_id,
@@ -414,6 +426,8 @@ class UpdateEventAction
                         'organizer_id' => $event->organizer_id,
                         'status' => 'published',
                         'pass_fee' => $passFee,
+            'allow_partial_payment' => $allowPartialPayment,
+            'partial_payment_min_percent' => $partialPaymentMinPercent,
                         'slug' => $slug,
                         'custom_url' => $customUrl,
                         'flyer_page_enabled' => $flyerPageEnabled,

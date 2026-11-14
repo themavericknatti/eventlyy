@@ -26,6 +26,7 @@ use App\Controllers\Host\HostTicketController;
 use App\Controllers\Host\PromoCodeController;
 use App\Controllers\ProfileController;
 use App\Controllers\TicketController;
+use App\Controllers\LayawayController;
 
 // ==================================================
 // APPLICATION WEB ROUTES
@@ -92,6 +93,13 @@ $router->get('/webhook/paystack', [\App\Controllers\WebhookController::class, 'h
 $router->get('/order/verify/{reference?}', [CheckoutController::class, 'verifyOrderView']);
 $router->post('/order/verify', [CheckoutController::class, 'verifyOrderPost']);
 $router->get('/cron/reconcile-payments', [CheckoutController::class, 'reconcilePaymentsCron']);
+
+// Layaway & Installment Payment System
+$router->get('/layaway', [LayawayController::class, 'dashboard']);
+$router->post('/layaway/pay', [LayawayController::class, 'makePayment']);
+$router->get('/layaway/callback', [LayawayController::class, 'paymentCallback']);
+$router->post('/layaway/apply-credit', [LayawayController::class, 'applyCredit']);
+$router->get('/cron/expire-layaways', [LayawayController::class, 'expireCron']);
 
 $router->get('/terms', [HomeController::class, 'terms']);
 $router->get('/privacy', [HomeController::class, 'privacy']);

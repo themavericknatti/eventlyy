@@ -332,7 +332,7 @@ class EventService
             SELECT COUNT(*) 
             FROM tickets t
             INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
-            WHERE t.event_id = ? AND t.status IN ('Paid', 'Comped') {$searchQuery}
+            WHERE t.event_id = ? AND t.status IN ('Paid', 'Comped', 'Layaway') {$searchQuery}
         ");
         $countStmt->execute($countBinds);
         $total = (int)$countStmt->fetchColumn();
@@ -345,7 +345,7 @@ class EventService
             SELECT t.*, tt.name as ticket_tier
             FROM tickets t
             INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
-            WHERE t.event_id = ? AND t.status IN ('Paid', 'Comped') {$searchQuery}
+            WHERE t.event_id = ? AND t.status IN ('Paid', 'Comped', 'Layaway') {$searchQuery}
             ORDER BY t.purchase_date DESC
             LIMIT ? OFFSET ?
         ");

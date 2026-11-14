@@ -1327,6 +1327,29 @@ Create Event - <?= e($siteName) ?> Host
                         </label>
                     </div>
                 </div>
+
+                <!-- Partial Payment (Layaway) Setting -->
+                <div class="setting-card">
+                    <label class="setting-card-label">
+                        <input type="hidden" name="allow_partial_payment" value="0">
+                        <input type="checkbox" id="allow-partial-payment" name="allow_partial_payment" value="1" <?= !empty(old('allow_partial_payment', '')) ? 'checked' : '' ?> class="setting-checkbox" onchange="document.getElementById('partial-payment-options').style.display = this.checked ? 'block' : 'none'">
+                        <div>
+                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
+                                <span>💳</span> Allow Partial Payment (Layaway Plan)
+                            </strong>
+                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
+                                Let attendees reserve tickets with an initial deposit and pay the remaining balance bit-by-bit before the event starts.
+                            </small>
+                        </div>
+                    </label>
+                    <div id="partial-payment-options" style="display:<?= !empty(old('allow_partial_payment', '')) ? 'block' : 'none' ?>; margin-top:0.75rem; padding-left:2.25rem;">
+                        <label class="event-label" style="font-size:0.85rem; font-weight:600;">Minimum Deposit Percentage</label>
+                        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+                            <input type="number" name="partial_payment_min_percent" class="event-input" value="<?= e(old('partial_payment_min_percent', '25')) ?>" min="10" max="90" step="5" style="width:110px;">
+                            <span style="font-size:0.85rem; color:rgb(var(--text)); opacity:0.7;">% of ticket total (default 25%)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Submit Row -->

@@ -88,6 +88,16 @@ class TransferTicketAction
         }
 
         // 4. Status checks: cannot transfer cancelled or refunded tickets
+        if ($ticket['status'] === 'Layaway') {
+            $this->error = 'This ticket is on an active layaway plan. Please complete full payment before transferring.';
+            return false;
+        }
+
+        if ($ticket['status'] === 'Expired') {
+            $this->error = 'This layaway reservation has expired and cannot be transferred.';
+            return false;
+        }
+
         if (in_array($ticket['status'], ['Cancelled', 'Refunded']) || ($ticket['status_detail'] ?? '') === 'Refunded') {
             $this->error = 'This ticket has been cancelled or refunded and cannot be transferred.';
             return false;

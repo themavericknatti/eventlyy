@@ -18983,7 +18983,7 @@ button[type="submit"]:disabled,
     margin-bottom: 1.75rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .pf-header::before {
@@ -18993,6 +18993,7 @@ button[type="submit"]:disabled,
     left: 0;
     right: 0;
     height: 4px;
+    border-radius: 20px 20px 0 0;
     background: linear-gradient(90deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 70%, rgb(var(--accent))));
 }
 
@@ -19015,16 +19016,21 @@ button[type="submit"]:disabled,
 .pf-avatar-wrap {
     position: relative;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 6px;
+    padding-right: 4px;
 }
 
 .pf-avatar {
-    width: 68px;
-    height: 68px;
-    border-radius: 18px;
+    width: clamp(54px, 7.5vw, 76px);
+    height: clamp(54px, 7.5vw, 76px);
+    border-radius: clamp(14px, 2vw, 20px);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.45rem;
+    font-size: clamp(1.2rem, 2.5vw, 1.65rem);
     font-weight: 800;
     color: #ffffff;
     background: linear-gradient(135deg, hsl(var(--avatar-hue, 260) 65% 55%), hsl(calc(var(--avatar-hue, 260) + 40) 70% 60%));
@@ -19033,18 +19039,20 @@ button[type="submit"]:disabled,
 
 .pf-role-badge {
     position: absolute;
-    bottom: -4px;
-    right: -4px;
+    bottom: 0px;
+    right: 0px;
     background: rgb(var(--brand));
     color: #ffffff;
-    font-size: 0.62rem;
+    font-size: clamp(0.56rem, 1.1vw, 0.66rem);
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0.15rem 0.45rem;
-    border-radius: 6px;
+    letter-spacing: 0.05em;
+    padding: 0.18rem 0.52rem;
+    border-radius: 999px;
     border: 2px solid rgb(var(--card));
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .pf-header__meta {

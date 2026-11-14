@@ -120,6 +120,8 @@ $reqTab = trim($_GET['tab'] ?? '');
 if (!in_array($reqTab, ['profile', 'events', 'tickets', 'security'])) {
     if (isset($_GET['ticket_page'])) {
         $reqTab = 'tickets';
+    } elseif (isset($_GET['event_page'])) {
+        $reqTab = 'events';
     } elseif ($isHost) {
         $reqTab = 'profile';
     } elseif (!empty($purchasedTickets)) {
@@ -140,6 +142,237 @@ Your Account Hub — Eventlyy
 
 
 @section('content')
+<style>
+/* ── Avatar & Role Badge Precision Sizing & Positioning ── */
+.pf-header {
+    overflow: visible !important; /* ensures badge never clips */
+}
+.pf-header__user {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex: 1;
+    min-width: 0;
+}
+.pf-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 8px;
+    padding-right: 6px;
+    margin-bottom: -4px;
+}
+.pf-avatar {
+    width: clamp(54px, 7.5vw, 76px);
+    height: clamp(54px, 7.5vw, 76px);
+    border-radius: clamp(15px, 2vw, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    background: linear-gradient(135deg, hsl(var(--avatar-hue, 260) 65% 55%), hsl(calc(var(--avatar-hue, 260) + 40) 70% 60%));
+    box-shadow: 0 8px 20px hsla(var(--avatar-hue, 260), 60%, 50%, 0.32);
+    user-select: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.pf-role-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 0px;
+    background: rgb(var(--brand));
+    color: #ffffff;
+    font-size: clamp(0.58rem, 1.1vw, 0.68rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 2px solid rgb(var(--card, 255 255 255));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    white-space: nowrap;
+    z-index: 2;
+    line-height: 1.1;
+    pointer-events: none;
+}
+
+/* Tablet (max 860px) */
+@media (max-width: 860px) {
+    .pf-header__user {
+        gap: 1.1rem;
+        min-width: 0;
+    }
+    .pf-avatar {
+        width: 66px;
+        height: 66px;
+        font-size: 1.4rem;
+        border-radius: 17px;
+    }
+    .pf-role-badge {
+        font-size: 0.62rem;
+        padding: 0.18rem 0.5rem;
+        bottom: 2px;
+        right: 0px;
+    }
+}
+
+/* Mobile (max 680px) */
+@media (max-width: 680px) {
+    .pf-header {
+        padding: 1.25rem 1rem;
+    }
+    .pf-header__user {
+        gap: 0.85rem;
+        min-width: 0;
+        width: 100%;
+    }
+    .pf-avatar {
+        width: 58px;
+        height: 58px;
+        font-size: 1.25rem;
+        border-radius: 15px;
+    }
+    .pf-role-badge {
+        font-size: 0.58rem;
+        padding: 0.15rem 0.45rem;
+        bottom: 2px;
+        right: 0px;
+        border-width: 2px;
+    }
+    .pf-header__name {
+        font-size: 1.25rem;
+    }
+    .pf-header__email {
+        font-size: 0.82rem;
+        margin-bottom: 0.45rem;
+    }
+}
+
+/* Small mobile (max 420px) */
+@media (max-width: 420px) {
+    .pf-header__user {
+        gap: 0.75rem;
+    }
+    .pf-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.1rem;
+        border-radius: 13px;
+    }
+    .pf-role-badge {
+        font-size: 0.52rem;
+        padding: 0.12rem 0.38rem;
+        bottom: 2px;
+        right: -1px;
+        border-width: 1.5px;
+    }
+}
+
+/* ── Recurring Events Series & Occurrence Drawer ── */
+.pf-event-item--group {
+    border-left: 3.5px solid #6366f1 !important;
+}
+.pf-recurring-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.24);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    margin-left: 0.45rem;
+    vertical-align: middle;
+}
+.pf-occurrences-drawer {
+    background: rgba(var(--muted), 0.04);
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    margin-top: -0.75rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+}
+.pf-occurrences-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: rgb(var(--text));
+    opacity: 0.85;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px dashed rgba(var(--muted), 0.2);
+    margin-bottom: 0.65rem;
+}
+.pf-occ-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.1);
+    border-radius: 10px;
+    margin-bottom: 0.45rem;
+    transition: background 0.15s ease;
+}
+.pf-occ-row:last-child {
+    margin-bottom: 0;
+}
+.pf-occ-row:hover {
+    background: rgba(var(--muted), 0.05);
+}
+.pf-occ-seq {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    min-width: 32px;
+    text-align: center;
+}
+.pf-occ-info {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.pf-occ-date {
+    font-size: 0.88rem;
+    color: rgb(var(--text));
+}
+.pf-occ-stats {
+    font-size: 0.78rem;
+    color: rgb(var(--muted));
+}
+.pf-occ-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.pf-btn--xs {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+}
+.pf-badge--sm {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.45rem;
+}
+</style>
 <div class="pf-wrapper">
 
     <!-- ═══ Profile Identity Banner ═══ -->
@@ -252,7 +485,7 @@ Your Account Hub — Eventlyy
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     My Drops
-                    <span class="pf-nav-badge"><?= count($events ?? []) ?></span>
+                    <span class="pf-nav-badge"><?= (int)($totalEventItems ?? ($total_events_hosted ?? count($events ?? []))) ?></span>
                 </button>
                 <button type="button" class="pf-nav-btn <?= $activeTab === 'tickets' ? 'pf-nav-btn--active' : '' ?>" data-tab="tickets" role="tab">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -444,6 +677,7 @@ Your Account Hub — Eventlyy
                 <?php if (!empty($events)): ?>
                     <div class="pf-events-list">
                         <?php foreach ($events as $ev):
+                            $isGroup = !empty($ev['is_group']);
                             $sold = (int)($ev['tickets_sold'] ?? 0);
                             $capacity = (int)($ev['total_capacity'] ?? 0);
                             $percent = $capacity > 0 ? round(($sold / $capacity) * 100) : 0;
@@ -451,65 +685,198 @@ Your Account Hub — Eventlyy
                             $eventDate = date('M d, Y', strtotime($ev['date']));
                             $eventImage = $ev['image'] ?? '';
                         ?>
-                            <div class="pf-event-item">
-                                <?php if ($eventImage): ?>
-                                    <div class="pf-event-thumb" style="background-image: url('<?= htmlspecialchars($eventImage) ?>')"></div>
-                                <?php else: ?>
-                                    <div class="pf-event-thumb">🎪</div>
-                                <?php endif; ?>
+                            <?php if ($isGroup): ?>
+                                <!-- ── Grouped Recurring Event Series ── -->
+                                <div class="pf-event-item pf-event-item--group" id="group-card-<?= e($ev['recurrence_group_id']) ?>">
+                                    <?php if ($eventImage): ?>
+                                        <div class="pf-event-thumb" style="background-image: url('<?= htmlspecialchars($eventImage) ?>')"></div>
+                                    <?php else: ?>
+                                        <div class="pf-event-thumb" style="background: rgba(99,102,241,0.1); color: #6366f1; font-size: 1.5rem;">🔄</div>
+                                    <?php endif; ?>
 
-                                <div class="pf-event-info">
-                                    <div class="pf-event-title" title="<?= htmlspecialchars($ev['name']) ?>">
-                                        <?= htmlspecialchars($ev['name']) ?>
+                                    <div class="pf-event-info">
+                                        <div class="pf-event-title" title="<?= htmlspecialchars($ev['name']) ?>">
+                                            <?= htmlspecialchars($ev['name']) ?>
+                                            <span class="pf-recurring-pill">
+                                                🔄 <?= ucfirst($ev['recurrence_type'] ?? 'Recurring') ?> Series (<?= (int)$ev['total_occurrences'] ?> dates)
+                                            </span>
+                                        </div>
+                                        <div class="pf-event-meta">
+                                            <?php if (!empty($ev['next_occurrence'])): ?>
+                                                <span class="pf-event-meta-item" style="color: #6366f1; font-weight: 600;">
+                                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                    </svg>
+                                                    Next: <?= date('D, M d, Y • g:i A', strtotime($ev['next_occurrence']['date'])) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($ev['location'])): ?>
+                                                <span class="pf-event-meta-item">
+                                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                                                        <circle cx="12" cy="10" r="3"></circle>
+                                                    </svg>
+                                                    <?= htmlspecialchars($ev['location']) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div class="pf-progress-wrap">
+                                            <div class="pf-progress-track">
+                                                <div class="pf-progress-fill" style="width: <?= min($percent, 100) ?>%;"></div>
+                                            </div>
+                                            <span class="pf-progress-label">
+                                                Series Total: <?= number_format($sold) ?> / <?= number_format($capacity) ?> sold (<?= $percent ?>%)
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="pf-event-meta">
-                                        <span class="pf-event-meta-item">
-                                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                                            </svg>
-                                            <?= $eventDate ?>
-                                        </span>
-                                        <?php if (!empty($ev['location'])): ?>
+
+                                    <div class="pf-event-controls">
+                                        <span class="pf-badge <?= $statusBadgeClass ?>"><?= $statusLabel ?></span>
+                                        <div class="pf-event-btns">
+                                            <?php if (!empty($ev['next_occurrence'])): ?>
+                                                <a href="/host/event/management/<?= $ev['next_occurrence']['id'] ?>" class="pf-btn pf-btn--primary pf-btn--sm">
+                                                    Manage Next
+                                                </a>
+                                            <?php endif; ?>
+                                            <button type="button" class="pf-btn pf-btn--secondary pf-btn--sm" onclick="toggleRecurringDrawer('occ-drawer-<?= e($ev['recurrence_group_id']) ?>')">
+                                                <span>Dates (<?= $ev['total_occurrences'] ?>) ▾</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Expandable Occurrences Drawer -->
+                                <div id="occ-drawer-<?= e($ev['recurrence_group_id']) ?>" class="pf-occurrences-drawer" style="display: none;">
+                                    <div class="pf-occurrences-header">
+                                        <span>Scheduled Occurrences in this Series:</span>
+                                        <small><?= $ev['total_occurrences'] ?> total dates</small>
+                                    </div>
+                                    <div class="pf-occurrences-list">
+                                        <?php foreach ($ev['occurrences'] as $occIdx => $occ): 
+                                            $occSold = (int)($occ['tickets_sold'] ?? 0);
+                                            $occCap = (int)($occ['total_capacity'] ?? 0);
+                                            $occPct = $occCap > 0 ? round(($occSold / $occCap) * 100) : 0;
+                                            [$occStatusLabel, $occStatusClass] = pfEventStatus($occ['status'], $occ['date']);
+                                            $occDateStr = date('D, M d, Y • g:i A', strtotime($occ['date']));
+                                        ?>
+                                            <div class="pf-occ-row">
+                                                <div class="pf-occ-seq">
+                                                    #<?= (int)($occ['recurrence_sequence'] ?? ($occIdx + 1)) ?>
+                                                </div>
+                                                <div class="pf-occ-info">
+                                                    <strong class="pf-occ-date"><?= $occDateStr ?></strong>
+                                                    <span class="pf-occ-stats"><?= $occSold ?> / <?= $occCap ?> sold (<?= $occPct ?>%)</span>
+                                                </div>
+                                                <div class="pf-occ-actions">
+                                                    <span class="pf-badge pf-badge--sm <?= $occStatusClass ?>"><?= $occStatusLabel ?></span>
+                                                    <a href="/host/event/management/<?= $occ['id'] ?>" class="pf-btn pf-btn--secondary pf-btn--xs">
+                                                        Manage
+                                                    </a>
+                                                    <form method="POST" action="<?= route('host/event/duplicate/' . $occ['id']) ?>" onsubmit="return confirm('Duplicate this occurrence as a new draft?');" style="margin:0;">
+                                                        <?= csrf_field() ?>
+                                                        <button type="submit" class="pf-btn pf-btn--secondary pf-btn--xs" title="Clone occurrence">
+                                                            📋
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+
+                            <?php else: ?>
+                                <!-- ── Standalone Event ── -->
+                                <div class="pf-event-item">
+                                    <?php if ($eventImage): ?>
+                                        <div class="pf-event-thumb" style="background-image: url('<?= htmlspecialchars($eventImage) ?>')"></div>
+                                    <?php else: ?>
+                                        <div class="pf-event-thumb">🎪</div>
+                                    <?php endif; ?>
+
+                                    <div class="pf-event-info">
+                                        <div class="pf-event-title" title="<?= htmlspecialchars($ev['name']) ?>">
+                                            <?= htmlspecialchars($ev['name']) ?>
+                                        </div>
+                                        <div class="pf-event-meta">
                                             <span class="pf-event-meta-item">
                                                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                                                    <circle cx="12" cy="10" r="3"></circle>
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                    <line x1="3" y1="10" x2="21" y2="10"></line>
                                                 </svg>
-                                                <?= htmlspecialchars($ev['location']) ?>
+                                                <?= $eventDate ?>
                                             </span>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="pf-progress-wrap">
-                                        <div class="pf-progress-track">
-                                            <div class="pf-progress-fill" style="width: <?= min($percent, 100) ?>%;"></div>
+                                            <?php if (!empty($ev['location'])): ?>
+                                                <span class="pf-event-meta-item">
+                                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                                                        <circle cx="12" cy="10" r="3"></circle>
+                                                    </svg>
+                                                    <?= htmlspecialchars($ev['location']) ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
-                                        <span class="pf-progress-label">
-                                            <?= number_format($sold) ?> / <?= number_format($capacity) ?> sold (<?= $percent ?>%)
-                                        </span>
-                                    </div>
-                                </div>
 
-                                <div class="pf-event-controls">
-                                    <span class="pf-badge <?= $statusBadgeClass ?>"><?= $statusLabel ?></span>
-                                    <div class="pf-event-btns">
-                                        <a href="/host/event/management/<?= $ev['id'] ?>" class="pf-btn pf-btn--secondary pf-btn--sm">
-                                            Manage
-                                        </a>
-                                        <form method="POST" action="<?= route('host/event/duplicate/' . $ev['id']) ?>" onsubmit="return confirm('Duplicate this event as a new draft?');" style="margin:0;">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="pf-btn pf-btn--secondary pf-btn--sm" title="Clone event as a new draft">
-                                                📋 Clone
-                                            </button>
-                                        </form>
+                                        <div class="pf-progress-wrap">
+                                            <div class="pf-progress-track">
+                                                <div class="pf-progress-fill" style="width: <?= min($percent, 100) ?>%;"></div>
+                                            </div>
+                                            <span class="pf-progress-label">
+                                                <?= number_format($sold) ?> / <?= number_format($capacity) ?> sold (<?= $percent ?>%)
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="pf-event-controls">
+                                        <span class="pf-badge <?= $statusBadgeClass ?>"><?= $statusLabel ?></span>
+                                        <div class="pf-event-btns">
+                                            <a href="/host/event/management/<?= $ev['id'] ?>" class="pf-btn pf-btn--secondary pf-btn--sm">
+                                                Manage
+                                            </a>
+                                            <form method="POST" action="<?= route('host/event/duplicate/' . $ev['id']) ?>" onsubmit="return confirm('Duplicate this event as a new draft?');" style="margin:0;">
+                                                <?= csrf_field() ?>
+                                                <button type="submit" class="pf-btn pf-btn--secondary pf-btn--sm" title="Clone event as a new draft">
+                                                    📋 Clone
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
+
+                    <!-- Host Events Pagination -->
+                    <?php if (isset($totalEventPages) && $totalEventPages > 1): ?>
+                        <div class="pf-pagination">
+                            <?php if ($eventPage > 1): ?>
+                                <a href="/profile?event_page=<?= $eventPage - 1 ?>&tab=events" class="pf-page-btn">&laquo; Prev</a>
+                            <?php else: ?>
+                                <span class="pf-page-btn disabled">&laquo; Prev</span>
+                            <?php endif; ?>
+
+                            <?php foreach (pagination_range($eventPage, $totalEventPages) as $p): ?>
+                                <?php if ($p === '...'): ?>
+                                    <span class="pf-page-dots" aria-hidden="true">&hellip;</span>
+                                <?php elseif ($p == $eventPage): ?>
+                                    <span class="pf-page-btn active"><?= $p ?></span>
+                                <?php else: ?>
+                                    <a href="/profile?event_page=<?= $p ?>&tab=events" class="pf-page-btn"><?= $p ?></a>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+
+                            <?php if ($eventPage < $totalEventPages): ?>
+                                <a href="/profile?event_page=<?= $eventPage + 1 ?>&tab=events" class="pf-page-btn">Next &raquo;</a>
+                            <?php else: ?>
+                                <span class="pf-page-btn disabled">Next &raquo;</span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="pf-empty">
                         <span class="pf-empty-icon">🎪</span>
@@ -542,6 +909,29 @@ Your Account Hub — Eventlyy
                     </div>
                 </div>
             </div>
+
+            <?php 
+                $activeLayaways = $activeLayaways ?? [];
+                $availableCredits = $availableCredits ?? [];
+            ?>
+            <?php if (!empty($activeLayaways) || !empty($availableCredits)): ?>
+                <div style="margin: 1.25rem 1.5rem 0; padding: 1rem 1.25rem; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <strong style="color: #6366f1; font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
+                            <span>💳</span> <?= count($activeLayaways) ?> Active Layaway Plan<?= count($activeLayaways) === 1 ? '' : 's' ?>
+                            <?php if (!empty($availableCredits)): ?>
+                                • <?= count($availableCredits) ?> Event Credit<?= count($availableCredits) === 1 ? '' : 's' ?> Available
+                            <?php endif; ?>
+                        </strong>
+                        <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: rgb(var(--text)); opacity: 0.8;">
+                            You have reserved tickets on installment plans. Make payments anytime before the event starts.
+                        </p>
+                    </div>
+                    <a href="/layaway" style="display: inline-block; background: #6366f1; color: #fff; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; text-decoration: none;">
+                        Manage Layaway Plans →
+                    </a>
+                </div>
+            <?php endif; ?>
 
             <?php if (!empty($purchasedTickets)): ?>
                 <div class="pf-tickets-list">
@@ -1021,6 +1411,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ── Recurring Occurrences Drawer ──
+function toggleRecurringDrawer(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isHidden = (el.style.display === 'none' || el.style.display === '');
+    el.style.display = isHidden ? 'block' : 'none';
+}
 
 // ── Print Ticket Feature ──
 function printTicket(idx) {

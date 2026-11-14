@@ -548,6 +548,10 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                     <td>
                                         <?php if ($isRefunded): ?>
                                             <span class="au-status-badge au-status--suspended" id="attendee-status-badge-<?= e($t['id']) ?>">Refunded</span>
+                                        <?php elseif (($t['status'] ?? '') === 'Layaway'): ?>
+                                            <span class="au-status-badge" style="background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25);" id="attendee-status-badge-<?= e($t['id']) ?>">
+                                                ⏳ Layaway Plan
+                                            </span>
                                         <?php elseif ($isCheckedIn): ?>
                                             <span class="au-status-badge au-status--active" id="attendee-status-badge-<?= e($t['id']) ?>">
                                                 ✓ In (<?= date('H:i', strtotime($t['checked_in_at'])) ?>)
@@ -649,6 +653,10 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                     <div class="meta-value">
                                         <?php if ($isRefunded): ?>
                                             <span class="au-status-badge au-status--suspended" id="mobile-status-badge-<?= e($t['id']) ?>">Refunded</span>
+                                        <?php elseif (($t['status'] ?? '') === 'Layaway'): ?>
+                                            <span class="au-status-badge" style="background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25);" id="mobile-status-badge-<?= e($t['id']) ?>">
+                                                ⏳ Layaway Plan
+                                            </span>
                                         <?php elseif ($isCheckedIn): ?>
                                             <span class="au-status-badge au-status--active" id="mobile-status-badge-<?= e($t['id']) ?>">
                                                 ✓ In (<?= date('H:i', strtotime($t['checked_in_at'])) ?>)

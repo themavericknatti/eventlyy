@@ -81,7 +81,37 @@ class CheckInTicketAction
             ];
         }
 
-        // 3. Check if ticket is refunded / cancelled
+        // 3. Check if ticket is refunded / cancelled / incomplete layaway
+        if ($ticket['status'] === 'Layaway') {
+            return [
+                'status' => 'error',
+                'flash_type' => 'error',
+                'flash_message' => '⏳ PAYMENT INCOMPLETE: Ticket ' . $ticketCode . ' is on a Layaway Plan and has not been fully paid.',
+                'result' => [
+                    'status' => 'error',
+                    'type' => 'layaway_incomplete',
+                    'message' => 'This ticket is currently on a layaway payment plan and has not been fully paid. Complete payment on the dashboard to activate entry.',
+                    'code' => $ticketCode,
+                    'ticket' => $ticket
+                ]
+            ];
+        }
+
+        if ($ticket['status'] === 'Expired') {
+            return [
+                'status' => 'error',
+                'flash_type' => 'error',
+                'flash_message' => '❌ TICKET EXPIRED: Layaway ticket ' . $ticketCode . ' was not completed before the event start.',
+                'result' => [
+                    'status' => 'error',
+                    'type' => 'expired',
+                    'message' => 'This layaway reservation was not completed before the event and has expired. Paid funds were converted to event credit.',
+                    'code' => $ticketCode,
+                    'ticket' => $ticket
+                ]
+            ];
+        }
+
         if (in_array($ticket['status'], ['Cancelled', 'Refunded']) || ($ticket['status_detail'] ?? '') === 'Refunded') {
             return [
                 'status' => 'error',

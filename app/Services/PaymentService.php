@@ -221,9 +221,15 @@ class PaymentService
                     $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
                     $typeNameDisplay = $tt['name'] . $seatLabel;
 
+                    $isLayawayOrder = !empty($orderData['is_layaway']);
+                    $ticketStatus = $isLayawayOrder ? 'Layaway' : 'Paid';
+                    $ticketStatusDetail = $isLayawayOrder 
+                        ? ('Layaway Reservation | Paystack Ref: ' . $reference) 
+                        : ('Paystack Ref: ' . $reference);
+
                     $insertStmt = $db->prepare("
                         INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Paid', :status_detail, NOW(), 0)
+                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, :status, :status_detail, NOW(), 0)
                     ");
                     $insertStmt->execute([
                         'id' => $ticketCode,
@@ -233,7 +239,8 @@ class PaymentService
                         'name' => $attName,
                         'email' => $attEmail,
                         'price' => $seatPrice,
-                        'status_detail' => 'Paystack Ref: ' . $reference
+                        'status' => $ticketStatus,
+                        'status_detail' => $ticketStatusDetail
                     ]);
 
                     $createdTickets[] = [
@@ -243,7 +250,7 @@ class PaymentService
                         'ticket_type' => $typeNameDisplay,
                         'base_ticket_type' => $tt['name'],
                         'price' => $seatPrice,
-                        'status' => 'Paid',
+                        'status' => $ticketStatus,
                         'checked_in' => false
                     ];
                     $calculatedSubtotal += $seatPrice;
@@ -264,6 +271,43 @@ class PaymentService
             }
             $promoCode = $orderData['promo_code'] ?? ($tx['promo_code'] ?? null);
             $discountAmount = (float)($orderData['discount_amount'] ?? ($tx['discount_amount'] ?? 0.00));
+
+            // If layaway, insert completed initial layaway_payments
+            if (!empty($orderData['is_layaway']) && !empty($createdTickets)) {
+                $depositTicketTotal = (float)($orderData['deposit_ticket_amount'] ?? 0);
+                if ($depositTicketTotal <= 0) {
+                    $depPaid = (float)($orderData['deposit_amount'] ?? ($orderData['total_amount'] ?? $totalAmount));
+                    $feeDeduct = !empty($event['pass_fee']) ? ($calculatedSubtotal * ($platformFeePercent / 100)) : 0.00;
+                    $extraDeduct = (float)site_setting('extra_charge', 100.00);
+                    $depositTicketTotal = max(0, $depPaid - $feeDeduct - $extraDeduct);
+                }
+                $depositPerTicket = round($depositTicketTotal / count($createdTickets), 2);
+                foreach ($createdTickets as $idx => $t) {
+                    $lpStmt = $db->prepare("
+                        INSERT INTO layaway_payments (layaway_ticket_id, event_id, user_id, payer_email, amount, payment_method, reference, status, gateway_response, created_at)
+                        VALUES (:ticket_id, :event_id, :user_id, :email, :amount, 'paystack', :ref, 'completed', :resp, NOW())
+                    ");
+                    $lpStmt->execute([
+                        'ticket_id' => $t['ticket_code'],
+                        'event_id' => $eventId,
+                        'user_id' => $userId,
+                        'email' => $email,
+                        'amount' => $depositPerTicket,
+                        'ref' => $reference . '-P' . ($idx + 1),
+                        'resp' => json_encode([
+                            'note' => 'Initial checkout deposit on Paystack (Charges added at checkout)', 
+                            'order_ref' => $reference,
+                            'total_charged_at_checkout' => $totalAmount,
+                            'fee_amount' => $feeAmount,
+                            'extra_charge_amount' => $extraCharge
+                        ])
+                    ]);
+                }
+            }
+
+            $txSubtotal = (!empty($orderData['is_layaway']) && !empty($orderData['deposit_ticket_amount']))
+                ? (float)$orderData['deposit_ticket_amount']
+                : $calculatedSubtotal;
 
             // Merge gateway response payload for audit trail
             $finalGatewayResponse = json_encode([
@@ -289,7 +333,7 @@ class PaymentService
                     WHERE reference = :reference
                 ");
                 $updateTxStmt->execute([
-                    'subtotal_amount' => $calculatedSubtotal,
+                    'subtotal_amount' => $txSubtotal,
                     'fee_amount' => $feeAmount,
                     'extra_charge_amount' => $extraCharge,
                     'referral_id' => $referralId,
@@ -308,7 +352,7 @@ class PaymentService
                     'user_id' => $userId,
                     'payer_name' => $name,
                     'payer_email' => $email,
-                    'subtotal_amount' => $calculatedSubtotal,
+                    'subtotal_amount' => $txSubtotal,
                     'fee_amount' => $feeAmount,
                     'extra_charge_amount' => $extraCharge,
                     'referral_id' => $referralId,
@@ -345,24 +389,49 @@ class PaymentService
             ];
         }
 
-        // 3. Dispatch Ticket Confirmation Email with Organization Header & QR Code to primary buyer
+        // 3. Dispatch Ticket / Layaway Confirmation Email
         $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
         if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
             try {
-                \Ace\Mail::send(
-                    $email,
-                    'Your Tickets for ' . $event['name'],
-                    'emails/ticket_confirmation',
-                    [
-                        'attendee_name' => $name,
-                        'event_name' => $event['name'],
-                        'event_date' => $formattedDate,
-                        'event_location' => $event['location'] ?? 'Venue',
-                        'payment_method' => 'Paystack Card / Bank Transfer',
-                        'total_amount' => $totalAmount,
-                        'tickets' => $createdTickets
-                    ]
-                );
+                if (!empty($orderData['is_layaway'])) {
+                    $depPaid = (float)($orderData['deposit_amount'] ?? $totalAmount);
+                    $fullTotal = (float)($orderData['total_full_amount'] ?? $calculatedSubtotal);
+                    $remBalance = max(0, $fullTotal - $depPaid);
+                    $minPct = (int)($event['partial_payment_min_percent'] ?? 25);
+                    \Ace\Mail::send(
+                        $email,
+                        'Your Layaway Reservation Confirmed - ' . $event['name'],
+                        'emails/layaway_confirmation',
+                        [
+                            'attendee_name' => $name,
+                            'event_name' => $event['name'],
+                            'event_date' => $formattedDate,
+                            'event_location' => $event['location'] ?? 'Venue',
+                            'ticket_type' => count($createdTickets) . ' Ticket(s) Reserved',
+                            'total_price' => $fullTotal,
+                            'deposit_paid' => $depPaid,
+                            'remaining_balance' => $remBalance,
+                            'min_percent' => $minPct,
+                            'ticket_code' => $createdTickets[0]['ticket_code'] ?? $reference,
+                            'tickets' => $createdTickets
+                        ]
+                    );
+                } else {
+                    \Ace\Mail::send(
+                        $email,
+                        'Your Tickets for ' . $event['name'],
+                        'emails/ticket_confirmation',
+                        [
+                            'attendee_name' => $name,
+                            'event_name' => $event['name'],
+                            'event_date' => $formattedDate,
+                            'event_location' => $event['location'] ?? 'Venue',
+                            'payment_method' => 'Paystack Card / Bank Transfer',
+                            'total_amount' => $totalAmount,
+                            'tickets' => $createdTickets
+                        ]
+                    );
+                }
             } catch (\Throwable $e) {
                 error_log("Failed to send ticket confirmation email to {$email}: " . $e->getMessage());
             }

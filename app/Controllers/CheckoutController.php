@@ -452,9 +452,64 @@ class CheckoutController extends Controller
             return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
         }
 
+        // ── Layaway / Partial Payment Preparation ────────────────
+        $paymentType = $data['payment_type'] ?? 'full';
+        $isLayaway = ($paymentType === 'layaway' && !empty($event['allow_partial_payment']));
+        $chargedAmount = $totalPaid;
+        $depositTicketSubtotal = $netSubtotal;
+        $remainingBalance = 0.00;
+
+        if ($isLayaway) {
+            $minPercent = (int)($event['partial_payment_min_percent'] ?? 25);
+            $depositPercent = max($minPercent, (int)($data['deposit_percent'] ?? $minPercent));
+            
+            // Base ticket deposit portion
+            $depositTicketSubtotal = round($netSubtotal * ($depositPercent / 100), 2);
+            
+            // Charges added to deposit at checkout: platform fee (if pass_fee) + extra service charge
+            $chargedAmount = round($depositTicketSubtotal + $fee + $extraCharge, 2);
+            $remainingBalance = max(0, $netSubtotal - $depositTicketSubtotal);
+        }
+
+        // ── Direct / Offline Layaway (if non-paystack) ─────────
+        if ($isLayaway && $paymentMethod !== 'paystack') {
+            $currentUser = Application::$app->user;
+            $userId = $currentUser ? $currentUser->id : null;
+            $layawayService = new \App\Services\LayawayService();
+            $result = $layawayService->createLayaway(
+                $event, $name, $email, $qtyMap, $ticketTypes,
+                $depositTicketSubtotal, $userId, $promoCode, $discountAmount, $refCode, $normalizedAttendees,
+                $fee, $extraCharge
+            );
+            if ($result['success']) {
+                Application::$app->session->set('order_success', [
+                    'event_id' => $event['id'],
+                    'event_name' => $event['name'],
+                    'event_date' => $event['date'],
+                    'event_location' => $event['location'] ?? '',
+                    'attendee_name' => $name,
+                    'attendee_email' => $email,
+                    'payment_method' => 'LAYAWAY DEPOSIT',
+                    'total_amount' => $chargedAmount,
+                    'deposit_ticket_amount' => $depositTicketSubtotal,
+                    'fee_amount' => $fee,
+                    'extra_charge_amount' => $extraCharge,
+                    'is_layaway' => true,
+                    'tickets' => $result['tickets'] ?? []
+                ]);
+                return redirect('/success');
+            }
+            Application::$app->session->setFlash('error', $result['message'] ?? 'Failed to initialize layaway plan.');
+            return redirect('/checkout/' . $event['id']);
+        }
+
         // ── Paystack Payment Gateway ────────────────────────────
         if ($paymentMethod === 'paystack') {
-            return $this->initializePaystack($event, $name, $email, $totalPaid, $qtyMap, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
+            return $this->initializePaystack(
+                $event, $name, $email, $chargedAmount, $qtyMap, 
+                $promoCode, $discountAmount, $refCode, $normalizedAttendees, 
+                $isLayaway, $totalPaid, $depositTicketSubtotal, $remainingBalance
+            );
         }
 
         // ── Direct / Fallback (Stripe/Flutterwave placeholder) ──
@@ -528,13 +583,28 @@ class CheckoutController extends Controller
     /**
      * Initialize Paystack Transaction and redirect user to Paystack hosted checkout.
      */
-    private function initializePaystack(array $event, string $name, string $email, float $totalAmount, array $qtyMap, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null, array $attendees = [])
+    private function initializePaystack(
+        array $event, 
+        string $name, 
+        string $email, 
+        float $totalAmount, 
+        array $qtyMap, 
+        ?string $promoCode = null, 
+        float $discountAmount = 0.00, 
+        ?string $refCode = null, 
+        array $attendees = [], 
+        bool $isLayaway = false, 
+        float $totalFullAmount = 0.00,
+        float $depositTicketAmount = 0.00,
+        float $remainingBalance = 0.00
+    )
     {
         try {
             $paystack = new PaystackService();
 
             // Generate a unique order reference
-            $reference = 'EVT-' . $event['id'] . '-' . strtoupper(bin2hex(random_bytes(6)));
+            $refPrefix = $isLayaway ? 'LAY-' : 'EVT-';
+            $reference = $refPrefix . $event['id'] . '-' . strtoupper(bin2hex(random_bytes(6)));
 
             // Build callback URL
             $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://localhost', '/');
@@ -568,6 +638,10 @@ class CheckoutController extends Controller
                 }
             }
 
+            $platformFeePercent = (float)site_setting('platform_fee', 5);
+            $fee = !empty($event['pass_fee']) ? ($subtotal * ($platformFeePercent / 100)) : 0.00;
+            $extraCharge = (float)site_setting('extra_charge', 100.00);
+
             // Prepare complete order payload for persistence in DB, Session, and Gateway Metadata
             $orderPayload = [
                 'event_id' => (int)$event['id'],
@@ -586,15 +660,19 @@ class CheckoutController extends Controller
                 'promo_code' => $promoCode,
                 'discount_amount' => $discountAmount,
                 'referral_id' => $referralId,
-                'user_id' => $userId
+                'user_id' => $userId,
+                'is_layaway' => $isLayaway,
+                'deposit_amount' => $totalAmount,
+                'deposit_ticket_amount' => $depositTicketAmount > 0 ? $depositTicketAmount : $totalAmount,
+                'fee_amount' => $fee,
+                'extra_charge_amount' => $extraCharge,
+                'total_full_amount' => $totalFullAmount > 0 ? $totalFullAmount : $totalAmount,
+                'remaining_balance' => $remainingBalance
             ];
 
             Application::$app->session->set('pending_order', $orderPayload);
-            
-            $platformFeePercent = (float)site_setting('platform_fee', 5);
-            $fee = !empty($event['pass_fee']) ? ($subtotal * ($platformFeePercent / 100)) : 0.00;
-            $extraCharge = (float)site_setting('extra_charge', 100.00);
 
+            $trxSubtotal = $isLayaway ? ($depositTicketAmount > 0 ? $depositTicketAmount : $subtotal) : $subtotal;
             $storedPayloadJson = json_encode(['order_data' => $orderPayload, 'initialized_at' => date('Y-m-d H:i:s')]);
 
             $trxStmt = $db->prepare("
@@ -622,7 +700,7 @@ class CheckoutController extends Controller
                 'user_id' => $userId,
                 'payer_name' => $name,
                 'payer_email' => $email,
-                'subtotal_amount' => $subtotal,
+                'subtotal_amount' => $trxSubtotal,
                 'fee_amount' => $fee,
                 'extra_charge_amount' => $extraCharge,
                 'referral_id' => $referralId,

@@ -20,6 +20,8 @@ class CreateEventAction
 
         // Check if pass_fee is set in input (checkbox)
         $passFee = isset($data['pass_fee']) ? 1 : 0;
+        $allowPartialPayment = !empty($data['allow_partial_payment']) ? 1 : 0;
+        $partialPaymentMinPercent = isset($data['partial_payment_min_percent']) ? max(10, min(90, (int)$data['partial_payment_min_percent'])) : 25;
 
         // 2. Handle custom_url & secure slug
         $customUrl = trim($data['custom_url'] ?? '');
@@ -141,6 +143,8 @@ class CreateEventAction
             'organizer_id' => $hostId,
             'status' => 'published', // auto-publish for now
             'pass_fee' => $passFee,
+            'allow_partial_payment' => $allowPartialPayment,
+            'partial_payment_min_percent' => $partialPaymentMinPercent,
             'slug' => $slug,
             'custom_url' => $customUrl,
             'flyer_page_enabled' => $flyerPageEnabled,
@@ -283,6 +287,8 @@ class CreateEventAction
                     'organizer_id' => $hostId,
                     'status' => 'published',
                     'pass_fee' => $passFee,
+            'allow_partial_payment' => $allowPartialPayment,
+            'partial_payment_min_percent' => $partialPaymentMinPercent,
                     'slug' => $slug,
                     'custom_url' => $customUrl,
                     'flyer_page_enabled' => $flyerPageEnabled,

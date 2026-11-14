@@ -321,6 +321,58 @@ Checkout — <?= e($eventName) ?>
                     </div>
                 </div>
 
+                <!-- Payment Plan (Full vs Layaway Option) -->
+                <?php
+                $allowLayaway = !empty(value($event, 'allow_partial_payment', 0));
+                $minPercent = (int)value($event, 'partial_payment_min_percent', 25);
+                
+                // Calculate precise layaway ticket deposit and charges
+                $depositTicketSubtotal = round($subtotal * ($minPercent / 100), 2);
+                $totalCharges = ($passFee && $subtotal > 0 ? $fee : 0.00) + ($subtotal > 0 ? $extraCharge : 0.00);
+                $layawayDueToday = $depositTicketSubtotal + $totalCharges;
+                $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
+                ?>
+                <?php if ($allowLayaway && $hasSelectedTickets && !$isFreeOrder): ?>
+                <div class="co-payment-type-section" style="margin-top:1.5rem; margin-bottom:1.5rem;">
+                    <label class="co-label" style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; display:block;">Payment Plan Option</label>
+                    <input type="hidden" name="payment_type" id="payment-type-input" value="full">
+                    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                        <button type="button" class="co-ptype-btn co-ptype-btn--active" id="ptype-btn-full" onclick="selectPaymentType('full')" style="flex:1; min-width:200px; padding:0.9rem 1rem; border:2px solid rgb(var(--brand)); border-radius:12px; background:rgba(var(--brand), 0.06); cursor:pointer; text-align:left; transition:all 0.2s;">
+                            <strong style="display:block; font-size:0.95rem; color:rgb(var(--text));">💰 Pay in Full (Instant Ticket)</strong>
+                            <small style="color:rgb(var(--text)); opacity:0.7; display:block; margin-top:0.2rem;">Pay <?= format_price($totalAmount) ?> now and get your admission pass immediately.</small>
+                        </button>
+                        <button type="button" class="co-ptype-btn" id="ptype-btn-layaway" onclick="selectPaymentType('layaway')" style="flex:1; min-width:200px; padding:0.9rem 1rem; border:2px solid rgba(var(--text), 0.15); border-radius:12px; background:transparent; cursor:pointer; text-align:left; transition:all 0.2s;">
+                            <strong style="display:block; font-size:0.95rem; color:#6366f1;">💳 Reserve with Deposit (Layaway)</strong>
+                            <small style="color:rgb(var(--text)); opacity:0.7; display:block; margin-top:0.2rem;">Pay <?= format_price($layawayDueToday) ?> today (<?= format_price($depositTicketSubtotal) ?> deposit + <?= format_price($totalCharges) ?> charges). Pay remaining <?= format_price($layawayRemainingBalance) ?> before the event.</small>
+                        </button>
+                    </div>
+                    <div id="layaway-plan-details" style="display:none; margin-top:0.85rem; padding:1.1rem; background:rgba(99, 102, 241, 0.06); border:1px solid rgba(99, 102, 241, 0.25); border-radius:12px; font-size:0.88rem; color:rgb(var(--text)); line-height:1.6;">
+                        <div style="font-weight:700; color:#6366f1; margin-bottom:0.45rem; font-size:0.92rem; display:flex; align-items:center; gap:0.4rem;">
+                            <span>✨</span> Layaway Deposit &amp; Charges Breakdown:
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr auto; gap:0.35rem 1rem; padding:0.6rem 0; border-top:1px dashed rgba(99, 102, 241, 0.25); border-bottom:1px dashed rgba(99, 102, 241, 0.25); margin-bottom:0.6rem;">
+                            <span>• Ticket Reservation Deposit (<?= $minPercent ?>%):</span>
+                            <strong id="layaway-box-deposit"><?= format_price($depositTicketSubtotal) ?></strong>
+                            
+                            <span>• Ticketing Platform Fee (<?= $platformFeePercent ?>%):</span>
+                            <strong id="layaway-box-fee"><?= ($passFee && $subtotal > 0) ? format_price($fee) : '$0.00 (Covered by Host)' ?></strong>
+                            
+                            <span>• Service / Processing Charge:</span>
+                            <strong id="layaway-box-extra"><?= $subtotal > 0 ? format_price($extraCharge) : '$0.00' ?></strong>
+                            
+                            <span style="font-weight:700; color:rgb(var(--brand)); padding-top:0.35rem; border-top:1px solid rgba(99, 102, 241, 0.15);">💳 Total Due Today (Deposit + Charges):</span>
+                            <strong style="font-weight:800; color:rgb(var(--brand)); padding-top:0.35rem; border-top:1px solid rgba(99, 102, 241, 0.15);" id="layaway-box-due-today"><?= format_price($layawayDueToday) ?></strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem;">
+                            <span style="font-weight:600;">• Remaining Balance to Pay:</span>
+                            <strong style="color:#6366f1;" id="layaway-box-remaining"><?= format_price($layawayRemainingBalance) ?></strong>
+                        </div>
+                        <div style="margin-top:0.35rem; font-size:0.8rem; opacity:0.82;">🔒 Your spot is reserved immediately. Your official entry pass is activated once the remaining balance is paid.</div>
+                        <div style="margin-top:0.25rem; font-size:0.78rem; opacity:0.75; color:#b45309;">⚠️ If payment is not completed before event start, payments are non-refundable, but automatically converted into Event Credit for future events.</div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Submit CTA -->
                 <div class="co-submit-wrap">
                     <button type="submit" id="checkout-submit" class="checkout-btn co-submit-btn" <?= !$hasSelectedTickets ? 'disabled' : '' ?>>
@@ -379,9 +431,15 @@ Checkout — <?= e($eventName) ?>
 
                 <!-- Price Breakdown -->
                 <div class="co-breakdown">
-                    <div class="summary-row co-breakdown__row">
-                        <span>Subtotal</span>
+                    <div class="summary-row co-breakdown__row" id="row-summary-subtotal">
+                        <span id="label-summary-subtotal">Ticket Subtotal</span>
                         <strong id="summary-subtotal"><?= ($hasSelectedTickets && $subtotal <= 0) ? 'Free' : format_price($subtotal) ?></strong>
+                    </div>
+
+                    <!-- Layaway Deposit Row (shown only when Layaway is active) -->
+                    <div class="summary-row co-breakdown__row" id="row-layaway-deposit" style="display:none; color:#6366f1; font-weight:600;">
+                        <span>Deposit Portion (<?= $minPercent ?>%)</span>
+                        <strong id="summary-layaway-deposit"><?= format_price($depositTicketSubtotal) ?></strong>
                     </div>
 
                     <div class="summary-row co-breakdown__row co-breakdown__row--fee">
@@ -399,6 +457,12 @@ Checkout — <?= e($eventName) ?>
                         <span>Discount Applied</span>
                         <strong id="discount-amount-text">-</strong>
                     </div>
+
+                    <!-- Layaway Remaining Balance Row (shown only when Layaway is active) -->
+                    <div class="summary-row co-breakdown__row" id="row-layaway-future" style="display:none; padding-top:0.4rem; border-top:1px dashed rgba(var(--text), 0.15); font-size:0.85rem; color:rgb(var(--text)); opacity:0.85;">
+                        <span>Remaining Balance Later</span>
+                        <strong id="summary-layaway-future"><?= format_price($layawayRemainingBalance) ?></strong>
+                    </div>
                 </div>
 
                 <!-- Promo Code Accordion / Box -->
@@ -415,7 +479,7 @@ Checkout — <?= e($eventName) ?>
 
                 <!-- Total Amount -->
                 <div class="summary-total co-summary-total">
-                    <span>Total Amount</span>
+                    <span id="label-final-total">Total Amount</span>
                     <strong id="final-total-amount"><?= ($hasSelectedTickets && $totalAmount <= 0) ? 'Free' : format_price($totalAmount) ?></strong>
                 </div>
             </div>
@@ -436,6 +500,12 @@ Checkout — <?= e($eventName) ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let isFreeOrder = <?= $isFreeOrder ? 'true' : 'false' ?>;
+    let currentPaymentType = 'full';
+    let formattedTotalFull = '<?= format_price($totalAmount) ?>';
+    let formattedDepositDueToday = '<?= format_price($layawayDueToday) ?>';
+    let formattedDepositTicket = '<?= format_price($depositTicketSubtotal) ?>';
+    let formattedLayawayRemaining = '<?= format_price($layawayRemainingBalance) ?>';
+
     const pmBtns = document.querySelectorAll('.pm-btn');
     const selectedPmInput = document.getElementById('selected-payment-method');
     const cardFields = document.getElementById('card-fields-section');
@@ -477,7 +547,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update submit button text
         if (submitBtn) {
-            submitBtn.textContent = buttonLabels[method] || 'Complete Purchase →';
+            const gatewayName = method === 'stripe' ? 'Stripe' : (method === 'flutterwave' ? 'Flutterwave' : 'Paystack');
+            if (currentPaymentType === 'layaway') {
+                submitBtn.textContent = `Pay Deposit (${formattedDepositDueToday}) with ${gatewayName} →`;
+            } else {
+                submitBtn.textContent = buttonLabels[method] || `Complete Purchase (${formattedTotalFull}) →`;
+            }
         }
 
         // Update gateway information capsule
@@ -620,9 +695,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     discountRow.style.display = 'flex';
                     discountText.textContent = '-' + data.formatted_discount;
                     
+                    formattedTotalFull = data.formatted_new_total || formattedTotalFull;
                     const finalTotalEl = document.getElementById('final-total-amount');
                     if (finalTotalEl && data.formatted_new_total) {
-                        finalTotalEl.textContent = data.is_free ? 'Free' : data.formatted_new_total;
+                        if (currentPaymentType === 'full') {
+                            finalTotalEl.textContent = data.is_free ? 'Free' : data.formatted_new_total;
+                        }
                     }
 
                     if (data.is_free) {
@@ -719,6 +797,46 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         });
     }
+
+    // ── Payment Type Selection (Full vs Layaway) ──
+    window.selectPaymentType = function(type) {
+        currentPaymentType = type;
+        const input = document.getElementById('payment-type-input');
+        const details = document.getElementById('layaway-plan-details');
+        const btnFull = document.getElementById('ptype-btn-full');
+        const btnLayaway = document.getElementById('ptype-btn-layaway');
+        const finalTotalEl = document.getElementById('final-total-amount');
+        const labelTotalEl = document.getElementById('label-final-total');
+        const rowDeposit = document.getElementById('row-layaway-deposit');
+        const rowFuture = document.getElementById('row-layaway-future');
+
+        if (input) input.value = type;
+        if (details) details.style.display = type === 'layaway' ? 'block' : 'none';
+
+        if (btnFull && btnLayaway) {
+            if (type === 'layaway') {
+                btnLayaway.style.borderColor = '#6366f1';
+                btnLayaway.style.background = 'rgba(99, 102, 241, 0.08)';
+                btnFull.style.borderColor = 'rgba(var(--text), 0.15)';
+                btnFull.style.background = 'transparent';
+                if (labelTotalEl) labelTotalEl.textContent = 'Due Today (Deposit + Charges)';
+                if (finalTotalEl) finalTotalEl.textContent = formattedDepositDueToday;
+                if (rowDeposit) rowDeposit.style.display = 'flex';
+                if (rowFuture) rowFuture.style.display = 'flex';
+            } else {
+                btnFull.style.borderColor = 'rgb(var(--brand))';
+                btnFull.style.background = 'rgba(var(--brand), 0.06)';
+                btnLayaway.style.borderColor = 'rgba(var(--text), 0.15)';
+                btnLayaway.style.background = 'transparent';
+                if (labelTotalEl) labelTotalEl.textContent = 'Total Amount';
+                if (finalTotalEl) finalTotalEl.textContent = formattedTotalFull;
+                if (rowDeposit) rowDeposit.style.display = 'none';
+                if (rowFuture) rowFuture.style.display = 'none';
+            }
+        }
+        const method = selectedPmInput ? selectedPmInput.value : 'paystack';
+        updateGatewayUI(method);
+    };
 
     // Initialize UI on page load
     updateGatewayUI(selectedPmInput ? selectedPmInput.value : 'paystack');
