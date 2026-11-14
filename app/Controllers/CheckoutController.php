@@ -482,6 +482,7 @@ class CheckoutController extends Controller
                 $fee, $extraCharge
             );
             if ($result['success']) {
+                $ref = $result['reference'] ?? '';
                 Application::$app->session->set('order_success', [
                     'event_id' => $event['id'],
                     'event_name' => $event['name'],
@@ -490,6 +491,7 @@ class CheckoutController extends Controller
                     'attendee_name' => $name,
                     'attendee_email' => $email,
                     'payment_method' => 'LAYAWAY DEPOSIT',
+                    'payment_reference' => $ref,
                     'total_amount' => $chargedAmount,
                     'deposit_ticket_amount' => $depositTicketSubtotal,
                     'fee_amount' => $fee,
@@ -497,7 +499,7 @@ class CheckoutController extends Controller
                     'is_layaway' => true,
                     'tickets' => $result['tickets'] ?? []
                 ]);
-                return redirect('/success');
+                return redirect('/success' . (!empty($ref) ? '?ref=' . urlencode($ref) : ''));
             }
             Application::$app->session->setFlash('error', $result['message'] ?? 'Failed to initialize layaway plan.');
             return redirect('/checkout/' . $event['id']);
@@ -938,6 +940,23 @@ class CheckoutController extends Controller
     }
 
     /**
+     * Automated Cron / Worker: Process queued background emails
+     */
+    public function processEmailQueueCron(Request $request)
+    {
+        $limit = isset($_GET['limit']) ? max(1, min(100, (int)$_GET['limit'])) : 30;
+        $result = \Ace\EmailQueue::processQueue($limit);
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => true,
+            'result' => $result,
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+        exit;
+    }
+
+    /**
      * Direct ticket issuance for non-gateway payments (Stripe placeholder, etc.)
      */
     private function issueTicketsDirectly(array $event, string $name, string $email, string $paymentMethod, array $qtyMap, array $ticketTypes, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null, array $attendees = [])
@@ -975,9 +994,10 @@ class CheckoutController extends Controller
                         $typeNameDisplay = $tt['name'] . $seatLabel;
 
                         $insertStmt = $db->prepare("
-                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, purchase_date)
-                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Paid', NOW())
+                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, purchase_date)
+                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Paid', :status_detail, NOW())
                         ");
+                        // Note: $reference is set after the loop; we'll update status_detail after reference is generated
                         $insertStmt->execute([
                             'id' => $ticketCode,
                             'event_id' => $eventId,
@@ -985,7 +1005,8 @@ class CheckoutController extends Controller
                             'user_id' => $userId,
                             'name' => $attName,
                             'email' => $attEmail,
-                            'price' => $seatPrice
+                            'price' => $seatPrice,
+                            'status_detail' => '' // placeholder, updated below after reference is generated
                         ]);
 
                         $createdTickets[] = [
@@ -1027,6 +1048,15 @@ class CheckoutController extends Controller
 
             $reference = 'EVT-' . $eventId . '-' . strtoupper(bin2hex(random_bytes(6)));
 
+            // Link tickets to this transaction reference via status_detail
+            $ticketIds = array_column($createdTickets, 'ticket_code');
+            if (!empty($ticketIds)) {
+                $placeholders = implode(',', array_fill(0, count($ticketIds), '?'));
+                $statusDetailText = ($isFree ? 'Free' : ucfirst($paymentMethod)) . ' Ref: ' . $reference;
+                $updateDetailStmt = $db->prepare("UPDATE tickets SET status_detail = ? WHERE id IN ($placeholders)");
+                $updateDetailStmt->execute(array_merge([$statusDetailText], $ticketIds));
+            }
+
             // Record completed transaction
             $trxStmt = $db->prepare("
                 INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status)
@@ -1066,28 +1096,28 @@ class CheckoutController extends Controller
 
             $db->commit();
 
-            // Send confirmation email to primary buyer
+            // ── Queue confirmation emails for background delivery ──────────
             $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
-            try {
-                \Ace\Mail::send(
-                    $email,
-                    'Your Ticket Confirmation - ' . $event['name'],
-                    'emails/ticket_confirmation',
-                    [
-                        'attendee_name' => $name,
-                        'event_name' => $event['name'],
-                        'event_date' => $formattedDate,
-                        'event_location' => $event['location'] ?? 'Venue TBA',
-                        'payment_method' => $paymentMethodStr,
-                        'total_amount' => $totalPaid,
-                        'tickets' => $createdTickets
-                    ]
-                );
-            } catch (\Exception $mailEx) {
-                error_log("Failed to send ticket confirmation email to buyer {$email}: " . $mailEx->getMessage());
-            }
+            $emailMessages = [];
 
-            // Dispatch individual passes to distinct guest attendee emails
+            // Primary buyer confirmation
+            $emailMessages[] = [
+                'to' => $email,
+                'name' => $name,
+                'subject' => 'Your Ticket Confirmation - ' . $event['name'],
+                'view' => 'emails/ticket_confirmation',
+                'params' => [
+                    'attendee_name' => $name,
+                    'event_name' => $event['name'],
+                    'event_date' => $formattedDate,
+                    'event_location' => $event['location'] ?? 'Venue TBA',
+                    'payment_method' => $paymentMethodStr,
+                    'total_amount' => $totalPaid,
+                    'tickets' => $createdTickets
+                ]
+            ];
+
+            // Individual guest passes
             $guestPassesByEmail = [];
             foreach ($createdTickets as $ticket) {
                 $gEmail = strtolower(trim($ticket['attendee_email'] ?? ''));
@@ -1095,33 +1125,38 @@ class CheckoutController extends Controller
                     $guestPassesByEmail[$gEmail][] = $ticket;
                 }
             }
-
             foreach ($guestPassesByEmail as $gEmail => $gTickets) {
-                // Brief pause between SMTP dispatches to prevent rate-limiting or session rejection
-                sleep(1);
+                $gName = $gTickets[0]['attendee_name'] ?? 'Valued Guest';
+                $emailMessages[] = [
+                    'to' => $gEmail,
+                    'name' => $gName,
+                    'subject' => 'Your Admission Pass for ' . $event['name'],
+                    'view' => 'emails/issued_ticket',
+                    'params' => [
+                        'header_title' => 'Your Event Admission Pass',
+                        'header_subtitle' => 'Official admission pass reserved by ' . ($name ?: 'a friend'),
+                        'greeting_text' => 'An admission pass for <strong>' . e($event['name']) . '</strong> has been reserved for you by <strong>' . e($name) . '</strong>. Your scannable pass and admission details are below.',
+                        'attendee_name' => $gName,
+                        'event_name' => $event['name'],
+                        'event_date' => $formattedDate,
+                        'event_location' => $event['location'] ?? 'Venue TBA',
+                        'payment_method' => $paymentMethodStr,
+                        'tickets' => $gTickets
+                    ]
+                ];
+            }
+
+            // Queue all emails and schedule background processing
+            try {
+                \Ace\EmailQueue::queueMessages($emailMessages, $reference, 5);
+                \Ace\EmailQueue::processAfterResponse();
+            } catch (\Throwable $queueErr) {
+                // Fallback: try direct send if queue is unavailable (e.g. table doesn't exist yet)
+                error_log("EmailQueue unavailable, falling back to direct send: " . $queueErr->getMessage());
                 try {
-                    $gName = $gTickets[0]['attendee_name'] ?? 'Valued Guest';
-                    $sent = \Ace\Mail::send(
-                        $gEmail,
-                        'Your Admission Pass for ' . $event['name'],
-                        'emails/issued_ticket',
-                        [
-                            'header_title' => 'Your Event Admission Pass',
-                            'header_subtitle' => 'Official admission pass reserved by ' . ($name ?: 'a friend'),
-                            'greeting_text' => 'An admission pass for <strong>' . e($event['name']) . '</strong> has been reserved for you by <strong>' . e($name) . '</strong>. Your scannable pass and admission details are below.',
-                            'attendee_name' => $gName,
-                            'event_name' => $event['name'],
-                            'event_date' => $formattedDate,
-                            'event_location' => $event['location'] ?? 'Venue TBA',
-                            'payment_method' => $paymentMethodStr,
-                            'tickets' => $gTickets
-                        ]
-                    );
-                    if (!$sent) {
-                        error_log("CheckoutController: Failed to send admission pass email to guest {$gEmail}: " . \Ace\Mail::getLastError());
-                    }
-                } catch (\Exception $mailEx) {
-                    error_log("Failed to send admission pass email to guest {$gEmail}: " . $mailEx->getMessage());
+                    \Ace\Mail::sendMessages($emailMessages);
+                } catch (\Throwable $mailErr) {
+                    error_log("Direct mail fallback also failed: " . $mailErr->getMessage());
                 }
             }
 
@@ -1133,11 +1168,12 @@ class CheckoutController extends Controller
                 'attendee_name' => $name,
                 'attendee_email' => $email,
                 'payment_method' => $paymentMethodStr,
+                'payment_reference' => $reference,
                 'total_amount' => $totalPaid,
                 'tickets' => $createdTickets
             ]);
 
-            return redirect('/success');
+            return redirect('/success?ref=' . urlencode($reference));
         } catch (\Exception $e) {
             $db->rollBack();
             Application::$app->session->setFlash('error', 'Checkout processing failed: ' . $e->getMessage());
@@ -1161,6 +1197,29 @@ class CheckoutController extends Controller
             $txStmt->execute(['ref' => $ref]);
             $tx = $txStmt->fetch(\PDO::FETCH_ASSOC);
 
+            // If not found in transactions, check if $ref is a ticket code (EV-XXXXXXXX)
+            if (!$tx) {
+                $tCodeStmt = $db->prepare("SELECT * FROM tickets WHERE id = :id LIMIT 1");
+                $tCodeStmt->execute(['id' => $ref]);
+                $tMatch = $tCodeStmt->fetch(\PDO::FETCH_ASSOC);
+                if ($tMatch) {
+                    if (!empty($tMatch['status_detail']) && preg_match('/(?:Ref:\s*)([A-Za-z0-9\-_]+)/i', $tMatch['status_detail'], $mRef)) {
+                        $txStmt->execute(['ref' => trim($mRef[1])]);
+                        $tx = $txStmt->fetch(\PDO::FETCH_ASSOC);
+                    }
+                    if (!$tx) {
+                        $tx = [
+                            'reference' => $tMatch['id'],
+                            'event_id' => $tMatch['event_id'],
+                            'payer_name' => $tMatch['attendee_name'],
+                            'payer_email' => $tMatch['attendee_email'],
+                            'payment_method' => 'FREE',
+                            'total_amount' => (float)$tMatch['price']
+                        ];
+                    }
+                }
+            }
+
             if ($tx) {
                 // Fetch event
                 $eventStmt = $db->prepare("SELECT * FROM events WHERE id = :event_id LIMIT 1");
@@ -1168,18 +1227,36 @@ class CheckoutController extends Controller
                 $event = $eventStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 
                 // Fetch tickets with ticket_type name
+                $resolvedRef = $tx['reference'] ?? $ref;
                 $tStmt = $db->prepare("
                     SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
                     FROM tickets t 
                     LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
-                    WHERE t.status_detail LIKE :ref1 OR t.status_detail LIKE :ref2 
+                    WHERE t.status_detail LIKE :ref1 OR t.status_detail LIKE :ref2 OR t.id = :ref3
                     ORDER BY t.id ASC
                 ");
                 $tStmt->execute([
-                    'ref1' => '%' . $ref . '%',
-                    'ref2' => $ref
+                    'ref1' => '%' . $resolvedRef . '%',
+                    'ref2' => '%' . $ref . '%',
+                    'ref3' => $ref
                 ]);
                 $tickets = $tStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+                // Fallback for older free tickets without status_detail
+                if (empty($tickets) && !empty($tx['event_id']) && !empty($tx['payer_email'])) {
+                    $fbTStmt = $db->prepare("
+                        SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                        FROM tickets t 
+                        LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+                        WHERE t.event_id = :event_id AND LOWER(t.attendee_email) = :email
+                        ORDER BY t.id ASC
+                    ");
+                    $fbTStmt->execute([
+                        'event_id' => $tx['event_id'],
+                        'email' => strtolower(trim($tx['payer_email']))
+                    ]);
+                    $tickets = $fbTStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                }
 
                 $payerName = !empty($tx['payer_name']) && $tx['payer_name'] !== 'Attendee' 
                     ? $tx['payer_name'] 
@@ -1194,7 +1271,7 @@ class CheckoutController extends Controller
                     'attendee_name' => $payerName,
                     'attendee_email' => $payerEmail,
                     'payment_method' => strtoupper($tx['payment_method'] ?? 'PAYSTACK'),
-                    'payment_reference' => $ref,
+                    'payment_reference' => $resolvedRef,
                     'total_amount' => (float)($tx['total_amount'] ?? 0),
                     'tickets' => !empty($tickets) ? $tickets : ($order['tickets'] ?? [])
                 ];

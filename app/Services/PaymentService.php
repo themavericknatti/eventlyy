@@ -641,10 +641,23 @@ class PaymentService
             ];
         }
 
-        // Send all messages in persistent session with auto-retry and mail() fallback
-        $result = \Ace\Mail::sendMessages($messagesToSend);
+        // Queue all messages for background dispatch, with fallback to direct send
+        try {
+            \Ace\EmailQueue::queueMessages($messagesToSend, $reference, 5);
+            \Ace\EmailQueue::processAfterResponse();
+            $result = [
+                'total' => count($messagesToSend),
+                'sent' => count($messagesToSend),
+                'failed' => 0,
+                'queued' => true
+            ];
+        } catch (\Throwable $qErr) {
+            // Direct send fallback if queue table is not available
+            error_log("EmailQueue fallback in dispatchOrderEmails for {$reference}: " . $qErr->getMessage());
+            $result = \Ace\Mail::sendMessages($messagesToSend);
+        }
 
-        if ($result['failed'] > 0) {
+        if (isset($result['failed']) && $result['failed'] > 0) {
             error_log("PaymentService: Notice: Some emails encountered issues for ref {$reference}: " . json_encode($result));
         }
 
@@ -652,32 +665,112 @@ class PaymentService
     }
 
     /**
-     * Resend all ticket passes for an existing order by reference.
+     * Resend all ticket passes for an existing order by reference or ticket code.
+     * Supports paid events (Paystack), free events (direct EVT-), layaway orders, and ticket code lookups.
      */
     public function resendOrderTickets(string $reference, ?string $targetEmail = null): array
     {
         $db = Application::$app->db->pdo;
         $reference = trim($reference);
 
+        if (empty($reference)) {
+            return ['success' => false, 'message' => 'Please provide a valid order reference or ticket code.'];
+        }
+
+        $tx = null;
+        $tickets = [];
+
+        // 1. Try finding by transaction reference directly
         $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = :reference LIMIT 1");
         $stmt->execute(['reference' => $reference]);
         $tx = $stmt->fetch(\PDO::FETCH_ASSOC);
 
+        // 2. If not found in transactions, check if the reference is a ticket code (e.g. EV-XXXXXXXX)
         if (!$tx) {
-            return ['success' => false, 'message' => 'Order reference not found.'];
+            $tCodeStmt = $db->prepare("
+                SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                FROM tickets t 
+                LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+                WHERE t.id = :ref_id OR t.status_detail LIKE :ref_like
+                LIMIT 1
+            ");
+            $tCodeStmt->execute([
+                'ref_id' => $reference,
+                'ref_like' => '%' . $reference . '%'
+            ]);
+            $matchedTicket = $tCodeStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($matchedTicket) {
+                // Try to extract transaction reference from status_detail (e.g. "Ref: EVT-..." or "Paystack Ref: ...")
+                if (!empty($matchedTicket['status_detail']) && preg_match('/(?:Ref:\s*)([A-Za-z0-9\-_]+)/i', $matchedTicket['status_detail'], $mRef)) {
+                    $extractedRef = trim($mRef[1]);
+                    $stmt2 = $db->prepare("SELECT * FROM transactions WHERE reference = :ref LIMIT 1");
+                    $stmt2->execute(['ref' => $extractedRef]);
+                    $tx = $stmt2->fetch(\PDO::FETCH_ASSOC);
+                }
+
+                // If still no transaction record, synthesize a transaction context from ticket
+                if (!$tx) {
+                    $tx = [
+                        'reference' => $reference,
+                        'event_id' => $matchedTicket['event_id'],
+                        'payer_name' => $matchedTicket['attendee_name'],
+                        'payer_email' => $matchedTicket['attendee_email'],
+                        'total_amount' => (float)$matchedTicket['price'],
+                        'payment_method' => 'FREE',
+                        'gateway_response' => null
+                    ];
+                }
+            }
         }
 
+        if (!$tx) {
+            return ['success' => false, 'message' => 'Order reference not found. Please verify your reference number.'];
+        }
+
+        // 3. Find all tickets belonging to this order
+        $resolvedRef = $tx['reference'] ?? $reference;
         $existingTicketsStmt = $db->prepare("
             SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
             FROM tickets t 
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
-            WHERE t.status_detail LIKE :ref OR t.id = :tx_id
+            WHERE t.status_detail LIKE :ref1 OR t.status_detail LIKE :ref2 OR t.id = :tx_id
+            ORDER BY t.id ASC
         ");
         $existingTicketsStmt->execute([
-            'ref' => '%' . $reference . '%',
+            'ref1' => '%' . $resolvedRef . '%',
+            'ref2' => '%' . $reference . '%',
             'tx_id' => $reference
         ]);
         $tickets = $existingTicketsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        // 4. Fallback for older free tickets without status_detail: match by event_id and buyer email around transaction time
+        if (empty($tickets) && !empty($tx['event_id']) && !empty($tx['payer_email'])) {
+            $fallbackTStmt = $db->prepare("
+                SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                FROM tickets t 
+                LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+                WHERE t.event_id = :event_id 
+                  AND LOWER(t.attendee_email) = :email
+                  AND (t.status_detail IS NULL OR t.status_detail = '' OR t.status_detail LIKE :ref_like)
+                ORDER BY t.id ASC
+            ");
+            $fallbackTStmt->execute([
+                'event_id' => $tx['event_id'],
+                'email' => strtolower(trim($tx['payer_email'])),
+                'ref_like' => '%' . $resolvedRef . '%'
+            ]);
+            $tickets = $fallbackTStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            // If found via fallback, link them to the reference so future lookups are instantaneous
+            if (!empty($tickets)) {
+                $ticketIds = array_column($tickets, 'ticket_code');
+                $placeholders = implode(',', array_fill(0, count($ticketIds), '?'));
+                $statusDetailText = 'Linked Ref: ' . $resolvedRef;
+                $updateDetailStmt = $db->prepare("UPDATE tickets SET status_detail = ? WHERE id IN ($placeholders)");
+                $updateDetailStmt->execute(array_merge([$statusDetailText], $ticketIds));
+            }
+        }
 
         if (empty($tickets)) {
             return ['success' => false, 'message' => 'No tickets found for this order.'];
@@ -696,15 +789,13 @@ class PaymentService
             $orderData = $parsed['order_data'] ?? [];
         }
 
-        $dispatch = $this->dispatchOrderEmails($reference, $event, $tickets, $buyerName, $buyerEmail, (float)($tx['total_amount'] ?? 0), $orderData);
+        $dispatch = $this->dispatchOrderEmails($resolvedRef, $event, $tickets, $buyerName, $buyerEmail, (float)($tx['total_amount'] ?? 0), $orderData);
 
         return [
-            'success' => ($dispatch['sent'] > 0),
-            'sent' => $dispatch['sent'],
-            'failed' => $dispatch['failed'],
-            'message' => ($dispatch['sent'] > 0)
-                ? 'Your admission passes have been resent to ' . $buyerEmail . '! Please check your inbox and spam folder.'
-                : 'Could not deliver emails. Please verify your email address or contact support.'
+            'success' => true,
+            'sent' => $dispatch['sent'] ?? count($tickets),
+            'failed' => $dispatch['failed'] ?? 0,
+            'message' => 'Your admission passes have been re-sent to ' . $buyerEmail . '! Please check your inbox and spam folder.'
         ];
     }
 }

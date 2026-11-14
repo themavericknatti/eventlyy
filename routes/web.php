@@ -95,6 +95,7 @@ $router->post('/order/verify', [CheckoutController::class, 'verifyOrderPost']);
 $router->get('/order/resend-email/{reference}', [CheckoutController::class, 'resendOrderEmailGet']);
 $router->post('/order/resend-email', [CheckoutController::class, 'resendOrderEmail']);
 $router->get('/cron/reconcile-payments', [CheckoutController::class, 'reconcilePaymentsCron']);
+$router->get('/cron/process-email-queue', [CheckoutController::class, 'processEmailQueueCron']);
 
 // Layaway & Installment Payment System
 $router->get('/layaway', [LayawayController::class, 'dashboard']);

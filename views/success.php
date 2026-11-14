@@ -26,7 +26,13 @@ $eventDate = !empty($order['event_date']) ? strtotime($order['event_date']) : nu
 $totalAmount = (float)($order['total_amount'] ?? 0);
 $isFree = ($totalAmount <= 0.00);
 $ticketCount = count($order['tickets'] ?? []);
-$orderRef = $order['payment_reference'] ?? ('ORD-' . time());
+$orderRef = !empty($order['payment_reference']) 
+    ? $order['payment_reference'] 
+    : (!empty($order['tickets'][0]['ticket_code']) 
+        ? $order['tickets'][0]['ticket_code'] 
+        : (!empty($order['tickets'][0]['id']) 
+            ? $order['tickets'][0]['id'] 
+            : ('ORD-' . time())));
 
 $calendarEvent = [
     'name' => $order['event_name'] ?? 'Event',
@@ -64,6 +70,20 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
             </span>
         <?php endif; ?>
     </p>
+
+    <?php if ($flashSuccess = \Ace\Application::$app->session->getFlash('success')): ?>
+        <div style="margin: 1rem auto 0; max-width: 620px; padding: 0.75rem 1.25rem; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; color: #047857; font-size: 0.92rem; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <span><?= e($flashSuccess) ?></span>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($flashError = \Ace\Application::$app->session->getFlash('error')): ?>
+        <div style="margin: 1rem auto 0; max-width: 620px; padding: 0.75rem 1.25rem; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 12px; color: #b91c1c; font-size: 0.92rem; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span><?= e($flashError) ?></span>
+        </div>
+    <?php endif; ?>
 </section>
 
 <div class="suc-container">
@@ -80,7 +100,7 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
     $rawImg = $order['event_image'] ?? '';
     if (empty($rawImg)) {
         try {
-            $dbInstance = \Core\Application::$app->db->pdo ?? null;
+            $dbInstance = \Ace\Application::$app->db->pdo ?? null;
             if ($dbInstance) {
                 if (!empty($order['event_id'])) {
                     $fallbackStmt = $dbInstance->prepare("SELECT image FROM events WHERE id = :id LIMIT 1");
@@ -364,6 +384,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Non-blocking trigger to flush email queue in the background
+    try {
+        if (window.fetch) {
+            fetch('<?= \url('/cron/process-email-queue') ?>', { cache: 'no-store' }).catch(function () {});
+        }
+    } catch (e) {}
 
     function fallback(text, btn) {
         const temp = document.createElement('textarea');

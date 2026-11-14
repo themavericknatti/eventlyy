@@ -180,29 +180,50 @@ class LayawayService
 
         $remainingBalance = max(0, $totalTicketPrice - $depositAmount);
 
-        // Send Layaway Confirmation Email
+        // Queue Layaway Confirmation Email for background delivery
         $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
+        $layawayEmailData = [
+            'to' => $email,
+            'name' => $name,
+            'subject' => 'Your Layaway Reservation Confirmed - ' . $event['name'],
+            'view' => 'emails/layaway_confirmation',
+            'params' => [
+                'attendee_name' => $name,
+                'event_name' => $event['name'],
+                'event_date' => $formattedDate,
+                'event_location' => $event['location'] ?? 'Venue TBA',
+                'ticket_type' => count($createdTickets) . ' Ticket(s) Reserved',
+                'total_price' => $totalTicketPrice,
+                'deposit_paid' => $depositAmount,
+                'remaining_balance' => $remainingBalance,
+                'min_percent' => $minPercent,
+                'ticket_code' => $createdTickets[0]['ticket_code'] ?? $reference,
+                'tickets' => $createdTickets
+            ]
+        ];
+
         try {
-            \Ace\Mail::send(
-                $email,
-                'Your Layaway Reservation Confirmed - ' . $event['name'],
-                'emails/layaway_confirmation',
-                [
-                    'attendee_name' => $name,
-                    'event_name' => $event['name'],
-                    'event_date' => $formattedDate,
-                    'event_location' => $event['location'] ?? 'Venue TBA',
-                    'ticket_type' => count($createdTickets) . ' Ticket(s) Reserved',
-                    'total_price' => $totalTicketPrice,
-                    'deposit_paid' => $depositAmount,
-                    'remaining_balance' => $remainingBalance,
-                    'min_percent' => $minPercent,
-                    'ticket_code' => $createdTickets[0]['ticket_code'] ?? $reference,
-                    'tickets' => $createdTickets
-                ]
+            \Ace\EmailQueue::queue(
+                $layawayEmailData['to'],
+                $layawayEmailData['subject'],
+                $layawayEmailData['view'],
+                $layawayEmailData['params'],
+                $reference,
+                5
             );
+            \Ace\EmailQueue::processAfterResponse();
         } catch (\Throwable $e) {
-            error_log("Failed to send layaway confirmation email: " . $e->getMessage());
+            error_log("EmailQueue fallback in createLayaway for {$reference}: " . $e->getMessage());
+            try {
+                \Ace\Mail::send(
+                    $layawayEmailData['to'],
+                    $layawayEmailData['subject'],
+                    $layawayEmailData['view'],
+                    $layawayEmailData['params']
+                );
+            } catch (\Throwable $mErr) {
+                error_log("Direct mail fallback also failed: " . $mErr->getMessage());
+            }
         }
 
         return [
