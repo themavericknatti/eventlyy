@@ -274,6 +274,8 @@ class CheckoutController extends Controller
         $eventId = $event_id ?: ($data['event_id'] ?? null);
         $name = trim($data['name'] ?? '');
         $email = trim($data['email'] ?? '');
+        $phone = trim($data['phone'] ?? ($data['whatsapp_phone'] ?? ''));
+        $whatsappDelivery = !empty($data['whatsapp_delivery']) ? 1 : 0;
         $paymentMethod = $data['payment_method'] ?? 'paystack';
 
         if (empty($name) || empty($email)) {
@@ -422,12 +424,15 @@ class CheckoutController extends Controller
             for ($i = 0; $i < $totalPassesForTier; $i++) {
                 $attName = '';
                 $attEmail = '';
+                $attPhone = '';
                 if (isset($rawAttendees[$ttId][$i])) {
                     $attName = trim($rawAttendees[$ttId][$i]['name'] ?? '');
                     $attEmail = trim($rawAttendees[$ttId][$i]['email'] ?? '');
+                    $attPhone = trim($rawAttendees[$ttId][$i]['phone'] ?? '');
                 } elseif (isset($rawAttendees[$i])) {
                     $attName = trim($rawAttendees[$i]['name'] ?? '');
                     $attEmail = trim($rawAttendees[$i]['email'] ?? '');
+                    $attPhone = trim($rawAttendees[$i]['phone'] ?? '');
                 }
 
                 if (empty($attName)) {
@@ -436,10 +441,14 @@ class CheckoutController extends Controller
                 if (empty($attEmail)) {
                     $attEmail = $email;
                 }
+                if (empty($attPhone)) {
+                    $attPhone = $phone;
+                }
 
                 $normalizedAttendees[$ttId][] = [
                     'name' => $attName,
                     'email' => $attEmail,
+                    'phone' => $attPhone,
                     'seat_number' => $i + 1,
                     'total_seats' => $totalPassesForTier
                 ];
@@ -449,7 +458,7 @@ class CheckoutController extends Controller
         // ── Direct Free Ticket Issuance (0 or 0.00 total) ───────
         // Free tickets bypass Paystack and all external payment gateways entirely!
         if ($totalPaid <= 0.00) {
-            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
+            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery);
         }
 
         // ── Layaway / Partial Payment Preparation ────────────────
@@ -510,12 +519,13 @@ class CheckoutController extends Controller
             return $this->initializePaystack(
                 $event, $name, $email, $chargedAmount, $qtyMap, 
                 $promoCode, $discountAmount, $refCode, $normalizedAttendees, 
-                $isLayaway, $totalPaid, $depositTicketSubtotal, $remainingBalance
+                $isLayaway, $totalPaid, $depositTicketSubtotal, $remainingBalance,
+                $phone, $whatsappDelivery
             );
         }
 
         // ── Direct / Fallback (Stripe/Flutterwave placeholder) ──
-        return $this->issueTicketsDirectly($event, $name, $email, $paymentMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees);
+        return $this->issueTicketsDirectly($event, $name, $email, $paymentMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery);
     }
 
     /**
@@ -598,7 +608,9 @@ class CheckoutController extends Controller
         bool $isLayaway = false, 
         float $totalFullAmount = 0.00,
         float $depositTicketAmount = 0.00,
-        float $remainingBalance = 0.00
+        float $remainingBalance = 0.00,
+        string $phone = '',
+        bool $whatsappDelivery = false
     )
     {
         try {
@@ -652,6 +664,9 @@ class CheckoutController extends Controller
                 'event_location' => $event['location'] ?? '',
                 'attendee_name' => $name,
                 'attendee_email' => $email,
+                'attendee_phone' => $phone,
+                'payer_phone' => $phone,
+                'whatsapp_delivery' => $whatsappDelivery,
                 'total_amount' => $totalAmount,
                 'subtotal' => $subtotal,
                 'qty_map' => $qtyMap,
@@ -678,13 +693,14 @@ class CheckoutController extends Controller
             $storedPayloadJson = json_encode(['order_data' => $orderPayload, 'initialized_at' => date('Y-m-d H:i:s')]);
 
             $trxStmt = $db->prepare("
-                INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status, gateway_response, created_at, updated_at)
-                VALUES (:reference, :event_id, :user_id, :payer_name, :payer_email, 'payment', 'paystack', :subtotal_amount, :fee_amount, :extra_charge_amount, :referral_id, :promo_code, :discount_amount, :total_amount, 'pending', :gateway_response, NOW(), NOW())
+                INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, payer_phone, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status, gateway_response, created_at, updated_at)
+                VALUES (:reference, :event_id, :user_id, :payer_name, :payer_email, :payer_phone, 'payment', 'paystack', :subtotal_amount, :fee_amount, :extra_charge_amount, :referral_id, :promo_code, :discount_amount, :total_amount, 'pending', :gateway_response, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE 
                     event_id = VALUES(event_id),
                     user_id = VALUES(user_id),
                     payer_name = VALUES(payer_name),
                     payer_email = VALUES(payer_email),
+                    payer_phone = VALUES(payer_phone),
                     subtotal_amount = VALUES(subtotal_amount),
                     fee_amount = VALUES(fee_amount),
                     extra_charge_amount = VALUES(extra_charge_amount),
@@ -702,6 +718,7 @@ class CheckoutController extends Controller
                 'user_id' => $userId,
                 'payer_name' => $name,
                 'payer_email' => $email,
+                'payer_phone' => $phone ?: null,
                 'subtotal_amount' => $trxSubtotal,
                 'fee_amount' => $fee,
                 'extra_charge_amount' => $extraCharge,
@@ -802,6 +819,8 @@ class CheckoutController extends Controller
                 $attendeeName = 'Attendee';
             }
 
+            $attendeePhone = !empty($tx['payer_phone']) ? $tx['payer_phone'] : (!empty($pending['attendee_phone']) ? $pending['attendee_phone'] : (!empty($result['tickets'][0]['attendee_phone']) ? $result['tickets'][0]['attendee_phone'] : ''));
+
             Application::$app->session->set('order_success', [
                 'event_id' => $eventId,
                 'event_name' => $event['name'] ?? 'Event',
@@ -809,6 +828,7 @@ class CheckoutController extends Controller
                 'event_location' => $event['location'] ?? '',
                 'attendee_name' => $attendeeName,
                 'attendee_email' => $attendeeEmail,
+                'attendee_phone' => $attendeePhone,
                 'payment_method' => 'PAYSTACK',
                 'payment_reference' => $reference,
                 'total_amount' => $totalAmount,
@@ -923,6 +943,107 @@ class CheckoutController extends Controller
     }
 
     /**
+     * AJAX Endpoint: Generate & Dispatch WhatsApp Admission Pass with Scannable QR Link.
+     */
+    public function sendWhatsAppPass(Request $request)
+    {
+        header('Content-Type: application/json');
+        $data = $request->getBody();
+        $reference = trim((string)($data['reference'] ?? ''));
+        $phone = trim((string)($data['phone'] ?? ''));
+
+        if (empty($reference)) {
+            echo json_encode(['success' => false, 'message' => 'Missing order reference or ticket code.']);
+            exit;
+        }
+
+        $db = Application::$app->db->pdo;
+
+        // 1. Resolve ticket(s) and transaction
+        $tStmt = $db->prepare("
+            SELECT t.*, tt.name as ticket_tier,
+                   e.id as event_id, e.name as event_name, e.date as event_date, e.location as event_location, e.image as event_image
+            FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.id = :ref OR t.status_detail LIKE :ref_like
+            ORDER BY t.id ASC
+        ");
+        $tStmt->execute([
+            'ref' => $reference,
+            'ref_like' => '%' . $reference . '%'
+        ]);
+        $tickets = $tStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Fallback: check transactions table
+        if (empty($tickets)) {
+            $txStmt = $db->prepare("SELECT * FROM transactions WHERE reference = :ref LIMIT 1");
+            $txStmt->execute(['ref' => $reference]);
+            $tx = $txStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($tx) {
+                if (empty($phone) && !empty($tx['payer_phone'])) {
+                    $phone = $tx['payer_phone'];
+                }
+                $tStmt2 = $db->prepare("
+                    SELECT t.*, tt.name as ticket_tier,
+                           e.id as event_id, e.name as event_name, e.date as event_date, e.location as event_location, e.image as event_image
+                    FROM tickets t
+                    INNER JOIN events e ON t.event_id = e.id
+                    LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+                    WHERE t.event_id = :event_id AND LOWER(t.attendee_email) = :email
+                    ORDER BY t.id ASC
+                ");
+                $tStmt2->execute([
+                    'event_id' => $tx['event_id'],
+                    'email' => strtolower(trim($tx['payer_email']))
+                ]);
+                $tickets = $tStmt2->fetchAll(\PDO::FETCH_ASSOC);
+            }
+        }
+
+        if (empty($tickets)) {
+            echo json_encode(['success' => false, 'message' => 'No tickets found for this order.']);
+            exit;
+        }
+
+        $firstTicket = $tickets[0];
+        $event = [
+            'id' => $firstTicket['event_id'],
+            'name' => $firstTicket['event_name'],
+            'date' => $firstTicket['event_date'],
+            'location' => $firstTicket['event_location']
+        ];
+
+        // If phone is provided or updated, save it to the tickets and transaction
+        if (!empty($phone)) {
+            $ticketIds = array_column($tickets, 'id');
+            $placeholders = implode(',', array_fill(0, count($ticketIds), '?'));
+            $uStmt = $db->prepare("UPDATE tickets SET attendee_phone = ? WHERE id IN ($placeholders)");
+            $uStmt->execute(array_merge([$phone], $ticketIds));
+
+            $db->prepare("UPDATE transactions SET payer_phone = :phone WHERE reference = :ref")
+               ->execute(['phone' => $phone, 'ref' => $reference]);
+        } else {
+            $phone = $firstTicket['attendee_phone'] ?? '';
+        }
+
+        // Build WhatsApp Pass message
+        $siteTitle = site_setting('site_title', 'Eventlyy');
+        $message = \App\Services\WhatsAppService::buildTicketPassMessage($event, $firstTicket, $siteTitle);
+        $dispatchRes = \App\Services\WhatsAppService::dispatch($phone, $message);
+
+        echo json_encode([
+            'success' => true,
+            'whatsapp_url' => $dispatchRes['whatsapp_url'],
+            'provider' => $dispatchRes['provider'],
+            'phone' => $phone,
+            'message' => 'WhatsApp ticket pass ready! Click below to send directly on WhatsApp.'
+        ]);
+        exit;
+    }
+
+    /**
      * Automated Cron: Reconcile any pending transactions
      */
     public function reconcilePaymentsCron(Request $request)
@@ -959,7 +1080,20 @@ class CheckoutController extends Controller
     /**
      * Direct ticket issuance for non-gateway payments (Stripe placeholder, etc.)
      */
-    private function issueTicketsDirectly(array $event, string $name, string $email, string $paymentMethod, array $qtyMap, array $ticketTypes, ?string $promoCode = null, float $discountAmount = 0.00, ?string $refCode = null, array $attendees = [])
+    private function issueTicketsDirectly(
+        array $event, 
+        string $name, 
+        string $email, 
+        string $paymentMethod, 
+        array $qtyMap, 
+        array $ticketTypes, 
+        ?string $promoCode = null, 
+        float $discountAmount = 0.00, 
+        ?string $refCode = null, 
+        array $attendees = [],
+        ?string $phone = null,
+        bool $whatsappDelivery = false
+    )
     {
         $db = Application::$app->db->pdo;
         $eventId = $event['id'];
@@ -987,15 +1121,17 @@ class CheckoutController extends Controller
 
                         $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
                         $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
+                        $attPhone = $attendees[$ttId][$i]['phone'] ?? ($attendees[$i]['phone'] ?? $phone);
                         if (empty($attName)) $attName = $name;
                         if (empty($attEmail)) $attEmail = $email;
+                        if (empty($attPhone)) $attPhone = $phone;
 
                         $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
                         $typeNameDisplay = $tt['name'] . $seatLabel;
 
                         $insertStmt = $db->prepare("
-                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, purchase_date)
-                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Paid', :status_detail, NOW())
+                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, purchase_date)
+                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, 'Paid', :status_detail, NOW())
                         ");
                         // Note: $reference is set after the loop; we'll update status_detail after reference is generated
                         $insertStmt->execute([
@@ -1005,6 +1141,7 @@ class CheckoutController extends Controller
                             'user_id' => $userId,
                             'name' => $attName,
                             'email' => $attEmail,
+                            'phone' => $attPhone ?: null,
                             'price' => $seatPrice,
                             'status_detail' => '' // placeholder, updated below after reference is generated
                         ]);
@@ -1013,6 +1150,7 @@ class CheckoutController extends Controller
                             'ticket_code' => $ticketCode,
                             'attendee_name' => $attName,
                             'attendee_email' => $attEmail,
+                            'attendee_phone' => $attPhone,
                             'ticket_type' => $typeNameDisplay,
                             'base_ticket_type' => $tt['name'],
                             'price' => $seatPrice
@@ -1059,8 +1197,8 @@ class CheckoutController extends Controller
 
             // Record completed transaction
             $trxStmt = $db->prepare("
-                INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status)
-                VALUES (:reference, :event_id, :user_id, :payer_name, :payer_email, 'payment', :payment_method, :subtotal_amount, :fee_amount, :extra_charge_amount, :referral_id, :promo_code, :discount_amount, :total_amount, 'completed')
+                INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, payer_phone, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status)
+                VALUES (:reference, :event_id, :user_id, :payer_name, :payer_email, :payer_phone, 'payment', :payment_method, :subtotal_amount, :fee_amount, :extra_charge_amount, :referral_id, :promo_code, :discount_amount, :total_amount, 'completed')
             ");
             $trxStmt->execute([
                 'reference' => $reference,
@@ -1068,6 +1206,7 @@ class CheckoutController extends Controller
                 'user_id' => $userId,
                 'payer_name' => $name,
                 'payer_email' => $email,
+                'payer_phone' => $phone ?: null,
                 'payment_method' => strtolower($paymentMethodStr),
                 'subtotal_amount' => $subtotal,
                 'fee_amount' => $fee,
@@ -1167,6 +1306,7 @@ class CheckoutController extends Controller
                 'event_location' => $event['location'],
                 'attendee_name' => $name,
                 'attendee_email' => $email,
+                'attendee_phone' => $phone,
                 'payment_method' => $paymentMethodStr,
                 'payment_reference' => $reference,
                 'total_amount' => $totalPaid,
@@ -1262,6 +1402,7 @@ class CheckoutController extends Controller
                     ? $tx['payer_name'] 
                     : (!empty($tickets[0]['attendee_name']) && $tickets[0]['attendee_name'] !== 'Attendee' ? $tickets[0]['attendee_name'] : 'Attendee');
                 $payerEmail = !empty($tx['payer_email']) ? $tx['payer_email'] : (!empty($tickets[0]['attendee_email']) ? $tickets[0]['attendee_email'] : '');
+                $payerPhone = !empty($tx['payer_phone']) ? $tx['payer_phone'] : (!empty($tickets[0]['attendee_phone']) ? $tickets[0]['attendee_phone'] : ($order['attendee_phone'] ?? ''));
 
                 $order = [
                     'event_id' => $tx['event_id'],
@@ -1270,6 +1411,7 @@ class CheckoutController extends Controller
                     'event_location' => $event['location'] ?? '',
                     'attendee_name' => $payerName,
                     'attendee_email' => $payerEmail,
+                    'attendee_phone' => $payerPhone,
                     'payment_method' => strtoupper($tx['payment_method'] ?? 'PAYSTACK'),
                     'payment_reference' => $resolvedRef,
                     'total_amount' => (float)($tx['total_amount'] ?? 0),

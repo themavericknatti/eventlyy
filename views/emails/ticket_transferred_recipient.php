@@ -127,6 +127,12 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
                                 <div style="font-family: monospace; font-size: 18px; font-weight: 800; color: <?= $primaryColor ?>; letter-spacing: 1.5px; margin-bottom: 6px;">
                                     <?= e($ticketCode) ?>
                                 </div>
+                                <!-- Direct Mobile VIP Pass Link -->
+                                <div style="margin-top: 12px; margin-bottom: 8px;">
+                                    <a href="<?= \url('/pass/' . $ticketCode) ?>" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; font-size: 13px; font-weight: 700; padding: 9px 20px; border-radius: 8px; letter-spacing: 0.02em; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
+                                        📱 Open Mobile Pass &amp; QR &rarr;
+                                    </a>
+                                </div>
                                 <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">
                                     Present this QR code on your mobile device at the entrance gate for instant check-in.
                                 </p>
@@ -136,9 +142,14 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
                                 <tr>
                                     <td align="center">
-                                        <a href="<?= url('/profile') ?>" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
-                                            View in My Tickets Portal
+                                        <a href="<?= \url('/pass/' . $ticketCode) ?>" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
+                                            📱 View &amp; Access Digital Pass &rarr;
                                         </a>
+                                        <div style="margin-top: 10px;">
+                                            <a href="<?= url('/profile') ?>" style="color: #64748b; font-size: 12.5px; font-weight: 600; text-decoration: underline;">
+                                                View in My Tickets Portal &rarr;
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             </table>

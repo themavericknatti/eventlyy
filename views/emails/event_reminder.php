@@ -9,7 +9,7 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="format-detection" content="telephone=no" />
-    <title>Event Reminder - <?= e(site_setting('site_title', 'Evently')) ?></title>
+    <title>Event Reminder - <?= e(site_setting('site_title', 'Eventlyy')) ?></title>
     <!--[if mso]>
     <style type="text/css">
         body, table, td, h1, h2, h3, p, a, span { font-family: Arial, sans-serif !important; }
@@ -46,16 +46,16 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
                         <td class="header-padding" align="center" style="background-color: <?= $primaryColor ?>; background: linear-gradient(135deg, <?= $primaryColor ?> 0%, <?= $secondaryColor ?> 100%); padding: 32px 24px; text-align: center;">
                             <div style="margin-bottom: 14px;">
                                 <?php if ($logoSrc = email_logo_src()): ?>
-                                    <img src="<?= $logoSrc ?>" alt="<?= e(site_setting('site_title', 'Evently')) ?>" height="38" style="display:inline-block; max-height:38px; height:38px; width:auto; vertical-align:middle; border:0; margin-right:8px;" />
+                                    <img src="<?= $logoSrc ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" height="38" style="display:inline-block; max-height:38px; height:38px; width:auto; vertical-align:middle; border:0; margin-right:8px;" />
                                     <span style="display: inline-block; color: #ffffff; font-size: 20px; font-weight: 700; vertical-align: middle;">
-                                        <?= e(site_setting('site_title', 'Evently')) ?>
+                                        <?= e(site_setting('site_title', 'Eventlyy')) ?>
                                     </span>
                                 <?php else: ?>
                                     <span style="display: inline-block; width: 36px; height: 36px; line-height: 36px; background-color: #ffffff; color: <?= $primaryColor ?>; font-weight: 900; font-size: 22px; border-radius: 8px; text-align: center; vertical-align: middle;">
-                                        <?= strtoupper(substr(site_setting('site_title', 'Evently'), 0, 1)) ?>
+                                        <?= strtoupper(substr(site_setting('site_title', 'Eventlyy'), 0, 1)) ?>
                                     </span>
                                     <span style="display: inline-block; color: #ffffff; font-size: 20px; font-weight: 700; margin-left: 10px; vertical-align: middle;">
-                                        <?= e(site_setting('site_title', 'Evently')) ?>
+                                        <?= e(site_setting('site_title', 'Eventlyy')) ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
@@ -100,9 +100,20 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; margin-bottom: 12px;">
                                 <tr>
                                     <td align="center">
-                                        <a href="<?= \url('/profile') ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
-                                            View My Admission Passes &rarr;
-                                        </a>
+                                        <?php if (!empty($ticket_code)): ?>
+                                            <a href="<?= \url('/pass/' . $ticket_code) ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
+                                                📱 Open Mobile VIP Pass &amp; QR &rarr;
+                                            </a>
+                                            <div style="margin-top: 10px;">
+                                                <a href="<?= \url('/profile') ?>" style="color: #64748b; font-size: 12.5px; font-weight: 600; text-decoration: underline;">
+                                                    Manage All Passes in Your Account &rarr;
+                                                </a>
+                                            </div>
+                                        <?php else: ?>
+                                            <a href="<?= \url('/profile') ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
+                                                📱 View My Admission Passes &rarr;
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             </table>
@@ -113,10 +124,10 @@ $primaryRgb = function_exists('hex_to_rgb_triple') ? str_replace(' ', ', ', hex_
                     <tr>
                         <td class="footer-padding" style="padding: 24px 30px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #64748b; line-height: 1.6;">
                             <div style="margin-bottom: 10px;">
-                                <strong style="color: #334155; font-size: 13px;"><?= e(site_setting('site_title', 'Evently')) ?></strong>
+                                <strong style="color: #334155; font-size: 13px;"><?= e(site_setting('site_title', 'Eventlyy')) ?></strong>
                                 <span style="color: #94a3b8;"> &bull; Ticketing &amp; Event Experiences</span>
                             </div>
-                            <p style="margin: 0 0 8px;">&copy; <?= date('Y') ?> <?= e(site_setting('site_title', 'Evently')) ?>. All rights reserved.</p>
+                            <p style="margin: 0 0 8px;">&copy; <?= date('Y') ?> <?= e(site_setting('site_title', 'Eventlyy')) ?>. All rights reserved.</p>
                             <p style="margin: 0 0 10px;">
                                 <a href="<?= \url('/privacy') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Privacy Policy</a> &bull;
                                 <a href="<?= \url('/terms') ?>" style="color: <?= $primaryColor ?>; text-decoration: none; font-weight: 600;">Terms of Service</a> &bull;

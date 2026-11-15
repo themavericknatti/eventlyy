@@ -158,6 +158,7 @@ class PaymentService
         // Attendee Details
         $name = trim($orderData['attendee_name'] ?? ($tx['payer_name'] ?? ($gatewayData['customer']['first_name'] ?? 'Attendee')));
         $email = trim($orderData['attendee_email'] ?? ($tx['payer_email'] ?? ($gatewayData['customer']['email'] ?? '')));
+        $phone = trim($orderData['attendee_phone'] ?? ($orderData['payer_phone'] ?? ($tx['payer_phone'] ?? ($gatewayData['customer']['phone'] ?? ''))));
         $userId = !empty($orderData['user_id']) ? (int)$orderData['user_id'] : (!empty($tx['user_id']) ? (int)$tx['user_id'] : null);
         $qtyMap = $orderData['qty_map'] ?? [];
         $attendees = $orderData['attendees'] ?? [];
@@ -232,8 +233,10 @@ class PaymentService
 
                     $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
                     $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
+                    $attPhone = $attendees[$ttId][$i]['phone'] ?? ($attendees[$i]['phone'] ?? $phone);
                     if (empty($attName)) $attName = $name;
                     if (empty($attEmail)) $attEmail = $email;
+                    if (empty($attPhone)) $attPhone = $phone;
 
                     $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
                     $typeNameDisplay = $tt['name'] . $seatLabel;
@@ -245,8 +248,8 @@ class PaymentService
                         : ('Paystack Ref: ' . $reference);
 
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, :status, :status_detail, NOW(), 0)
+                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, purchase_date, checked_in)
+                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :status, :status_detail, NOW(), 0)
                     ");
                     $insertStmt->execute([
                         'id' => $ticketCode,
@@ -255,6 +258,7 @@ class PaymentService
                         'user_id' => $userId,
                         'name' => $attName,
                         'email' => $attEmail,
+                        'phone' => $attPhone ?: null,
                         'price' => $seatPrice,
                         'status' => $ticketStatus,
                         'status_detail' => $ticketStatusDetail
@@ -264,6 +268,7 @@ class PaymentService
                         'ticket_code' => $ticketCode,
                         'attendee_name' => $attName,
                         'attendee_email' => $attEmail,
+                        'attendee_phone' => $attPhone,
                         'ticket_type' => $typeNameDisplay,
                         'base_ticket_type' => $tt['name'],
                         'price' => $seatPrice,
@@ -340,6 +345,7 @@ class PaymentService
                 $updateTxStmt = $db->prepare("
                     UPDATE transactions 
                     SET status = 'completed',
+                        payer_phone = COALESCE(:payer_phone, payer_phone),
                         subtotal_amount = :subtotal_amount,
                         fee_amount = :fee_amount,
                         extra_charge_amount = :extra_charge_amount,
@@ -350,6 +356,7 @@ class PaymentService
                     WHERE reference = :reference
                 ");
                 $updateTxStmt->execute([
+                    'payer_phone' => $phone ?: null,
                     'subtotal_amount' => $txSubtotal,
                     'fee_amount' => $feeAmount,
                     'extra_charge_amount' => $extraCharge,
@@ -360,8 +367,8 @@ class PaymentService
                 ]);
             } else {
                 $insertTxStmt = $db->prepare("
-                    INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status, gateway_response, created_at, updated_at)
-                    VALUES (:reference, :event_id, :user_id, :payer_name, :payer_email, 'payment', 'paystack', :subtotal_amount, :fee_amount, :extra_charge_amount, :referral_id, :promo_code, :discount_amount, :total_amount, 'completed', :gateway_response, NOW(), NOW())
+                    INSERT INTO transactions (reference, event_id, user_id, payer_name, payer_email, payer_phone, type, payment_method, subtotal_amount, fee_amount, extra_charge_amount, referral_id, promo_code, discount_amount, total_amount, status, gateway_response, created_at, updated_at)
+                    VALUES (:reference, :event_id, :user_id, :payer_name, :payer_email, :payer_phone, 'payment', 'paystack', :subtotal_amount, :fee_amount, :extra_charge_amount, :referral_id, :promo_code, :discount_amount, :total_amount, 'completed', :gateway_response, NOW(), NOW())
                 ");
                 $insertTxStmt->execute([
                     'reference' => $reference,
@@ -369,6 +376,7 @@ class PaymentService
                     'user_id' => $userId,
                     'payer_name' => $name,
                     'payer_email' => $email,
+                    'payer_phone' => $phone ?: null,
                     'subtotal_amount' => $txSubtotal,
                     'fee_amount' => $feeAmount,
                     'extra_charge_amount' => $extraCharge,

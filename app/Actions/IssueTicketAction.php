@@ -82,7 +82,7 @@ class IssueTicketAction
                         'is_issued' => true,
                         'header_title' => 'Official Admission Pass Issued!',
                         'header_subtitle' => 'Your event admission pass has been issued and is ready for entry',
-                        'greeting_text' => 'Your official admission pass for <strong>' . e($event->name) . '</strong> has been issued by the event host via <strong>' . e(site_setting('site_title', 'Evently')) . '</strong>. Your scannable pass and details are below.',
+                        'greeting_text' => 'Your official admission pass for <strong>' . e($event->name) . '</strong> has been issued by the event host via <strong>' . e(site_setting('site_title', 'Eventlyy')) . '</strong>. Your scannable pass and details are below.',
                         'tickets' => [
                             [
                                 'ticket_code' => $ticket->id,

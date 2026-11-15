@@ -170,6 +170,23 @@ Checkout — <?= e($eventName) ?>
                             <input type="email" name="email" id="billing-email" class="co-input" placeholder="e.g. jane@example.com" required
                                    value="<?= e($userEmail) ?>" autocomplete="email" />
                         </div>
+
+                        <div class="co-field-group" style="grid-column: 1 / -1;">
+                            <label class="co-label" for="billing-phone">
+                                <span>📱 WhatsApp / Mobile Number</span>
+                                <span style="font-size:0.75rem; color:#25D366; font-weight:700; margin-left:6px;">● Instant QR Pass Delivery</span>
+                            </label>
+                            <input type="tel" name="phone" id="billing-phone" class="co-input" placeholder="e.g. +234 801 234 5678"
+                                   value="<?= e($currentUser->phone ?? '') ?>" autocomplete="tel" />
+                        </div>
+                    </div>
+
+                    <div style="margin-top:0.85rem; padding:0.85rem 1rem; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.25); border-radius:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <input type="checkbox" name="whatsapp_delivery" id="chk-whatsapp-delivery" value="1" checked style="margin-top:3px; accent-color:#25D366; width:16px; height:16px; cursor:pointer;" />
+                        <label for="chk-whatsapp-delivery" style="font-size:0.84rem; color:var(--text, #f1f5f9); cursor:pointer; line-height:1.45;">
+                            <strong style="color:#25D366;">📲 Deliver ticket &amp; scannable QR pass to WhatsApp</strong><br/>
+                            <span style="font-size:0.78rem; color:var(--muted, #94a3b8);">Receive your ticket pass, instant QR code, and event-day gate alerts directly on WhatsApp (95%+ open rate, fastest gate entry).</span>
+                        </label>
                     </div>
                 </div>
 

@@ -538,37 +538,159 @@ class HostEventController extends Controller
         $stmt = $db->prepare("
             SELECT DISTINCT attendee_name, attendee_email 
             FROM tickets 
-            WHERE event_id = :event_id AND status = 'Paid'
+            WHERE event_id = :event_id AND status IN ('Paid', 'Comped')
         ");
         $stmt->execute(['event_id' => $event->id]);
         $attendees = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         if (empty($attendees)) {
-            Application::$app->session->setFlash('error', 'No registered attendees with paid tickets found for this event.');
+            Application::$app->session->setFlash('error', 'No registered attendees found for this event.');
             return back();
         }
 
-        $sentCount = 0;
+        $emailMessages = [];
+        $formattedDate = !empty($event->date) ? date('D, M d, Y • g:i A', strtotime($event->date)) : 'TBA';
+
         foreach ($attendees as $att) {
-            try {
-                \Ace\Mail::send(
-                    $att['attendee_email'],
-                    'Event Reminder - ' . $event->name,
-                    'emails/event_reminder',
-                    [
+            if (!empty($att['attendee_email'])) {
+                $emailMessages[] = [
+                    'to' => $att['attendee_email'],
+                    'name' => $att['attendee_name'] ?? 'Attendee',
+                    'subject' => 'Event Reminder - ' . $event->name,
+                    'view' => 'emails/event_reminder',
+                    'params' => [
                         'attendee_name' => $att['attendee_name'],
                         'event_name' => $event->name,
-                        'event_date' => date('D, M d, Y • g:i A', strtotime($event->date)),
+                        'event_date' => $formattedDate,
                         'event_location' => $event->location
                     ]
-                );
-                $sentCount++;
-            } catch (\Exception $e) {
-                error_log("Reminder email failed for {$att['attendee_email']}: " . $e->getMessage());
+                ];
             }
         }
 
-        Application::$app->session->setFlash('success', "Event reminder emails successfully sent to {$sentCount} attendee(s)!");
+        try {
+            \Ace\EmailQueue::queueMessages($emailMessages, 'REMIND-EVT-' . $event->id, 5);
+            \Ace\EmailQueue::processAfterResponse();
+        } catch (\Throwable $e) {
+            error_log("Failed to queue reminder emails: " . $e->getMessage());
+        }
+
+        $sentCount = count($emailMessages);
+        Application::$app->session->setFlash('success', "Event reminder emails queued in background for {$sentCount} attendee(s)!");
+        return back();
+    }
+
+    /**
+     * Broadcast Event Day Alerts (WhatsApp & Email) to registered attendees.
+     */
+    public function sendEventDayAlerts(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+        if (!$event) {
+            throw new \Exception("Event not found or access denied.", 404);
+        }
+
+        $data = $request->getBody();
+        $alertType = trim($data['alert_type'] ?? 'gates_open');
+        $customMessage = trim($data['custom_message'] ?? '');
+        $channels = $data['channels'] ?? ['whatsapp', 'email'];
+        if (is_string($channels)) {
+            $channels = explode(',', $channels);
+        }
+
+        $db = Application::$app->db->pdo;
+        $stmt = $db->prepare("
+            SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone, tt.name as ticket_tier
+            FROM tickets t
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.event_id = :event_id AND t.status IN ('Paid', 'Comped')
+            ORDER BY t.id ASC
+        ");
+        $stmt->execute(['event_id' => $event->id]);
+        $attendees = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        if (empty($attendees)) {
+            Application::$app->session->setFlash('error', 'No registered attendees found to alert.');
+            return back();
+        }
+
+        $emailMessages = [];
+        $waDispatched = 0;
+        $siteTitle = site_setting('site_title', 'Eventlyy');
+        $eventArr = [
+            'id' => $event->id,
+            'name' => $event->name,
+            'date' => $event->date,
+            'location' => $event->location
+        ];
+
+        $alertTitles = [
+            'gates_open'  => '🚪 Gates Are Open - ' . $event->name,
+            'reminder_2h' => '⏳ 2 Hours to Event - ' . $event->name,
+            'parking'     => '🚗 Parking & Directions - ' . $event->name,
+            'schedule'    => '📍 Important Schedule Update - ' . $event->name,
+            'custom'      => '📢 Event Day Alert - ' . $event->name,
+        ];
+        $emailSubject = $alertTitles[$alertType] ?? ('📢 Event Alert - ' . $event->name);
+        $formattedDate = !empty($event->date) ? date('D, M d, Y • g:i A', strtotime($event->date)) : 'TBA';
+
+        foreach ($attendees as $att) {
+            // 1. Email Channel
+            if (in_array('email', $channels) && !empty($att['attendee_email'])) {
+                $emailMessages[] = [
+                    'to' => $att['attendee_email'],
+                    'name' => $att['attendee_name'] ?? 'Attendee',
+                    'subject' => $emailSubject,
+                    'view' => 'emails/event_reminder',
+                    'params' => [
+                        'attendee_name' => $att['attendee_name'],
+                        'ticket_code' => $att['id'] ?? '',
+                        'event_name' => $event->name,
+                        'event_date' => $formattedDate,
+                        'event_location' => $event->location,
+                        'custom_message' => $customMessage,
+                        'alert_type' => $alertType
+                    ]
+                ];
+            }
+
+            // 2. WhatsApp Channel
+            if (in_array('whatsapp', $channels)) {
+                $phone = trim($att['attendee_phone'] ?? '');
+                $waText = \App\Services\WhatsAppService::buildEventDayAlertMessage($eventArr, $alertType, $customMessage, $att, $siteTitle);
+                
+                if (!empty($phone)) {
+                    $waRes = \App\Services\WhatsAppService::dispatch($phone, $waText);
+                    if ($waRes['success']) {
+                        $waDispatched++;
+                    }
+                }
+            }
+        }
+
+        // Queue all emails in background
+        if (!empty($emailMessages)) {
+            try {
+                \Ace\EmailQueue::queueMessages($emailMessages, 'ALERT-EVT-' . $event->id, 3);
+                \Ace\EmailQueue::processAfterResponse();
+            } catch (\Throwable $e) {
+                error_log("Failed to queue alert emails: " . $e->getMessage());
+            }
+        }
+
+        $emailCount = count($emailMessages);
+        $totalAtt = count($attendees);
+        $flashMsg = "Event Day Alert successfully dispatched to {$totalAtt} attendee(s)! ";
+        if (in_array('email', $channels)) {
+            $flashMsg .= "Emails queued: {$emailCount}. ";
+        }
+        if (in_array('whatsapp', $channels)) {
+            $flashMsg .= "WhatsApp alerts dispatched/ready: {$totalAtt}.";
+        }
+
+        Application::$app->session->setFlash('success', $flashMsg);
         return back();
     }
 
@@ -583,7 +705,7 @@ class HostEventController extends Controller
 
         $db = Application::$app->db->pdo;
         $stmt = $db->prepare("
-            SELECT t.id, t.attendee_name, t.attendee_email, 
+            SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
                    tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date
             FROM tickets t
@@ -610,6 +732,7 @@ class HostEventController extends Controller
             'Ticket Code / ID',
             'Attendee Name',
             'Attendee Email',
+            'Attendee Phone / WhatsApp',
             'Ticket Tier',
             'Price Paid',
             'Payment Status',
@@ -624,6 +747,7 @@ class HostEventController extends Controller
                 $row['id'],
                 $row['attendee_name'],
                 $row['attendee_email'],
+                $row['attendee_phone'] ?? '',
                 $row['ticket_tier'],
                 number_format((float)$row['price'], 2),
                 $row['status'],
@@ -649,7 +773,7 @@ class HostEventController extends Controller
 
         $db = Application::$app->db->pdo;
         $stmt = $db->prepare("
-            SELECT t.id, t.attendee_name, t.attendee_email, 
+            SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
                    tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date
             FROM tickets t
@@ -684,7 +808,7 @@ class HostEventController extends Controller
 
         // 1. Fetch tickets with tier name
         $stmt = $db->prepare("
-            SELECT t.id, t.attendee_name, t.attendee_email, 
+            SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
                    tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date, t.is_issued
             FROM tickets t
@@ -843,7 +967,7 @@ class HostEventController extends Controller
         $db = Application::$app->db->pdo;
 
         $stmt = $db->prepare("
-            SELECT t.id, t.attendee_name, t.attendee_email, 
+            SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
                    tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date, t.is_issued
             FROM tickets t
@@ -920,7 +1044,7 @@ class HostEventController extends Controller
 
         // Fetch all tickets with ticket type tier name
         $stmt = $db->prepare("
-            SELECT t.id, t.attendee_name, t.attendee_email, 
+            SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
                    tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date, t.is_issued
             FROM tickets t

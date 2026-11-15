@@ -221,6 +221,10 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                 <span>📧</span> Send Reminder
                             </button>
                         </form>
+
+                        <button type="button" class="admin-action-btn" id="btn-open-event-day-alert" style="background:rgba(37,211,102,0.12); color:#16a34a; border-color:rgba(37,211,102,0.3); font-weight:700;" title="Broadcast an Event Day Alert via WhatsApp and Email">
+                            <span>📢</span> Event Day Alert
+                        </button>
                     <?php endif; ?>
 
                     <?php if ($eventDate && $now >= $eventDate && !$isCompleted): ?>
@@ -533,6 +537,11 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                             <div>
                                                 <strong style="font-size:0.9rem; color:rgb(var(--text)); display:block;"><?= e($t['attendee_name']) ?></strong>
                                                 <span style="font-size:0.75rem; color:rgb(var(--muted));"><?= e($t['attendee_email']) ?></span>
+                                                <?php if (!empty($t['attendee_phone'])): ?>
+                                                    <a href="<?= e(\App\Services\WhatsAppService::generateDirectWhatsAppUrl($t['attendee_phone'], \App\Services\WhatsAppService::buildTicketPassMessage(['name'=>$event->name, 'date'=>$event->date, 'location'=>$event->location], $t))) ?>" target="_blank" rel="noopener" style="font-size:0.72rem; color:#16a34a; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin-top:2px;" title="Chat / Send VIP Pass on WhatsApp">
+                                                        <span>💬</span> <?= e($t['attendee_phone']) ?>
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>
@@ -629,6 +638,11 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                     <div class="attendee-user-info">
                                         <strong class="attendee-user-name"><?= e($t['attendee_name']) ?></strong>
                                         <span class="attendee-user-email"><?= e($t['attendee_email']) ?></span>
+                                        <?php if (!empty($t['attendee_phone'])): ?>
+                                            <a href="<?= e(\App\Services\WhatsAppService::generateDirectWhatsAppUrl($t['attendee_phone'], \App\Services\WhatsAppService::buildTicketPassMessage(['name'=>$event->name, 'date'=>$event->date, 'location'=>$event->location], $t))) ?>" target="_blank" rel="noopener" style="font-size:0.72rem; color:#16a34a; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin-top:2px;" title="Chat / Send VIP Pass on WhatsApp">
+                                                <span>💬</span> <?= e($t['attendee_phone']) ?>
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <span class="mgmt-tier-badge"><?= e($t['ticket_tier']) ?></span>
@@ -1648,6 +1662,9 @@ if (result.success &amp;&amp; result.authorization_url) {
                         <button type="button" id="htm-btn-toggle-checkin" class="htd-action-btn htd-btn--primary">
                             <span>🎟️</span> Check In Attendee
                         </button>
+                        <a id="htm-btn-send-whatsapp" href="#" target="_blank" rel="noopener" class="htd-action-btn" style="background:#25D366; color:#ffffff; font-weight:700; text-decoration:none; display:none; align-items:center; justify-content:center; gap:0.45rem;">
+                            <span>💬</span> Deliver Pass to WhatsApp
+                        </a>
                         <button type="button" id="htm-btn-resend-email" class="htd-action-btn htd-btn--indigo">
                             <span>✉️</span> Resend Ticket Email
                         </button>
@@ -1700,6 +1717,92 @@ if (result.success &amp;&amp; result.authorization_url) {
         </label>
     </form>
 </template>
+
+<!-- ════════════════════════════════════════════════════════════════
+     7. EVENT DAY ALERT & GATE BROADCAST MODAL
+     ════════════════════════════════════════════════════════════════ -->
+<div id="eda-modal-overlay" class="htd-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="eda-modal-title">
+    <div class="htd-modal-container" style="max-width: 600px; padding: 1.75rem; border-radius: 20px; background:rgb(var(--card)); box-shadow:0 25px 60px -10px rgba(0,0,0,0.4);">
+        
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem;">
+            <div>
+                <div style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.25rem 0.65rem; border-radius:999px; background:rgba(37,211,102,0.12); color:#16a34a; font-size:0.75rem; font-weight:700; margin-bottom:0.45rem;">
+                    <span>📢</span> Live Attendee Broadcast
+                </div>
+                <h3 id="eda-modal-title" style="margin:0; font-size:1.25rem; font-weight:800; color:rgb(var(--text));">Event Day Alert &amp; Pass Delivery</h3>
+                <p style="margin:0.25rem 0 0; font-size:0.83rem; color:rgb(var(--muted));">Send real-time gate instructions, schedule reminders, and mobile passes directly to attendees.</p>
+            </div>
+            <button type="button" id="eda-close-btn" style="background:transparent; border:none; font-size:1.6rem; color:rgb(var(--muted)); cursor:pointer; line-height:1; padding:0.2rem 0.4rem;" aria-label="Close modal">&times;</button>
+        </div>
+
+        <form id="eda-broadcast-form" method="POST" action="{{ route('host/event/management/' . $event->id . '/send-event-day-alert') }}">
+            <?= csrf_field() ?>
+
+            <!-- Alert Preset -->
+            <div style="margin-bottom:1rem;">
+                <label for="eda-alert-type" style="display:block; font-size:0.84rem; font-weight:700; color:rgb(var(--text)); margin-bottom:0.35rem;">
+                    Select Alert Template
+                </label>
+                <select name="alert_type" id="eda-alert-type" style="width:100%; padding:0.65rem 0.85rem; border:1px solid rgba(var(--muted),0.25); border-radius:10px; background-color:rgb(var(--card)); color:rgb(var(--text)); font-size:0.88rem; font-weight:600; cursor:pointer;">
+                    <option value="gates_open">🚪 Gates Open Now (Entry Check-in Active)</option>
+                    <option value="reminder_2h">⏳ 2 Hours to Kickoff / Doors Open</option>
+                    <option value="parking">🚗 Parking, Directions &amp; Arrival Advisory</option>
+                    <option value="schedule">📍 Schedule, Timetable &amp; Stage Updates</option>
+                    <option value="custom">📢 Custom Announcement (Host Message)</option>
+                </select>
+            </div>
+
+            <!-- Custom Message -->
+            <div style="margin-bottom:1rem;">
+                <label for="eda-custom-msg" style="display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; font-weight:700; color:rgb(var(--text)); margin-bottom:0.35rem;">
+                    <span>Message Notes / Instructions</span>
+                    <span style="font-size:0.75rem; color:rgb(var(--muted)); font-weight:500;">(Appended to alert)</span>
+                </label>
+                <textarea name="custom_message" id="eda-custom-msg" rows="3" placeholder="e.g. Please use Gate B on North Entrance. Parking lot is 80% full, follow security signs..." style="width:100%; padding:0.65rem 0.85rem; border:1px solid rgba(var(--muted),0.25); border-radius:10px; background-color:rgb(var(--card)); color:rgb(var(--text)); font-size:0.85rem; line-height:1.45; box-sizing:border-box; font-family:inherit;"></textarea>
+            </div>
+
+            <!-- Live Message Preview Box -->
+            <div style="margin-bottom:1.15rem; background:rgba(37,211,102,0.06); border:1px solid rgba(37,211,102,0.22); border-radius:12px; padding:0.85rem 1rem;">
+                <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; font-weight:800; color:#16a34a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.4rem;">
+                    <span>💬</span> WhatsApp &amp; Email Preview
+                </div>
+                <div id="eda-preview-text" style="font-size:0.82rem; color:rgb(var(--text)); line-height:1.5; white-space:pre-wrap; word-break:break-word;">
+                </div>
+            </div>
+
+            <!-- Channels -->
+            <div style="margin-bottom:1.25rem;">
+                <label style="display:block; font-size:0.84rem; font-weight:700; color:rgb(var(--text)); margin-bottom:0.5rem;">
+                    Delivery Channels
+                </label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                    <label style="display:flex; align-items:center; gap:0.55rem; padding:0.6rem 0.8rem; border:1px solid rgba(37,211,102,0.3); background:rgba(37,211,102,0.06); border-radius:10px; cursor:pointer; font-size:0.84rem; font-weight:700; color:rgb(var(--text));">
+                        <input type="checkbox" name="channels[]" value="whatsapp" checked style="accent-color:#25d366; width:17px; height:17px;">
+                        <span>💬 WhatsApp Pass</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.55rem; padding:0.6rem 0.8rem; border:1px solid rgba(99,102,241,0.3); background:rgba(99,102,241,0.06); border-radius:10px; cursor:pointer; font-size:0.84rem; font-weight:700; color:rgb(var(--text));">
+                        <input type="checkbox" name="channels[]" value="email" checked style="accent-color:#6366f1; width:17px; height:17px;">
+                        <span>✉️ Email Queue</span>
+                    </label>
+                </div>
+                <p style="margin:0.45rem 0 0; font-size:0.74rem; color:rgb(var(--muted));">
+                    Attendees receive a scannable mobile pass link (<code style="background:rgba(var(--muted),0.12); padding:2px 4px; border-radius:4px;">/pass/{code}</code>) for 1-second gate entry.
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex; gap:0.65rem; justify-content:flex-end; align-items:center; border-top:1px solid rgba(var(--muted),0.15); padding-top:1rem;">
+                <button type="button" id="eda-cancel-btn" class="admin-action-btn" style="padding:0.55rem 1rem; border-radius:10px;">
+                    Cancel
+                </button>
+                <button type="submit" id="eda-submit-btn" class="admin-action-btn" style="background:#25d366; color:#ffffff; border:none; padding:0.55rem 1.25rem; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:0.45rem;">
+                    <span>🚀</span> Broadcast Alert Now
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
 
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
@@ -3668,6 +3771,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+
+        const btnWa = document.getElementById('htm-btn-send-whatsapp');
+        if (btnWa) {
+            if (ticket.whatsapp_url) {
+                btnWa.href = ticket.whatsapp_url;
+                btnWa.style.display = 'inline-flex';
+            } else {
+                btnWa.style.display = 'none';
+            }
+        }
     }
 
     function syncAttendeeRowInDashboard(ticketId, isChecked, timeStr, isRefunded) {
@@ -4040,9 +4153,88 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ══════════════════════════════════════════════════════════════
+    // EVENT DAY ALERT & BROADCAST MODAL
+    // ══════════════════════════════════════════════════════════════
+    function bindEventDayAlertModal() {
+        const btnOpen = document.getElementById('btn-open-event-day-alert');
+        const overlay = document.getElementById('eda-modal-overlay');
+        const btnClose = document.getElementById('eda-close-btn');
+        const btnCancel = document.getElementById('eda-cancel-btn');
+        const alertTypeSelect = document.getElementById('eda-alert-type');
+        const customMsgInput = document.getElementById('eda-custom-msg');
+        const previewEl = document.getElementById('eda-preview-text');
+        const form = document.getElementById('eda-broadcast-form');
+        const submitBtn = document.getElementById('eda-submit-btn');
+
+        if (!btnOpen || !overlay) return;
+
+        const eventName = <?= json_encode($event->name ?? 'Event') ?>;
+        const eventLocation = <?= json_encode($event->location ?? 'Venue') ?>;
+
+        function updatePreview() {
+            if (!previewEl || !alertTypeSelect) return;
+            const type = alertTypeSelect.value;
+            const customNotes = customMsgInput ? customMsgInput.value.trim() : '';
+
+            let text = '';
+            if (type === 'gates_open') {
+                text = `🚪 *GATES ARE NOW OPEN!*\n\nGet ready for ${eventName}! Gates are officially open. Have your QR pass ready on your phone for lightning-fast gate scanning.`;
+            } else if (type === 'reminder_2h') {
+                text = `⏳ *2 HOURS TO KICKOFF!*\n\n${eventName} kicks off in 2 hours. Travel safely and ensure your scannable pass is ready.`;
+            } else if (type === 'parking') {
+                text = `🚗 *VENUE & PARKING ADVISORY*\n\nHeaded to ${eventName}? Venue: ${eventLocation}. Please follow parking signs and present your mobile QR pass at the entrance.`;
+            } else if (type === 'schedule') {
+                text = `📍 *SCHEDULE & PROGRAM UPDATE*\n\nHere is an important update for ${eventName}. Please check the event schedule and have your VIP pass ready.`;
+            } else {
+                text = `📢 *EVENT UPDATE: ${eventName}*`;
+            }
+
+            if (customNotes) {
+                text += `\n\n📌 *Host Notice:*\n${customNotes}`;
+            }
+
+            text += `\n\n🎟️ *Your Digital Ticket Pass:*\nhttps://example.com/pass/ABC123XYZ`;
+            previewEl.textContent = text;
+        }
+
+        btnOpen.addEventListener('click', () => {
+            overlay.classList.remove('hidden');
+            updatePreview();
+        });
+
+        function closeModal() {
+            overlay.classList.add('hidden');
+        }
+
+        if (btnClose) btnClose.addEventListener('click', closeModal);
+        if (btnCancel) btnCancel.addEventListener('click', closeModal);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        if (alertTypeSelect) alertTypeSelect.addEventListener('change', updatePreview);
+        if (customMsgInput) customMsgInput.addEventListener('input', updatePreview);
+
+        if (form && submitBtn) {
+            form.addEventListener('submit', () => {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span>⏳</span> Queuing Broadcast...`;
+            });
+        }
+    }
+
     // Initial binding
     bindAttendeeCheckins();
     bindTicketDetailModal();
+    bindEventDayAlertModal();
     bindPagination();
 });
 </script>

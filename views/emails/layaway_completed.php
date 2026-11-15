@@ -111,8 +111,14 @@ $qrSrc = function_exists('ticket_qr_email_src') ? ticket_qr_email_src($ticket_co
                                                 <?= e($ticket_code) ?>
                                             </span>
                                         </div>
+                                        <!-- Direct Mobile VIP Pass Link -->
+                                        <div style="margin-top: 10px; margin-bottom: 8px;">
+                                            <a href="<?= \url('/pass/' . $ticket_code) ?>" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; font-size: 13px; font-weight: 700; padding: 9px 20px; border-radius: 8px; letter-spacing: 0.02em; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
+                                                📱 Open Mobile Pass &amp; QR &rarr;
+                                            </a>
+                                        </div>
                                         <p style="margin: 4px 0 0; font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
-                                            ⚡ Present this QR code or code at gate entry
+                                            ⚡ Present this QR code or click above at gate entry
                                         </p>
                                     </td>
                                 </tr>
@@ -136,9 +142,14 @@ $qrSrc = function_exists('ticket_qr_email_src') ? ticket_qr_email_src($ticket_co
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 12px;">
                                 <tr>
                                     <td align="center">
-                                        <a href="<?= e($ticketUrl) ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
-                                            View &amp; Manage Passes &rarr;
+                                        <a href="<?= \url('/pass/' . $ticket_code) ?>" class="btn-primary" style="display: inline-block; background-color: <?= $primaryColor ?>; color: #ffffff !important; text-decoration: none; padding: 14px 32px; font-weight: 700; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(<?= $primaryRgb ?>, 0.25);">
+                                            📱 View &amp; Access Digital Pass &rarr;
                                         </a>
+                                        <div style="margin-top: 10px;">
+                                            <a href="<?= e($ticketUrl) ?>" style="color: #64748b; font-size: 12.5px; font-weight: 600; text-decoration: underline;">
+                                                Manage All Passes in Your Account &rarr;
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             </table>

@@ -68,4 +68,51 @@ class TicketController extends Controller
         echo $png;
         exit;
     }
+
+    /**
+     * Display the mobile-first VIP Digital Admission Pass for WhatsApp & mobile attendees.
+     * Accessible without login so attendees can present their ticket at the gate from WhatsApp.
+     *
+     * @param Request $request
+     * @param string $code Ticket code (e.g. EV-XXXXXXXX)
+     * @return string
+     */
+    public function viewPass(Request $request, string $code): string
+    {
+        $code = trim($code);
+        if (empty($code)) {
+            \Ace\Application::$app->session->setFlash('error', 'Invalid ticket pass link.');
+            redirect('/');
+            return '';
+        }
+
+        $db = \Ace\Application::$app->db->pdo;
+        $stmt = $db->prepare("
+            SELECT t.*, 
+                   e.id as event_id, e.name as event_name, e.slug as event_slug, e.custom_url as event_custom_url,
+                   e.date as event_date, e.location as event_location, e.image as event_image, e.category as event_category,
+                   e.status as event_status,
+                   tt.name as ticket_tier, tt.admits as ticket_admits,
+                   u.name as organizer_name
+            FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            LEFT JOIN users u ON e.organizer_id = u.id
+            WHERE t.id = :code
+            LIMIT 1
+        ");
+        $stmt->execute(['code' => $code]);
+        $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$ticket) {
+            \Ace\Application::$app->session->setFlash('error', 'Ticket pass not found or reference has expired.');
+            redirect('/');
+            return '';
+        }
+
+        return $this->render('ticket/pass', [
+            'title' => 'Admission Pass — ' . $ticket['event_name'],
+            'ticket' => $ticket
+        ]);
+    }
 }

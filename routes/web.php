@@ -34,6 +34,7 @@ use App\Controllers\LayawayController;
 
 // Branded Ticket Admission QR Code Generator
 $router->get('/ticket/qr/{code}', [TicketController::class, 'qrCode']);
+$router->get('/pass/{code}', [TicketController::class, 'viewPass']);
 
 // Dynamic PWA Manifest Route
 $router->get('/manifest.json', function () {
@@ -94,6 +95,7 @@ $router->get('/order/verify/{reference?}', [CheckoutController::class, 'verifyOr
 $router->post('/order/verify', [CheckoutController::class, 'verifyOrderPost']);
 $router->get('/order/resend-email/{reference}', [CheckoutController::class, 'resendOrderEmailGet']);
 $router->post('/order/resend-email', [CheckoutController::class, 'resendOrderEmail']);
+$router->post('/order/send-whatsapp', [CheckoutController::class, 'sendWhatsAppPass']);
 $router->get('/cron/reconcile-payments', [CheckoutController::class, 'reconcilePaymentsCron']);
 $router->get('/cron/process-email-queue', [CheckoutController::class, 'processEmailQueueCron']);
 
@@ -141,6 +143,7 @@ $router->get('/host/event/management/{id}/export-pdf', [HostEventController::cla
 $router->get('/host/event/management/{id}/export-accounting', [HostEventController::class, 'exportAccountingReport']);
 $router->post('/host/event/management/{id}', [HostEventController::class, 'addTicketManually']);
 $router->post('/host/event/management/{id}/send-reminders', [HostEventController::class, 'sendReminders']);
+$router->post('/host/event/management/{id}/send-event-day-alert', [HostEventController::class, 'sendEventDayAlerts']);
 $router->post('/host/event/management/{id}/send-feedback', [HostEventController::class, 'sendFeedbackRequests']);
 $router->post('/host/event/management/{id}/complete', [HostEventController::class, 'markEventCompleted']);
 $router->post('/host/event/management/{id}/toggle-flyer', [HostEventController::class, 'toggleFlyerPage']);

@@ -231,25 +231,37 @@ class EmailQueue
     }
 
     /**
-     * Get queue stats for a reference.
+     * Get queue stats globally or for a specific reference.
      *
      * @return array ['total'=>int, 'pending'=>int, 'processing'=>int, 'sent'=>int, 'failed'=>int]
      */
-    public static function getStatus(string $reference): array
+    public static function getStatus(?string $reference = null): array
     {
         $pdo = self::pdo();
 
-        $stmt = $pdo->prepare("
-            SELECT
-                COUNT(*) as total,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
-                SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
-                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
-            FROM email_queue
-            WHERE reference = :ref
-        ");
-        $stmt->execute([':ref' => $reference]);
+        if ($reference !== null) {
+            $stmt = $pdo->prepare("
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+                    SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+                    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+                FROM email_queue
+                WHERE reference = :ref
+            ");
+            $stmt->execute([':ref' => $reference]);
+        } else {
+            $stmt = $pdo->query("
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+                    SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+                    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+                FROM email_queue
+            ");
+        }
 
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 

@@ -133,7 +133,49 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
         $evImg = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1600&q=85&auto=format&fit=crop';
     }
     $evShareUrl = url('/e/' . ($order['event_slug'] ?? ($order['event_id'] ?? '')));
+
+    // ═══ WhatsApp Delivery Configuration ═══
+    $buyerPhone = $order['attendee_phone'] ?? '';
+    $waDefaultMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
+        ['name' => $order['event_name'], 'date' => $order['event_date'], 'location' => $order['event_location']],
+        ['attendee_name' => $primaryAttendeeName, 'ticket_code' => $firstTicketCode, 'ticket_type' => $firstTicketType],
+        $siteTitle
+    );
+    $initialWaUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl($buyerPhone, $waDefaultMsg);
     ?>
+
+    <!-- ═══ WhatsApp Instant Delivery & Gate Alerts Banner ═══ -->
+    <div class="suc-whatsapp-banner no-print" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.08) 100%); border: 1px solid rgba(37, 211, 102, 0.35); border-radius: 18px; padding: 1.35rem 1.6rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 280px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.35rem;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #25D366; color: #fff; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
+                </span>
+                <strong style="font-size: 1.05rem; color: #f1f5f9; font-weight: 800;">WhatsApp Ticket Delivery &amp; Gate Alerts</strong>
+                <span style="background: rgba(37, 211, 102, 0.2); color: #25D366; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;">95%+ OPEN RATE</span>
+            </div>
+            <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.45;">
+                Get your digital pass with scannable QR code and event-day gate alerts delivered directly to WhatsApp so you never misplace your ticket at the entrance.
+            </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 2px 10px;">
+                <span style="font-size: 0.85rem; color: #94a3b8; margin-right: 4px;">📱</span>
+                <input type="tel" id="suc-wa-phone" placeholder="e.g. +234..." value="<?= e($buyerPhone) ?>"
+                       style="background: transparent; border: none; color: #fff; font-size: 0.88rem; padding: 0.55rem 0.25rem; outline: none; width: 155px; font-weight: 600;"
+                       title="Enter your WhatsApp phone number" />
+            </div>
+
+            <button type="button" id="btn-suc-send-whatsapp"
+                    data-ref="<?= e($orderRef) ?>"
+                    data-wa-url="<?= e($initialWaUrl) ?>"
+                    style="display: inline-flex; align-items: center; gap: 7px; background: #25D366; color: #fff; padding: 0.65rem 1.25rem; border-radius: 12px; font-weight: 800; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.35);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
+                <span>Send to WhatsApp</span>
+            </button>
+        </div>
+    </div>
     <div class="suc-story-banner no-print">
         <div class="suc-story-banner__content">
             <span class="suc-story-banner__badge">✦ OFFICIAL SOCIAL PASS</span>
@@ -282,6 +324,21 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                                 title="Generate Instagram &amp; WhatsApp Story Card for this ticket">
                             <span>📸</span> Story Pass
                         </button>
+                        <?php
+                            $ticketPhone = $t['attendee_phone'] ?? $buyerPhone;
+                            $indivWaMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
+                                ['name' => $order['event_name'], 'date' => $order['event_date'], 'location' => $order['event_location']],
+                                ['attendee_name' => $holderName, 'ticket_code' => $tCode, 'ticket_type' => $ticketType],
+                                $siteTitle
+                            );
+                            $indivWaUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl($ticketPhone, $indivWaMsg);
+                        ?>
+                        <a href="<?= e($indivWaUrl) ?>" target="_blank" rel="noopener" class="no-print"
+                           style="display:inline-flex; align-items:center; gap:5px; padding:0.4rem 0.85rem; border-radius:9999px; background:rgba(37,211,102,0.15); border:1px solid rgba(37,211,102,0.35); color:#25D366; font-size:0.78rem; font-weight:700; text-decoration:none; transition:all 0.15s ease;"
+                           title="Send this ticket's QR pass directly via WhatsApp">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
+                            <span>WhatsApp Pass</span>
+                        </a>
                     </div>
                 </div>
 
@@ -391,6 +448,54 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch('<?= \url('/cron/process-email-queue') ?>', { cache: 'no-store' }).catch(function () {});
         }
     } catch (e) {}
+
+    // WhatsApp Pass Sender & Direct Link Trigger
+    const waSendBtn = document.getElementById('btn-suc-send-whatsapp');
+    const waPhoneInput = document.getElementById('suc-wa-phone');
+    if (waSendBtn) {
+        waSendBtn.addEventListener('click', function () {
+            const ref = this.getAttribute('data-ref');
+            const fallbackUrl = this.getAttribute('data-wa-url');
+            const phoneVal = waPhoneInput ? waPhoneInput.value.trim() : '';
+
+            showToast('📲 Preparing WhatsApp ticket pass...');
+            this.disabled = true;
+            this.style.opacity = '0.7';
+
+            if (window.fetch && ref) {
+                const formData = new FormData();
+                formData.append('reference', ref);
+                formData.append('phone', phoneVal);
+
+                fetch('<?= \url('/order/send-whatsapp') ?>', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    waSendBtn.disabled = false;
+                    waSendBtn.style.opacity = '1';
+                    if (data.whatsapp_url) {
+                        window.open(data.whatsapp_url, '_blank');
+                        showToast('✓ WhatsApp pass opened!');
+                    } else if (fallbackUrl) {
+                        window.open(fallbackUrl, '_blank');
+                    }
+                })
+                .catch(() => {
+                    waSendBtn.disabled = false;
+                    waSendBtn.style.opacity = '1';
+                    if (fallbackUrl) {
+                        window.open(fallbackUrl, '_blank');
+                    }
+                });
+            } else if (fallbackUrl) {
+                waSendBtn.disabled = false;
+                waSendBtn.style.opacity = '1';
+                window.open(fallbackUrl, '_blank');
+            }
+        });
+    }
 
     function fallback(text, btn) {
         const temp = document.createElement('textarea');

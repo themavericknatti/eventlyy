@@ -63,6 +63,16 @@ class HostTicketController extends Controller
                     'id' => $ticket['id'],
                     'attendee_name' => $ticket['attendee_name'] ?? 'Guest',
                     'attendee_email' => $ticket['attendee_email'] ?? '',
+                    'attendee_phone' => $ticket['attendee_phone'] ?? '',
+                    'pass_url' => url('/pass/' . $ticket['id']),
+                    'whatsapp_url' => !empty($ticket['attendee_phone']) ? \App\Services\WhatsAppService::generateDirectWhatsAppUrl(
+                        $ticket['attendee_phone'], 
+                        \App\Services\WhatsAppService::buildTicketPassMessage([
+                            'name' => $ticket['event_name'],
+                            'date' => $ticket['event_date'] ?? null,
+                            'location' => $ticket['event_location'] ?? null
+                        ], $ticket)
+                    ) : null,
                     'user_id' => $ticket['user_id'] ?? null,
                     'is_user' => !empty($ticket['user_id']),
                     'ticket_type' => $ticket['ticket_type'] ?? 'General Admission',

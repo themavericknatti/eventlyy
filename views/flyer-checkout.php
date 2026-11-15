@@ -265,6 +265,31 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                                 value="<?= e($currentUser->email ?? '') ?>">
                         </div>
 
+                        <!-- WhatsApp Phone Number Input -->
+                        <div class="input-group">
+                            <label for="att-phone">
+                                WhatsApp / Mobile Number
+                                <span style="font-size:0.75rem; color:#25D366; font-weight:700; margin-left:4px;">● Recommended</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                id="att-phone" 
+                                name="phone" 
+                                class="cyber-input" 
+                                autocomplete="tel"
+                                placeholder="e.g. +234 801 234 5678" 
+                                value="<?= e($currentUser->phone ?? '') ?>">
+                        </div>
+
+                        <!-- WhatsApp Delivery Checkbox -->
+                        <div style="margin: 0.5rem 0 1.25rem; padding: 0.75rem 1rem; background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.25); border-radius: 12px; display: flex; align-items: flex-start; gap: 10px;">
+                            <input type="checkbox" name="whatsapp_delivery" id="chk-flyer-whatsapp" value="1" checked style="margin-top: 3px; accent-color: #25D366; width: 16px; height: 16px; cursor: pointer;" />
+                            <label for="chk-flyer-whatsapp" style="font-size: 0.82rem; color: #f1f5f9; cursor: pointer; line-height: 1.45;">
+                                <strong style="color: #25D366;">📲 Send ticket QR pass to WhatsApp</strong><br/>
+                                <span style="font-size: 0.76rem; color: var(--flyer-text-muted, #94a3b8);">Deliver admission QR pass and event-day gate alerts directly to WhatsApp.</span>
+                            </label>
+                        </div>
+
                         <!-- Promo Code Accordion/Input -->
                         <div class="input-group">
                             <label for="promo-code">Promo Code</label>
