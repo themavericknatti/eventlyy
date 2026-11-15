@@ -326,33 +326,73 @@ Create Event - <?= e($siteName) ?> Host
     background: #ef4444;
 }
 
-/* Special Guests List */
+/* Special Guests & Performer Cards */
 .guest-list {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 1rem;
 }
 
+.guest-card,
 .guest-row {
     background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.16);
-    border-radius: 14px;
-    padding: 1.15rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(var(--muted), 0.18);
+    border-radius: 16px;
+    padding: 1.25rem 1.35rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.guest-row-grid {
+.guest-card:focus-within,
+.guest-row:focus-within {
+    border-color: rgba(var(--brand), 0.45);
+    box-shadow: 0 4px 16px rgba(var(--brand), 0.06);
+}
+
+.guest-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.95rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.1);
+    gap: 0.75rem;
+}
+
+.guest-card-avatar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+}
+
+.guest-card-avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(var(--brand), 0.12);
+    color: rgb(var(--brand));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.guest-card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
 }
 
-.guest-remove {
-    background: rgba(239, 68, 68, 0.1);
+.guest-remove,
+.guest-card-remove-btn {
+    background: rgba(239, 68, 68, 0.08);
     color: #ef4444 !important;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 8px;
-    padding: 0.45rem 0.95rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 9px;
+    padding: 0.45rem 0.85rem;
     font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
@@ -361,94 +401,141 @@ Create Event - <?= e($siteName) ?> Host
     gap: 0.35rem;
     transition: all 0.2s ease;
     font-family: inherit;
+    min-height: 38px;
 }
 
-.guest-remove:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.45);
+.guest-remove:hover,
+.guest-card-remove-btn:hover {
+    background: #ef4444;
+    color: #ffffff !important;
+    border-color: #ef4444;
     transform: translateY(-1px);
 }
 
-/* Ticket Tiers */
+/* ═══════════════════════════════════════════════════════════
+   Executive Ticket Package Cards (Bento Style)
+   ═══════════════════════════════════════════════════════════ */
 .ticket-list {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 1.25rem;
 }
 
+.ticket-card,
 .ticket-row-item {
     background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.16);
-    border-radius: 14px;
-    padding: 1.15rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(var(--muted), 0.2);
+    border-radius: 18px;
+    padding: 1.35rem 1.45rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
-.ticket-tier-grid {
-    display: grid;
-    grid-template-columns: 2.2fr 1fr 1fr 0.9fr 0.9fr auto;
-    gap: 0.85rem;
-    align-items: flex-end;
+.ticket-card:focus-within,
+.ticket-row-item:focus-within {
+    border-color: rgba(var(--brand), 0.45);
+    box-shadow: 0 6px 20px rgba(var(--brand), 0.08);
 }
 
-.tier-remove-wrap {
+.ticket-card-header {
     display: flex;
     align-items: center;
-    height: 48px;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.12);
+    gap: 0.75rem;
 }
 
+.ticket-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: rgb(var(--brand));
+    background: rgba(var(--brand), 0.08);
+    padding: 0.3rem 0.75rem;
+    border-radius: 99px;
+    border: 1px solid rgba(var(--brand), 0.2);
+}
+
+.ticket-card-remove-btn,
 .ticket-remove-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border-radius: 10px;
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444 !important;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 38px;
+    font-family: inherit;
 }
 
+.ticket-card-remove-btn:hover:not(:disabled),
 .ticket-remove-btn:hover:not(:disabled) {
     background: #ef4444;
     color: #ffffff !important;
+    border-color: #ef4444;
+    transform: translateY(-1px);
 }
 
+.ticket-card-remove-btn:disabled,
 .ticket-remove-btn:disabled {
-    background: rgba(var(--muted), 0.1);
-    color: rgba(var(--text), 0.35) !important;
+    background: rgba(var(--muted), 0.08);
+    color: rgba(var(--text), 0.4) !important;
     border-color: rgba(var(--muted), 0.2);
     cursor: not-allowed;
 }
 
-.ticket-remove-btn .remove-text {
-    display: none;
+.ticket-primary-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.15rem;
+}
+
+.ticket-access-shelf {
+    background: rgba(var(--muted), 0.035);
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.ticket-subfield {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.ticket-subfield-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: rgb(var(--text));
+}
+
+.ticket-subfield-hint {
+    font-size: 0.74rem;
+    color: rgb(var(--muted));
+    line-height: 1.35;
+    margin-top: 0.25rem;
 }
 
 /* Staffing Assistance Section */
-.staffing-toggle-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.88rem;
-    user-select: none;
-    background: rgba(var(--brand), 0.08);
-    padding: 0.45rem 0.95rem;
-    border-radius: 99px;
-    border: 1px solid rgba(var(--brand), 0.25);
-    transition: all 0.2s ease;
-}
-
-.staffing-toggle-badge:hover {
-    background: rgba(var(--brand), 0.15);
-}
-
 .staff-roles-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -458,18 +545,23 @@ Create Event - <?= e($siteName) ?> Host
 
 .staff-role-card {
     background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.18);
+    border: 1.5px solid rgba(var(--muted), 0.18);
     border-radius: 14px;
-    padding: 1rem 1.15rem;
+    padding: 1.1rem 1.15rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.65rem;
     transition: all 0.2s ease;
 }
 
 .staff-role-card:hover {
     border-color: rgba(var(--brand), 0.4);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+}
+
+.staff-role-card:has(input[type="checkbox"]:checked) {
+    border-color: rgba(var(--brand), 0.55);
+    background: rgba(var(--brand), 0.025);
 }
 
 .staff-role-header {
@@ -482,12 +574,12 @@ Create Event - <?= e($siteName) ?> Host
 .staff-role-qty-wrap {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
 }
 
 .staff-qty-input {
     width: 58px;
-    height: 36px;
+    height: 38px;
     border-radius: 8px;
     border: 1px solid rgba(var(--muted), 0.25);
     background: rgba(var(--bg), 0.9);
@@ -499,36 +591,132 @@ Create Event - <?= e($siteName) ?> Host
     box-sizing: border-box;
 }
 
-/* Settings Cards (Fee & Flyer) */
+/* ═══════════════════════════════════════════════════════════
+   Modern Interactive Settings Tiles (Checkboxes)
+   ═══════════════════════════════════════════════════════════ */
+.setting-tile,
 .setting-card {
-    background: rgba(var(--muted), 0.04);
-    border: 1px solid rgba(var(--muted), 0.14);
+    background: rgb(var(--card));
+    border: 1.5px solid rgba(var(--muted), 0.18);
     border-radius: 16px;
     padding: 1.25rem 1.35rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.15rem;
     transition: all 0.2s ease;
+    position: relative;
 }
 
+.setting-tile:hover,
+.setting-card:hover {
+    border-color: rgba(var(--brand), 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.setting-tile:has(input[type="checkbox"]:checked),
+.setting-card:has(input[type="checkbox"]:checked) {
+    border-color: rgba(var(--brand), 0.55);
+    background: rgba(var(--brand), 0.025);
+}
+
+.setting-tile--flyer,
 .setting-card--flyer {
-    background: rgba(99, 102, 241, 0.04);
-    border: 1.5px solid rgba(99, 102, 241, 0.25);
+    background: rgba(99, 102, 241, 0.03);
+    border-color: rgba(99, 102, 241, 0.25);
 }
 
+.setting-tile--flyer:hover,
+.setting-card--flyer:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+.setting-tile--flyer:has(input[type="checkbox"]:checked),
+.setting-card--flyer:has(input[type="checkbox"]:checked) {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.setting-tile-label,
 .setting-card-label {
     display: flex;
     align-items: flex-start;
-    gap: 0.85rem;
+    gap: 1rem;
     cursor: pointer;
     user-select: none;
+    margin: 0;
+    width: 100%;
 }
 
-.setting-checkbox {
-    width: 20px;
-    height: 20px;
-    margin-top: 0.2rem;
-    accent-color: rgb(var(--brand));
+.setting-tile-checkbox-wrap {
     flex-shrink: 0;
+    margin-top: 0.2rem;
+}
+
+.setting-tile-checkbox,
+.setting-checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    accent-color: rgb(var(--brand));
     cursor: pointer;
+    flex-shrink: 0;
+}
+
+.setting-tile-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.setting-tile-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    line-height: 1.35;
+}
+
+.setting-tile-desc {
+    font-size: 0.83rem;
+    color: rgb(var(--muted));
+    line-height: 1.48;
+    margin-top: 0.35rem;
+}
+
+.setting-badge-recommended {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.setting-badge-promo {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.setting-badge-flexible {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 /* Primary Action Buttons */
@@ -609,32 +797,24 @@ Create Event - <?= e($siteName) ?> Host
         grid-template-columns: 1fr 1fr;
     }
 
-    /* Tablet ticket tier grid (clean 2-row layout) */
-    .ticket-tier-grid {
-        grid-template-columns: 2fr 1fr 1fr !important;
+    /* Tablet ticket primary grid (Name on top, Price & Capacity below) */
+    .ticket-primary-grid {
+        grid-template-columns: 1fr 1fr !important;
         gap: 0.85rem !important;
-        align-items: flex-end !important;
     }
 
-    .tier-remove-wrap {
-        grid-column: 1 / -1;
-        justify-content: flex-end;
-        height: auto;
-        margin-top: 0.25rem;
+    .ticket-primary-grid .event-field-group:first-child {
+        grid-column: 1 / -1 !important;
     }
 
-    .ticket-remove-btn {
-        width: auto !important;
-        padding: 0.45rem 1rem !important;
-        border-radius: 8px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.35rem !important;
+    .ticket-access-shelf {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem !important;
     }
 
-    .ticket-remove-btn .remove-text {
-        display: inline !important;
-        font-size: 0.82rem !important;
+    .guest-card-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.85rem !important;
     }
 }
 
@@ -645,12 +825,12 @@ Create Event - <?= e($siteName) ?> Host
     }
 
     .form-card {
-        padding: 1.25rem 1rem;
+        padding: 1.25rem 0.95rem;
         border-radius: 18px;
     }
 
     .event-form-section {
-        padding: 1.1rem 0.9rem;
+        padding: 1.15rem 0.85rem;
         border-radius: 14px;
         margin-bottom: 1.25rem;
     }
@@ -675,9 +855,12 @@ Create Event - <?= e($siteName) ?> Host
 
     .event-input,
     .event-select,
-    .event-textarea {
+    .event-textarea,
+    .ticket-primary-grid input,
+    .ticket-access-shelf input,
+    .guest-card-grid input {
         font-size: 16px !important; /* Prevents auto-zoom on iOS */
-        min-height: 46px;
+        min-height: 48px;
     }
 
     /* URL Slug wrapper stacks gracefully on small phones */
@@ -693,44 +876,68 @@ Create Event - <?= e($siteName) ?> Host
         padding: 0.55rem 0.85rem !important;
     }
 
-    /* Guest rows stack vertically */
-    .guest-row-grid {
+    /* Guest cards stack cleanly on mobile */
+    .guest-card-grid {
         grid-template-columns: 1fr !important;
         gap: 0.75rem;
     }
 
-    .guest-remove {
-        width: 100%;
-        justify-content: center;
-        padding: 0.6rem;
+    .guest-card-header {
+        align-items: center;
     }
 
-    /* Ticket tiers stack vertically on mobile */
-    .ticket-tier-grid {
+    .guest-remove,
+    .guest-card-remove-btn {
+        min-height: 40px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
+    }
+
+    /* Ticket cards stack vertically on mobile */
+    .ticket-card {
+        padding: 1.15rem 0.95rem !important;
+        border-radius: 16px !important;
+    }
+
+    .ticket-primary-grid {
         display: flex !important;
         flex-direction: column !important;
-        gap: 0.75rem !important;
-        align-items: stretch !important;
+        gap: 0.85rem !important;
     }
 
-    .tier-remove-wrap {
-        height: auto;
+    .ticket-access-shelf {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.95rem !important;
+        padding: 0.95rem !important;
     }
 
+    .ticket-card-remove-btn,
     .ticket-remove-btn {
-        width: 100% !important;
-        height: 44px !important;
-        border-radius: 10px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.4rem !important;
-        font-weight: 700 !important;
-        font-size: 0.9rem !important;
+        min-height: 40px !important;
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.82rem !important;
     }
 
-    .ticket-remove-btn .remove-text {
-        display: inline !important;
+    /* Setting tiles on mobile */
+    .setting-tile,
+    .setting-card {
+        padding: 1.1rem 0.95rem !important;
+        border-radius: 14px !important;
+    }
+
+    .setting-tile-label {
+        gap: 0.75rem !important;
+    }
+
+    .setting-tile-checkbox,
+    .setting-checkbox {
+        width: 20px !important;
+        height: 20px !important;
+    }
+
+    .setting-tile-title {
+        font-size: 0.92rem !important;
     }
 
     /* Staff role cards stack */
@@ -745,6 +952,7 @@ Create Event - <?= e($siteName) ?> Host
 
     .form-publish-btn {
         width: 100%;
+        min-height: 52px;
     }
 }
 
@@ -890,16 +1098,18 @@ Create Event - <?= e($siteName) ?> Host
                 </div>
 
                 <!-- Recurrence Settings -->
-                <div class="setting-card" style="margin-bottom: 1.5rem; border: 1.5px dashed rgba(var(--brand), 0.35); background: rgba(var(--brand), 0.03); border-radius: 12px; padding: 1.1rem 1.25rem;">
-                    <label class="setting-card-label" style="margin: 0; cursor: pointer;">
-                        <input type="checkbox" id="is-recurring-toggle" name="is_recurring" value="1" <?= !empty(old('is_recurring')) ? 'checked' : '' ?> class="setting-checkbox">
-                        <div style="flex: 1;">
-                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                <div class="setting-tile" style="margin-bottom: 1.5rem; border: 1.5px dashed rgba(var(--brand), 0.35); background: rgba(var(--brand), 0.03);">
+                    <label class="setting-tile-label" for="is-recurring-toggle">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="is-recurring-toggle" name="is_recurring" value="1" <?= !empty(old('is_recurring')) ? 'checked' : '' ?> class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
                                 <span>🔄</span> Repeat Event (Recurring Series)
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
+                            </div>
+                            <div class="setting-tile-desc">
                                 Automatically generate linked occurrences with independent ticket pools for daily, weekly, bi-weekly, or monthly dates.
-                            </small>
+                            </div>
                         </div>
                     </label>
 
@@ -1059,30 +1269,38 @@ Create Event - <?= e($siteName) ?> Host
                     $oldGuestPhones = old('guest-phone', []);
                     $oldGuestSocials = old('guest-social', []);
                     if (is_array($oldGuestNames) && count($oldGuestNames) > 0):
+                        $gCount = 0;
                         foreach ($oldGuestNames as $idx => $gName):
                             if (empty($gName)) continue;
+                            $gCount++;
                     ?>
-                        <div class="guest-row">
-                            <div class="guest-row-grid">
-                                <label class="event-field-group">
-                                    <span class="event-label">Name <span class="required-star">*</span></span>
-                                    <input type="text" name="guest-name[]" class="event-input" value="<?= e($gName) ?>" placeholder="Artist / Speaker Name" required>
-                                </label>
-                                <label class="event-field-group">
-                                    <span class="event-label">Role <span class="optional-tag">(Optional)</span></span>
-                                    <input type="text" name="guest-role[]" class="event-input" value="<?= e($oldGuestRoles[$idx] ?? '') ?>" placeholder="Performer / Keynote">
-                                </label>
-                                <label class="event-field-group">
-                                    <span class="event-label">Phone <span class="optional-tag">(Optional)</span></span>
-                                    <input type="tel" name="guest-phone[]" class="event-input" value="<?= e($oldGuestPhones[$idx] ?? '') ?>" placeholder="+1 555 555 5555">
-                                </label>
-                                <label class="event-field-group">
-                                    <span class="event-label">Social <span class="optional-tag">(Optional)</span></span>
-                                    <input type="text" name="guest-social[]" class="event-input" value="<?= e($oldGuestSocials[$idx] ?? '') ?>" placeholder="@handle or https://...">
-                                </label>
+                        <div class="guest-row guest-card">
+                            <div class="guest-card-header">
+                                <div class="guest-card-avatar">
+                                    <span class="guest-card-avatar-circle">👤</span>
+                                    <span class="guest-card-title">Guest / Performer #<?= $gCount ?></span>
+                                </div>
+                                <button type="button" class="guest-remove guest-card-remove-btn" title="Remove guest">
+                                    <span>✕</span> Remove
+                                </button>
                             </div>
-                            <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">
-                                <button type="button" class="guest-remove">🗑️ Remove Guest</button>
+                            <div class="guest-card-grid">
+                                <div class="event-field-group">
+                                    <label class="event-label">Name <span class="required-star">*</span></label>
+                                    <input type="text" name="guest-name[]" class="event-input" value="<?= e($gName) ?>" placeholder="Artist or Speaker Name" required>
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Role / Title <span class="optional-tag">(Optional)</span></label>
+                                    <input type="text" name="guest-role[]" class="event-input" value="<?= e($oldGuestRoles[$idx] ?? '') ?>" placeholder="e.g. Headliner, Keynote, Panelist">
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Contact Phone <span class="optional-tag">(Optional)</span></label>
+                                    <input type="tel" name="guest-phone[]" class="event-input" value="<?= e($oldGuestPhones[$idx] ?? '') ?>" placeholder="+1 555 555 5555">
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Social / Website <span class="optional-tag">(Optional)</span></label>
+                                    <input type="text" name="guest-social[]" class="event-input" value="<?= e($oldGuestSocials[$idx] ?? '') ?>" placeholder="@handle or https://...">
+                                </div>
                             </div>
                         </div>
                     <?php 
@@ -1107,7 +1325,7 @@ Create Event - <?= e($siteName) ?> Host
                     </button>
                 </div>
 
-                <div id="ticket-list" class="ticket-list scrollable-list">
+                <div id="ticket-list" class="ticket-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
                     <?php 
                     $oldTicketNames = old('ticket-name', []);
                     $oldTicketPrices = old('ticket-price', []);
@@ -1115,37 +1333,53 @@ Create Event - <?= e($siteName) ?> Host
                     $oldTicketAdmits = old('ticket-admits', []);
                     $oldTicketMaxPerPerson = old('ticket-max-per-person', []);
                     if (is_array($oldTicketNames) && count($oldTicketNames) > 0):
+                        $tCount = 0;
                         foreach ($oldTicketNames as $idx => $tName):
                             if (empty($tName)) continue;
+                            $tCount++;
                     ?>
-                        <div class="ticket-row-item">
+                        <div class="ticket-row-item ticket-card">
                             <input type="hidden" name="ticket-id[]" value="0">
-                            <div class="ticket-tier-grid">
-                                <label class="tier-name-label event-field-group" style="margin-bottom:0;">
-                                    <span class="event-label">Tier Name <span class="required-star">*</span></span>
-                                    <input type="text" name="ticket-name[]" class="event-input" value="<?= e($tName) ?>" required placeholder="Tier Name (e.g. VIP, Table for 5, General)">
-                                </label>
-                                <label class="tier-price-label event-field-group" style="margin-bottom:0;">
-                                    <span class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></span>
+                            <div class="ticket-card-header">
+                                <div class="ticket-card-badge">
+                                    <span>🎟️</span>
+                                    <span class="ticket-tier-number">Tier #<?= $tCount ?></span>
+                                </div>
+                                <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" title="Remove ticket tier">
+                                    <span class="remove-icon">✕</span>
+                                    <span class="remove-text">Remove Tier</span>
+                                </button>
+                            </div>
+                            <div class="ticket-primary-grid">
+                                <div class="event-field-group">
+                                    <label class="event-label">Tier Name <span class="required-star">*</span></label>
+                                    <input type="text" name="ticket-name[]" class="event-input" value="<?= e($tName) ?>" required placeholder="e.g. VIP Access, General Admission, Table for 5">
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
                                     <input type="number" step="0.01" name="ticket-price[]" class="event-input" value="<?= e($oldTicketPrices[$idx] ?? '0.00') ?>" required placeholder="0.00" min="0">
-                                </label>
-                                <label class="tier-qty-label event-field-group" style="margin-bottom:0;">
-                                    <span class="event-label">Total Capacity <span class="required-star">*</span></span>
-                                    <input type="number" name="ticket-qty[]" class="event-input" value="<?= e($oldTicketQtys[$idx] ?? '100') ?>" required placeholder="Quantity" min="1">
-                                </label>
-                                <label class="tier-admits-label event-field-group" style="margin-bottom:0;">
-                                    <span class="event-label">Admits / Table Size</span>
-                                    <input type="number" name="ticket-admits[]" class="event-input" value="<?= e($oldTicketAdmits[$idx] ?? '1') ?>" min="1" placeholder="1 (e.g. 5 for Table of 5)">
-                                </label>
-                                <label class="tier-limit-label event-field-group" style="margin-bottom:0;">
-                                    <span class="event-label">Max Per Person</span>
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Total Capacity <span class="required-star">*</span></label>
+                                    <input type="number" name="ticket-qty[]" class="event-input" value="<?= e($oldTicketQtys[$idx] ?? '100') ?>" required placeholder="e.g. 100" min="1">
+                                </div>
+                            </div>
+                            <div class="ticket-access-shelf">
+                                <div class="ticket-subfield">
+                                    <div class="ticket-subfield-header">
+                                        <span>👥</span>
+                                        <label class="event-label" style="margin:0;">Admits (Per Ticket)</label>
+                                    </div>
+                                    <input type="number" name="ticket-admits[]" class="event-input" value="<?= e($oldTicketAdmits[$idx] ?? '1') ?>" min="1" placeholder="1 (people/ticket)">
+                                    <span class="ticket-subfield-hint">People entering per 1 ticket (1 = Single, 2 = Couple, 5 = Table).</span>
+                                </div>
+                                <div class="ticket-subfield">
+                                    <div class="ticket-subfield-header">
+                                        <span>🔒</span>
+                                        <label class="event-label" style="margin:0;">Max Per Person</label>
+                                    </div>
                                     <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= e($oldTicketMaxPerPerson[$idx] ?? '') ?>" min="1" placeholder="Unlimited">
-                                </label>
-                                <div class="tier-remove-wrap">
-                                    <button type="button" class="remove-ticket-row-btn ticket-remove-btn" title="Remove ticket tier">
-                                        <span class="remove-icon">✕</span>
-                                        <span class="remove-text">Remove Tier</span>
-                                    </button>
+                                    <span class="ticket-subfield-hint">Purchase limit per customer email (leave blank for unlimited).</span>
                                 </div>
                             </div>
                         </div>
@@ -1158,7 +1392,7 @@ Create Event - <?= e($siteName) ?> Host
 
             <!-- Section 7: Organization Staffing Assistance Request -->
             <div class="event-form-section staffing-request-section">
-                <div class="event-section-header" style="align-items:flex-start;">
+                <div class="event-section-header">
                     <div class="event-section-title-wrap">
                         <span class="event-section-icon">🤝</span>
                         <div>
@@ -1168,9 +1402,22 @@ Create Event - <?= e($siteName) ?> Host
                             </p>
                         </div>
                     </div>
-                    <label class="staffing-toggle-badge">
-                        <input type="checkbox" id="request-staffing-toggle" name="request_staffing" value="1" <?= old('request_staffing') ? 'checked' : '' ?> onchange="toggleStaffingOptions(this.checked)" style="accent-color:rgb(var(--brand));">
-                        <span style="color:rgb(var(--brand));">Request Event Staff</span>
+                </div>
+
+                <div class="setting-tile" style="margin-bottom: 1.25rem;">
+                    <label class="setting-tile-label" for="request-staffing-toggle">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="request-staffing-toggle" name="request_staffing" value="1" <?= old('request_staffing') ? 'checked' : '' ?> onchange="toggleStaffingOptions(this.checked)" class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
+                                <span>🤝</span> Request On-Site Event Staffing Assistance
+                                <span class="setting-badge-promo">Staff On-Demand</span>
+                            </div>
+                            <div class="setting-tile-desc">
+                                Request vetted personnel to manage ticket scanning, ushering, customer support, or gate cashiers.
+                            </div>
+                        </div>
                     </label>
                 </div>
 
@@ -1184,7 +1431,7 @@ Create Event - <?= e($siteName) ?> Host
                         <div class="staff-role-card">
                             <div class="staff-role-header">
                                 <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
-                                    <input type="checkbox" name="staff_roles[ticket-scanner][selected]" value="1" <?= old('staff_roles.ticket-scanner.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" style="accent-color:rgb(var(--brand));">
+                                    <input type="checkbox" name="staff_roles[ticket-scanner][selected]" value="1" <?= old('staff_roles.ticket-scanner.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
                                     <span>🎫 Ticket Scanner</span>
                                 </label>
                                 <div class="staff-role-qty-wrap">
@@ -1201,7 +1448,7 @@ Create Event - <?= e($siteName) ?> Host
                         <div class="staff-role-card">
                             <div class="staff-role-header">
                                 <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
-                                    <input type="checkbox" name="staff_roles[organizer-staff][selected]" value="1" <?= old('staff_roles.organizer-staff.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" style="accent-color:rgb(var(--brand));">
+                                    <input type="checkbox" name="staff_roles[organizer-staff][selected]" value="1" <?= old('staff_roles.organizer-staff.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
                                     <span>🏷️ Usher / Coordination</span>
                                 </label>
                                 <div class="staff-role-qty-wrap">
@@ -1218,7 +1465,7 @@ Create Event - <?= e($siteName) ?> Host
                         <div class="staff-role-card">
                             <div class="staff-role-header">
                                 <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
-                                    <input type="checkbox" name="staff_roles[customer-support][selected]" value="1" <?= old('staff_roles.customer-support.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" style="accent-color:rgb(var(--brand));">
+                                    <input type="checkbox" name="staff_roles[customer-support][selected]" value="1" <?= old('staff_roles.customer-support.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
                                     <span>🎧 Support Lead</span>
                                 </label>
                                 <div class="staff-role-qty-wrap">
@@ -1235,7 +1482,7 @@ Create Event - <?= e($siteName) ?> Host
                         <div class="staff-role-card">
                             <div class="staff-role-header">
                                 <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
-                                    <input type="checkbox" name="staff_roles[technical-ops][selected]" value="1" <?= old('staff_roles.technical-ops.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" style="accent-color:rgb(var(--brand));">
+                                    <input type="checkbox" name="staff_roles[technical-ops][selected]" value="1" <?= old('staff_roles.technical-ops.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
                                     <span>⚙️ Technical Ops</span>
                                 </label>
                                 <div class="staff-role-qty-wrap">
@@ -1252,7 +1499,7 @@ Create Event - <?= e($siteName) ?> Host
                         <div class="staff-role-card">
                             <div class="staff-role-header">
                                 <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
-                                    <input type="checkbox" name="staff_roles[finance-manager][selected]" value="1" <?= old('staff_roles.finance-manager.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" style="accent-color:rgb(var(--brand));">
+                                    <input type="checkbox" name="staff_roles[finance-manager][selected]" value="1" <?= old('staff_roles.finance-manager.selected') ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
                                     <span>💼 Box Office Cashier</span>
                                 </label>
                                 <div class="staff-role-qty-wrap">
@@ -1291,62 +1538,71 @@ Create Event - <?= e($siteName) ?> Host
                         <span class="event-section-icon">⚙️</span>
                         <div>
                             <h3 class="event-section-title">Ticketing &amp; Marketing Settings</h3>
-                            <p class="event-section-subtitle">Configure fee pass-through and standalone marketing URLs.</p>
+                            <p class="event-section-subtitle">Configure fee pass-through, landing pages, and flexible payments.</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Fee Settings -->
-                <div class="setting-card">
-                    <label class="setting-card-label">
-                        <input type="checkbox" id="pass-fee" name="pass_fee" value="1" <?= old('pass_fee', '1') ? 'checked' : '' ?> class="setting-checkbox">
-                        <div>
-                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:block;">
-                                Pass <?= e(get_setting('platform_fee', 5)) ?>% platform fee to attendees
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
-                                <strong>Checked:</strong> Attendees pay the <?= e(get_setting('platform_fee', 5)) ?>% ticketing fee on checkout (recommended). <br>
+                <div class="setting-tile">
+                    <label class="setting-tile-label" for="pass-fee">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="pass-fee" name="pass_fee" value="1" <?= old('pass_fee', '1') ? 'checked' : '' ?> class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
+                                <span>💸</span> Pass <?= e(get_setting('platform_fee', 5)) ?>% Platform Fee to Attendees
+                                <span class="setting-badge-recommended">Recommended</span>
+                            </div>
+                            <div class="setting-tile-desc">
+                                <strong>Checked:</strong> Attendees pay the <?= e(get_setting('platform_fee', 5)) ?>% ticketing fee on checkout.<br>
                                 <strong>Unchecked:</strong> You absorb the fee, which is deducted before payout so attendees see transparent round figures.
-                            </small>
+                            </div>
                         </div>
                     </label>
                 </div>
 
                 <!-- Dedicated Flyer Page -->
-                <div class="setting-card setting-card--flyer">
-                    <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
-                        <input type="hidden" name="flyer_page_enabled" value="0">
-                        <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty(old('flyer_page_enabled', '')) ? 'checked' : '' ?> class="setting-checkbox">
-                        <label for="flyer-page-enabled" style="cursor: pointer; user-select: none; flex: 1; margin: 0;">
-                            <strong style="color:#6366f1; font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
-                                <span>🎨</span> Enable dedicated visual flyer landing page (<code>/f/event-slug</code>)
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
+                <div class="setting-tile setting-tile--flyer">
+                    <input type="hidden" name="flyer_page_enabled" value="0">
+                    <label class="setting-tile-label" for="flyer-page-enabled">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty(old('flyer_page_enabled', '')) ? 'checked' : '' ?> class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title" style="color: #6366f1;">
+                                <span>🎨</span> Enable Dedicated Visual Flyer Landing Page (<code>/f/event-slug</code>)
+                                <span class="setting-badge-promo">Social Ready</span>
+                            </div>
+                            <div class="setting-tile-desc">
                                 Creates an immersive, artwork-centered ticket booth with a short link. Perfect for linking directly in Instagram bio, TikTok, and WhatsApp broadcasts.
-                            </small>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Partial Payment (Layaway) Setting -->
-                <div class="setting-card">
-                    <label class="setting-card-label">
-                        <input type="hidden" name="allow_partial_payment" value="0">
-                        <input type="checkbox" id="allow-partial-payment" name="allow_partial_payment" value="1" <?= !empty(old('allow_partial_payment', '')) ? 'checked' : '' ?> class="setting-checkbox" onchange="document.getElementById('partial-payment-options').style.display = this.checked ? 'block' : 'none'">
-                        <div>
-                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
-                                <span>💳</span> Allow Partial Payment (Layaway Plan)
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
-                                Let attendees reserve tickets with an initial deposit and pay the remaining balance bit-by-bit before the event starts.
-                            </small>
+                            </div>
                         </div>
                     </label>
-                    <div id="partial-payment-options" style="display:<?= !empty(old('allow_partial_payment', '')) ? 'block' : 'none' ?>; margin-top:0.75rem; padding-left:2.25rem;">
-                        <label class="event-label" style="font-size:0.85rem; font-weight:600;">Minimum Deposit Percentage</label>
-                        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+                </div>
+
+                <!-- Partial Payment (Layaway Plan) Setting -->
+                <div class="setting-tile">
+                    <input type="hidden" name="allow_partial_payment" value="0">
+                    <label class="setting-tile-label" for="allow-partial-payment">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="allow-partial-payment" name="allow_partial_payment" value="1" <?= !empty(old('allow_partial_payment', '')) ? 'checked' : '' ?> class="setting-tile-checkbox" onchange="document.getElementById('partial-payment-options').style.display = this.checked ? 'block' : 'none'">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
+                                <span>💳</span> Allow Partial Payment (Layaway Plan)
+                                <span class="setting-badge-flexible">Flexible Checkout</span>
+                            </div>
+                            <div class="setting-tile-desc">
+                                Let attendees reserve tickets with an initial deposit and pay the remaining balance bit-by-bit before the event starts.
+                            </div>
+                        </div>
+                    </label>
+                    <div id="partial-payment-options" style="display:<?= !empty(old('allow_partial_payment', '')) ? 'block' : 'none' ?>; margin-top:1rem; padding-top:1rem; border-top:1px dashed rgba(var(--muted),0.2);">
+                        <label class="event-label" style="font-size:0.85rem; font-weight:700;">Minimum Deposit Percentage</label>
+                        <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.35rem;">
                             <input type="number" name="partial_payment_min_percent" class="event-input" value="<?= e(old('partial_payment_min_percent', '25')) ?>" min="10" max="90" step="5" style="width:110px;">
-                            <span style="font-size:0.85rem; color:rgb(var(--text)); opacity:0.7;">% of ticket total (default 25%)</span>
+                            <span style="font-size:0.85rem; color:rgb(var(--muted)); font-weight:600;">% of ticket total (default 25%)</span>
                         </div>
                     </div>
                 </div>

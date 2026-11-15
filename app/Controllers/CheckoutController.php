@@ -347,11 +347,16 @@ class CheckoutController extends Controller
             $existingStmt->execute(['tt_id' => $tt['id'], 'email' => $buyerEmailLower]);
             $existingCount = (int)$existingStmt->fetchColumn();
 
-            if (($existingCount + $qty) > $maxPerPerson) {
-                $remaining = max(0, $maxPerPerson - $existingCount);
+            $admits = max(1, (int)($tt['admits'] ?? 1));
+            // When admits > 1 (e.g. Table for 5), multiple ticket rows are created per package purchased.
+            // Normalize existingCount to packages/units purchased.
+            $existingUnits = $admits > 1 ? (int)ceil($existingCount / $admits) : $existingCount;
+
+            if (($existingUnits + $qty) > $maxPerPerson) {
+                $remaining = max(0, $maxPerPerson - $existingUnits);
                 $tierName = $tt['name'];
-                if ($existingCount > 0) {
-                    $msg = "You already have {$existingCount} ticket(s) for \"{$tierName}\". Maximum allowed is {$maxPerPerson} per person. You can purchase up to {$remaining} more.";
+                if ($existingUnits > 0) {
+                    $msg = "You already have {$existingUnits} ticket(s) for \"{$tierName}\". Maximum allowed is {$maxPerPerson} per person. You can purchase up to {$remaining} more.";
                 } else {
                     $msg = "Maximum {$maxPerPerson} ticket(s) per person for \"{$tierName}\". Please reduce your quantity.";
                 }

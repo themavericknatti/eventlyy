@@ -358,7 +358,9 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                                         $ttPrice = (float)($tt['price'] ?? 0);
                                         $ttCap = (int)($tt['capacity'] ?? 0);
                                         $ttSold = (int)($tt['sold'] ?? 0);
-                                        $remaining = max(0, $ttCap - $ttSold);
+                                        $admits = max(1, (int)($tt['admits'] ?? 1));
+                                        $soldUnits = $admits > 1 ? (int)floor($ttSold / $admits) : $ttSold;
+                                        $remaining = max(0, $ttCap - $soldUnits);
                                         $isSoldOut = ($ttCap > 0 && $remaining <= 0);
                                     ?>
                                         <div class="flyer-tier-row<?= $isSoldOut ? ' flyer-tier-row--soldout' : '' ?>" 
@@ -372,6 +374,9 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                                                         <span class="flyer-tier-tag flyer-tier-tag--soldout">Sold Out</span>
                                                     <?php elseif ($remaining <= 15): ?>
                                                         <span class="flyer-tier-tag flyer-tier-tag--low">🔥 <?= $remaining ?> left</span>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($tt['admits']) && (int)$tt['admits'] > 1): ?>
+                                                        <span class="flyer-tier-tag" style="background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25);">👥 Admits <?= (int)$tt['admits'] ?></span>
                                                     <?php endif; ?>
                                                     <?php if (!empty($tt['max_per_person'])): ?>
                                                         <span class="flyer-tier-tag flyer-tier-tag--limit">🔒 Max <?= (int)$tt['max_per_person'] ?>/person</span>

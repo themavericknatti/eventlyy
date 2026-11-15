@@ -393,33 +393,73 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     background: #ef4444;
 }
 
-/* Special Guests List */
+/* Special Guests & Performer Cards */
 .guest-list {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 1rem;
 }
 
+.guest-card,
 .guest-row {
     background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.16);
-    border-radius: 14px;
-    padding: 1.15rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(var(--muted), 0.18);
+    border-radius: 16px;
+    padding: 1.25rem 1.35rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.guest-row-grid {
+.guest-card:focus-within,
+.guest-row:focus-within {
+    border-color: rgba(var(--brand), 0.45);
+    box-shadow: 0 4px 16px rgba(var(--brand), 0.06);
+}
+
+.guest-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.95rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.1);
+    gap: 0.75rem;
+}
+
+.guest-card-avatar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+}
+
+.guest-card-avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(var(--brand), 0.12);
+    color: rgb(var(--brand));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.guest-card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
 }
 
-.guest-remove {
-    background: rgba(239, 68, 68, 0.1);
+.guest-remove,
+.guest-card-remove-btn {
+    background: rgba(239, 68, 68, 0.08);
     color: #ef4444 !important;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 8px;
-    padding: 0.45rem 0.95rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 9px;
+    padding: 0.45rem 0.85rem;
     font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
@@ -428,128 +468,266 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     gap: 0.35rem;
     transition: all 0.2s ease;
     font-family: inherit;
+    min-height: 38px;
 }
 
-.guest-remove:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.45);
+.guest-remove:hover,
+.guest-card-remove-btn:hover {
+    background: #ef4444;
+    color: #ffffff !important;
+    border-color: #ef4444;
     transform: translateY(-1px);
 }
 
-/* Ticket Tiers */
+/* ═══════════════════════════════════════════════════════════
+   Executive Ticket Package Cards (Bento Style)
+   ═══════════════════════════════════════════════════════════ */
 .ticket-list {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 1.25rem;
 }
 
+.ticket-card,
 .ticket-row-item {
     background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.16);
-    border-radius: 14px;
-    padding: 1.15rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(var(--muted), 0.2);
+    border-radius: 18px;
+    padding: 1.35rem 1.45rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
-.ticket-tier-grid {
-    display: grid;
-    grid-template-columns: 2.2fr 1fr 1fr 0.9fr 0.9fr auto;
-    gap: 0.85rem;
-    align-items: flex-end;
+.ticket-card:focus-within,
+.ticket-row-item:focus-within {
+    border-color: rgba(var(--brand), 0.45);
+    box-shadow: 0 6px 20px rgba(var(--brand), 0.08);
 }
 
-.tier-remove-wrap {
+.ticket-card-header {
     display: flex;
     align-items: center;
-    height: 48px;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.12);
+    gap: 0.75rem;
 }
 
+.ticket-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: rgb(var(--brand));
+    background: rgba(var(--brand), 0.08);
+    padding: 0.3rem 0.75rem;
+    border-radius: 99px;
+    border: 1px solid rgba(var(--brand), 0.2);
+}
+
+.ticket-card-remove-btn,
 .ticket-remove-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border-radius: 10px;
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444 !important;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 38px;
+    font-family: inherit;
 }
 
+.ticket-card-remove-btn:hover:not(:disabled),
 .ticket-remove-btn:hover:not(:disabled) {
     background: #ef4444;
     color: #ffffff !important;
+    border-color: #ef4444;
+    transform: translateY(-1px);
 }
 
+.ticket-card-remove-btn:disabled,
 .ticket-remove-btn:disabled {
     background: rgba(var(--muted), 0.08);
     color: rgba(var(--text), 0.4) !important;
     border-color: rgba(var(--muted), 0.2);
     cursor: not-allowed;
-    width: auto !important;
-    padding: 0 0.85rem !important;
-    font-size: 0.8rem !important;
 }
 
-.ticket-remove-btn:disabled .remove-icon {
-    display: none;
+.ticket-primary-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.15rem;
 }
 
-.ticket-remove-btn:disabled .remove-text {
-    display: inline !important;
-}
-
-.ticket-remove-btn .remove-text {
-    display: none;
-}
-
-/* Tier Stats Footer */
-.tier-stats-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.65rem;
-    padding-top: 0.55rem;
-    border-top: 1px dashed rgba(var(--muted), 0.18);
-    font-size: 0.82rem;
-}
-
-/* Settings Cards (Fee & Flyer) */
-.setting-card {
-    background: rgba(var(--muted), 0.04);
+.ticket-access-shelf {
+    background: rgba(var(--muted), 0.035);
     border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.ticket-subfield {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.ticket-subfield-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: rgb(var(--text));
+}
+
+.ticket-subfield-hint {
+    font-size: 0.74rem;
+    color: rgb(var(--muted));
+    line-height: 1.35;
+    margin-top: 0.25rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Modern Interactive Settings Tiles (Checkboxes)
+   ═══════════════════════════════════════════════════════════ */
+.setting-tile,
+.setting-card {
+    background: rgb(var(--card));
+    border: 1.5px solid rgba(var(--muted), 0.18);
     border-radius: 16px;
     padding: 1.25rem 1.35rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.15rem;
     transition: all 0.2s ease;
+    position: relative;
 }
 
+.setting-tile:hover,
+.setting-card:hover {
+    border-color: rgba(var(--brand), 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.setting-tile:has(input[type="checkbox"]:checked),
+.setting-card:has(input[type="checkbox"]:checked) {
+    border-color: rgba(var(--brand), 0.55);
+    background: rgba(var(--brand), 0.025);
+}
+
+.setting-tile--flyer,
 .setting-card--flyer {
-    background: rgba(99, 102, 241, 0.04);
-    border: 1.5px solid rgba(99, 102, 241, 0.25);
+    background: rgba(99, 102, 241, 0.03);
+    border-color: rgba(99, 102, 241, 0.25);
 }
 
+.setting-tile--flyer:hover,
+.setting-card--flyer:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+.setting-tile--flyer:has(input[type="checkbox"]:checked),
+.setting-card--flyer:has(input[type="checkbox"]:checked) {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.setting-tile-label,
 .setting-card-label {
     display: flex;
     align-items: flex-start;
-    gap: 0.85rem;
+    gap: 1rem;
     cursor: pointer;
     user-select: none;
+    margin: 0;
+    width: 100%;
 }
 
-.setting-checkbox {
-    width: 20px;
-    height: 20px;
-    margin-top: 0.2rem;
-    accent-color: rgb(var(--brand));
+.setting-tile-checkbox-wrap {
     flex-shrink: 0;
+    margin-top: 0.2rem;
+}
+
+.setting-tile-checkbox,
+.setting-checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    accent-color: rgb(var(--brand));
     cursor: pointer;
+    flex-shrink: 0;
+}
+
+.setting-tile-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.setting-tile-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    line-height: 1.35;
+}
+
+.setting-tile-desc {
+    font-size: 0.83rem;
+    color: rgb(var(--muted));
+    line-height: 1.48;
+    margin-top: 0.35rem;
+}
+
+.setting-badge-recommended {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.setting-badge-promo {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.setting-badge-flexible {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 /* Primary Action Buttons */
@@ -628,8 +806,6 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     background: rgba(var(--brand), 0.15);
     transform: translateY(-1px);
 }
-
-
 /* ════════════════════════════════════════════════════════════════
    HIGH-CONTRAST ACCESSIBLE SELECT & DROPDOWNS IN EDIT EVENT
    ════════════════════════════════════════════════════════════════ */
@@ -764,36 +940,24 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
         grid-column: 1 / -1;
     }
 
-    /* Tablet ticket tier grid (clean 2-row layout) */
-    .ticket-tier-grid {
-        grid-template-columns: 2fr 1fr 1fr !important;
+    /* Tablet ticket primary grid */
+    .ticket-primary-grid {
+        grid-template-columns: 1fr 1fr !important;
         gap: 0.85rem !important;
-        align-items: flex-end !important;
     }
 
-    .tier-remove-wrap {
-        grid-column: 1 / -1;
-        justify-content: flex-end;
-        height: auto;
-        margin-top: 0.25rem;
+    .ticket-primary-grid .event-field-group:first-child {
+        grid-column: 1 / -1 !important;
     }
 
-    .ticket-remove-btn {
-        width: auto !important;
-        padding: 0.45rem 1rem !important;
-        border-radius: 8px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.35rem !important;
+    .ticket-access-shelf {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem !important;
     }
 
-    .ticket-remove-btn .remove-text {
-        display: inline !important;
-        font-size: 0.82rem !important;
-    }
-
-    .ticket-remove-btn .remove-icon {
-        display: inline !important;
+    .guest-card-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.85rem !important;
     }
 
     .occurrence-switcher-banner {
@@ -823,12 +987,12 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     }
 
     .form-card {
-        padding: 1.25rem 1rem;
+        padding: 1.25rem 0.95rem;
         border-radius: 18px;
     }
 
     .event-form-section {
-        padding: 1.1rem 0.9rem;
+        padding: 1.15rem 0.85rem;
         border-radius: 14px;
         margin-bottom: 1.25rem;
     }
@@ -853,9 +1017,12 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
     .event-input,
     .event-select,
-    .event-textarea {
+    .event-textarea,
+    .ticket-primary-grid input,
+    .ticket-access-shelf input,
+    .guest-card-grid input {
         font-size: 16px !important; /* Prevents auto-zoom on iOS */
-        min-height: 46px;
+        min-height: 48px;
     }
 
     /* URL Slug wrapper stacks gracefully on small phones */
@@ -918,48 +1085,64 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
         min-width: 0 !important;
     }
 
-    /* Guest rows stack vertically */
-    .guest-row-grid {
+    /* Guest cards stack cleanly on mobile */
+    .guest-card-grid {
         grid-template-columns: 1fr !important;
         gap: 0.75rem;
     }
 
-    .guest-remove {
-        width: 100%;
-        justify-content: center;
-        padding: 0.6rem;
+    .guest-remove,
+    .guest-card-remove-btn {
+        min-height: 40px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
     }
 
-    /* Ticket tiers stack vertically */
-    .ticket-tier-grid {
+    /* Ticket cards stack vertically on mobile */
+    .ticket-card {
+        padding: 1.15rem 0.95rem !important;
+        border-radius: 16px !important;
+    }
+
+    .ticket-primary-grid {
         display: flex !important;
         flex-direction: column !important;
-        gap: 0.75rem !important;
-        align-items: stretch !important;
+        gap: 0.85rem !important;
     }
 
-    .tier-remove-wrap {
-        height: auto;
+    .ticket-access-shelf {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.95rem !important;
+        padding: 0.95rem !important;
     }
 
+    .ticket-card-remove-btn,
     .ticket-remove-btn {
-        width: 100% !important;
-        height: 44px !important;
-        border-radius: 10px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.4rem !important;
-        font-weight: 700 !important;
-        font-size: 0.9rem !important;
+        min-height: 40px !important;
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.82rem !important;
     }
 
-    .ticket-remove-btn .remove-text {
-        display: inline !important;
+    /* Setting tiles on mobile */
+    .setting-tile,
+    .setting-card {
+        padding: 1.1rem 0.95rem !important;
+        border-radius: 14px !important;
     }
 
-    .ticket-remove-btn .remove-icon {
-        display: none !important;
+    .setting-tile-label {
+        gap: 0.75rem !important;
+    }
+
+    .setting-tile-checkbox,
+    .setting-checkbox {
+        width: 20px !important;
+        height: 20px !important;
+    }
+
+    .setting-tile-title {
+        font-size: 0.92rem !important;
     }
 
     .form-submit-row {
@@ -970,6 +1153,7 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
     .form-publish-btn,
     .form-cancel-btn {
         width: 100%;
+        min-height: 52px;
     }
 }
 
@@ -1266,18 +1450,20 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                 </div>
                 <?php else: ?>
                 <!-- Option to convert this single event into a recurring series -->
-                <div class="setting-card" style="margin-bottom: 1.5rem; border: 1.5px dashed rgba(var(--brand), 0.35); background: rgba(var(--brand), 0.03); border-radius: 12px; padding: 1.1rem 1.25rem;">
-                    <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
-                        <input type="checkbox" id="is-recurring-toggle" name="is_recurring" value="1" <?= !empty(old('is_recurring')) ? 'checked' : '' ?> class="setting-checkbox">
-                        <label for="is-recurring-toggle" style="cursor: pointer; user-select: none; flex: 1; margin: 0;">
-                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                <div class="setting-tile" style="margin-bottom: 1.5rem; border: 1.5px dashed rgba(var(--brand), 0.35); background: rgba(var(--brand), 0.03);">
+                    <label class="setting-tile-label" for="is-recurring-toggle">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="is-recurring-toggle" name="is_recurring" value="1" <?= !empty(old('is_recurring')) ? 'checked' : '' ?> class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
                                 <span>🔄</span> Convert to Recurring Event Series
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
+                            </div>
+                            <div class="setting-tile-desc">
                                 Want this event to repeat? Turn this on to automatically generate upcoming occurrences with independent ticket pools starting from this event's date.
-                            </small>
-                        </label>
-                    </div>
+                            </div>
+                        </div>
+                    </label>
 
                     <div id="recurrence-options-panel" style="display: <?= !empty(old('is_recurring')) ? 'block' : 'none' ?>; margin-top: 1.15rem; padding-top: 1.15rem; border-top: 1px solid rgba(var(--brand), 0.15);">
                         <div class="event-grid-3" style="margin-bottom: 1rem;">
@@ -1401,28 +1587,34 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
                 <div id="guest-list" class="guest-list scrollable-list">
                     <?php if (!empty($eventGuests)): ?>
-                        <?php foreach ($eventGuests as $guest): ?>
-                            <div class="guest-row">
-                                <div class="guest-row-grid">
-                                    <label class="event-field-group">
-                                        <span class="event-label">Name <span class="required-star">*</span></span>
-                                        <input type="text" name="guest-name[]" class="event-input" value="<?= e($guest['name']) ?>" placeholder="Artist / Speaker Name" required>
-                                    </label>
-                                    <label class="event-field-group">
-                                        <span class="event-label">Role <span class="optional-tag">(Optional)</span></span>
-                                        <input type="text" name="guest-role[]" class="event-input" value="<?= e($guest['role'] ?? '') ?>" placeholder="Performer / Keynote">
-                                    </label>
-                                    <label class="event-field-group">
-                                        <span class="event-label">Phone <span class="optional-tag">(Optional)</span></span>
-                                        <input type="tel" name="guest-phone[]" class="event-input" value="<?= e($guest['phone'] ?? '') ?>" placeholder="+1 555 555 5555">
-                                    </label>
-                                    <label class="event-field-group">
-                                        <span class="event-label">Social <span class="optional-tag">(Optional)</span></span>
-                                        <input type="text" name="guest-social[]" class="event-input" value="<?= e($guest['social'] ?? '') ?>" placeholder="@handle or https://...">
-                                    </label>
+                        <?php foreach ($eventGuests as $index => $guest): ?>
+                            <div class="guest-row guest-card">
+                                <div class="guest-card-header">
+                                    <div class="guest-card-avatar">
+                                        <span class="guest-card-avatar-circle">👤</span>
+                                        <span class="guest-card-title">Guest / Performer #<?= $index + 1 ?></span>
+                                    </div>
+                                    <button type="button" class="guest-remove guest-card-remove-btn" title="Remove guest">
+                                        <span>✕</span> Remove
+                                    </button>
                                 </div>
-                                <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">
-                                    <button type="button" class="guest-remove">🗑️ Remove Guest</button>
+                                <div class="guest-card-grid">
+                                    <div class="event-field-group">
+                                        <label class="event-label">Name <span class="required-star">*</span></label>
+                                        <input type="text" name="guest-name[]" class="event-input" value="<?= e($guest['name']) ?>" placeholder="Artist or Speaker Name" required>
+                                    </div>
+                                    <div class="event-field-group">
+                                        <label class="event-label">Role / Title <span class="optional-tag">(Optional)</span></label>
+                                        <input type="text" name="guest-role[]" class="event-input" value="<?= e($guest['role'] ?? '') ?>" placeholder="e.g. Headliner, Keynote, Panelist">
+                                    </div>
+                                    <div class="event-field-group">
+                                        <label class="event-label">Contact Phone <span class="optional-tag">(Optional)</span></label>
+                                        <input type="tel" name="guest-phone[]" class="event-input" value="<?= e($guest['phone'] ?? '') ?>" placeholder="+1 555 555 5555">
+                                    </div>
+                                    <div class="event-field-group">
+                                        <label class="event-label">Social / Website <span class="optional-tag">(Optional)</span></label>
+                                        <input type="text" name="guest-social[]" class="event-input" value="<?= e($guest['social'] ?? '') ?>" placeholder="@handle or https://...">
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1445,7 +1637,7 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     </button>
                 </div>
 
-                <div id="ticket-list" class="ticket-list scrollable-list">
+                <div id="ticket-list" class="ticket-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
                     <?php if (!empty($ticketTypes)): ?>
                         <?php foreach ($ticketTypes as $index => $tt): 
                             $sold = (int)($tt['sold'] ?? 0);
@@ -1453,52 +1645,70 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                             $taken = $sold + $issued;
                             $remaining = max(0, (int)$tt['capacity'] - $taken);
                         ?>
-                            <div class="ticket-row-item">
+                            <div class="ticket-row-item ticket-card">
                                 <input type="hidden" name="ticket-id[]" value="<?= $tt['id'] ?>">
                                 
-                                <div class="ticket-tier-grid">
-                                    <label class="tier-name-label event-field-group" style="margin-bottom:0;">
-                                        <span class="event-label">Tier Name <span class="required-star">*</span></span>
-                                        <input type="text" name="ticket-name[]" class="event-input" required value="<?= e($tt['name']) ?>" placeholder="Tier Name (e.g. VIP, General Admission)">
-                                    </label>
-                                    <label class="tier-price-label event-field-group" style="margin-bottom:0;">
-                                        <span class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></span>
-                                        <input type="number" step="0.01" name="ticket-price[]" class="event-input" required value="<?= (float)$tt['price'] ?>" placeholder="Price">
-                                        <?php if ($taken > 0): ?>
-                                            <small style="display:block; margin-top:4px; font-size:0.75rem; color:#d97706; font-weight:700;">
-                                                ℹ️ Future sales only. <?= number_format($taken) ?> sold ticket(s) retain original price.
-                                            </small>
-                                        <?php endif; ?>
-                                    </label>
-                                    <label class="tier-qty-label event-field-group" style="margin-bottom:0;">
-                                        <span class="event-label">Total Capacity <span class="required-star">*</span></span>
-                                        <input type="number" name="ticket-qty[]" class="event-input" required value="<?= (int)$tt['capacity'] ?>" min="<?= $taken ?>" placeholder="Quantity">
-                                    </label>
-                                    <label class="tier-admits-label event-field-group" style="margin-bottom:0;">
-                                        <span class="event-label">Admits / Table Size</span>
-                                        <input type="number" name="ticket-admits[]" class="event-input" value="<?= max(1, (int)($tt['admits'] ?? 1)) ?>" min="1" placeholder="1 (e.g. 5 for Table of 5)">
-                                    </label>
-                                    <label class="tier-limit-label event-field-group" style="margin-bottom:0;">
-                                        <span class="event-label">Max Per Person</span>
-                                        <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>" min="1" placeholder="Unlimited">
-                                    </label>
-                                    <div class="tier-remove-wrap">
+                                <div class="ticket-card-header">
+                                    <div class="ticket-card-badge">
+                                        <span>🎟️</span>
+                                        <span class="ticket-tier-number">Tier #<?= $index + 1 ?>: <?= e($tt['name']) ?></span>
+                                    </div>
+                                    <div>
                                         <?php if ($taken == 0): ?>
-                                            <button type="button" class="remove-ticket-row-btn ticket-remove-btn" title="Remove ticket tier">
+                                            <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" title="Remove ticket tier">
                                                 <span class="remove-icon">✕</span>
                                                 <span class="remove-text">Remove Tier</span>
                                             </button>
                                         <?php else: ?>
-                                            <button type="button" class="remove-ticket-row-btn ticket-remove-btn" disabled title="Cannot delete tier with sold or issued tickets">
-                                                <span class="remove-icon">✕</span>
+                                            <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" disabled title="Cannot delete tier with sold or issued tickets">
+                                                <span class="remove-icon">🔒</span>
                                                 <span class="remove-text">Locked (<?= number_format($taken) ?> Sold)</span>
                                             </button>
                                         <?php endif; ?>
                                     </div>
                                 </div>
 
+                                <div class="ticket-primary-grid">
+                                    <div class="event-field-group">
+                                        <label class="event-label">Tier Name <span class="required-star">*</span></label>
+                                        <input type="text" name="ticket-name[]" class="event-input" required value="<?= e($tt['name']) ?>" placeholder="Tier Name (e.g. VIP, General Admission)">
+                                    </div>
+                                    <div class="event-field-group">
+                                        <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
+                                        <input type="number" step="0.01" name="ticket-price[]" class="event-input" required value="<?= (float)$tt['price'] ?>" placeholder="0.00" min="0">
+                                        <?php if ($taken > 0): ?>
+                                            <small style="display:block; margin-top:4px; font-size:0.75rem; color:#d97706; font-weight:700;">
+                                                ℹ️ Future sales only. <?= number_format($taken) ?> sold ticket(s) retain original price.
+                                            </small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="event-field-group">
+                                        <label class="event-label">Total Capacity <span class="required-star">*</span></label>
+                                        <input type="number" name="ticket-qty[]" class="event-input" required value="<?= (int)$tt['capacity'] ?>" min="<?= $taken ?>" placeholder="Capacity">
+                                    </div>
+                                </div>
+
+                                <div class="ticket-access-shelf">
+                                    <div class="ticket-subfield">
+                                        <div class="ticket-subfield-header">
+                                            <span>👥</span>
+                                            <label class="event-label" style="margin:0;">Admits (Per Ticket)</label>
+                                        </div>
+                                        <input type="number" name="ticket-admits[]" class="event-input" value="<?= max(1, (int)($tt['admits'] ?? 1)) ?>" min="1" placeholder="1 (people/ticket)">
+                                        <span class="ticket-subfield-hint">People entering per 1 ticket (1 = Single, 2 = Couple, 5 = Table).</span>
+                                    </div>
+                                    <div class="ticket-subfield">
+                                        <div class="ticket-subfield-header">
+                                            <span>🔒</span>
+                                            <label class="event-label" style="margin:0;">Max Per Person</label>
+                                        </div>
+                                        <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>" min="1" placeholder="Unlimited">
+                                        <span class="ticket-subfield-hint">Purchase limit per customer email (leave blank for unlimited).</span>
+                                    </div>
+                                </div>
+
                                 <?php if ($taken > 0): ?>
-                                    <div class="tier-stats-bar">
+                                    <div class="tier-stats-bar" style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px dashed rgba(var(--muted),0.2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.82rem;">
                                         <span style="color:#10b981; font-weight:700;">
                                             🎟️ <?= number_format($taken) ?> Tickets Taken (<?= number_format($sold) ?> sold, <?= number_format($issued) ?> issued)
                                         </span>
@@ -1520,62 +1730,71 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <span class="event-section-icon">⚙️</span>
                         <div>
                             <h3 class="event-section-title">Ticketing &amp; Marketing Settings</h3>
-                            <p class="event-section-subtitle">Configure fee absorption and standalone visual flyer landing page.</p>
+                            <p class="event-section-subtitle">Configure fee absorption, landing pages, and flexible payments.</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Fee Settings -->
-                <div class="setting-card">
-                    <label class="setting-card-label">
-                        <input type="checkbox" id="pass-fee" name="pass_fee" value="1" <?= !empty($event->pass_fee) ? 'checked' : '' ?> class="setting-checkbox">
-                        <div>
-                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:block;">
-                                Pass <?= e(get_setting('platform_fee', 5)) ?>% platform fee to attendees
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
-                                <strong>Checked:</strong> Attendees pay the <?= e(get_setting('platform_fee', 5)) ?>% ticketing fee on checkout. <br>
+                <div class="setting-tile">
+                    <label class="setting-tile-label" for="pass-fee">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="pass-fee" name="pass_fee" value="1" <?= !empty($event->pass_fee) ? 'checked' : '' ?> class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
+                                <span>💸</span> Pass <?= e(get_setting('platform_fee', 5)) ?>% Platform Fee to Attendees
+                                <span class="setting-badge-recommended">Recommended</span>
+                            </div>
+                            <div class="setting-tile-desc">
+                                <strong>Checked:</strong> Attendees pay the <?= e(get_setting('platform_fee', 5)) ?>% ticketing fee on checkout.<br>
                                 <strong>Unchecked:</strong> You absorb the fee, which is deducted before payout on ticket sales.
-                            </small>
+                            </div>
                         </div>
                     </label>
                 </div>
 
                 <!-- Dedicated Flyer Page -->
-                <div class="setting-card setting-card--flyer">
-                    <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
-                        <input type="hidden" name="flyer_page_enabled" value="0">
-                        <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty(old('flyer_page_enabled', $event->flyer_page_enabled ?? 0)) ? 'checked' : '' ?> class="setting-checkbox">
-                        <label for="flyer-page-enabled" style="cursor: pointer; user-select: none; flex: 1; margin: 0;">
-                            <strong style="color:#6366f1; font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
-                                <span>🎨</span> Dedicated flyer landing page enabled (<code><?= e(event_flyer_url($event)) ?></code>)
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
+                <div class="setting-tile setting-tile--flyer">
+                    <input type="hidden" name="flyer_page_enabled" value="0">
+                    <label class="setting-tile-label" for="flyer-page-enabled">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="flyer-page-enabled" name="flyer_page_enabled" value="1" <?= !empty(old('flyer_page_enabled', $event->flyer_page_enabled ?? 0)) ? 'checked' : '' ?> class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title" style="color: #6366f1;">
+                                <span>🎨</span> Dedicated Visual Flyer Landing Page Enabled (<code><?= e(event_flyer_url($event)) ?></code>)
+                                <span class="setting-badge-promo">Social Ready</span>
+                            </div>
+                            <div class="setting-tile-desc">
                                 Provides an immersive artwork-background ticket booth with a short link. Perfect for linking directly in Instagram bio, TikTok, and WhatsApp broadcasts.
-                            </small>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Partial Payment (Layaway) Setting -->
-                <div class="setting-card">
-                    <label class="setting-card-label">
-                        <input type="hidden" name="allow_partial_payment" value="0">
-                        <input type="checkbox" id="allow-partial-payment" name="allow_partial_payment" value="1" <?= !empty(old('allow_partial_payment', $event->allow_partial_payment ?? 0)) ? 'checked' : '' ?> class="setting-checkbox" onchange="document.getElementById('partial-payment-options').style.display = this.checked ? 'block' : 'none'">
-                        <div>
-                            <strong style="color:rgb(var(--text)); font-size:0.95rem; display:flex; align-items:center; gap:0.35rem;">
-                                <span>💳</span> Allow Partial Payment (Layaway Plan)
-                            </strong>
-                            <small class="event-help-text" style="display:block; margin-top:0.25rem;">
-                                Let attendees reserve tickets with an initial deposit and pay the remaining balance bit-by-bit before the event starts.
-                            </small>
+                            </div>
                         </div>
                     </label>
-                    <div id="partial-payment-options" style="display:<?= !empty(old('allow_partial_payment', $event->allow_partial_payment ?? 0)) ? 'block' : 'none' ?>; margin-top:0.75rem; padding-left:2.25rem;">
-                        <label class="event-label" style="font-size:0.85rem; font-weight:600;">Minimum Deposit Percentage</label>
-                        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+                </div>
+
+                <!-- Partial Payment (Layaway Plan) Setting -->
+                <div class="setting-tile">
+                    <input type="hidden" name="allow_partial_payment" value="0">
+                    <label class="setting-tile-label" for="allow-partial-payment">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="allow-partial-payment" name="allow_partial_payment" value="1" <?= !empty(old('allow_partial_payment', $event->allow_partial_payment ?? 0)) ? 'checked' : '' ?> class="setting-tile-checkbox" onchange="document.getElementById('partial-payment-options').style.display = this.checked ? 'block' : 'none'">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
+                                <span>💳</span> Allow Partial Payment (Layaway Plan)
+                                <span class="setting-badge-flexible">Flexible Checkout</span>
+                            </div>
+                            <div class="setting-tile-desc">
+                                Let attendees reserve tickets with an initial deposit and pay the remaining balance bit-by-bit before the event starts.
+                            </div>
+                        </div>
+                    </label>
+                    <div id="partial-payment-options" style="display:<?= !empty(old('allow_partial_payment', $event->allow_partial_payment ?? 0)) ? 'block' : 'none' ?>; margin-top:1rem; padding-top:1rem; border-top:1px dashed rgba(var(--muted),0.2);">
+                        <label class="event-label" style="font-size:0.85rem; font-weight:700;">Minimum Deposit Percentage</label>
+                        <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.35rem;">
                             <input type="number" name="partial_payment_min_percent" class="event-input" value="<?= e(old('partial_payment_min_percent', $event->partial_payment_min_percent ?? 25)) ?>" min="10" max="90" step="5" style="width:110px;">
-                            <span style="font-size:0.85rem; color:rgb(var(--text)); opacity:0.7;">% of ticket total (default 25%)</span>
+                            <span style="font-size:0.85rem; color:rgb(var(--muted)); font-weight:600;">% of ticket total (default 25%)</span>
                         </div>
                     </div>
                 </div>

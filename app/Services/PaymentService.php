@@ -202,11 +202,14 @@ class PaymentService
             $existingStmt->execute(['tt_id' => $ttId, 'email' => $buyerEmailLower]);
             $existingCount = (int)$existingStmt->fetchColumn();
 
-            if (($existingCount + $qty) > $maxPerPerson) {
-                $remaining = max(0, $maxPerPerson - $existingCount);
+            $admits = max(1, (int)($tt['admits'] ?? 1));
+            $existingUnits = $admits > 1 ? (int)ceil($existingCount / $admits) : $existingCount;
+
+            if (($existingUnits + $qty) > $maxPerPerson) {
+                $remaining = max(0, $maxPerPerson - $existingUnits);
                 return [
                     'success' => false,
-                    'message' => "Purchase limit exceeded for \"{$tt['name']}\": maximum {$maxPerPerson} per person (you already have {$existingCount}, requested {$qty}, allowed {$remaining} more)."
+                    'message' => "Purchase limit exceeded for \"{$tt['name']}\": maximum {$maxPerPerson} per person (you already have {$existingUnits}, requested {$qty}, allowed {$remaining} more)."
                 ];
             }
         }

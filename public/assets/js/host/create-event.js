@@ -131,37 +131,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Dynamic ticket rows ────────────────────────────────
+    function updateTicketNumbers() {
+        if (!ticketList) return;
+        const rows = ticketList.querySelectorAll('.ticket-card, .ticket-row-item');
+        rows.forEach((row, i) => {
+            const numEl = row.querySelector('.ticket-tier-number');
+            if (numEl) {
+                const nameInput = row.querySelector('[name="ticket-name[]"]');
+                const name = nameInput && nameInput.value.trim() ? `: ${nameInput.value.trim()}` : '';
+                numEl.textContent = `Tier #${i + 1}${name}`;
+            }
+        });
+    }
+
     function createTicketRow() {
         const row = document.createElement('div');
-        row.className = 'ticket-row-item';
+        row.className = 'ticket-row-item ticket-card';
+        const currency = (ticketList && ticketList.dataset.currency) ? ticketList.dataset.currency : '$';
+        const currentCount = ticketList ? ticketList.querySelectorAll('.ticket-row-item, .ticket-card').length + 1 : 1;
         row.innerHTML = `
             <input type="hidden" name="ticket-id[]" value="0">
-            <div class="ticket-tier-grid">
-                <label class="tier-name-label event-field-group" style="margin-bottom:0;">
-                    <span class="event-label">Tier Name <span class="required-star">*</span></span>
-                    <input type="text" name="ticket-name[]" class="event-input" required placeholder="Tier Name (e.g. VIP, General Admission)">
-                </label>
-                <label class="tier-price-label event-field-group" style="margin-bottom:0;">
-                    <span class="event-label">Price <span class="required-star">*</span></span>
+            <div class="ticket-card-header">
+                <div class="ticket-card-badge">
+                    <span>🎟️</span>
+                    <span class="ticket-tier-number">Tier #${currentCount}</span>
+                </div>
+                <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" title="Remove ticket tier">
+                    <span class="remove-icon">✕</span>
+                    <span class="remove-text">Remove Tier</span>
+                </button>
+            </div>
+            <div class="ticket-primary-grid">
+                <div class="event-field-group" style="margin-bottom:0;">
+                    <label class="event-label">Tier Name <span class="required-star">*</span></label>
+                    <input type="text" name="ticket-name[]" class="event-input" required placeholder="e.g. VIP Access, General Admission, Table for 5">
+                </div>
+                <div class="event-field-group" style="margin-bottom:0;">
+                    <label class="event-label">Price (${currency}) <span class="required-star">*</span></label>
                     <input type="number" step="0.01" name="ticket-price[]" class="event-input" required placeholder="0.00" min="0">
-                </label>
-                <label class="tier-qty-label event-field-group" style="margin-bottom:0;">
-                    <span class="event-label">Total Capacity <span class="required-star">*</span></span>
-                    <input type="number" name="ticket-qty[]" class="event-input" required placeholder="Quantity" min="1">
-                </label>
-                <label class="tier-admits-label event-field-group" style="margin-bottom:0;">
-                    <span class="event-label">Admits / Table Size</span>
-                    <input type="number" name="ticket-admits[]" class="event-input" value="1" min="1" placeholder="1 (e.g. 5 for Table of 5)">
-                </label>
-                <label class="tier-limit-label event-field-group" style="margin-bottom:0;">
-                    <span class="event-label">Max Per Person</span>
+                </div>
+                <div class="event-field-group" style="margin-bottom:0;">
+                    <label class="event-label">Total Capacity <span class="required-star">*</span></label>
+                    <input type="number" name="ticket-qty[]" class="event-input" required placeholder="e.g. 100" min="1">
+                </div>
+            </div>
+            <div class="ticket-access-shelf">
+                <div class="ticket-subfield">
+                    <div class="ticket-subfield-header">
+                        <span>👥</span>
+                        <label class="event-label" style="margin:0;">Admits (Per Ticket)</label>
+                    </div>
+                    <input type="number" name="ticket-admits[]" class="event-input" value="1" min="1" placeholder="1 (people/ticket)">
+                    <span class="ticket-subfield-hint">People entering per 1 ticket (1 = Single, 2 = Couple, 5 = Table).</span>
+                </div>
+                <div class="ticket-subfield">
+                    <div class="ticket-subfield-header">
+                        <span>🔒</span>
+                        <label class="event-label" style="margin:0;">Max Per Person</label>
+                    </div>
                     <input type="number" name="ticket-max-per-person[]" class="event-input" value="" min="1" placeholder="Unlimited">
-                </label>
-                <div class="tier-remove-wrap">
-                    <button type="button" class="remove-ticket-row-btn ticket-remove-btn" title="Remove ticket tier">
-                        <span class="remove-icon">✕</span>
-                        <span class="remove-text">Remove Tier</span>
-                    </button>
+                    <span class="ticket-subfield-hint">Purchase limit per customer email (leave blank for unlimited).</span>
                 </div>
             </div>
         `;
@@ -169,7 +198,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (addTicketBtn && ticketList) {
-        addTicketBtn.addEventListener('click', () => ticketList.appendChild(createTicketRow()));
+        addTicketBtn.addEventListener('click', () => {
+            ticketList.appendChild(createTicketRow());
+            updateTicketNumbers();
+        });
 
         // Start with one ticket row by default ONLY if list is empty (e.g. create event)
         if (ticketList.children.length === 0 && document.getElementById('create-event-form')) {
@@ -178,12 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Delegate removal of ticket rows
         ticketList.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-ticket-row-btn') || e.target.closest('.ticket-remove') || e.target.closest('.ticket-remove-btn');
+            const removeBtn = e.target.closest('.remove-ticket-row-btn') || e.target.closest('.ticket-remove') || e.target.closest('.ticket-remove-btn') || e.target.closest('.ticket-card-remove-btn');
             if (removeBtn) {
                 if (removeBtn.disabled) return;
                 const rows = ticketList.querySelectorAll('.ticket-row-item, .ticket-row');
                 if (rows.length > 1) {
                     removeBtn.closest('.ticket-row-item, .ticket-row').remove();
+                    updateTicketNumbers();
                 } else {
                     alert('You must have at least 1 ticket tier for the event.');
                 }
@@ -192,30 +225,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Dynamic guest / performer rows ─────────────────────
+    function updateGuestNumbers() {
+        if (!guestList) return;
+        const rows = guestList.querySelectorAll('.guest-card, .guest-row');
+        rows.forEach((row, i) => {
+            const numEl = row.querySelector('.guest-card-title');
+            if (numEl) {
+                numEl.textContent = `Guest / Performer #${i + 1}`;
+            }
+        });
+    }
+
     function createGuestRow() {
         const row = document.createElement('div');
-        row.className = 'guest-row';
+        row.className = 'guest-row guest-card';
+        const currentCount = guestList ? guestList.querySelectorAll('.guest-row, .guest-card').length + 1 : 1;
         row.innerHTML = `
-            <div class="guest-row-grid">
-                <label class="event-field-group">
-                    <span class="event-label">Name <span class="required-star">*</span></span>
-                    <input type="text" name="guest-name[]" class="event-input" placeholder="Artist / Speaker Name" required>
-                </label>
-                <label class="event-field-group">
-                    <span class="event-label">Role <span class="optional-tag">(Optional)</span></span>
-                    <input type="text" name="guest-role[]" class="event-input" placeholder="Performer / Keynote">
-                </label>
-                <label class="event-field-group">
-                    <span class="event-label">Phone <span class="optional-tag">(Optional)</span></span>
-                    <input type="tel" name="guest-phone[]" class="event-input" placeholder="+1 555 555 5555">
-                </label>
-                <label class="event-field-group">
-                    <span class="event-label">Social <span class="optional-tag">(Optional)</span></span>
-                    <input type="text" name="guest-social[]" class="event-input" placeholder="@handle or https://...">
-                </label>
+            <div class="guest-card-header">
+                <div class="guest-card-avatar">
+                    <span class="guest-card-avatar-circle">👤</span>
+                    <span class="guest-card-title">Guest / Performer #${currentCount}</span>
+                </div>
+                <button type="button" class="guest-remove guest-card-remove-btn" title="Remove guest">
+                    <span>✕</span> Remove
+                </button>
             </div>
-            <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">
-                <button type="button" class="guest-remove">🗑️ Remove Guest</button>
+            <div class="guest-card-grid">
+                <div class="event-field-group">
+                    <label class="event-label">Name <span class="required-star">*</span></label>
+                    <input type="text" name="guest-name[]" class="event-input" placeholder="Artist or Speaker Name" required>
+                </div>
+                <div class="event-field-group">
+                    <label class="event-label">Role / Title <span class="optional-tag">(Optional)</span></label>
+                    <input type="text" name="guest-role[]" class="event-input" placeholder="e.g. Headliner, Keynote, Panelist">
+                </div>
+                <div class="event-field-group">
+                    <label class="event-label">Contact Phone <span class="optional-tag">(Optional)</span></label>
+                    <input type="tel" name="guest-phone[]" class="event-input" placeholder="+1 555 555 5555">
+                </div>
+                <div class="event-field-group">
+                    <label class="event-label">Social / Website <span class="optional-tag">(Optional)</span></label>
+                    <input type="text" name="guest-social[]" class="event-input" placeholder="@handle or https://...">
+                </div>
             </div>
         `;
         const gp = row.querySelector('[name="guest-phone[]"]');
@@ -226,13 +277,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (addGuestBtn && guestList) {
-        addGuestBtn.addEventListener('click', () => guestList.appendChild(createGuestRow()));
+        addGuestBtn.addEventListener('click', () => {
+            guestList.appendChild(createGuestRow());
+            updateGuestNumbers();
+        });
 
         // Delegate removal of guest rows
         guestList.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.guest-remove');
+            const removeBtn = e.target.closest('.guest-remove') || e.target.closest('.guest-card-remove-btn');
             if (removeBtn) {
                 removeBtn.closest('.guest-row').remove();
+                updateGuestNumbers();
             }
         });
     }
@@ -266,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
             input._flatpickr.altInput.classList.add('invalid');
         }
 
-        const wrapper = input.closest('.picker-wrapper') || input.closest('label');
+        const wrapper = input.closest('.picker-wrapper') || input.closest('.event-field-group') || input.closest('label');
         if (wrapper) wrapper.classList.add('has-field-error');
 
         showMessage(errorText, 'error');

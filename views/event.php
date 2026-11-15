@@ -331,8 +331,10 @@ $encodedShareUrl = urlencode($shareUrl);
                             <?php foreach ($ticketTypes as $tt):
                                 $sold = (int)($tt['sold'] ?? 0);
                                 $capacity = (int)($tt['capacity'] ?? 0);
-                                $remaining = max(0, $capacity - $sold);
-                                $isSoldOut = ($remaining <= 0);
+                                $admits = max(1, (int)($tt['admits'] ?? 1));
+                                $soldUnits = $admits > 1 ? (int)floor($sold / $admits) : $sold;
+                                $remaining = max(0, $capacity - $soldUnits);
+                                $isSoldOut = ($capacity > 0 && $remaining <= 0);
                             ?>
                                 <div class="ve-tier-stub<?= $isSoldOut ? ' sold-out' : '' ?>"
                                      data-price="<?= (float)$tt['price'] ?>"
@@ -348,6 +350,9 @@ $encodedShareUrl = urlencode($shareUrl);
                                                     <span class="ve-tier-badge ve-tier-badge--soldout">Sold Out</span>
                                                 <?php elseif ($remaining <= 15): ?>
                                                     <span class="ve-tier-badge ve-tier-badge--urgency">🔥 <?= $remaining ?> left</span>
+                                                <?php endif; ?>
+                                                <?php if (!empty($tt['admits']) && (int)$tt['admits'] > 1): ?>
+                                                    <span class="ve-tier-badge" style="background:rgba(99,102,241,0.12); color:#6366f1; border-color:rgba(99,102,241,0.3);">👥 Admits <?= (int)$tt['admits'] ?></span>
                                                 <?php endif; ?>
                                                 <?php if (!empty($tt['max_per_person'])): ?>
                                                     <span class="ve-tier-badge ve-tier-badge--limit">Max <?= (int)$tt['max_per_person'] ?>/person</span>
