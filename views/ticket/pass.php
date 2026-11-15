@@ -376,6 +376,41 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 </div>
             </div>
 
+            <!-- Merchandise & Add-Ons Package -->
+            <?php if (!empty($addons)): ?>
+                <div style="background: rgba(13, 148, 136, 0.08); border: 1px solid rgba(13, 148, 136, 0.25); border-radius: 14px; padding: 0.95rem 1rem; margin-bottom: 1.5rem; text-align: left;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem; border-bottom: 1px solid rgba(13, 148, 136, 0.15); padding-bottom: 0.4rem;">
+                        <span style="font-size:0.75rem; font-weight:800; color:#0d9488; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:5px;">
+                            <span>🛍️</span> Merchandise &amp; Add-Ons
+                        </span>
+                        <span style="font-size:0.7rem; font-weight:700; color:#0d9488; background:rgba(13, 148, 136, 0.15); padding:2px 7px; border-radius:99px;">
+                            Official Voucher
+                        </span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                        <?php foreach ($addons as $addon): 
+                            $adImg = $addon['addon_image'] ?? ($addon['image'] ?? null);
+                        ?>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; font-size:0.85rem; padding:4px 0;">
+                                <div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
+                                    <?php if (!empty($adImg)): ?>
+                                        <img src="<?= e($adImg) ?>" alt="<?= e($addon['addon_name'] ?? 'Merch') ?>" style="width:36px; height:36px; border-radius:7px; object-fit:cover; border:1px solid rgba(13,148,136,0.3); flex-shrink:0;" />
+                                    <?php else: ?>
+                                        <div style="width:36px; height:36px; border-radius:7px; background:rgba(13,148,136,0.12); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🛍️</div>
+                                    <?php endif; ?>
+                                    <strong style="color:#f1f5f9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        <span style="color:#0d9488;"><?= (int)$addon['quantity'] ?>×</span> <?= e($addon['addon_name'] ?? 'Merchandise') ?>
+                                    </strong>
+                                </div>
+                                <span style="font-size:0.72rem; font-weight:700; color:#0d9488; background:rgba(13,148,136,0.15); padding:2px 6px; border-radius:6px; flex-shrink:0;">
+                                    <?= ucfirst($addon['redemption_status'] ?? 'Pending') ?>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- One-Click WhatsApp & Wallet Actions -->
             <div class="vip-pass-actions no-print">
                 <?php

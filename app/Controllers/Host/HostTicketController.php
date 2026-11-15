@@ -52,6 +52,24 @@ class HostTicketController extends Controller
             throw new \Exception("Ticket not found or access denied.", 404);
         }
 
+        // Fetch any add-on merchandise purchased by this attendee/buyer
+        $db = Application::$app->db->pdo;
+        $addons = [];
+        if (!empty($ticket['attendee_email']) && !empty($ticket['event_id'])) {
+            $addonStmt = $db->prepare("
+                SELECT oa.*, ea.name as addon_name, ea.description as addon_desc, ea.image as addon_image
+                FROM order_addons oa
+                JOIN event_addons ea ON ea.id = oa.addon_id
+                WHERE oa.event_id = :event_id AND LOWER(oa.buyer_email) = :email
+                ORDER BY oa.id ASC
+            ");
+            $addonStmt->execute([
+                'event_id' => $ticket['event_id'],
+                'email' => strtolower($ticket['attendee_email'])
+            ]);
+            $addons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
         if ($isJson) {
             $isEventStarted = !empty($ticket['event_date']) && strtotime($ticket['event_date']) <= time();
             $isCheckedIn = !empty($ticket['checked_in']);
@@ -59,6 +77,7 @@ class HostTicketController extends Controller
 
             return Application::$app->response->json([
                 'success' => true,
+                'addons' => $addons,
                 'ticket' => [
                     'id' => $ticket['id'],
                     'attendee_name' => $ticket['attendee_name'] ?? 'Guest',
@@ -105,6 +124,7 @@ class HostTicketController extends Controller
         return $this->render('host/ticket-detail', [
             'title' => 'Ticket Detail - ' . $ticket['id'],
             'ticket' => $ticket,
+            'addons' => $addons,
             'event' => [
                 'id' => $ticket['event_id'],
                 'name' => $ticket['event_name'],

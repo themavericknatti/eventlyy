@@ -69,6 +69,17 @@ class CheckoutController extends Controller
         $stmt->execute(['event_id' => $event['id']]);
         $ticketTypes = $stmt->fetchAll() ?: [];
 
+        // Fetch active add-ons & merchandise for event
+        $addonStmt = $db->prepare("
+            SELECT ea.*,
+                   (SELECT COUNT(*) FROM order_addons oa WHERE oa.addon_id = ea.id AND oa.redemption_status != 'cancelled') as total_sold
+            FROM event_addons ea
+            WHERE ea.event_id = :event_id AND ea.status = 'active'
+            ORDER BY ea.price ASC, ea.id ASC
+        ");
+        $addonStmt->execute(['event_id' => $event['id']]);
+        $eventAddons = $addonStmt->fetchAll() ?: [];
+
         // Parse ticket quantities from GET or POST
         $qtyMap = $data['qty'] ?? [];
         $selectedItems = [];
@@ -128,7 +139,8 @@ class CheckoutController extends Controller
             'totalAmount' => $totalAmount,
             'currentUser' => $currentUser,
             'qtyMap' => $qtyMap,
-            'refCode' => $refCode
+            'refCode' => $refCode,
+            'eventAddons' => $eventAddons
         ]);
     }
 
@@ -182,6 +194,17 @@ class CheckoutController extends Controller
         ");
         $stmt->execute(['event_id' => $event['id']]);
         $ticketTypes = $stmt->fetchAll() ?: [];
+
+        // Fetch active add-ons & merchandise for event
+        $addonStmt = $db->prepare("
+            SELECT ea.*,
+                   (SELECT COUNT(*) FROM order_addons oa WHERE oa.addon_id = ea.id AND oa.redemption_status != 'cancelled') as total_sold
+            FROM event_addons ea
+            WHERE ea.event_id = :event_id AND ea.status = 'active'
+            ORDER BY ea.price ASC, ea.id ASC
+        ");
+        $addonStmt->execute(['event_id' => $event['id']]);
+        $eventAddons = $addonStmt->fetchAll() ?: [];
 
         // Parse ticket quantities from GET or POST
         $qtyMap = $data['qty'] ?? ($_GET['qty'] ?? []);
@@ -260,6 +283,7 @@ class CheckoutController extends Controller
             'currentUser' => $currentUser,
             'qtyMap' => $qtyMap,
             'refCode' => $refCode,
+            'eventAddons' => $eventAddons,
             'flyerUrl' => event_flyer_url($event)
         ]);
     }
@@ -395,9 +419,60 @@ class CheckoutController extends Controller
             }
         }
 
+        // Process Ticket Add-Ons & Merchandise
+        $addonsData = $data['addons'] ?? [];
+        $selectedAddons = [];
+        $addonsSubtotal = 0.00;
+
+        if (!empty($addonsData) && is_array($addonsData)) {
+            $addonIds = array_keys($addonsData);
+            $cleanAddonIds = array_filter(array_map('intval', $addonIds), fn($id) => $id > 0);
+            if (!empty($cleanAddonIds)) {
+                $placeholders = implode(',', array_fill(0, count($cleanAddonIds), '?'));
+                $addonStmt = $db->prepare("SELECT * FROM event_addons WHERE id IN ($placeholders) AND event_id = ? AND status = 'active'");
+                $addonStmt->execute([...$cleanAddonIds, $event['id']]);
+                $dbAddons = $addonStmt->fetchAll() ?: [];
+                $dbAddonsById = [];
+                foreach ($dbAddons as $da) {
+                    $dbAddonsById[$da['id']] = $da;
+                }
+
+                foreach ($addonsData as $aId => $aQty) {
+                    $aId = (int)$aId;
+                    $aQty = (int)$aQty;
+                    if ($aQty <= 0 || !isset($dbAddonsById[$aId])) continue;
+
+                    $item = $dbAddonsById[$aId];
+                    if ($item['quantity'] !== null) {
+                        $availableStock = max(0, (int)$item['quantity'] - (int)$item['sold_count']);
+                        if ($aQty > $availableStock) {
+                            Application::$app->session->setFlash('error', "Only {$availableStock} unit(s) of \"{$item['name']}\" available.");
+                            redirect('/checkout/' . $eventId);
+                            return;
+                        }
+                    }
+
+                    $unitPrice = (float)$item['price'];
+                    $itemTotal = $unitPrice * $aQty;
+                    $addonsSubtotal += $itemTotal;
+
+                    $selectedAddons[] = [
+                        'addon_id' => $item['id'],
+                        'name' => $item['name'],
+                        'unit_price' => $unitPrice,
+                        'quantity' => $aQty,
+                        'total_price' => $itemTotal,
+                        'image' => $item['image'] ?? null,
+                        'description' => $item['description'] ?? ''
+                    ];
+                }
+            }
+        }
+
+        $combinedSubtotal = $subtotal + $addonsSubtotal;
         $platformFeePercent = (float)get_setting('platform_fee', 5);
-        $fee = (!empty($event['pass_fee']) && $subtotal > 0) ? ($subtotal * ($platformFeePercent / 100)) : 0.00;
-        $netSubtotal = max(0, $subtotal - $discountAmount);
+        $fee = (!empty($event['pass_fee']) && $combinedSubtotal > 0) ? ($combinedSubtotal * ($platformFeePercent / 100)) : 0.00;
+        $netSubtotal = max(0, $combinedSubtotal - $discountAmount);
         $extraCharge = $netSubtotal > 0 ? (float)get_setting('extra_charge', 100.00) : 0.00;
         $totalPaid = $netSubtotal > 0 ? max(0, $netSubtotal + $fee + $extraCharge) : 0.00;
 
@@ -463,7 +538,7 @@ class CheckoutController extends Controller
         // ── Direct Free Ticket Issuance (0 or 0.00 total) ───────
         // Free tickets bypass Paystack and all external payment gateways entirely!
         if ($totalPaid <= 0.00) {
-            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery);
+            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery, $selectedAddons);
         }
 
         // ── Layaway / Partial Payment Preparation ────────────────
@@ -525,12 +600,12 @@ class CheckoutController extends Controller
                 $event, $name, $email, $chargedAmount, $qtyMap, 
                 $promoCode, $discountAmount, $refCode, $normalizedAttendees, 
                 $isLayaway, $totalPaid, $depositTicketSubtotal, $remainingBalance,
-                $phone, $whatsappDelivery
+                $phone, $whatsappDelivery, $selectedAddons
             );
         }
 
         // ── Direct / Fallback (Stripe/Flutterwave placeholder) ──
-        return $this->issueTicketsDirectly($event, $name, $email, $paymentMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery);
+        return $this->issueTicketsDirectly($event, $name, $email, $paymentMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery, $selectedAddons);
     }
 
     /**
@@ -615,7 +690,8 @@ class CheckoutController extends Controller
         float $depositTicketAmount = 0.00,
         float $remainingBalance = 0.00,
         string $phone = '',
-        bool $whatsappDelivery = false
+        bool $whatsappDelivery = false,
+        array $selectedAddons = []
     )
     {
         try {
@@ -657,8 +733,15 @@ class CheckoutController extends Controller
                 }
             }
 
+            // Calculate Add-Ons subtotal
+            $addonsSubtotal = 0.00;
+            foreach ($selectedAddons as $sa) {
+                $addonsSubtotal += (float)($sa['total_price'] ?? 0.0);
+            }
+            $combinedSubtotal = $subtotal + $addonsSubtotal;
+
             $platformFeePercent = (float)site_setting('platform_fee', 5);
-            $fee = !empty($event['pass_fee']) ? ($subtotal * ($platformFeePercent / 100)) : 0.00;
+            $fee = !empty($event['pass_fee']) ? ($combinedSubtotal * ($platformFeePercent / 100)) : 0.00;
             $extraCharge = (float)site_setting('extra_charge', 100.00);
 
             // Prepare complete order payload for persistence in DB, Session, and Gateway Metadata
@@ -673,7 +756,10 @@ class CheckoutController extends Controller
                 'payer_phone' => $phone,
                 'whatsapp_delivery' => $whatsappDelivery,
                 'total_amount' => $totalAmount,
-                'subtotal' => $subtotal,
+                'subtotal' => $combinedSubtotal,
+                'ticket_subtotal' => $subtotal,
+                'addons_subtotal' => $addonsSubtotal,
+                'selected_addons' => $selectedAddons,
                 'qty_map' => $qtyMap,
                 'price_map' => $priceMap,
                 'attendees' => $attendees,
@@ -837,7 +923,8 @@ class CheckoutController extends Controller
                 'payment_method' => 'PAYSTACK',
                 'payment_reference' => $reference,
                 'total_amount' => $totalAmount,
-                'tickets' => $result['tickets'] ?? []
+                'tickets' => $result['tickets'] ?? [],
+                'addons' => $result['addons'] ?? []
             ]);
 
             // Redirect to external host domain if callback URL was specified
@@ -1097,7 +1184,8 @@ class CheckoutController extends Controller
         ?string $refCode = null, 
         array $attendees = [],
         ?string $phone = null,
-        bool $whatsappDelivery = false
+        bool $whatsappDelivery = false,
+        array $selectedAddons = []
     )
     {
         $db = Application::$app->db->pdo;
@@ -1171,9 +1259,16 @@ class CheckoutController extends Controller
                 return;
             }
 
+            // Calculate Add-Ons subtotal
+            $addonsSubtotal = 0.00;
+            foreach ($selectedAddons as $sa) {
+                $addonsSubtotal += (float)($sa['total_price'] ?? 0.0);
+            }
+            $combinedSubtotal = $subtotal + $addonsSubtotal;
+
             $platformFeePercent = (float)get_setting('platform_fee', 5);
-            $fee = (!empty($event['pass_fee']) && $subtotal > 0) ? ($subtotal * ($platformFeePercent / 100)) : 0.00;
-            $netSubtotal = max(0, $subtotal - $discountAmount);
+            $fee = (!empty($event['pass_fee']) && $combinedSubtotal > 0) ? ($combinedSubtotal * ($platformFeePercent / 100)) : 0.00;
+            $netSubtotal = max(0, $combinedSubtotal - $discountAmount);
             $extraCharge = $netSubtotal > 0 ? (float)get_setting('extra_charge', 100.00) : 0.00;
             $totalPaid = $netSubtotal > 0 ? max(0, $netSubtotal + $fee + $extraCharge) : 0.00;
             $isFree = ($totalPaid <= 0.00);
@@ -1213,7 +1308,7 @@ class CheckoutController extends Controller
                 'payer_email' => $email,
                 'payer_phone' => $phone ?: null,
                 'payment_method' => strtolower($paymentMethodStr),
-                'subtotal_amount' => $subtotal,
+                'subtotal_amount' => $combinedSubtotal,
                 'fee_amount' => $fee,
                 'extra_charge_amount' => $extraCharge,
                 'referral_id' => $referralId,
@@ -1221,6 +1316,39 @@ class CheckoutController extends Controller
                 'discount_amount' => $discountAmount,
                 'total_amount' => $totalPaid
             ]);
+            $insertedTxId = $db->lastInsertId();
+
+            // Insert purchased add-ons if any
+            if (!empty($selectedAddons) && is_array($selectedAddons)) {
+                foreach ($selectedAddons as $sa) {
+                    $addonId = (int)($sa['addon_id'] ?? 0);
+                    $addonQty = (int)($sa['quantity'] ?? 0);
+                    $addonUnitPrice = (float)($sa['unit_price'] ?? 0);
+                    $addonTotalPrice = (float)($sa['total_price'] ?? ($addonUnitPrice * $addonQty));
+
+                    if ($addonId > 0 && $addonQty > 0) {
+                        $oaStmt = $db->prepare("
+                            INSERT INTO order_addons (transaction_id, event_id, addon_id, user_id, buyer_name, buyer_email, quantity, unit_price, total_price, redemption_status, created_at)
+                            VALUES (:tx_id, :event_id, :addon_id, :user_id, :buyer_name, :buyer_email, :quantity, :unit_price, :total_price, 'pending', NOW())
+                        ");
+                        $oaStmt->execute([
+                            'tx_id' => $insertedTxId,
+                            'event_id' => $eventId,
+                            'addon_id' => $addonId,
+                            'user_id' => $userId,
+                            'buyer_name' => $name,
+                            'buyer_email' => $email,
+                            'quantity' => $addonQty,
+                            'unit_price' => $addonUnitPrice,
+                            'total_price' => $addonTotalPrice
+                        ]);
+
+                        // Increment sold_count in event_addons
+                        $db->prepare("UPDATE event_addons SET sold_count = sold_count + :qty WHERE id = :addon_id")
+                           ->execute(['qty' => $addonQty, 'addon_id' => $addonId]);
+                    }
+                }
+            }
 
             // Increment used_count for promo code if applied
             if (!empty($promoCode)) {
@@ -1257,7 +1385,8 @@ class CheckoutController extends Controller
                     'event_location' => $event['location'] ?? 'Venue TBA',
                     'payment_method' => $paymentMethodStr,
                     'total_amount' => $totalPaid,
-                    'tickets' => $createdTickets
+                    'tickets' => $createdTickets,
+                    'addons' => $selectedAddons
                 ]
             ];
 
@@ -1315,7 +1444,8 @@ class CheckoutController extends Controller
                 'payment_method' => $paymentMethodStr,
                 'payment_reference' => $reference,
                 'total_amount' => $totalPaid,
-                'tickets' => $createdTickets
+                'tickets' => $createdTickets,
+                'addons' => $selectedAddons
             ]);
 
             return redirect('/success?ref=' . urlencode($reference));

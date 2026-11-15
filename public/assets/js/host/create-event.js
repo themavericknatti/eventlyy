@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const addTicketBtn = document.getElementById('add-ticket-btn');
     const guestList = document.getElementById('guest-list');
     const addGuestBtn = document.getElementById('add-guest-btn');
+    const addonList = document.getElementById('addon-list');
+    const addAddonBtn = document.getElementById('add-addon-btn');
     const organizerPhone = document.getElementById('organizer-phone');
     const organizerSocial = document.getElementById('organizer-social');
     const form = document.getElementById('create-event-form') || document.getElementById('edit-event-form');
@@ -289,6 +291,117 @@ document.addEventListener('DOMContentLoaded', () => {
                 removeBtn.closest('.guest-row').remove();
                 updateGuestNumbers();
             }
+        });
+    }
+
+    // ── Dynamic ticket add-on & merchandise rows ───────────
+    function updateAddonNumbers() {
+        if (!addonList) return;
+        const rows = addonList.querySelectorAll('.addon-card, .addon-row-item');
+        rows.forEach((row, i) => {
+            const numEl = row.querySelector('.addon-tier-number');
+            if (numEl) {
+                const nameInput = row.querySelector('[name="addon-name[]"]');
+                const name = nameInput && nameInput.value.trim() ? `: ${nameInput.value.trim()}` : '';
+                numEl.textContent = `Item #${i + 1}${name}`;
+            }
+        });
+    }
+
+    function createAddonRow() {
+        const row = document.createElement('div');
+        row.className = 'addon-row-item addon-card';
+        const currency = (addonList && addonList.dataset.currency) ? addonList.dataset.currency : '$';
+        const currentCount = addonList ? addonList.querySelectorAll('.addon-row-item, .addon-card').length + 1 : 1;
+        row.innerHTML = `
+            <input type="hidden" name="addon-id[]" value="0">
+            <div class="addon-card-header">
+                <div class="addon-card-badge">
+                    <span>🛍️</span>
+                    <span class="addon-tier-number">Item #${currentCount}</span>
+                </div>
+                <button type="button" class="addon-card-remove-btn" title="Remove item">
+                    <span class="remove-icon">✕</span>
+                    <span class="remove-text">Remove</span>
+                </button>
+            </div>
+            <div class="addon-primary-grid">
+                <div class="event-field-group">
+                    <label class="event-label">Item / Merch Name <span class="required-star">*</span></label>
+                    <input type="text" name="addon-name[]" class="event-input" required placeholder="e.g. Official Tour T-Shirt, VIP Parking Pass, Drink Tokens">
+                </div>
+                <div class="event-field-group">
+                    <label class="event-label">Price (${currency}) <span class="required-star">*</span></label>
+                    <input type="number" step="0.01" name="addon-price[]" class="event-input" required placeholder="0.00" min="0">
+                </div>
+                <div class="event-field-group">
+                    <label class="event-label">Inventory / Stock</label>
+                    <input type="number" name="addon-quantity[]" class="event-input" min="1" placeholder="Unlimited">
+                    <span class="event-help-text" style="font-size:0.72rem;">Leave empty for unlimited.</span>
+                </div>
+            </div>
+            <div class="event-field-group">
+                <label class="event-label">Description / Pickup Instructions</label>
+                <textarea name="addon-description[]" class="event-input" rows="2" placeholder="e.g. 100% premium cotton. Collect at the official merchandise booth upon entry with your ticket QR code."></textarea>
+            </div>
+            <div class="addon-media-row" style="display:flex; align-items:center; gap:1rem; margin-top:0.85rem; padding:0.75rem 1rem; background:rgba(var(--muted),0.05); border:1px dashed rgba(var(--muted),0.25); border-radius:12px;">
+                <div class="addon-img-preview-box" style="width:64px; height:64px; border-radius:10px; background:rgba(var(--muted),0.1); border:1px solid rgba(var(--muted),0.2); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+                    <span class="addon-img-placeholder" style="font-size:1.6rem; opacity:0.6;">🛍️</span>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <label class="event-label" style="margin-bottom:0.25rem; font-size:0.82rem; font-weight:700;">Item Image / Photo <span style="font-size:0.72rem; color:rgb(var(--muted)); font-weight:normal;">(JPG, PNG, WebP up to 5MB)</span></label>
+                    <input type="file" name="addon-image[]" accept="image/jpeg,image/png,image/webp,image/gif" class="addon-file-input event-input" style="font-size:0.8rem; padding:0.4rem 0.6rem;">
+                    <input type="hidden" name="addon-image-existing[]" value="">
+                </div>
+            </div>
+        `;
+
+        const nameInput = row.querySelector('[name="addon-name[]"]');
+        if (nameInput) {
+            nameInput.addEventListener('input', () => updateAddonNumbers());
+        }
+
+        return row;
+    }
+
+    if (addAddonBtn && addonList) {
+        addAddonBtn.addEventListener('click', () => {
+            addonList.appendChild(createAddonRow());
+            updateAddonNumbers();
+        });
+
+        // Delegate removal of addon rows
+        addonList.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.addon-card-remove-btn');
+            if (removeBtn) {
+                if (removeBtn.disabled) return;
+                const card = removeBtn.closest('.addon-row-item, .addon-card');
+                if (card) {
+                    card.remove();
+                    updateAddonNumbers();
+                }
+            }
+        });
+
+        // Delegate live image file preview
+        addonList.addEventListener('change', (e) => {
+            if (e.target && e.target.classList.contains('addon-file-input')) {
+                const file = e.target.files && e.target.files[0];
+                const card = e.target.closest('.addon-row-item, .addon-card');
+                const previewBox = card ? card.querySelector('.addon-img-preview-box') : null;
+                if (file && previewBox) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        previewBox.innerHTML = `<img src="${evt.target.result}" alt="Preview" style="width:100%; height:100%; object-fit:cover;" />`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        // Update titles on input
+        addonList.querySelectorAll('[name="addon-name[]"]').forEach(input => {
+            input.addEventListener('input', () => updateAddonNumbers());
         });
     }
 

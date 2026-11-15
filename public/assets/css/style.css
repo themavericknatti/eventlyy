@@ -17013,6 +17013,47 @@ button[type="submit"]:disabled,
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.vn-lg-toc-title-left {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.vn-lg-toc-count {
+    font-size: 0.82rem;
+    color: var(--vn-brass);
+    font-family: var(--vn-font-serif);
+    font-style: italic;
+}
+
+.vn-lg-toc-toggle {
+    display: none;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--vn-brass);
+    background: var(--vn-brass-glow);
+    border: 1px solid rgba(180, 83, 9, 0.35);
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+}
+
+.vn-lg-toc-toggle:hover {
+    background: var(--vn-brass);
+    color: #ffffff;
+}
+
+.vn-lg-toc-chevron {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
 }
 
 .vn-lg-toc-list {
@@ -17075,14 +17116,63 @@ button[type="submit"]:disabled,
     font-weight: normal;
     color: var(--vn-ink);
     margin: 0 0 1rem;
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
+    display: block;
+    line-height: 1.3;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .vn-lg-section-num {
     color: var(--vn-brass);
     font-style: italic;
+    margin-right: 0.35rem;
+    display: inline;
+}
+
+.vn-lg-document code,
+.vn-lg-text code,
+.vn-lg-list code {
+    font-size: 0.88em;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    background: var(--vn-parchment-warm, #f4eee3);
+    border: 1px solid var(--vn-border-dark, #d8ccb8);
+    color: var(--vn-brass, #b45309);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+/* Part Banners for Platform Guide */
+.vn-lg-part-banner {
+    border-bottom: 2px solid var(--vn-brass);
+    padding-bottom: 0.5rem;
+    margin: 2.75rem 0 1.75rem;
+}
+
+.vn-lg-part-banner:first-of-type {
+    margin-top: 0;
+}
+
+.vn-lg-part-label {
+    font-size: 0.82rem;
+    font-family: var(--vn-font-serif);
+    font-style: italic;
+    color: var(--vn-brass);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.vn-lg-part-title {
+    font-family: var(--vn-font-serif);
+    font-size: clamp(1.4rem, 3.5vw, 2rem);
+    font-weight: normal;
+    color: var(--vn-ink);
+    margin: 0;
+    line-height: 1.2;
+    word-break: break-word;
 }
 
 .vn-lg-text {
@@ -18671,12 +18761,56 @@ button[type="submit"]:disabled,
     .vn-lg-layout,
     .vn-sp-grid {
         grid-template-columns: 1fr;
-        gap: 2rem;
+        gap: 1.5rem;
     }
 
     .vn-lg-toc {
         position: static;
         max-height: none;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+    }
+
+    .vn-lg-toc-title {
+        margin: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .vn-lg-toc-toggle {
+        display: inline-flex;
+    }
+
+    .vn-lg-toc-list {
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.25s ease-out;
+    }
+
+    .vn-lg-toc.is-open .vn-lg-toc-title {
+        padding-bottom: 0.65rem;
+        border-bottom: 1px double var(--vn-border-dark);
+        margin-bottom: 0.75rem;
+    }
+
+    .vn-lg-toc.is-open .vn-lg-toc-chevron {
+        transform: rotate(180deg);
+    }
+
+    .vn-lg-toc.is-open .vn-lg-toc-list {
+        display: flex;
+        flex-direction: column;
+        max-height: 360px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.25rem;
     }
 
     .vn-lg-summary-grid,
@@ -18851,7 +18985,6 @@ button[type="submit"]:disabled,
     .vn-wrapper,
     .vn-ev-wrapper,
     .vn-ab-wrapper,
-    .vn-lg-wrapper,
     .vn-sp-wrapper,
     .vn-fb-wrapper {
         padding: 0 0.65rem 3.5rem;
@@ -18861,7 +18994,6 @@ button[type="submit"]:disabled,
     .vn-hero,
     .vn-ev-hero,
     .vn-ab-hero,
-    .vn-lg-hero,
     .vn-sp-hero,
     .vn-fb-card {
         padding: 1.75rem 1rem 1.5rem;
@@ -18959,6 +19091,237 @@ button[type="submit"]:disabled,
 
     .vn-ab-ledger-item::after {
         display: none !important;
+    }
+}
+
+/* ── 12. Vintage Legal Codex Responsive Suite (.legal-codex-page / .vn-lg-*) ── */
+@media (max-width: 768px) {
+    .container.legal-codex-page,
+    .container:has(.vn-lg-wrapper) {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    .vn-lg-wrapper {
+        padding: 0.35rem 0 3.5rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: clip;
+    }
+
+    .vn-lg-hero {
+        padding: 1.25rem 0.85rem 1.25rem !important;
+        border-radius: 14px !important;
+        margin: 0.5rem 0 1.25rem !important;
+    }
+
+    .vn-lg-top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .vn-lg-breadcrumb {
+        font-size: 0.74rem;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.45rem;
+        line-height: 1.4;
+    }
+
+    .vn-lg-tabs {
+        display: flex;
+        width: 100%;
+        padding: 0.2rem;
+        gap: 0.25rem;
+        background: var(--vn-parchment-warm);
+        border: 1px solid var(--vn-border-dark);
+        border-radius: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .vn-lg-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .vn-lg-tab {
+        flex: 1 1 0;
+        min-width: 85px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 0.76rem;
+        padding: 0.45rem 0.35rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .vn-lg-pre {
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        flex-wrap: wrap;
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+    }
+
+    .vn-lg-title {
+        font-size: clamp(1.55rem, 6vw, 2.35rem) !important;
+        line-height: 1.18 !important;
+        margin-bottom: 0.65rem !important;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .vn-lg-meta {
+        gap: 0.4rem 0.85rem;
+        font-size: 0.78rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .vn-lg-meta-sep {
+        display: none !important;
+    }
+
+    .vn-lg-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .vn-lg-summary {
+        padding: 1rem 0.85rem !important;
+        border-radius: 10px !important;
+        border-left-width: 4px !important;
+    }
+
+    .vn-lg-summary-head {
+        font-size: 0.8rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .vn-lg-summary-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    .vn-lg-summary-card {
+        padding: 0.75rem 0.85rem;
+        background: var(--vn-parchment-card);
+        border: 1px solid var(--vn-border);
+        border-radius: 8px;
+    }
+
+    .vn-lg-summary-card strong {
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .vn-lg-summary-card span {
+        font-size: 0.85rem;
+        line-height: 1.5;
+    }
+
+    .vn-lg-document {
+        padding: 1.25rem 0.85rem 1.75rem !important;
+        border-radius: 14px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .vn-lg-section {
+        padding-bottom: 1.75rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .vn-lg-section-heading {
+        font-size: clamp(1.2rem, 4.2vw, 1.6rem) !important;
+        line-height: 1.3 !important;
+        margin-bottom: 0.85rem !important;
+    }
+
+    .vn-lg-text {
+        font-size: 0.92rem;
+        line-height: 1.65;
+        margin-bottom: 0.85rem;
+        word-break: break-word;
+    }
+
+    .vn-lg-list {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        padding-left: 1.15rem;
+        margin-bottom: 1rem;
+    }
+
+    .vn-lg-callout {
+        padding: 0.85rem 0.85rem;
+        gap: 0.65rem;
+        margin: 1rem 0;
+        font-size: 0.86rem;
+        border-radius: 8px;
+    }
+
+    .vn-lg-part-banner {
+        margin: 2rem 0 1.25rem;
+        padding-bottom: 0.4rem;
+    }
+
+    .vn-lg-part-title {
+        font-size: clamp(1.3rem, 4.5vw, 1.75rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .container.legal-codex-page,
+    .container:has(.vn-lg-wrapper) {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .vn-lg-wrapper {
+        padding: 0.15rem 0 3rem !important;
+    }
+
+    .vn-lg-hero {
+        padding: 1rem 0.65rem 1rem !important;
+        border-radius: 12px !important;
+        margin: 0.25rem 0 0.85rem !important;
+    }
+
+    .vn-lg-tab {
+        font-size: 0.72rem;
+        padding: 0.38rem 0.25rem;
+        min-width: 78px;
+    }
+
+    .vn-lg-title {
+        font-size: clamp(1.4rem, 6.2vw, 1.85rem) !important;
+    }
+
+    .vn-lg-summary {
+        padding: 0.85rem 0.65rem !important;
+    }
+
+    .vn-lg-document {
+        padding: 1rem 0.65rem 1.25rem !important;
+        border-radius: 12px !important;
+    }
+
+    .vn-lg-section-heading {
+        font-size: 1.22rem !important;
+    }
+
+    .vn-lg-text {
+        font-size: 0.89rem;
+        line-height: 1.6;
+    }
+
+    .vn-lg-list {
+        font-size: 0.88rem;
+        padding-left: 1rem;
     }
 }
 

@@ -10,6 +10,7 @@
 $siteName = site_setting('site_title', 'Eventlyy');
 $ticket = $ticket ?? [];
 $event = $event ?? [];
+$addons = $addons ?? [];
 
 $themePrimary = function_exists('theme_primary_color') ? theme_primary_color() : '#108a55';
 $themeSecondary = function_exists('theme_secondary_color') ? theme_secondary_color() : '#0284c7';
@@ -196,6 +197,47 @@ Ticket #<?= e($ticketId) ?> - <?= e($siteName) ?> Host Portal
                     </div>
                 </div>
             </div>
+
+            <?php if (!empty($addons)): ?>
+                <!-- Purchased Merchandise & Add-Ons -->
+                <div class="htd-security-bar" style="margin-top: 1rem; border-color: rgba(13, 148, 136, 0.35); background: rgba(13, 148, 136, 0.06); flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:1.25rem;">🛍️</span>
+                        <div>
+                            <strong style="color: #0d9488; font-size: 0.92rem;">Purchased Merchandise &amp; Add-Ons:</strong>
+                            <span style="font-size: 0.75rem; color: rgb(var(--muted)); display: block;">Items purchased during checkout to hand out at gate/booth</span>
+                        </div>
+                    </div>
+                    <div style="width: 100%; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <?php foreach ($addons as $ad): 
+                            $adQty = (int)($ad['quantity'] ?? 1);
+                            $adPrice = (float)($ad['total_price'] ?? 0);
+                            $adImg = $ad['addon_image'] ?? ($ad['image'] ?? null);
+                        ?>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(13, 148, 136, 0.2); border-radius: 8px;">
+                                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                    <?php if (!empty($adImg)): ?>
+                                        <img src="<?= e($adImg) ?>" alt="<?= e($ad['addon_name'] ?? 'Merch') ?>" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(13, 148, 136, 0.3); flex-shrink: 0;" />
+                                    <?php else: ?>
+                                        <div style="width: 36px; height: 36px; border-radius: 6px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">🛍️</div>
+                                    <?php endif; ?>
+                                    <div>
+                                        <strong style="font-size: 0.88rem; color: rgb(var(--text));">
+                                            <span style="color:#0d9488; font-weight:800;"><?= $adQty ?>&times;</span> <?= e($ad['addon_name'] ?? 'Merchandise') ?>
+                                        </strong>
+                                        <?php if (!empty($ad['addon_desc'])): ?>
+                                            <p style="margin: 2px 0 0; font-size: 0.74rem; color: rgb(var(--muted));"><?= e($ad['addon_desc']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <strong style="color: #0d9488; font-size: 0.88rem; flex-shrink: 0;">
+                                    <?= $adPrice > 0 ? format_price($adPrice) : 'Included' ?>
+                                </strong>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
         </div>
 

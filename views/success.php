@@ -264,6 +264,59 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
         </div>
     </div>
 
+    <!-- ═══ Purchased Event Merchandise & Add-Ons ═══ -->
+    <?php if (!empty($order['addons'])): ?>
+        <div class="suc-receipt" style="margin-top: 1.5rem; border-color: rgba(13, 148, 136, 0.35); background: linear-gradient(180deg, rgba(13, 148, 136, 0.05) 0%, rgba(var(--card), 1) 100%);">
+            <div class="suc-receipt__top" style="border-bottom: 1px solid rgba(13, 148, 136, 0.2);">
+                <div>
+                    <span class="suc-receipt__tag" style="background: rgba(13, 148, 136, 0.15); color: #0d9488;">🛍️ Official Merchandise &amp; Add-On Voucher</span>
+                    <h3 class="suc-receipt__order-no" style="font-size: 1.15rem;">Collection Details</h3>
+                </div>
+                <div class="suc-receipt__status-wrap">
+                    <span class="suc-receipt__status-badge" style="background: #0d9488; color: #fff;">
+                        ✓ CONFIRMED FOR PICKUP
+                    </span>
+                </div>
+            </div>
+
+            <div style="padding: 1.25rem 1.5rem;">
+                <p style="margin: 0 0 1rem; font-size: 0.88rem; color: rgb(var(--muted));">
+                    Show your order confirmation or digital ticket QR code at the event entrance or official merchandise desk to claim your items.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                    <?php foreach ($order['addons'] as $addonItem): 
+                        $aName = $addonItem['addon_name'] ?? ($addonItem['name'] ?? 'Merchandise Item');
+                        $aQty = (int)($addonItem['quantity'] ?? 1);
+                        $aPrice = (float)($addonItem['total_price'] ?? ($addonItem['unit_price'] ?? 0));
+                        $aDesc = $addonItem['addon_description'] ?? ($addonItem['description'] ?? '');
+                    ?>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 1rem; background: rgba(var(--muted), 0.04); border: 1px solid rgba(var(--muted), 0.15); border-radius: 10px;">
+                            <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 0;">
+                                <?php $aImg = $addonItem['image'] ?? ($addonItem['addon_image'] ?? null); ?>
+                                <?php if (!empty($aImg)): ?>
+                                    <img src="<?= e($aImg) ?>" alt="<?= e($aName) ?>" style="width: 48px; height: 48px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(var(--muted), 0.2); flex-shrink: 0;" />
+                                <?php else: ?>
+                                    <div style="width: 48px; height: 48px; border-radius: 8px; background: rgba(13,148,136,0.1); border: 1px solid rgba(13,148,136,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">🛍️</div>
+                                <?php endif; ?>
+                                <div>
+                                    <strong style="font-size: 0.95rem; color: rgb(var(--text));">
+                                        <span style="color:#0d9488; font-weight:800;"><?= $aQty ?>×</span> <?= e($aName) ?>
+                                    </strong>
+                                    <?php if (!empty($aDesc)): ?>
+                                        <p style="margin: 0.25rem 0 0; font-size: 0.78rem; color: rgb(var(--muted));"><?= e($aDesc) ?></p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <strong style="color: #0d9488; font-size: 0.95rem; flex-shrink: 0;">
+                                <?= $aPrice > 0 ? format_price($aPrice) : 'Included' ?>
+                            </strong>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- ═══ Add to Calendar Bar ═══ -->
     <div class="suc-calendar no-print">
         <div class="suc-calendar__info">

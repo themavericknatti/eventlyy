@@ -535,6 +535,78 @@ Create Event - <?= e($siteName) ?> Host
     margin-top: 0.25rem;
 }
 
+/* Add-Ons & Merchandise Section */
+.addon-card,
+.addon-row-item {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.2);
+    border-radius: 18px;
+    padding: 1.35rem 1.45rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    margin-bottom: 1.15rem;
+}
+
+.addon-card:focus-within,
+.addon-row-item:focus-within {
+    border-color: rgba(13, 148, 136, 0.55);
+    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.09);
+}
+
+.addon-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.12);
+    gap: 0.75rem;
+}
+
+.addon-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #0d9488;
+    background: rgba(13, 148, 136, 0.1);
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(13, 148, 136, 0.2);
+}
+
+.addon-card-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.addon-card-remove-btn:hover:not(:disabled) {
+    background: #ef4444;
+    color: #ffffff !important;
+    border-color: #ef4444;
+    transform: translateY(-1px);
+}
+
+.addon-primary-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
 /* Staffing Assistance Section */
 .staff-roles-grid {
     display: grid;
@@ -913,10 +985,22 @@ Create Event - <?= e($siteName) ?> Host
     }
 
     .ticket-card-remove-btn,
-    .ticket-remove-btn {
+    .ticket-remove-btn,
+    .addon-card-remove-btn {
         min-height: 40px !important;
         padding: 0.45rem 0.75rem !important;
         font-size: 0.82rem !important;
+    }
+
+    .addon-card {
+        padding: 1.15rem 0.95rem !important;
+        border-radius: 16px !important;
+    }
+
+    .addon-primary-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.85rem !important;
     }
 
     /* Setting tiles on mobile */
@@ -1390,7 +1474,88 @@ Create Event - <?= e($siteName) ?> Host
                 </div>
             </div>
 
-            <!-- Section 7: Organization Staffing Assistance Request -->
+            <!-- Section 7: Ticket Add-Ons & Merchandise (Optional) -->
+            <div class="event-form-section addon-section">
+                <div class="event-section-header">
+                    <div class="event-section-title-wrap">
+                        <span class="event-section-icon">🛍️</span>
+                        <div>
+                            <h3 class="event-section-title">Add-Ons &amp; Merchandise Upselling <span style="font-size:0.78rem; font-weight:600; color:rgb(var(--muted)); text-transform:none;">(Optional)</span></h3>
+                            <p class="event-section-subtitle">Boost event revenue by selling event t-shirts, VIP parking passes, backstage wristbands, or drink tokens directly at checkout.</p>
+                        </div>
+                    </div>
+                    <button type="button" id="add-addon-btn" class="form-secondary-btn">
+                        <span>➕</span> Add Merch / Add-On
+                    </button>
+                </div>
+
+                <div id="addon-list" class="addon-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
+                    <?php 
+                    $oldAddonNames = old('addon-name', []);
+                    $oldAddonPrices = old('addon-price', []);
+                    $oldAddonQtys = old('addon-quantity', []);
+                    $oldAddonDescs = old('addon-description', []);
+                    $oldAddonImages = old('addon-image-existing', []);
+                    if (is_array($oldAddonNames) && count($oldAddonNames) > 0):
+                        $aCount = 0;
+                        foreach ($oldAddonNames as $idx => $aName):
+                            if (empty($aName)) continue;
+                            $aCount++;
+                    ?>
+                        <div class="addon-row-item addon-card">
+                            <input type="hidden" name="addon-id[]" value="0">
+                            <div class="addon-card-header">
+                                <div class="addon-card-badge">
+                                    <span>🛍️</span>
+                                    <span class="addon-tier-number">Item #<?= $aCount ?>: <?= e($aName) ?></span>
+                                </div>
+                                <button type="button" class="addon-card-remove-btn" title="Remove item">
+                                    <span class="remove-icon">✕</span>
+                                    <span class="remove-text">Remove</span>
+                                </button>
+                            </div>
+                            <div class="addon-primary-grid">
+                                <div class="event-field-group">
+                                    <label class="event-label">Item / Merch Name <span class="required-star">*</span></label>
+                                    <input type="text" name="addon-name[]" class="event-input" value="<?= e($aName) ?>" required placeholder="e.g. Official Tour T-Shirt, VIP Parking Pass, Drink Tokens">
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
+                                    <input type="number" step="0.01" name="addon-price[]" class="event-input" value="<?= e($oldAddonPrices[$idx] ?? '0.00') ?>" required placeholder="0.00" min="0">
+                                </div>
+                                <div class="event-field-group">
+                                    <label class="event-label">Inventory / Stock</label>
+                                    <input type="number" name="addon-quantity[]" class="event-input" value="<?= e($oldAddonQtys[$idx] ?? '') ?>" min="1" placeholder="Unlimited">
+                                    <span class="event-help-text" style="font-size:0.72rem;">Leave empty for unlimited.</span>
+                                </div>
+                            </div>
+                            <div class="event-field-group">
+                                <label class="event-label">Description / Redemption Notes</label>
+                                <textarea name="addon-description[]" class="event-input" rows="2" placeholder="e.g. 100% premium cotton tee. Collect at the official merchandise booth upon entry with your ticket QR code."><?= e($oldAddonDescs[$idx] ?? '') ?></textarea>
+                            </div>
+                            <div class="addon-media-row" style="display:flex; align-items:center; gap:1rem; margin-top:0.85rem; padding:0.75rem 1rem; background:rgba(var(--muted),0.05); border:1px dashed rgba(var(--muted),0.25); border-radius:12px;">
+                                <div class="addon-img-preview-box" style="width:64px; height:64px; border-radius:10px; background:rgba(var(--muted),0.1); border:1px solid rgba(var(--muted),0.2); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+                                    <?php if (!empty($oldAddonImages[$idx])): ?>
+                                        <img src="<?= e($oldAddonImages[$idx]) ?>" alt="Preview" style="width:100%; height:100%; object-fit:cover;" />
+                                    <?php else: ?>
+                                        <span class="addon-img-placeholder" style="font-size:1.6rem; opacity:0.6;">🛍️</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <label class="event-label" style="margin-bottom:0.25rem; font-size:0.82rem; font-weight:700;">Item Image / Photo <span style="font-size:0.72rem; color:rgb(var(--muted)); font-weight:normal;">(JPG, PNG, WebP up to 5MB)</span></label>
+                                    <input type="file" name="addon-image[]" accept="image/jpeg,image/png,image/webp,image/gif" class="addon-file-input event-input" style="font-size:0.8rem; padding:0.4rem 0.6rem;">
+                                    <input type="hidden" name="addon-image-existing[]" value="<?= e($oldAddonImages[$idx] ?? '') ?>">
+                                </div>
+                            </div>
+                        </div>
+                    <?php 
+                        endforeach;
+                    endif; 
+                    ?>
+                </div>
+            </div>
+
+            <!-- Section 8: Organization Staffing Assistance Request -->
             <div class="event-form-section staffing-request-section">
                 <div class="event-section-header">
                     <div class="event-section-title-wrap">
@@ -1531,7 +1696,7 @@ Create Event - <?= e($siteName) ?> Host
                 </div>
             </div>
 
-            <!-- Section 8: Ticketing & Marketing Settings -->
+            <!-- Section 9: Ticketing & Marketing Settings -->
             <div class="event-form-section">
                 <div class="event-section-header">
                     <div class="event-section-title-wrap">

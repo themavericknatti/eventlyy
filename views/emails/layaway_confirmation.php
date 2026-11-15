@@ -116,6 +116,46 @@ $percentPaid = $total_price > 0 ? round(($deposit_paid / $total_price) * 100) : 
                                 </table>
                             </div>
 
+                            <?php if (!empty($addons) && is_array($addons)): ?>
+                            <!-- Reserved Merchandise & Add-Ons -->
+                            <div style="margin-bottom: 24px; padding: 16px 18px; background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
+                                <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #0d9488; letter-spacing: 0.06em; margin-bottom: 4px;">
+                                    🛍️ Reserved Merchandise &amp; Add-Ons
+                                </div>
+                                <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">
+                                    Items Reserved with Your Plan
+                                </div>
+                                <table role="presentation" width="100%" cellpadding="6" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #ccfbf1; border-radius: 8px;">
+                                    <?php foreach ($addons as $addonItem): 
+                                        $aName = $addonItem['addon_name'] ?? ($addonItem['name'] ?? 'Merchandise Item');
+                                        $aQty = (int)($addonItem['quantity'] ?? 1);
+                                        $aPrice = (float)($addonItem['total_price'] ?? ($addonItem['unit_price'] ?? 0));
+                                        $aImg = $addonItem['image'] ?? ($addonItem['addon_image'] ?? null);
+                                    ?>
+                                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                                            <td style="padding: 8px 10px; font-size: 12.5px; color: #1e293b;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                                    <tr>
+                                                        <?php if (!empty($aImg)): ?>
+                                                            <td style="padding-right: 8px; vertical-align: middle;">
+                                                                <img src="<?= e(\url($aImg)) ?>" alt="<?= e($aName) ?>" width="32" height="32" style="display: block; width: 32px; height: 32px; border-radius: 6px; object-fit: cover; border: 1px solid #ccfbf1;" />
+                                                            </td>
+                                                        <?php endif; ?>
+                                                        <td style="vertical-align: middle;">
+                                                            <strong style="color: #0d9488;"><?= $aQty ?>&times;</strong> <strong><?= e($aName) ?></strong>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                            <td align="right" style="padding: 8px 10px; font-size: 12.5px; font-weight: 700; color: #0d9488; vertical-align: middle;">
+                                                <?= $aPrice > 0 ? format_price($aPrice) : 'Included' ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </table>
+                            </div>
+                            <?php endif; ?>
+
                             <!-- Policy Notice -->
                             <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 16px; border-radius: 6px; font-size: 13px; color: #92400e; line-height: 1.5; margin-bottom: 24px;">
                                 <strong>Important Policy:</strong> Complete your balance anytime before the event starts to unlock your official scannable entry QR pass. If your plan is not completed before the event starts, payments are <strong>non-refundable</strong>, but your funds are automatically converted to an <strong>Event Credit</strong> to use on future events!

@@ -51,9 +51,9 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
 
         <div class="vn-lg-meta">
             <span class="vn-lg-meta-item">📅 Last refreshed: November 15, 2026</span>
-            <span class="vn-lg-meta-item">&bull;</span>
+            <span class="vn-lg-meta-sep">&bull;</span>
             <span class="vn-lg-meta-item">⏱️ ~15 min read</span>
-            <span class="vn-lg-meta-item">&bull;</span>
+            <span class="vn-lg-meta-sep">&bull;</span>
             <span class="vn-lg-meta-item">🌐 <?= e($siteName) ?> Master Handbook</span>
         </div>
 
@@ -87,12 +87,18 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
     <div class="vn-lg-layout">
 
         <!-- Sticky Table of Contents -->
-        <aside class="vn-lg-toc">
-            <div class="vn-lg-toc-title">
-                <span>Jump To Section</span>
-                <span style="font-size: 0.85rem; color: var(--vn-brass); font-family: var(--vn-font-serif); font-style: italic;">§ 1–37</span>
+        <aside class="vn-lg-toc" id="vnLgToc">
+            <div class="vn-lg-toc-title" id="vnLgTocTitle">
+                <div class="vn-lg-toc-title-left">
+                    <span>Jump To Section</span>
+                    <span class="vn-lg-toc-count">§ 1–37</span>
+                </div>
+                <button type="button" class="vn-lg-toc-toggle" id="vnLgTocToggle" aria-expanded="false" aria-controls="vnLgTocList" aria-label="Toggle Table of Contents">
+                    <span class="vn-lg-toc-toggle-text">Index</span>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="vn-lg-toc-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
             </div>
-            <ul class="vn-lg-toc-list">
+            <ul class="vn-lg-toc-list" id="vnLgTocList">
                 <li style="font-weight:700; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--vn-brass); margin-top:0.5rem;">Part I &bull; For Attendees</li>
                 <li><a href="#section-1" class="vn-lg-toc-link">§ 1. Getting Started</a></li>
                 <li><a href="#section-2" class="vn-lg-toc-link">§ 2. Discovering Events</a></li>
@@ -148,9 +154,9 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
             <!-- ========================================================= -->
             <!-- PART I — FOR ATTENDEES -->
             <!-- ========================================================= -->
-            <div style="border-bottom: 2px solid var(--vn-brass); padding-bottom: 0.5rem; margin-bottom: 2rem;">
-                <span style="font-size: 0.85rem; font-family: var(--vn-font-serif); font-style: italic; color: var(--vn-brass); text-transform: uppercase; letter-spacing: 0.1em;">Part I of V</span>
-                <h2 style="font-size: 2rem; margin: 0.25rem 0 0 0;">Attendee Experience Guide</h2>
+            <div class="vn-lg-part-banner">
+                <span class="vn-lg-part-label">Part I of V</span>
+                <h2 class="vn-lg-part-title">Attendee Experience Guide</h2>
             </div>
 
             <!-- § 1 -->
@@ -289,9 +295,9 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
             <!-- ========================================================= -->
             <!-- PART II — FOR HOSTS -->
             <!-- ========================================================= -->
-            <div style="border-bottom: 2px solid var(--vn-brass); padding-bottom: 0.5rem; margin: 3rem 0 2rem 0;">
-                <span style="font-size: 0.85rem; font-family: var(--vn-font-serif); font-style: italic; color: var(--vn-brass); text-transform: uppercase; letter-spacing: 0.1em;">Part II of V</span>
-                <h2 style="font-size: 2rem; margin: 0.25rem 0 0 0;">Event Host &amp; Organizer Guide</h2>
+            <div class="vn-lg-part-banner">
+                <span class="vn-lg-part-label">Part II of V</span>
+                <h2 class="vn-lg-part-title">Event Host &amp; Organizer Guide</h2>
             </div>
 
             <!-- § 11 -->
@@ -443,9 +449,9 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
             <!-- ========================================================= -->
             <!-- PART III — FOR EVENT STAFF -->
             <!-- ========================================================= -->
-            <div style="border-bottom: 2px solid var(--vn-brass); padding-bottom: 0.5rem; margin: 3rem 0 2rem 0;">
-                <span style="font-size: 0.85rem; font-family: var(--vn-font-serif); font-style: italic; color: var(--vn-brass); text-transform: uppercase; letter-spacing: 0.1em;">Part III of V</span>
-                <h2 style="font-size: 2rem; margin: 0.25rem 0 0 0;">Event Team &amp; Gate Staff Guide</h2>
+            <div class="vn-lg-part-banner">
+                <span class="vn-lg-part-label">Part III of V</span>
+                <h2 class="vn-lg-part-title">Event Team &amp; Gate Staff Guide</h2>
             </div>
 
             <!-- § 23 -->
@@ -492,9 +498,9 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
             <!-- ========================================================= -->
             <!-- PART IV — FOR ADMINISTRATORS -->
             <!-- ========================================================= -->
-            <div style="border-bottom: 2px solid var(--vn-brass); padding-bottom: 0.5rem; margin: 3rem 0 2rem 0;">
-                <span style="font-size: 0.85rem; font-family: var(--vn-font-serif); font-style: italic; color: var(--vn-brass); text-transform: uppercase; letter-spacing: 0.1em;">Part IV of V</span>
-                <h2 style="font-size: 2rem; margin: 0.25rem 0 0 0;">Platform Administration Guide</h2>
+            <div class="vn-lg-part-banner">
+                <span class="vn-lg-part-label">Part IV of V</span>
+                <h2 class="vn-lg-part-title">Platform Administration Guide</h2>
             </div>
 
             <!-- § 27 -->
@@ -557,9 +563,9 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
             <!-- ========================================================= -->
             <!-- PART V — SECURITY & TRUST -->
             <!-- ========================================================= -->
-            <div style="border-bottom: 2px solid var(--vn-brass); padding-bottom: 0.5rem; margin: 3rem 0 2rem 0;">
-                <span style="font-size: 0.85rem; font-family: var(--vn-font-serif); font-style: italic; color: var(--vn-brass); text-transform: uppercase; letter-spacing: 0.1em;">Part V of V</span>
-                <h2 style="font-size: 2rem; margin: 0.25rem 0 0 0;">Platform Security &amp; Trust Architecture</h2>
+            <div class="vn-lg-part-banner">
+                <span class="vn-lg-part-label">Part V of V</span>
+                <h2 class="vn-lg-part-title">Platform Security &amp; Trust Architecture</h2>
             </div>
 
             <!-- § 34 -->
@@ -624,10 +630,34 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
 
 @section('script')
 <script>
-// Archival TOC Scrollspy
+// Archival TOC Scrollspy & Mobile Drawer
 document.addEventListener('DOMContentLoaded', function() {
+    const toc = document.getElementById('vnLgToc');
+    const tocToggle = document.getElementById('vnLgTocToggle');
+    const tocTitle = document.getElementById('vnLgTocTitle');
     const links = document.querySelectorAll('.vn-lg-toc-link');
     const sections = document.querySelectorAll('.vn-lg-section');
+
+    function toggleToc(e) {
+        if (window.innerWidth <= 960 && toc) {
+            if (e) e.stopPropagation();
+            const isOpen = toc.classList.toggle('is-open');
+            if (tocToggle) {
+                tocToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+        }
+    }
+
+    if (tocToggle) {
+        tocToggle.addEventListener('click', toggleToc);
+    }
+    if (tocTitle) {
+        tocTitle.addEventListener('click', function(e) {
+            if (e.target !== tocToggle && !tocToggle.contains(e.target)) {
+                toggleToc(e);
+            }
+        });
+    }
 
     function updateActiveToc() {
         let current = '';
@@ -645,6 +675,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    links.forEach(l => {
+        l.addEventListener('click', function() {
+            if (window.innerWidth <= 960 && toc) {
+                toc.classList.remove('is-open');
+                if (tocToggle) {
+                    tocToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+    });
 
     window.addEventListener('scroll', updateActiveToc, { passive: true });
     updateActiveToc();

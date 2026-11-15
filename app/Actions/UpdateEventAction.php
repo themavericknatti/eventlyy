@@ -401,6 +401,101 @@ class UpdateEventAction
                 ]);
             }
 
+            // 4b. Process Ticket Add-Ons & Merchandise
+            $addonIds = $data['addon-id'] ?? [];
+            $addonNames = $data['addon-name'] ?? [];
+            $addonPrices = $data['addon-price'] ?? [];
+            $addonQtys = $data['addon-quantity'] ?? [];
+            $addonDescs = $data['addon-description'] ?? [];
+            $addonExistingImages = $data['addon-image-existing'] ?? [];
+            $submittedAddonIds = [];
+
+            $uploadService = new \Ace\UploadService();
+            $addonsTargetDir = function_exists('public_dir') 
+                ? public_dir('uploads/addons') 
+                : (Application::$ROOT_DIR . '/public/uploads/addons');
+            \Ace\UploadService::ensureDirectory($addonsTargetDir);
+
+            foreach ($addonNames as $index => $aName) {
+                $aName = trim($aName);
+                if (empty($aName)) continue;
+
+                $existingAddonId = $addonIds[$index] ?? null;
+                $aPrice = isset($addonPrices[$index]) && is_numeric($addonPrices[$index]) ? max(0, (float)$addonPrices[$index]) : 0.00;
+                $aQty = isset($addonQtys[$index]) && is_numeric($addonQtys[$index]) && (int)$addonQtys[$index] > 0 ? (int)$addonQtys[$index] : null;
+                $aDesc = trim($addonDescs[$index] ?? '');
+
+                // Process image upload via UploadService
+                $imagePath = !empty($addonExistingImages[$index]) ? $addonExistingImages[$index] : null;
+                if (isset($_FILES['addon-image']['name'][$index]) && $_FILES['addon-image']['error'][$index] === UPLOAD_ERR_OK) {
+                    $fileItem = [
+                        'name' => $_FILES['addon-image']['name'][$index],
+                        'type' => $_FILES['addon-image']['type'][$index],
+                        'tmp_name' => $_FILES['addon-image']['tmp_name'][$index],
+                        'error' => $_FILES['addon-image']['error'][$index],
+                        'size' => $_FILES['addon-image']['size'][$index]
+                    ];
+                    $uploadRes = $uploadService->uploadFile($fileItem, $addonsTargetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 800, 800, 85);
+                    if (!empty($uploadRes['success'])) {
+                        $imagePath = '/uploads/addons/' . $uploadRes['filename'];
+                    }
+                }
+
+                if ($existingAddonId && is_numeric($existingAddonId)) {
+                    $updateAddonStmt = $db->prepare("
+                        UPDATE event_addons 
+                        SET name = :name, 
+                            description = :description, 
+                            price = :price, 
+                            quantity = :quantity,
+                            image = :image,
+                            status = 'active'
+                        WHERE id = :id AND event_id = :event_id
+                    ");
+                    $updateAddonStmt->execute([
+                        'name' => $aName,
+                        'description' => $aDesc,
+                        'price' => $aPrice,
+                        'quantity' => $aQty,
+                        'image' => $imagePath,
+                        'id' => $existingAddonId,
+                        'event_id' => $event->id
+                    ]);
+                    $submittedAddonIds[] = (int)$existingAddonId;
+                } else {
+                    $insertAddonStmt = $db->prepare("
+                        INSERT INTO event_addons (event_id, name, description, price, quantity, image, sold_count, status) 
+                        VALUES (:event_id, :name, :description, :price, :quantity, :image, 0, 'active')
+                    ");
+                    $insertAddonStmt->execute([
+                        'event_id' => $event->id,
+                        'name' => $aName,
+                        'description' => $aDesc,
+                        'price' => $aPrice,
+                        'quantity' => $aQty,
+                        'image' => $imagePath
+                    ]);
+                    $submittedAddonIds[] = (int)$db->lastInsertId();
+                }
+            }
+
+            // Clean up or archive deleted add-ons
+            if (!empty($submittedAddonIds)) {
+                $inClause = implode(',', array_map('intval', $submittedAddonIds));
+                // Delete if zero sold
+                $db->prepare("DELETE FROM event_addons WHERE event_id = :event_id AND id NOT IN ({$inClause}) AND sold_count = 0")
+                   ->execute(['event_id' => $event->id]);
+                // Archive if already sold
+                $db->prepare("UPDATE event_addons SET status = 'archived' WHERE event_id = :event_id AND id NOT IN ({$inClause}) AND sold_count > 0")
+                   ->execute(['event_id' => $event->id]);
+            } else {
+                // If user removed all add-ons
+                $db->prepare("DELETE FROM event_addons WHERE event_id = :event_id AND sold_count = 0")
+                   ->execute(['event_id' => $event->id]);
+                $db->prepare("UPDATE event_addons SET status = 'archived' WHERE event_id = :event_id AND sold_count > 0")
+                   ->execute(['event_id' => $event->id]);
+            }
+
             // 5. If converted to recurring series, spawn future occurrences (seq 2..N)
             if ($convertRecurring && count($occurrences) > 1) {
                 // Fetch current ticket types for cloning
@@ -412,6 +507,11 @@ class UpdateEventAction
                 $currGuestsStmt = $db->prepare("SELECT name, role, phone, social FROM event_guests WHERE event_id = :event_id");
                 $currGuestsStmt->execute(['event_id' => $event->id]);
                 $clonableGuests = $currGuestsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+                // Fetch current add-ons for cloning
+                $currAddonsStmt = $db->prepare("SELECT name, description, price, quantity, image FROM event_addons WHERE event_id = :event_id AND status = 'active'");
+                $currAddonsStmt->execute(['event_id' => $event->id]);
+                $clonableAddons = $currAddonsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
                 for ($seq = 2; $seq <= $totalOccurrences; $seq++) {
                     $occDate = $occurrences[$seq - 1];
@@ -465,6 +565,19 @@ class UpdateEventAction
                                 'role' => $gRow['role'],
                                 'phone' => $gRow['phone'],
                                 'social' => $gRow['social']
+                            ]);
+                        }
+
+                        // Clone ticket add-ons
+                        foreach ($clonableAddons as $aRow) {
+                            $stmt = $db->prepare("INSERT INTO event_addons (event_id, name, description, price, quantity, image, sold_count, status) VALUES (:event_id, :name, :description, :price, :quantity, :image, 0, 'active')");
+                            $stmt->execute([
+                                'event_id' => $occEvent->id,
+                                'name' => $aRow['name'],
+                                'description' => $aRow['description'],
+                                'price' => $aRow['price'],
+                                'quantity' => $aRow['quantity'],
+                                'image' => $aRow['image'] ?? null
                             ]);
                         }
                     }

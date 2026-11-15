@@ -116,6 +116,11 @@ class HostEventController extends Controller
         $guestStmt->execute(['event_id' => $event->id]);
         $eventGuests = $guestStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
+        // Fetch existing add-ons & merchandise
+        $addonStmt = $db->prepare("SELECT * FROM event_addons WHERE event_id = :event_id AND status != 'deleted' ORDER BY id ASC");
+        $addonStmt->execute(['event_id' => $event->id]);
+        $eventAddons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
         // Format event date & time for Flatpickr inputs
         $dateTime = strtotime($event->date);
         $eventDate = $dateTime ? date('Y-m-d', $dateTime) : '';
@@ -160,6 +165,7 @@ class HostEventController extends Controller
             'eventCity' => $eventCity,
             'ticketTypes' => $ticketTypes,
             'eventGuests' => $eventGuests,
+            'eventAddons' => $eventAddons,
             'recurringOccurrences' => $recurringOccurrences,
             'categories' => $this->categories,
             'isAdmin' => $isAdmin,
@@ -251,6 +257,11 @@ class HostEventController extends Controller
         $guestStmt->execute(['event_id' => $event->id]);
         $eventGuests = $guestStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
+        // Fetch existing add-ons & merchandise
+        $addonStmt = $db->prepare("SELECT * FROM event_addons WHERE event_id = :event_id AND status != 'deleted' ORDER BY id ASC");
+        $addonStmt->execute(['event_id' => $event->id]);
+        $eventAddons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
         // Format event date & time for Flatpickr inputs
         $dateTime = strtotime($event->date ?? '');
         $eventDate = $dateTime ? date('Y-m-d', $dateTime) : ($data['event_date'] ?? '');
@@ -271,6 +282,7 @@ class HostEventController extends Controller
             'eventCity' => $eventCity,
             'ticketTypes' => $ticketTypes,
             'eventGuests' => $eventGuests,
+            'eventAddons' => $eventAddons,
             'categories' => $this->categories,
             'isAdmin' => $isAdmin,
             'organizerName' => $organizerName,
@@ -403,12 +415,68 @@ class HostEventController extends Controller
             $recurringOccurrences = $recStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
         }
 
+        // Fetch event add-ons and sales metrics
+        $addonSummaryStmt = $db->prepare("
+            SELECT 
+                ea.*,
+                COALESCE(SUM(oa.quantity), 0) as total_units_sold,
+                COALESCE(SUM(oa.total_price), 0.00) as total_addon_revenue
+            FROM event_addons ea
+            LEFT JOIN order_addons oa ON oa.addon_id = ea.id AND oa.redemption_status != 'cancelled'
+            WHERE ea.event_id = :event_id
+            GROUP BY ea.id
+            ORDER BY ea.id ASC
+        ");
+        $addonSummaryStmt->execute(['event_id' => $event->id]);
+        $eventAddons = $addonSummaryStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $totalAddonsSold = 0;
+        $totalAddonsRevenue = 0.0;
+        foreach ($eventAddons as $a) {
+            $totalAddonsSold += (int)($a['total_units_sold'] ?? 0);
+            $totalAddonsRevenue += (float)($a['total_addon_revenue'] ?? 0.0);
+        }
+
+        // Fetch individual purchased add-ons / buyers list for this event
+        $purchasedAddonsStmt = $db->prepare("
+            SELECT 
+                oa.*,
+                ea.name as addon_name,
+                ea.image as addon_image,
+                ea.price as addon_current_price,
+                tx.reference as transaction_reference,
+                tx.status as transaction_status
+            FROM order_addons oa
+            JOIN event_addons ea ON ea.id = oa.addon_id
+            LEFT JOIN transactions tx ON tx.id = oa.transaction_id
+            WHERE oa.event_id = :event_id
+            ORDER BY oa.created_at DESC
+        ");
+        $purchasedAddonsStmt->execute(['event_id' => $event->id]);
+        $purchasedAddons = $purchasedAddonsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $collectedAddonsCount = 0;
+        $pendingAddonsCount = 0;
+        foreach ($purchasedAddons as $pa) {
+            if (($pa['redemption_status'] ?? '') === 'fulfilled') {
+                $collectedAddonsCount += (int)$pa['quantity'];
+            } else {
+                $pendingAddonsCount += (int)$pa['quantity'];
+            }
+        }
+
         return $this->render('host/event-management', [
             'title' => 'Manage Event - ' . $event->name,
             'event' => $event,
             'eventId' => $event->id,
             'tickets' => $tickets,
             'ticketTypes' => $ticketTypes,
+            'eventAddons' => $eventAddons,
+            'totalAddonsSold' => $totalAddonsSold,
+            'totalAddonsRevenue' => $totalAddonsRevenue,
+            'purchasedAddons' => $purchasedAddons,
+            'collectedAddonsCount' => $collectedAddonsCount,
+            'pendingAddonsCount' => $pendingAddonsCount,
             'recurringOccurrences' => $recurringOccurrences,
             'totalRevenue' => $totalRevenue,
             'ticketsSold' => $ticketsSold,
@@ -1382,6 +1450,75 @@ class HostEventController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * POST /host/event/management/{id}/addon-redeem
+     *
+     * Toggle the redemption/collection status of a purchased add-on item.
+     */
+    public function toggleAddonRedemption(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+
+        if (!$event) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Event not found']);
+                return;
+            }
+            Application::$app->session->setFlash('error', 'Event not found.');
+            Application::$app->response->redirect('/host/events');
+            return;
+        }
+
+        $orderAddonId = (int)($request->getBody()['order_addon_id'] ?? 0);
+        $action = $request->getBody()['action'] ?? ''; // 'fulfill' or 'unfulfill'
+
+        if (!$orderAddonId || !in_array($action, ['fulfill', 'unfulfill'], true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+
+        $db = Application::$app->db->pdo;
+
+        // Verify this order_addon belongs to this event
+        $checkStmt = $db->prepare("SELECT id, redemption_status FROM order_addons WHERE id = :id AND event_id = :event_id");
+        $checkStmt->execute(['id' => $orderAddonId, 'event_id' => $event->id]);
+        $orderAddon = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$orderAddon) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Add-on order not found']);
+            return;
+        }
+
+        $newStatus = ($action === 'fulfill') ? 'fulfilled' : 'pending';
+        $redeemedAt = ($action === 'fulfill') ? date('Y-m-d H:i:s') : null;
+
+        $updateStmt = $db->prepare("UPDATE order_addons SET redemption_status = :status, redeemed_at = :redeemed_at WHERE id = :id");
+        $updateStmt->execute([
+            'status' => $newStatus,
+            'redeemed_at' => $redeemedAt,
+            'id' => $orderAddonId,
+        ]);
+
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'new_status' => $newStatus,
+                'redeemed_at' => $redeemedAt,
+                'message' => ($action === 'fulfill') ? 'Marked as collected' : 'Reverted to pending',
+            ]);
+            return;
+        }
+
+        Application::$app->session->setFlash('success', ($action === 'fulfill') ? 'Add-on marked as collected.' : 'Add-on reverted to pending.');
+        Application::$app->response->redirect('/host/event/management/' . $event->id . '?tab=merchandise');
     }
 
     /**

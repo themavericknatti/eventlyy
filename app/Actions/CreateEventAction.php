@@ -233,6 +233,56 @@ class CreateEventAction
             ]);
         }
 
+        // 4b. Save Ticket Add-Ons & Merchandise
+        $addonNames = $data['addon-name'] ?? [];
+        $addonPrices = $data['addon-price'] ?? [];
+        $addonQtys = $data['addon-quantity'] ?? [];
+        $addonDescs = $data['addon-description'] ?? [];
+        $addonExistingImages = $data['addon-image-existing'] ?? [];
+        $addonSavedImages = [];
+
+        $uploadService = new \Ace\UploadService();
+        $addonsTargetDir = function_exists('public_dir') 
+            ? public_dir('uploads/addons') 
+            : (Application::$ROOT_DIR . '/public/uploads/addons');
+        \Ace\UploadService::ensureDirectory($addonsTargetDir);
+
+        foreach ($addonNames as $index => $aName) {
+            $aName = trim($aName);
+            if (empty($aName)) continue;
+
+            $aPrice = isset($addonPrices[$index]) && is_numeric($addonPrices[$index]) ? max(0, (float)$addonPrices[$index]) : 0.00;
+            $aQty = isset($addonQtys[$index]) && is_numeric($addonQtys[$index]) && (int)$addonQtys[$index] > 0 ? (int)$addonQtys[$index] : null;
+            $aDesc = trim($addonDescs[$index] ?? '');
+
+            // Process image upload via UploadService
+            $imagePath = !empty($addonExistingImages[$index]) ? $addonExistingImages[$index] : null;
+            if (isset($_FILES['addon-image']['name'][$index]) && $_FILES['addon-image']['error'][$index] === UPLOAD_ERR_OK) {
+                $fileItem = [
+                    'name' => $_FILES['addon-image']['name'][$index],
+                    'type' => $_FILES['addon-image']['type'][$index],
+                    'tmp_name' => $_FILES['addon-image']['tmp_name'][$index],
+                    'error' => $_FILES['addon-image']['error'][$index],
+                    'size' => $_FILES['addon-image']['size'][$index]
+                ];
+                $uploadRes = $uploadService->uploadFile($fileItem, $addonsTargetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5242880, 800, 800, 85);
+                if (!empty($uploadRes['success'])) {
+                    $imagePath = '/uploads/addons/' . $uploadRes['filename'];
+                }
+            }
+            $addonSavedImages[$index] = $imagePath;
+
+            $stmt = $db->prepare("INSERT INTO event_addons (event_id, name, description, price, quantity, image, status) VALUES (:event_id, :name, :description, :price, :quantity, :image, 'active')");
+            $stmt->execute([
+                'event_id' => $event->id,
+                'name' => $aName,
+                'description' => $aDesc,
+                'price' => $aPrice,
+                'quantity' => $aQty,
+                'image' => $imagePath
+            ]);
+        }
+
         // 5. Save staffing assistance request if opted-in
         if (!empty($data['request_staffing'])) {
             $staffRolesInput = $data['staff_roles'] ?? [];
@@ -341,6 +391,28 @@ class CreateEventAction
                             'role' => trim($guestRoles[$index] ?? ''),
                             'phone' => trim($guestPhones[$index] ?? ''),
                             'social' => trim($guestSocials[$index] ?? '')
+                        ]);
+                    }
+
+                    // Clone ticket add-ons & merchandise for occurrence
+                    foreach ($addonNames as $index => $aName) {
+                        $aName = trim($aName);
+                        if (empty($aName)) continue;
+
+                        $aPrice = isset($addonPrices[$index]) && is_numeric($addonPrices[$index]) ? max(0, (float)$addonPrices[$index]) : 0.00;
+                        $aQty = isset($addonQtys[$index]) && is_numeric($addonQtys[$index]) && (int)$addonQtys[$index] > 0 ? (int)$addonQtys[$index] : null;
+                        $aDesc = trim($addonDescs[$index] ?? '');
+
+                        $aImg = $addonSavedImages[$index] ?? null;
+
+                        $stmt = $db->prepare("INSERT INTO event_addons (event_id, name, description, price, quantity, image, status) VALUES (:event_id, :name, :description, :price, :quantity, :image, 'active')");
+                        $stmt->execute([
+                            'event_id' => $occEvent->id,
+                            'name' => $aName,
+                            'description' => $aDesc,
+                            'price' => $aPrice,
+                            'quantity' => $aQty,
+                            'image' => $aImg
                         ]);
                     }
                 }

@@ -51,9 +51,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
 
         <div class="vn-lg-meta">
             <span class="vn-lg-meta-item">📅 Last refreshed: November 15, 2026</span>
-            <span class="vn-lg-meta-item">&bull;</span>
+            <span class="vn-lg-meta-sep">&bull;</span>
             <span class="vn-lg-meta-item">⏱️ ~10 min read</span>
-            <span class="vn-lg-meta-item">&bull;</span>
+            <span class="vn-lg-meta-sep">&bull;</span>
             <span class="vn-lg-meta-item">🌐 <?= e($siteName) ?> Community</span>
         </div>
 
@@ -87,12 +87,18 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
     <div class="vn-lg-layout">
 
         <!-- Sticky Table of Contents -->
-        <aside class="vn-lg-toc">
-            <div class="vn-lg-toc-title">
-                <span>Jump To Section</span>
-                <span style="font-size: 0.85rem; color: var(--vn-brass); font-family: var(--vn-font-serif); font-style: italic;">§ 1–15</span>
+        <aside class="vn-lg-toc" id="vnLgToc">
+            <div class="vn-lg-toc-title" id="vnLgTocTitle">
+                <div class="vn-lg-toc-title-left">
+                    <span>Jump To Section</span>
+                    <span class="vn-lg-toc-count">§ 1–15</span>
+                </div>
+                <button type="button" class="vn-lg-toc-toggle" id="vnLgTocToggle" aria-expanded="false" aria-controls="vnLgTocList" aria-label="Toggle Table of Contents">
+                    <span class="vn-lg-toc-toggle-text">Index</span>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="vn-lg-toc-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
             </div>
-            <ul class="vn-lg-toc-list">
+            <ul class="vn-lg-toc-list" id="vnLgTocList">
                 <li><a href="#section-1" class="vn-lg-toc-link">§ 1. Introduction</a></li>
                 <li><a href="#section-2" class="vn-lg-toc-link">§ 2. What We Collect</a></li>
                 <li><a href="#section-3" class="vn-lg-toc-link">§ 3. How We Use Your Data</a></li>
@@ -422,10 +428,34 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
 
 @section('script')
 <script>
-// Archival TOC Scrollspy
+// Archival TOC Scrollspy & Mobile Drawer
 document.addEventListener('DOMContentLoaded', function() {
+    const toc = document.getElementById('vnLgToc');
+    const tocToggle = document.getElementById('vnLgTocToggle');
+    const tocTitle = document.getElementById('vnLgTocTitle');
     const links = document.querySelectorAll('.vn-lg-toc-link');
     const sections = document.querySelectorAll('.vn-lg-section');
+
+    function toggleToc(e) {
+        if (window.innerWidth <= 960 && toc) {
+            if (e) e.stopPropagation();
+            const isOpen = toc.classList.toggle('is-open');
+            if (tocToggle) {
+                tocToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+        }
+    }
+
+    if (tocToggle) {
+        tocToggle.addEventListener('click', toggleToc);
+    }
+    if (tocTitle) {
+        tocTitle.addEventListener('click', function(e) {
+            if (e.target !== tocToggle && !tocToggle.contains(e.target)) {
+                toggleToc(e);
+            }
+        });
+    }
 
     function updateActiveToc() {
         let current = '';
@@ -443,6 +473,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    links.forEach(l => {
+        l.addEventListener('click', function() {
+            if (window.innerWidth <= 960 && toc) {
+                toc.classList.remove('is-open');
+                if (tocToggle) {
+                    tocToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+    });
 
     window.addEventListener('scroll', updateActiveToc, { passive: true });
     updateActiveToc();

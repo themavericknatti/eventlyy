@@ -201,11 +201,36 @@ class TeamService
         $ticket['checked_in'] = 1;
         $ticket['checked_in_at'] = date('Y-m-d H:i:s');
 
+        // Fetch any add-on merchandise for this attendee
+        $addons = [];
+        if (!empty($ticket['attendee_email'])) {
+            $addonStmt = $db->prepare("
+                SELECT oa.*, ea.name as addon_name 
+                FROM order_addons oa
+                JOIN event_addons ea ON ea.id = oa.addon_id
+                WHERE oa.event_id = :event_id AND LOWER(oa.buyer_email) = :email
+                ORDER BY oa.id ASC
+            ");
+            $addonStmt->execute([
+                'event_id' => $eventId,
+                'email' => strtolower($ticket['attendee_email'])
+            ]);
+            $addons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
+        $ticket['addons'] = $addons;
+        $addonNotice = '';
+        if (!empty($addons)) {
+            $addonNames = array_map(fn($a) => "{$a['quantity']}x {$a['addon_name']}", $addons);
+            $addonNotice = " • 🛍️ Hand out: " . implode(', ', $addonNames);
+        }
+
         return [
             'success' => true,
             'status' => 'success',
-            'message' => "VALID TICKET: Welcome {$ticket['attendee_name']}!",
-            'ticket' => $ticket
+            'message' => "VALID TICKET: Welcome {$ticket['attendee_name']}!{$addonNotice}",
+            'ticket' => $ticket,
+            'addons' => $addons
         ];
     }
 

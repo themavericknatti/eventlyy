@@ -55,6 +55,12 @@ $ticketsIssued = $ticketsIssued ?? 0;
 $totalCapacity = $totalCapacity ?? 0;
 $occupancyPercentage = $occupancyPercentage ?? 0;
 $avgPrice = $avgPrice ?? 0;
+$eventAddons = $eventAddons ?? [];
+$totalAddonsSold = $totalAddonsSold ?? 0;
+$totalAddonsRevenue = $totalAddonsRevenue ?? 0.0;
+$purchasedAddons = $purchasedAddons ?? [];
+$collectedAddonsCount = $collectedAddonsCount ?? 0;
+$pendingAddonsCount = $pendingAddonsCount ?? 0;
 $canDelete = ($ticketsSold == 0) && !$isCompleted && (($event->status ?? '') !== 'completed');
 $domainRequest = $domainRequest ?? null;
 $domainFee = (float)get_setting('custom_domain_fee', 10000.00);
@@ -246,8 +252,10 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
     <section class="mgmt-kpi-grid" style="margin-bottom:1.75rem;">
         <article class="mgmt-kpi-card" style="border-left:4px solid #10b981;">
             <span class="mgmt-kpi-label">Gross Revenue</span>
-            <div class="mgmt-kpi-val" style="color:#10b981;"><?= format_price($totalRevenue) ?></div>
-            <span class="mgmt-kpi-sub">From paid ticket orders</span>
+            <div class="mgmt-kpi-val" style="color:#10b981;"><?= format_price($totalRevenue + $totalAddonsRevenue) ?></div>
+            <span class="mgmt-kpi-sub">
+                <?= format_price($totalRevenue) ?> tickets<?php if ($totalAddonsRevenue > 0): ?> + <strong style="color:#0d9488;"><?= format_price($totalAddonsRevenue) ?> merch</strong><?php endif; ?>
+            </span>
         </article>
 
         <article class="mgmt-kpi-card" style="border-left:4px solid #3b82f6;">
@@ -292,6 +300,11 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
         <button type="button" class="mgmt-tab-btn <?= $currentTab === 'staffing' ? 'active' : '' ?>" data-tab="staffing">
             <span>🛡️</span> Staff Support <span class="mgmt-tab-counter"><?= count($teamMembers ?? []) ?></span>
         </button>
+        <?php if (!empty($eventAddons)): ?>
+        <button type="button" class="mgmt-tab-btn <?= $currentTab === 'merchandise' ? 'active' : '' ?>" data-tab="merchandise">
+            <span>🛍️</span> Merchandise <span class="mgmt-tab-counter"><?= count($purchasedAddons) ?></span>
+        </button>
+        <?php endif; ?>
         <button type="button" class="mgmt-tab-btn <?= $currentTab === 'reviews' ? 'active' : '' ?>" data-tab="reviews">
             <span>⭐</span> Reviews <span class="mgmt-tab-counter"><?= count($reviews ?? []) ?></span>
         </button>
@@ -409,6 +422,66 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     <?php endforeach; ?>
                 </div>
             </section>
+
+            <!-- Merchandise & Add-Ons Performance -->
+            <?php if (!empty($eventAddons)): ?>
+                <section class="form-card" style="margin-top:1.5rem; margin-bottom:0; padding:1.5rem; border-color:rgba(13,148,136,0.3);">
+                    <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
+                        <div>
+                            <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:#0d9488; display:flex; align-items:center; gap:6px;">
+                                <span>🛍️</span> Merchandise &amp; Add-Ons Performance
+                            </h3>
+                            <p style="margin:0.25rem 0 0; font-size:0.82rem; color:rgb(var(--muted));">Sales volume, stock levels, and revenue generated from checkout upselling</p>
+                        </div>
+                        <span style="font-size:0.85rem; font-weight:800; color:#0d9488; background:rgba(13,148,136,0.12); padding:4px 10px; border-radius:99px;">
+                            Total Merch: <?= format_price($totalAddonsRevenue) ?>
+                        </span>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:0.85rem;">
+                        <?php foreach ($eventAddons as $ea): 
+                            $eaSold = (int)($ea['total_units_sold'] ?? $ea['sold_count'] ?? 0);
+                            $eaPrice = (float)($ea['price'] ?? 0);
+                            $eaRev = (float)($ea['total_addon_revenue'] ?? ($eaSold * $eaPrice));
+                            $eaCap = $ea['quantity'] !== null ? (int)$ea['quantity'] : null;
+                            $eaPercent = ($eaCap && $eaCap > 0) ? min(100, round(($eaSold / $eaCap) * 100)) : 100;
+                        ?>
+                            <div class="mgmt-tier-item" style="border-left:3px solid #0d9488;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                                    <div style="display:flex; align-items:center; gap:0.65rem;">
+                                        <?php if (!empty($ea['image'])): ?>
+                                            <img src="<?= e($ea['image']) ?>" alt="<?= e($ea['name']) ?>" style="width:36px; height:36px; border-radius:7px; object-fit:cover; border:1px solid rgba(13,148,136,0.3); flex-shrink:0;" />
+                                        <?php else: ?>
+                                            <div style="width:36px; height:36px; border-radius:7px; background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.2); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🛍️</div>
+                                        <?php endif; ?>
+                                        <div>
+                                            <strong style="font-size:0.95rem; color:rgb(var(--text));"><?= e($ea['name']) ?></strong>
+                                            <span style="font-size:0.82rem; font-weight:700; color:#0d9488; margin-left:0.4rem;">
+                                                <?= $eaPrice > 0 ? format_price($eaPrice) : 'Free' ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div style="text-align:right;">
+                                        <span style="font-size:0.88rem; font-weight:800; color:#0d9488;"><?= format_price($eaRev) ?></span>
+                                        <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block;">
+                                            <?= number_format($eaSold) ?> sold <?= $eaCap !== null ? '/ ' . number_format($eaCap) . ' total' : '(unlimited)' ?>
+                                        </span>
+                                    </div>
+                                </div>
+                                <?php if ($eaCap !== null && $eaCap > 0): ?>
+                                    <div class="mgmt-tier-bar">
+                                        <div class="mgmt-tier-fill" style="width:<?= $eaPercent ?>%; background:#0d9488;"></div>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:rgb(var(--muted)); margin-top:0.3rem;">
+                                        <span><?= $eaPercent ?>% inventory sold</span>
+                                        <span><?= number_format(max(0, $eaCap - $eaSold)) ?> remaining</span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -893,6 +966,187 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
             </section>
         </div>
     </div>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         TAB: MERCHANDISE & ADD-ONS BUYER LIST
+         ════════════════════════════════════════════════════════════════ -->
+    <?php if (!empty($eventAddons)): ?>
+    <div class="mgmt-tab-panel <?= $currentTab === 'merchandise' ? 'active' : '' ?>" id="tab-merchandise">
+
+        <!-- Summary Stats -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+            <div class="form-card" style="padding:1.2rem; border-radius:16px; text-align:center; border-left:4px solid #0d9488;">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Total Items Sold</div>
+                <div style="font-size:1.75rem; font-weight:900; color:var(--text); margin-top:0.25rem;" id="merch-stat-total"><?= (int)$totalAddonsSold ?></div>
+            </div>
+            <div class="form-card" style="padding:1.2rem; border-radius:16px; text-align:center; border-left:4px solid #10b981;">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Collected</div>
+                <div style="font-size:1.75rem; font-weight:900; color:#10b981; margin-top:0.25rem;" id="merch-stat-collected"><?= (int)$collectedAddonsCount ?></div>
+            </div>
+            <div class="form-card" style="padding:1.2rem; border-radius:16px; text-align:center; border-left:4px solid #f59e0b;">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Pending Collection</div>
+                <div style="font-size:1.75rem; font-weight:900; color:#f59e0b; margin-top:0.25rem;" id="merch-stat-pending"><?= (int)$pendingAddonsCount ?></div>
+            </div>
+            <div class="form-card" style="padding:1.2rem; border-radius:16px; text-align:center; border-left:4px solid var(--brand);">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Revenue</div>
+                <div style="font-size:1.75rem; font-weight:900; color:var(--text); margin-top:0.25rem;"><?= format_price($totalAddonsRevenue) ?></div>
+            </div>
+        </div>
+
+        <!-- Filters & Search -->
+        <section class="form-card" style="padding:1.25rem; border-radius:16px; margin-bottom:1rem;">
+            <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between;">
+                <div style="display:flex; flex-wrap:wrap; gap:0.5rem;" id="merch-filter-pills">
+                    <button type="button" class="merch-filter-pill active" data-filter="all" style="padding:0.4rem 1rem; border-radius:999px; font-size:0.8rem; font-weight:700; border:1.5px solid var(--border); background:var(--brand); color:#fff; cursor:pointer; transition:all 0.15s ease;">
+                        All (<?= count($purchasedAddons) ?>)
+                    </button>
+                    <button type="button" class="merch-filter-pill" data-filter="pending" style="padding:0.4rem 1rem; border-radius:999px; font-size:0.8rem; font-weight:700; border:1.5px solid var(--border); background:transparent; color:var(--text); cursor:pointer; transition:all 0.15s ease;">
+                        ⏳ Pending
+                    </button>
+                    <button type="button" class="merch-filter-pill" data-filter="fulfilled" style="padding:0.4rem 1rem; border-radius:999px; font-size:0.8rem; font-weight:700; border:1.5px solid var(--border); background:transparent; color:var(--text); cursor:pointer; transition:all 0.15s ease;">
+                        ✅ Collected
+                    </button>
+                    <button type="button" class="merch-filter-pill" data-filter="cancelled" style="padding:0.4rem 1rem; border-radius:999px; font-size:0.8rem; font-weight:700; border:1.5px solid var(--border); background:transparent; color:var(--text); cursor:pointer; transition:all 0.15s ease;">
+                        ❌ Cancelled
+                    </button>
+                </div>
+                <div style="position:relative; min-width:220px; flex:1; max-width:340px;">
+                    <input type="text" id="merch-search-input" placeholder="Search buyer name or email…" style="width:100%; padding:0.55rem 0.85rem 0.55rem 2.2rem; border-radius:12px; border:1.5px solid var(--border); background:var(--card); color:var(--text); font-size:0.85rem;">
+                    <span style="position:absolute; left:0.7rem; top:50%; transform:translateY(-50%); font-size:0.9rem; opacity:0.5;">🔍</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Buyer List -->
+        <section class="form-card" style="padding:0; border-radius:16px; overflow:hidden;">
+            <?php if (empty($purchasedAddons)): ?>
+                <div style="padding:3rem; text-align:center; color:var(--muted);">
+                    <div style="font-size:2.5rem; margin-bottom:0.75rem;">🛍️</div>
+                    <div style="font-size:1rem; font-weight:700;">No Add-On Purchases Yet</div>
+                    <div style="font-size:0.85rem; margin-top:0.35rem;">When attendees purchase merchandise or add-ons, they'll appear here.</div>
+                </div>
+            <?php else: ?>
+                <!-- Desktop Table Header -->
+                <div style="display:grid; grid-template-columns:50px 2fr 2fr 1fr 1fr 1fr 140px; gap:0.5rem; padding:0.85rem 1.25rem; background:var(--background); border-bottom:1.5px solid var(--border); font-size:0.72rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;" class="merch-table-header">
+                    <div>#</div>
+                    <div>Buyer</div>
+                    <div>Item</div>
+                    <div>Qty × Price</div>
+                    <div>Date</div>
+                    <div>Status</div>
+                    <div>Action</div>
+                </div>
+
+                <?php foreach ($purchasedAddons as $idx => $pa):
+                    $paStatus = $pa['redemption_status'] ?? 'pending';
+                    $statusColors = [
+                        'pending'   => ['bg' => 'rgba(245,158,11,0.12)', 'color' => '#d97706', 'label' => '⏳ Pending'],
+                        'fulfilled' => ['bg' => 'rgba(16,185,129,0.12)', 'color' => '#059669', 'label' => '✅ Collected'],
+                        'cancelled' => ['bg' => 'rgba(239,68,68,0.12)', 'color' => '#dc2626', 'label' => '❌ Cancelled'],
+                    ];
+                    $sc = $statusColors[$paStatus] ?? $statusColors['pending'];
+                    $addonImage = !empty($pa['addon_image']) ? e($pa['addon_image']) : '';
+                ?>
+                <div class="merch-buyer-row" data-status="<?= e($paStatus) ?>" data-buyer="<?= e(strtolower(($pa['buyer_name'] ?? '') . ' ' . ($pa['buyer_email'] ?? ''))) ?>" style="display:grid; grid-template-columns:50px 2fr 2fr 1fr 1fr 1fr 140px; gap:0.5rem; padding:0.85rem 1.25rem; border-bottom:1px solid var(--border); align-items:center; font-size:0.85rem; transition:background 0.15s ease;" onmouseover="this.style.background='var(--background)'" onmouseout="this.style.background='transparent'">
+                    <!-- # -->
+                    <div style="font-weight:700; color:var(--muted); font-size:0.8rem;"><?= $idx + 1 ?></div>
+
+                    <!-- Buyer -->
+                    <div>
+                        <div style="font-weight:700; color:var(--text);"><?= e($pa['buyer_name'] ?? 'N/A') ?></div>
+                        <div style="font-size:0.75rem; color:var(--muted); margin-top:0.1rem;"><?= e($pa['buyer_email'] ?? '') ?></div>
+                    </div>
+
+                    <!-- Item -->
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <?php if ($addonImage): ?>
+                            <img src="<?= $addonImage ?>" alt="" style="width:36px; height:36px; border-radius:8px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;">
+                        <?php else: ?>
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(13,148,136,0.1); display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;">🛍️</div>
+                        <?php endif; ?>
+                        <span style="font-weight:600;"><?= e($pa['addon_name'] ?? 'Unknown') ?></span>
+                    </div>
+
+                    <!-- Qty × Price -->
+                    <div>
+                        <span style="font-weight:700;"><?= (int)($pa['quantity'] ?? 1) ?></span> × <?= format_price($pa['unit_price'] ?? 0) ?>
+                        <div style="font-size:0.72rem; color:var(--muted);">= <?= format_price($pa['total_price'] ?? 0) ?></div>
+                    </div>
+
+                    <!-- Date -->
+                    <div style="font-size:0.8rem; color:var(--muted);">
+                        <?= !empty($pa['created_at']) ? date('M j, Y', strtotime($pa['created_at'])) : '—' ?>
+                        <div style="font-size:0.7rem;"><?= !empty($pa['created_at']) ? date('g:i A', strtotime($pa['created_at'])) : '' ?></div>
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div>
+                        <span class="merch-status-badge" data-oa-id="<?= (int)$pa['id'] ?>" style="display:inline-block; padding:0.25rem 0.65rem; border-radius:999px; font-size:0.72rem; font-weight:800; background:<?= $sc['bg'] ?>; color:<?= $sc['color'] ?>;">
+                            <?= $sc['label'] ?>
+                        </span>
+                        <?php if ($paStatus === 'fulfilled' && !empty($pa['redeemed_at'])): ?>
+                            <div style="font-size:0.65rem; color:var(--muted); margin-top:0.2rem;"><?= date('M j, g:i A', strtotime($pa['redeemed_at'])) ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Action -->
+                    <div>
+                        <?php if ($paStatus !== 'cancelled'): ?>
+                        <button type="button"
+                                class="btn-toggle-redeem"
+                                data-oa-id="<?= (int)$pa['id'] ?>"
+                                data-action="<?= $paStatus === 'fulfilled' ? 'unfulfill' : 'fulfill' ?>"
+                                style="padding:0.35rem 0.8rem; border-radius:10px; font-size:0.75rem; font-weight:800; cursor:pointer; border:none; transition:all 0.15s ease;
+                                <?= $paStatus === 'fulfilled'
+                                    ? 'background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.25);'
+                                    : 'background:#0d9488; color:#fff;' ?>">
+                            <?= $paStatus === 'fulfilled' ? 'Undo Collection' : '✓ Mark Collected' ?>
+                        </button>
+                        <?php else: ?>
+                        <span style="font-size:0.75rem; color:var(--muted); font-style:italic;">Cancelled</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Mobile card (shown on small screens via CSS) -->
+                <div class="merch-buyer-card" data-status="<?= e($paStatus) ?>" data-buyer="<?= e(strtolower(($pa['buyer_name'] ?? '') . ' ' . ($pa['buyer_email'] ?? ''))) ?>" style="display:none; padding:1rem 1.25rem; border-bottom:1px solid var(--border);">
+                    <div style="display:flex; align-items:flex-start; gap:0.75rem; margin-bottom:0.75rem;">
+                        <?php if ($addonImage): ?>
+                            <img src="<?= $addonImage ?>" alt="" style="width:44px; height:44px; border-radius:10px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;">
+                        <?php else: ?>
+                            <div style="width:44px; height:44px; border-radius:10px; background:rgba(13,148,136,0.1); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">🛍️</div>
+                        <?php endif; ?>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:800; font-size:0.9rem; color:var(--text);"><?= e($pa['addon_name'] ?? 'Unknown') ?></div>
+                            <div style="font-size:0.8rem; color:var(--text); margin-top:0.15rem; font-weight:600;"><?= e($pa['buyer_name'] ?? 'N/A') ?></div>
+                            <div style="font-size:0.72rem; color:var(--muted);"><?= e($pa['buyer_email'] ?? '') ?></div>
+                        </div>
+                        <span class="merch-status-badge" data-oa-id="<?= (int)$pa['id'] ?>" style="padding:0.2rem 0.55rem; border-radius:999px; font-size:0.68rem; font-weight:800; background:<?= $sc['bg'] ?>; color:<?= $sc['color'] ?>; flex-shrink:0; white-space:nowrap;">
+                            <?= $sc['label'] ?>
+                        </span>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem; font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem;">
+                        <span><strong><?= (int)($pa['quantity'] ?? 1) ?></strong> × <?= format_price($pa['unit_price'] ?? 0) ?> = <strong><?= format_price($pa['total_price'] ?? 0) ?></strong></span>
+                        <span><?= !empty($pa['created_at']) ? date('M j, Y g:i A', strtotime($pa['created_at'])) : '—' ?></span>
+                    </div>
+                    <?php if ($paStatus !== 'cancelled'): ?>
+                    <button type="button"
+                            class="btn-toggle-redeem"
+                            data-oa-id="<?= (int)$pa['id'] ?>"
+                            data-action="<?= $paStatus === 'fulfilled' ? 'unfulfill' : 'fulfill' ?>"
+                            style="width:100%; padding:0.5rem; border-radius:10px; font-size:0.8rem; font-weight:800; cursor:pointer; border:none; transition:all 0.15s ease;
+                            <?= $paStatus === 'fulfilled'
+                                ? 'background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.25);'
+                                : 'background:#0d9488; color:#fff;' ?>">
+                        <?= $paStatus === 'fulfilled' ? 'Undo Collection' : '✓ Mark Collected' ?>
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </section>
+    </div>
+    <?php endif; ?>
 
     <!-- ════════════════════════════════════════════════════════════════
          TAB 4: REVIEWS & ATTENDEE FEEDBACK
@@ -1630,6 +1884,17 @@ if (result.success &amp;&amp; result.authorization_url) {
                             <div>
                                 <strong id="htm-gate-title">Gate Admission:</strong>
                                 <span id="htm-gate-desc">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Merchandise & Add-ons Strip (shown if attendee bought addons) -->
+                    <div id="htm-addons-strip" class="htd-security-bar" style="display:none; margin-top:0.75rem; border-color:rgba(13,148,136,0.3); background:rgba(13,148,136,0.06);">
+                        <div class="htd-sec-item" style="width:100%;">
+                            <span style="font-size:1.2rem;">🛍️</span>
+                            <div style="flex:1;">
+                                <strong style="color:#0d9488;">Purchased Merchandise &amp; Add-Ons:</strong>
+                                <div id="htm-addons-list" style="margin-top:4px; font-size:0.82rem; color:rgb(var(--text));"></div>
                             </div>
                         </div>
                     </div>
@@ -3200,12 +3465,36 @@ if (result.success &amp;&amp; result.authorization_url) {
     }
 }
 }
+
+/* ═══════ Merchandise Tab - Responsive ═══════ */
+@media (max-width: 768px) {
+    .merch-table-header { display: none !important; }
+    .merch-buyer-row { display: none !important; }
+    .merch-buyer-card { display: block !important; }
+}
+@media (min-width: 769px) {
+    .merch-buyer-card { display: none !important; }
+}
 </style>
 
 <!-- ════════════════════════════════════════════════════════════════
      7. JAVASCRIPT: TAB SWITCHING, COPY LINK & ATTENDEE FILTER
      ════════════════════════════════════════════════════════════════ -->
 <script>
+// ─── Global HTML Escape Helper ───
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+var escapeHTML = escapeHtml;
+window.escapeHtml = escapeHtml;
+window.escapeHTML = escapeHtml;
+
 document.addEventListener('DOMContentLoaded', function() {
     const eventId = "<?= (int)($event->id ?? 0) ?>";
     const csrfToken = "<?= csrf_token() ?>";
@@ -3650,6 +3939,143 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // ─── 7. Merchandise / Add-Ons Filter, Search & Redeem Toggle ───
+    (function() {
+        const filterPills = document.querySelectorAll('.merch-filter-pill');
+        const searchInput = document.getElementById('merch-search-input');
+        let activeFilter = 'all';
+
+        function getAllMerchItems() {
+            return document.querySelectorAll('.merch-buyer-row, .merch-buyer-card');
+        }
+
+        function applyFilters() {
+            const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            getAllMerchItems().forEach(row => {
+                const status = row.getAttribute('data-status') || '';
+                const buyer = row.getAttribute('data-buyer') || '';
+                const matchFilter = (activeFilter === 'all' || status === activeFilter);
+                const matchSearch = (!searchVal || buyer.includes(searchVal));
+
+                // Respect responsive visibility
+                const isRow = row.classList.contains('merch-buyer-row');
+                const isCard = row.classList.contains('merch-buyer-card');
+                const isMobile = window.innerWidth <= 768;
+
+                if (matchFilter && matchSearch) {
+                    if (isRow && !isMobile) row.style.display = 'grid';
+                    else if (isCard && isMobile) row.style.display = 'block';
+                    else if (isRow && isMobile) row.style.display = 'none';
+                    else if (isCard && !isMobile) row.style.display = 'none';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Filter pills
+        filterPills.forEach(pill => {
+            pill.addEventListener('click', function() {
+                filterPills.forEach(p => {
+                    p.style.background = 'transparent';
+                    p.style.color = 'var(--text)';
+                    p.classList.remove('active');
+                });
+                this.style.background = 'var(--brand)';
+                this.style.color = '#fff';
+                this.classList.add('active');
+                activeFilter = this.getAttribute('data-filter');
+                applyFilters();
+            });
+        });
+
+        // Search
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+
+        // Toggle redemption status (AJAX)
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn-toggle-redeem');
+            if (!btn) return;
+
+            const oaId = btn.getAttribute('data-oa-id');
+            const action = btn.getAttribute('data-action');
+            btn.disabled = true;
+            const origText = btn.textContent;
+            btn.textContent = 'Updating…';
+
+            fetch(`<?= route('/host/event/management/' . ($event->id ?? 0) . '/addon-redeem') ?>`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    order_addon_id: oaId,
+                    action: action,
+                    csrf_token: csrfToken
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const newStatus = data.new_status;
+                    const isFulfilled = newStatus === 'fulfilled';
+
+                    // Update ALL matching buttons and badges (desktop row + mobile card share same oa-id)
+                    document.querySelectorAll(`.btn-toggle-redeem[data-oa-id="${oaId}"]`).forEach(b => {
+                        b.setAttribute('data-action', isFulfilled ? 'unfulfill' : 'fulfill');
+                        b.textContent = isFulfilled ? 'Undo Collection' : '✓ Mark Collected';
+                        b.style.background = isFulfilled ? 'rgba(239,68,68,0.1)' : '#0d9488';
+                        b.style.color = isFulfilled ? '#ef4444' : '#fff';
+                        b.style.border = isFulfilled ? '1px solid rgba(239,68,68,0.25)' : 'none';
+                    });
+
+                    document.querySelectorAll(`.merch-status-badge[data-oa-id="${oaId}"]`).forEach(badge => {
+                        badge.textContent = isFulfilled ? '✅ Collected' : '⏳ Pending';
+                        badge.style.background = isFulfilled ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)';
+                        badge.style.color = isFulfilled ? '#059669' : '#d97706';
+                    });
+
+                    // Update parent row/card data-status
+                    document.querySelectorAll(`.merch-buyer-row, .merch-buyer-card`).forEach(el => {
+                        const rowBadge = el.querySelector(`.merch-status-badge[data-oa-id="${oaId}"]`);
+                        if (rowBadge) {
+                            el.setAttribute('data-status', newStatus);
+                        }
+                    });
+
+                    // Update counters
+                    const collectedEl = document.getElementById('merch-stat-collected');
+                    const pendingEl = document.getElementById('merch-stat-pending');
+                    if (collectedEl && pendingEl) {
+                        let c = parseInt(collectedEl.textContent) || 0;
+                        let p = parseInt(pendingEl.textContent) || 0;
+                        if (isFulfilled) { c++; p = Math.max(0, p - 1); }
+                        else { c = Math.max(0, c - 1); p++; }
+                        collectedEl.textContent = c;
+                        pendingEl.textContent = p;
+                    }
+
+                    triggerToast(data.message, 'success');
+                    applyFilters();
+                } else {
+                    btn.textContent = origText;
+                    triggerToast(data.message || 'Error updating status.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = origText;
+                triggerToast('Connection error. Please try again.', 'error');
+            });
+        });
+    })();
 
     // ─── Snippet Copy Helper for API & Custom Domain Tab ───
     window.copySnippet = function(elementId, btn) {
@@ -4137,6 +4563,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const stubFootEl = document.getElementById('htm-stub-footer-id');
                     if (stubFootEl) stubFootEl.textContent = 'ID: ' + String(t.id).substring(0, 14);
+
+                    // Render purchased merchandise add-ons if any
+                    const addonsStrip = document.getElementById('htm-addons-strip');
+                    const addonsList = document.getElementById('htm-addons-list');
+                    if (addonsStrip && addonsList) {
+                        const addons = data.addons || [];
+                        if (addons.length > 0) {
+                            addonsStrip.style.display = 'flex';
+                            addonsList.innerHTML = addons.map(a => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px dashed rgba(13,148,136,0.2);">
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        ${a.addon_image || a.image ? `<img src="${escapeHtml(a.addon_image || a.image)}" style="width:26px; height:26px; border-radius:5px; object-fit:cover; border:1px solid rgba(13,148,136,0.3);" />` : `<span style="font-size:1rem;">🛍️</span>`}
+                                        <span><strong style="color:#0d9488;">${a.quantity}x</strong> ${escapeHtml(a.addon_name || 'Item')}</span>
+                                    </div>
+                                    <strong style="color:#0d9488;">${Number(a.total_price) > 0 ? (typeof formatMoney === 'function' ? formatMoney(a.total_price) : ('₦' + Number(a.total_price).toLocaleString())) : 'Included'}</strong>
+                                </div>
+                            `).join('');
+                        } else {
+                            addonsStrip.style.display = 'none';
+                            addonsList.innerHTML = '';
+                        }
+                    }
 
                     // Render gate state and action buttons
                     renderTicketModalState(t, ev);

@@ -62,6 +62,16 @@ class PaymentService
             $eventStmt->execute(['event_id' => $tx['event_id'] ?? ($existingTickets[0]['event_id'] ?? 0)]);
             $existingEvent = $eventStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 
+            // Fetch any existing order addons for this transaction
+            $existingAddonsStmt = $db->prepare("
+                SELECT oa.*, ea.name as addon_name, ea.description as addon_description 
+                FROM order_addons oa 
+                JOIN event_addons ea ON ea.id = oa.addon_id 
+                WHERE oa.transaction_id = :tx_id
+            ");
+            $existingAddonsStmt->execute(['tx_id' => $tx['id'] ?? 0]);
+            $existingAddons = $existingAddonsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
             // If forceResend is requested, re-dispatch the confirmation & passes
             if ($forceResend && !empty($attendeeEmail) && !empty($existingEvent) && !empty($existingTickets)) {
                 $orderData = [];
@@ -82,7 +92,8 @@ class PaymentService
                 'attendee_name' => $attendeeName,
                 'attendee_email' => $attendeeEmail,
                 'total_amount' => (float)($tx['total_amount'] ?? 0),
-                'tickets' => $existingTickets
+                'tickets' => $existingTickets,
+                'addons' => $existingAddons
             ];
         }
 
@@ -407,6 +418,43 @@ class PaymentService
                 }
             }
 
+            // Record purchased Add-Ons & Merchandise
+            $selectedAddons = $orderData['selected_addons'] ?? [];
+            if (!empty($selectedAddons) && is_array($selectedAddons)) {
+                $txIdStmt = $db->prepare("SELECT id FROM transactions WHERE reference = :ref LIMIT 1");
+                $txIdStmt->execute(['ref' => $reference]);
+                $dbTxId = $txIdStmt->fetchColumn() ?: null;
+
+                foreach ($selectedAddons as $sa) {
+                    $addonId = (int)($sa['addon_id'] ?? 0);
+                    $addonQty = (int)($sa['quantity'] ?? 0);
+                    $addonUnitPrice = (float)($sa['unit_price'] ?? 0);
+                    $addonTotalPrice = (float)($sa['total_price'] ?? ($addonUnitPrice * $addonQty));
+
+                    if ($addonId > 0 && $addonQty > 0) {
+                        $oaStmt = $db->prepare("
+                            INSERT INTO order_addons (transaction_id, event_id, addon_id, user_id, buyer_name, buyer_email, quantity, unit_price, total_price, redemption_status, created_at)
+                            VALUES (:tx_id, :event_id, :addon_id, :user_id, :buyer_name, :buyer_email, :quantity, :unit_price, :total_price, 'pending', NOW())
+                        ");
+                        $oaStmt->execute([
+                            'tx_id' => $dbTxId,
+                            'event_id' => $eventId,
+                            'addon_id' => $addonId,
+                            'user_id' => $userId,
+                            'buyer_name' => $name,
+                            'buyer_email' => $email,
+                            'quantity' => $addonQty,
+                            'unit_price' => $addonUnitPrice,
+                            'total_price' => $addonTotalPrice
+                        ]);
+
+                        // Increment sold_count in event_addons
+                        $db->prepare("UPDATE event_addons SET sold_count = sold_count + :qty WHERE id = :addon_id")
+                           ->execute(['qty' => $addonQty, 'addon_id' => $addonId]);
+                    }
+                }
+            }
+
             $db->commit();
         } catch (\Throwable $e) {
             $db->rollBack();
@@ -430,6 +478,16 @@ class PaymentService
         $finalTxStmt->execute(['ref' => $reference]);
         $finalTx = $finalTxStmt->fetch(\PDO::FETCH_ASSOC) ?: ($tx ?: []);
 
+        // Fetch purchased add-ons for return
+        $purchasedAddonsStmt = $db->prepare("
+            SELECT oa.*, ea.name as addon_name, ea.description as addon_description 
+            FROM order_addons oa 
+            JOIN event_addons ea ON ea.id = oa.addon_id 
+            WHERE oa.transaction_id = :tx_id
+        ");
+        $purchasedAddonsStmt->execute(['tx_id' => $finalTx['id'] ?? 0]);
+        $purchasedAddons = $purchasedAddonsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
         return [
             'success' => true,
             'message' => 'Payment verified, tickets issued, and platform revenue recorded.',
@@ -439,7 +497,8 @@ class PaymentService
             'attendee_name' => $name,
             'attendee_email' => $email,
             'total_amount' => $totalAmount,
-            'tickets' => $createdTickets
+            'tickets' => $createdTickets,
+            'addons' => $purchasedAddons
         ];
     }
 
@@ -600,7 +659,8 @@ class PaymentService
                         'remaining_balance' => $remBalance,
                         'min_percent' => $minPct,
                         'ticket_code' => $tickets[0]['ticket_code'] ?? ($tickets[0]['id'] ?? $reference),
-                        'tickets' => $tickets
+                        'tickets' => $tickets,
+                        'addons' => $orderData['selected_addons'] ?? []
                     ]
                 ];
             } else {
@@ -616,7 +676,8 @@ class PaymentService
                         'event_location' => $event['location'] ?? 'Venue',
                         'payment_method' => 'Paystack Card / Bank Transfer',
                         'total_amount' => $totalAmount,
-                        'tickets' => $tickets
+                        'tickets' => $tickets,
+                        'addons' => $orderData['selected_addons'] ?? []
                     ]
                 ];
             }

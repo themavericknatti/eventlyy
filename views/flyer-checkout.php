@@ -181,6 +181,12 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                             </div>
                         <?php endif; ?>
 
+                        <!-- Dynamic Add-ons Row -->
+                        <div class="charge-row charge-row--addons" id="row-addons" style="display:none;">
+                            <span>Add-Ons &amp; Merch</span>
+                            <strong id="val-addons" style="color: #14b8a6;">+<?= format_price(0) ?></strong>
+                        </div>
+
                         <!-- Dynamic Discount Row (shown when promo applied) -->
                         <div class="charge-row charge-row--discount" id="row-discount" style="display:none;">
                             <span>Discount Applied</span>
@@ -307,6 +313,79 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                             <span id="promo-status-msg" class="promo-status-msg" aria-live="polite"></span>
                         </div>
 
+                        <!-- Ticket Add-Ons & Event Merchandise Shelf -->
+                        <?php if (!empty($eventAddons)): ?>
+                        <div class="flyer-addons-section" style="margin: 1.25rem 0; padding: 1.15rem; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: 14px; backdrop-filter: blur(12px);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; padding-bottom: 0.65rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.25rem;">🛍️</span>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #fff;">Ticket Add-Ons &amp; Merch</h3>
+                                        <p style="margin: 2px 0 0; font-size: 0.75rem; color: #94a3b8;">Official merchandise and event perks</p>
+                                    </div>
+                                </div>
+                                <span style="font-size: 0.72rem; font-weight: 700; color: #14b8a6; background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(20, 184, 166, 0.3); padding: 2px 8px; border-radius: 99px;">Optional</span>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <?php foreach ($eventAddons as $addon): 
+                                    $aId = (int)$addon['id'];
+                                    $aPrice = (float)$addon['price'];
+                                    $aStock = $addon['quantity'] !== null ? max(0, (int)$addon['quantity'] - (int)($addon['total_sold'] ?? $addon['sold_count'] ?? 0)) : null;
+                                    $isSoldOut = ($aStock !== null && $aStock <= 0);
+                                ?>
+                                    <div class="flyer-addon-item" data-addon-id="<?= $aId ?>" data-price="<?= $aPrice ?>" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0.75rem 0.9rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 10px;">
+                                        <!-- Add-on Image Thumbnail -->
+                                        <div class="flyer-addon-thumb-wrap" style="width: 48px; height: 48px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center;">
+                                            <?php if (!empty($addon['image'])): ?>
+                                                <img src="<?= e($addon['image']) ?>" alt="<?= e($addon['name']) ?>" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="openFlyerAddonImageModal('<?= e($addon['image']) ?>', '<?= e(addslashes($addon['name'])) ?>')" title="Click to view image" />
+                                            <?php else: ?>
+                                                <span style="font-size: 1.3rem; opacity: 0.7;">🛍️</span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                                <strong style="font-size: 0.88rem; color: #f8fafc;"><?= e($addon['name']) ?></strong>
+                                                <span style="font-size: 0.8rem; font-weight: 800; color: #14b8a6; background: rgba(20, 184, 166, 0.12); padding: 1px 6px; border-radius: 6px;">
+                                                    <?= $aPrice > 0 ? format_price($aPrice) : 'Free' ?>
+                                                </span>
+                                                <?php if ($isSoldOut): ?>
+                                                    <span style="font-size: 0.7rem; font-weight: 700; color: #f87171; background: rgba(239, 68, 68, 0.12); padding: 1px 6px; border-radius: 6px;">Sold Out</span>
+                                                <?php elseif ($aStock !== null && $aStock <= 10): ?>
+                                                    <span style="font-size: 0.7rem; font-weight: 700; color: #fbbf24; background: rgba(245, 158, 11, 0.12); padding: 1px 6px; border-radius: 6px;">Only <?= $aStock ?> left</span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php if (!empty($addon['description'])): ?>
+                                                <p style="margin: 3px 0 0; font-size: 0.75rem; color: #94a3b8; line-height: 1.35;"><?= e($addon['description']) ?></p>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <!-- Stepper -->
+                                        <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                                            <?php if ($isSoldOut): ?>
+                                                <span style="font-size: 0.78rem; color: #64748b; font-weight: 600;">Sold Out</span>
+                                            <?php else: ?>
+                                                <button type="button" class="flyer-addon-minus" data-id="<?= $aId ?>" style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;" aria-label="Decrease quantity">−</button>
+                                                <input type="number" 
+                                                       name="addons[<?= $aId ?>]" 
+                                                       id="flyer-addon-qty-<?= $aId ?>" 
+                                                       class="flyer-addon-qty" 
+                                                       value="0" 
+                                                       min="0" 
+                                                       <?= $aStock !== null ? 'max="' . $aStock . '"' : '' ?> 
+                                                       data-price="<?= $aPrice ?>" 
+                                                       data-name="<?= e($addon['name']) ?>"
+                                                       style="width: 42px; height: 30px; text-align: center; font-weight: 700; font-size: 0.88rem; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 7px; background: rgba(15, 23, 42, 0.9); color: #fff;" />
+                                                <button type="button" class="flyer-addon-plus" data-id="<?= $aId ?>" style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;" aria-label="Increase quantity">+</button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Payment Plan Option (Full vs Layaway Option) -->
                         <?php if ($allowLayaway && !$isFreeOrder && !empty($selectedItems)): ?>
                         <div class="payment-plan-section">
@@ -432,18 +511,23 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
         const payBtnText = document.getElementById('pay-btn-text');
         const payBtnIcon = document.getElementById('pay-btn-icon');
         const pmLabel = document.getElementById('pm-label');
+        const rowAddons = document.getElementById('row-addons');
+        const valAddons = document.getElementById('val-addons');
+        const valSubtotal = document.getElementById('val-subtotal');
         const pmBadge = document.getElementById('pm-badge');
         const pmIcon = document.getElementById('pm-icon');
         const pmInput = document.getElementById('input-payment-method');
         const form = document.getElementById('flyer-checkout-form');
 
         const eventId = '<?= $event->id ?>';
-        const subtotal = <?= (float)$subtotal ?>;
-        const fee = <?= (float)$fee ?>;
-        const extraCharge = <?= (float)$extraCharge ?>;
+        const baseTicketSubtotal = <?= (float)$subtotal ?>;
+        const passFee = <?= $passFee ? 'true' : 'false' ?>;
+        const platformFeePercent = <?= (float)$platformFeePercent ?>;
+        const baseExtraCharge = <?= (float)$extraCharge ?>;
         const minPercent = <?= (int)$minPercent ?>;
         const currencySymbol = '<?= e($currencySymbol) ?>';
 
+        let appliedDiscount = 0.0;
         let currentPaymentType = 'full';
         let formattedTotalFull = '<?= format_price($totalAmount) ?>';
         let formattedLayawayDue = '<?= format_price($layawayDueToday) ?>';
@@ -453,6 +537,132 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
         function formatMoney(amount) {
             return currencySymbol + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
+
+        function recalcFlyerAll() {
+            let addonsSubtotal = 0.0;
+            const addonInputs = document.querySelectorAll('.flyer-addon-qty');
+            addonInputs.forEach(input => {
+                const qty = parseInt(input.value || 0, 10);
+                const price = parseFloat(input.dataset.price || 0);
+                if (qty > 0 && price > 0) {
+                    addonsSubtotal += (qty * price);
+                }
+            });
+
+            if (rowAddons && valAddons) {
+                if (addonsSubtotal > 0) {
+                    rowAddons.style.display = 'flex';
+                    valAddons.textContent = '+' + formatMoney(addonsSubtotal);
+                } else {
+                    rowAddons.style.display = 'none';
+                }
+            }
+
+            const combinedSubtotal = baseTicketSubtotal + addonsSubtotal;
+            if (valSubtotal) {
+                valSubtotal.textContent = combinedSubtotal > 0 ? formatMoney(combinedSubtotal) : 'Free';
+            }
+
+            const calcFee = (passFee && combinedSubtotal > 0) ? Math.round(combinedSubtotal * (platformFeePercent / 100) * 100) / 100 : 0.00;
+            const netSubtotal = Math.max(0, combinedSubtotal - appliedDiscount);
+            const calcExtraCharge = netSubtotal > 0 ? baseExtraCharge : 0.00;
+            const finalTotal = netSubtotal > 0 ? Math.max(0, Math.round((netSubtotal + calcFee + calcExtraCharge) * 100) / 100) : 0.00;
+
+            const isFree = (finalTotal <= 0 && combinedSubtotal <= 0);
+
+            // Layaway recalculated values
+            const newDepositTicket = Math.round(netSubtotal * (minPercent / 100) * 100) / 100;
+            const newLayawayDue = Math.round((newDepositTicket + calcFee + calcExtraCharge) * 100) / 100;
+            const newLayawayRemain = Math.max(0, Math.round((netSubtotal - newDepositTicket) * 100) / 100);
+
+            formattedTotalFull = finalTotal > 0 ? formatMoney(finalTotal) : 'Free';
+            formattedLayawayDue = formatMoney(newLayawayDue);
+            formattedDepositTicket = formatMoney(newDepositTicket);
+            formattedLayawayRemaining = formatMoney(newLayawayRemain);
+
+            const planFullText = document.getElementById('plan-full-text');
+            const planDueText = document.getElementById('plan-layaway-due-text');
+            const planRemainText = document.getElementById('plan-layaway-remain-text');
+            const boxDeposit = document.getElementById('layaway-box-deposit');
+            const boxDue = document.getElementById('layaway-box-due-today');
+            const boxRemain = document.getElementById('layaway-box-remaining');
+            const valDep = document.getElementById('val-layaway-deposit');
+            const valRemain = document.getElementById('val-layaway-remaining');
+            const planSection = document.querySelector('.payment-plan-section');
+
+            if (planFullText) planFullText.textContent = formattedTotalFull;
+            if (planDueText) planDueText.textContent = formattedLayawayDue;
+            if (planRemainText) planRemainText.textContent = formattedLayawayRemaining;
+            if (boxDeposit) boxDeposit.textContent = formattedDepositTicket;
+            if (boxDue) boxDue.textContent = formattedLayawayDue;
+            if (boxRemain) boxRemain.textContent = formattedLayawayRemaining;
+            if (valDep) valDep.textContent = formattedDepositTicket;
+            if (valRemain) valRemain.textContent = formattedLayawayRemaining;
+
+            if (isFree) {
+                if (planSection) planSection.style.display = 'none';
+                if (valTotal) valTotal.textContent = 'Free';
+                if (payBtnText) payBtnText.textContent = 'Claim Free Tickets';
+                if (payBtnIcon) payBtnIcon.textContent = '⚡';
+                if (pmLabel) pmLabel.textContent = 'Complimentary Registration (No Payment Required)';
+                if (pmBadge) pmBadge.textContent = 'FREE';
+                if (pmIcon) pmIcon.textContent = '🎁';
+                if (pmInput) pmInput.value = 'free';
+            } else {
+                if (planSection) planSection.style.display = 'block';
+                if (pmBadge) pmBadge.textContent = 'SECURE';
+                if (pmIcon) pmIcon.textContent = '💳';
+                if (pmInput) pmInput.value = 'paystack';
+                if (payBtnIcon) payBtnIcon.textContent = '🔒';
+                selectFlyerPaymentType(currentPaymentType);
+            }
+        }
+
+        // Stepper buttons for Add-ons
+        document.querySelectorAll('.flyer-addon-minus').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const id = this.dataset.id;
+                const input = document.getElementById('flyer-addon-qty-' + id);
+                if (input) {
+                    let val = parseInt(input.value || 0, 10);
+                    if (val > 0) {
+                        input.value = val - 1;
+                        recalcFlyerAll();
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.flyer-addon-plus').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const id = this.dataset.id;
+                const input = document.getElementById('flyer-addon-qty-' + id);
+                if (input) {
+                    let val = parseInt(input.value || 0, 10);
+                    const maxAttr = input.getAttribute('max');
+                    const max = maxAttr ? parseInt(maxAttr, 10) : 9999;
+                    if (val < max) {
+                        input.value = val + 1;
+                        recalcFlyerAll();
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.flyer-addon-qty').forEach(input => {
+            input.addEventListener('input', function() {
+                let val = parseInt(this.value || 0, 10);
+                if (isNaN(val) || val < 0) val = 0;
+                const maxAttr = this.getAttribute('max');
+                if (maxAttr && val > parseInt(maxAttr, 10)) {
+                    val = parseInt(maxAttr, 10);
+                }
+                this.value = val;
+                recalcFlyerAll();
+            });
+        });
 
         // ── Layaway / Full Payment Selection ──
         window.selectFlyerPaymentType = function(type) {
@@ -529,49 +739,11 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                         }
 
                         if (data.is_free) {
-                            formattedTotalFull = 'Free';
-                            if (valTotal) valTotal.textContent = 'Free';
-                            if (payBtnText) payBtnText.textContent = 'Claim Free Tickets';
-                            if (payBtnIcon) payBtnIcon.textContent = '⚡';
-                            if (pmLabel) pmLabel.textContent = 'Complimentary Registration (No Payment Required)';
-                            if (pmBadge) pmBadge.textContent = 'FREE';
-                            if (pmIcon) pmIcon.textContent = '🎁';
-                            if (pmInput) pmInput.value = 'free';
-
-                            const planSection = document.querySelector('.payment-plan-section');
-                            if (planSection) planSection.style.display = 'none';
+                            appliedDiscount = baseTicketSubtotal + 999999;
+                            recalcFlyerAll();
                         } else {
-                            formattedTotalFull = data.formatted_new_total || formattedTotalFull;
-                            const discountAmount = parseFloat(data.discount_amount || 0);
-                            const netSubtotal = Math.max(0, subtotal - discountAmount);
-                            const newDepositTicket = Math.round(netSubtotal * (minPercent / 100) * 100) / 100;
-                            const newLayawayDue = Math.round((newDepositTicket + fee + extraCharge) * 100) / 100;
-                            const newLayawayRemain = Math.max(0, Math.round((netSubtotal - newDepositTicket) * 100) / 100);
-
-                            formattedLayawayDue = formatMoney(newLayawayDue);
-                            formattedDepositTicket = formatMoney(newDepositTicket);
-                            formattedLayawayRemaining = formatMoney(newLayawayRemain);
-
-                            const planFullText = document.getElementById('plan-full-text');
-                            const planDueText = document.getElementById('plan-layaway-due-text');
-                            const planRemainText = document.getElementById('plan-layaway-remain-text');
-                            const boxDeposit = document.getElementById('layaway-box-deposit');
-                            const boxDue = document.getElementById('layaway-box-due-today');
-                            const boxRemain = document.getElementById('layaway-box-remaining');
-                            const valDep = document.getElementById('val-layaway-deposit');
-                            const valRemain = document.getElementById('val-layaway-remaining');
-
-                            if (planFullText) planFullText.textContent = formattedTotalFull;
-                            if (planDueText) planDueText.textContent = formattedLayawayDue;
-                            if (planRemainText) planRemainText.textContent = formattedLayawayRemaining;
-                            if (boxDeposit) boxDeposit.textContent = formattedDepositTicket;
-                            if (boxDue) boxDue.textContent = formattedLayawayDue;
-                            if (boxRemain) boxRemain.textContent = formattedLayawayRemaining;
-                            if (valDep) valDep.textContent = formattedDepositTicket;
-                            if (valRemain) valRemain.textContent = formattedLayawayRemaining;
-
-                            // Re-sync UI with selected payment type
-                            selectFlyerPaymentType(currentPaymentType);
+                            appliedDiscount = parseFloat(data.discount_amount || 0);
+                            recalcFlyerAll();
                         }
                     } else {
                         promoMsg.textContent = '✕ ' + (data.message || 'Invalid promo code.');
@@ -597,6 +769,36 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
             });
         }
     });
+
+    window.openFlyerAddonImageModal = function(src, title) {
+        let modal = document.getElementById('flyer-addon-lightbox');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'flyer-addon-lightbox';
+            modal.style.cssText = 'position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:1.5rem; cursor:pointer;';
+            modal.innerHTML = `
+                <div style="position:relative; max-width:500px; width:100%; background:rgba(15,23,42,0.95); border:1px solid rgba(255,255,255,0.15); border-radius:18px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); cursor:default;" onclick="event.stopPropagation()">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.85rem 1.25rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+                        <strong id="flyer-lightbox-title" style="font-size:0.95rem; color:#f8fafc;"></strong>
+                        <button type="button" onclick="closeFlyerAddonImageModal()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94a3b8; padding:2px 6px;">✕</button>
+                    </div>
+                    <div style="padding:1rem; text-align:center; background:rgba(0,0,0,0.2);">
+                        <img id="flyer-lightbox-img" src="" alt="Preview" style="max-width:100%; max-height:420px; border-radius:10px; object-fit:contain;" />
+                    </div>
+                </div>
+            `;
+            modal.onclick = closeFlyerAddonImageModal;
+            document.body.appendChild(modal);
+        }
+        document.getElementById('flyer-lightbox-title').textContent = title || 'Merchandise Preview';
+        document.getElementById('flyer-lightbox-img').src = src;
+        modal.style.display = 'flex';
+    };
+
+    window.closeFlyerAddonImageModal = function() {
+        const modal = document.getElementById('flyer-addon-lightbox');
+        if (modal) modal.style.display = 'none';
+    };
     </script>
     <?php echo $this->include('partials/holiday-fx', []); ?>
 </body>

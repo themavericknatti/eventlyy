@@ -110,9 +110,45 @@ class TicketController extends Controller
             return '';
         }
 
+        // Fetch any purchased add-ons / merchandise for this order / attendee
+        $addons = [];
+        $txRef = '';
+        if (preg_match('/Ref:\s*(EVT-[A-Z0-9\-]+|LAY-[A-Z0-9\-]+)/i', $ticket['status_detail'] ?? '', $m)) {
+            $txRef = trim($m[1]);
+        }
+
+        if (!empty($txRef)) {
+            $addonStmt = $db->prepare("
+                SELECT oa.*, ea.name as addon_name, ea.description as addon_description, ea.image as addon_image 
+                FROM order_addons oa
+                JOIN event_addons ea ON ea.id = oa.addon_id
+                JOIN transactions tr ON tr.id = oa.transaction_id
+                WHERE tr.reference = :ref
+                ORDER BY oa.id ASC
+            ");
+            $addonStmt->execute(['ref' => $txRef]);
+            $addons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
+        if (empty($addons) && !empty($ticket['attendee_email'])) {
+            $addonStmt = $db->prepare("
+                SELECT oa.*, ea.name as addon_name, ea.description as addon_description, ea.image as addon_image 
+                FROM order_addons oa
+                JOIN event_addons ea ON ea.id = oa.addon_id
+                WHERE oa.event_id = :event_id AND LOWER(oa.buyer_email) = :email
+                ORDER BY oa.id ASC
+            ");
+            $addonStmt->execute([
+                'event_id' => $ticket['event_id'],
+                'email' => strtolower($ticket['attendee_email'])
+            ]);
+            $addons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+
         return $this->render('ticket/pass', [
             'title' => 'Admission Pass — ' . $ticket['event_name'],
-            'ticket' => $ticket
+            'ticket' => $ticket,
+            'addons' => $addons
         ]);
     }
 }

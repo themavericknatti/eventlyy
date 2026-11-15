@@ -16,6 +16,7 @@ $userName = $currentUser ? $currentUser->name : '';
 $userEmail = $currentUser ? $currentUser->email : '';
 
 $selectedItems = $selectedItems ?? [];
+$eventAddons = $eventAddons ?? [];
 $subtotal = 0.0;
 $totalPasses = 0;
 $attendeeSlots = [];
@@ -263,6 +264,78 @@ Checkout — <?= e($eventName) ?>
                     </div>
                 <?php endif; ?>
 
+                <!-- ═══ Ticket Add-Ons & Merchandise Upselling Shelf ═══ -->
+                <?php if (!empty($eventAddons)): ?>
+                    <div class="co-card co-addons-section" style="margin-bottom: 2rem;">
+                        <div class="co-card__header" style="border-bottom: 1px solid rgba(var(--muted), 0.15); padding-bottom: 0.85rem; margin-bottom: 1.25rem;">
+                            <div style="display:flex; align-items:center; gap:0.6rem;">
+                                <span style="font-size:1.4rem;">🛍️</span>
+                                <div>
+                                    <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:rgb(var(--text));">Ticket Add-Ons &amp; Event Merchandise</h3>
+                                    <p style="margin:0.2rem 0 0; font-size:0.84rem; color:rgb(var(--muted));">Enhance your event experience with official merchandise and passes before completing payment.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="co-addons-list" style="display:flex; flex-direction:column; gap:1rem;">
+                            <?php foreach ($eventAddons as $addon): 
+                                $aId = (int)$addon['id'];
+                                $aPrice = (float)$addon['price'];
+                                $aStock = $addon['quantity'] !== null ? max(0, (int)$addon['quantity'] - (int)($addon['total_sold'] ?? $addon['sold_count'] ?? 0)) : null;
+                                $isSoldOut = ($aStock !== null && $aStock <= 0);
+                            ?>
+                                <div class="co-addon-item" data-addon-id="<?= $aId ?>" data-price="<?= $aPrice ?>" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1.1rem 1.25rem; border:1px solid rgba(var(--muted), 0.18); border-radius:14px; background:rgba(var(--card), 0.7); transition:all 0.2s ease;">
+                                    <!-- Add-on Image Thumbnail -->
+                                    <div class="co-addon-thumb-wrap" style="width:58px; height:58px; border-radius:12px; overflow:hidden; flex-shrink:0; background:rgba(var(--muted),0.08); border:1px solid rgba(var(--muted),0.18); display:flex; align-items:center; justify-content:center;">
+                                        <?php if (!empty($addon['image'])): ?>
+                                            <img src="<?= e($addon['image']) ?>" alt="<?= e($addon['name']) ?>" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="openAddonImageModal('<?= e($addon['image']) ?>', '<?= e(addslashes($addon['name'])) ?>')" title="Click to view full image" />
+                                        <?php else: ?>
+                                            <span style="font-size:1.6rem; opacity:0.7;">🛍️</span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div style="flex:1; min-width:0;">
+                                        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+                                            <strong style="font-size:0.98rem; color:rgb(var(--text));"><?= e($addon['name']) ?></strong>
+                                            <span style="font-size:0.88rem; font-weight:800; color:#0d9488; background:rgba(13,148,136,0.1); padding:2px 8px; border-radius:99px;">
+                                                <?= $aPrice > 0 ? format_price($aPrice) : 'Free' ?>
+                                            </span>
+                                            <?php if ($isSoldOut): ?>
+                                                <span style="font-size:0.75rem; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); padding:2px 8px; border-radius:99px;">Sold Out</span>
+                                            <?php elseif ($aStock !== null && $aStock <= 10): ?>
+                                                <span style="font-size:0.75rem; font-weight:700; color:#d97706; background:rgba(217,119,6,0.1); padding:2px 8px; border-radius:99px;">Only <?= $aStock ?> left</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if (!empty($addon['description'])): ?>
+                                            <p style="margin:0; font-size:0.82rem; color:rgb(var(--muted)); line-height:1.4;"><?= e($addon['description']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <!-- Add-On Quantity Stepper -->
+                                    <div class="co-addon-stepper" style="display:flex; align-items:center; gap:0.4rem;">
+                                        <?php if ($isSoldOut): ?>
+                                            <span style="font-size:0.85rem; color:rgb(var(--muted)); font-weight:600;">Sold Out</span>
+                                        <?php else: ?>
+                                            <button type="button" class="addon-step-btn addon-step-minus" data-id="<?= $aId ?>" style="width:36px; height:36px; border-radius:8px; border:1px solid rgba(var(--muted),0.25); background:rgba(var(--muted),0.06); color:rgb(var(--text)); font-weight:800; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s ease;" aria-label="Decrease quantity">−</button>
+                                            <input type="number" 
+                                                   name="addons[<?= $aId ?>]" 
+                                                   id="addon-qty-<?= $aId ?>" 
+                                                   class="addon-qty-input" 
+                                                   value="0" 
+                                                   min="0" 
+                                                   <?= $aStock !== null ? 'max="' . $aStock . '"' : '' ?> 
+                                                   data-price="<?= $aPrice ?>" 
+                                                   data-name="<?= e($addon['name']) ?>"
+                                                   style="width:48px; height:36px; text-align:center; font-weight:700; font-size:0.95rem; border:1px solid rgba(var(--muted),0.25); border-radius:8px; background:rgb(var(--card)); color:rgb(var(--text));" />
+                                            <button type="button" class="addon-step-btn addon-step-plus" data-id="<?= $aId ?>" style="width:36px; height:36px; border-radius:8px; border:1px solid rgba(var(--muted),0.25); background:rgba(var(--muted),0.06); color:rgb(var(--text)); font-weight:800; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s ease;" aria-label="Increase quantity">+</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Free Ticket Notice Banner -->
                 <div id="free-registration-badge" class="co-free-banner" style="display:<?= $isFreeOrder ? 'flex' : 'none' ?>;">
                     <span class="co-free-banner__icon">🎉</span>
@@ -444,6 +517,15 @@ Checkout — <?= e($eventName) ?>
                     <?php endif; ?>
                 </div>
 
+                <!-- Selected Add-Ons Itemized -->
+                <div id="co-summary-addons-container" style="display:none;">
+                    <div class="summary-divider co-divider"></div>
+                    <div class="co-summary-items">
+                        <span class="co-summary-subhead" style="color:#0d9488;">🛍️ Merchandise &amp; Add-Ons</span>
+                        <div id="co-summary-addons-list"></div>
+                    </div>
+                </div>
+
                 <div class="summary-divider co-divider"></div>
 
                 <!-- Price Breakdown -->
@@ -451,6 +533,11 @@ Checkout — <?= e($eventName) ?>
                     <div class="summary-row co-breakdown__row" id="row-summary-subtotal">
                         <span id="label-summary-subtotal">Ticket Subtotal</span>
                         <strong id="summary-subtotal"><?= ($hasSelectedTickets && $subtotal <= 0) ? 'Free' : format_price($subtotal) ?></strong>
+                    </div>
+
+                    <div class="summary-row co-breakdown__row" id="row-addons-subtotal" style="display:none; color:#0d9488;">
+                        <span>Merchandise &amp; Add-Ons</span>
+                        <strong id="summary-addons-subtotal">$0.00</strong>
                     </div>
 
                     <!-- Layaway Deposit Row (shown only when Layaway is active) -->
@@ -855,9 +942,156 @@ document.addEventListener('DOMContentLoaded', function() {
         updateGatewayUI(method);
     };
 
+    // ── Add-Ons & Event Merchandise Recalculation ──
+    const currencySymbol = '<?= e(get_currency_symbol()) ?>';
+    const baseTicketSubtotal = <?= (float)$subtotal ?>;
+    const passFeeEnabled = <?= $passFee ? 'true' : 'false' ?>;
+    const platformFeePct = <?= (float)($platformFeePercent ?? 5) ?>;
+    const baseExtraCharge = <?= (float)$extraCharge ?>;
+    let currentDiscount = 0.0;
+
+    function formatMoney(amount) {
+        return currencySymbol + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function recalculateAddonsAndTotals() {
+        let addonsSubtotal = 0.0;
+        const addonsListEl = document.getElementById('co-summary-addons-list');
+        const addonsContainerEl = document.getElementById('co-summary-addons-container');
+        const addonsRowEl = document.getElementById('row-addons-subtotal');
+        const addonsTotalEl = document.getElementById('summary-addons-subtotal');
+
+        let summaryHtml = '';
+        let hasActiveAddons = false;
+
+        document.querySelectorAll('.addon-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            const price = parseFloat(input.dataset.price) || 0.0;
+            const name = input.dataset.name || 'Merchandise';
+
+            if (qty > 0) {
+                hasActiveAddons = true;
+                const itemTotal = qty * price;
+                addonsSubtotal += itemTotal;
+                summaryHtml += `
+                    <div class="summary-row co-ticket-row" style="padding:0.35rem 0;">
+                        <span class="co-ticket-row__name">
+                            <strong>${qty}×</strong> ${name}
+                        </span>
+                        <strong class="co-ticket-row__price" style="color:#0d9488;">
+                            ${itemTotal > 0 ? formatMoney(itemTotal) : 'Free'}
+                        </strong>
+                    </div>
+                `;
+            }
+        });
+
+        if (addonsContainerEl) {
+            addonsContainerEl.style.display = hasActiveAddons ? 'block' : 'none';
+        }
+        if (addonsListEl) {
+            addonsListEl.innerHTML = summaryHtml;
+        }
+        if (addonsRowEl && addonsTotalEl) {
+            addonsRowEl.style.display = hasActiveAddons ? 'flex' : 'none';
+            addonsTotalEl.textContent = formatMoney(addonsSubtotal);
+        }
+
+        const combinedSubtotal = baseTicketSubtotal + addonsSubtotal;
+        const feeAmount = (passFeeEnabled && combinedSubtotal > 0) ? (combinedSubtotal * (platformFeePct / 100)) : 0.0;
+        const netSub = Math.max(0, combinedSubtotal - currentDiscount);
+        const extraChargeAmount = netSub > 0 ? baseExtraCharge : 0.0;
+        const newTotal = netSub > 0 ? Math.max(0, netSub + feeAmount + extraChargeAmount) : 0.0;
+
+        // Update fee & extra displays
+        const feeEl = document.getElementById('summary-fee');
+        if (feeEl) {
+            feeEl.textContent = (passFeeEnabled && combinedSubtotal > 0) ? formatMoney(feeAmount) : '$0.00 (Covered by Host)';
+        }
+        const extraEl = document.getElementById('summary-extra-charge');
+        if (extraEl) {
+            extraEl.textContent = netSub > 0 ? formatMoney(extraChargeAmount) : '$0.00';
+        }
+
+        // Update final total display
+        const finalTotalEl = document.getElementById('final-total-amount');
+        formattedTotalFull = (combinedSubtotal <= 0 && isFreeOrder) ? 'Free' : formatMoney(newTotal);
+        if (finalTotalEl && currentPaymentType === 'full') {
+            finalTotalEl.textContent = formattedTotalFull;
+        }
+
+        // Update payment provider UI & submit button
+        const currentMethod = selectedPmInput ? selectedPmInput.value : 'paystack';
+        updateGatewayUI(currentMethod);
+    }
+
+    document.querySelectorAll('.addon-step-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const addonId = this.dataset.id;
+            const input = document.getElementById('addon-qty-' + addonId);
+            if (!input) return;
+            let val = parseInt(input.value) || 0;
+            const maxAttr = input.getAttribute('max');
+            const max = maxAttr !== null && maxAttr !== '' ? parseInt(maxAttr) : Infinity;
+
+            if (this.classList.contains('addon-step-plus')) {
+                if (val < max) {
+                    input.value = val + 1;
+                }
+            } else if (this.classList.contains('addon-step-minus')) {
+                if (val > 0) {
+                    input.value = val - 1;
+                }
+            }
+            recalculateAddonsAndTotals();
+        });
+    });
+
+    document.querySelectorAll('.addon-qty-input').forEach(input => {
+        input.addEventListener('input', function() {
+            let val = parseInt(this.value) || 0;
+            if (val < 0) this.value = 0;
+            const maxAttr = this.getAttribute('max');
+            const max = maxAttr !== null && maxAttr !== '' ? parseInt(maxAttr) : Infinity;
+            if (val > max) this.value = max;
+            recalculateAddonsAndTotals();
+        });
+    });
+
     // Initialize UI on page load
     updateGatewayUI(selectedPmInput ? selectedPmInput.value : 'paystack');
 });
+
+// Lightbox modal for merchandise preview
+window.openAddonImageModal = function(src, title) {
+    let modal = document.getElementById('addon-image-lightbox');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'addon-image-lightbox';
+        modal.style.cssText = 'position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:1.5rem; cursor:pointer;';
+        modal.innerHTML = `
+            <div style="position:relative; max-width:540px; width:100%; background:rgb(var(--card)); border-radius:18px; overflow:hidden; border:1px solid rgba(var(--muted),0.2); box-shadow:0 20px 40px rgba(0,0,0,0.3); cursor:default;" onclick="event.stopPropagation()">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:0.85rem 1.25rem; border-bottom:1px solid rgba(var(--muted),0.15);">
+                    <strong id="addon-lightbox-title" style="font-size:0.95rem; color:rgb(var(--text));"></strong>
+                    <button type="button" onclick="closeAddonImageModal()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:rgb(var(--muted)); padding:2px 6px;">✕</button>
+                </div>
+                <div style="padding:1rem; text-align:center; background:rgba(var(--muted),0.04);">
+                    <img id="addon-lightbox-img" src="" alt="Preview" style="max-width:100%; max-height:440px; border-radius:10px; object-fit:contain;" />
+                </div>
+            </div>
+        `;
+        modal.onclick = closeAddonImageModal;
+        document.body.appendChild(modal);
+    }
+    document.getElementById('addon-lightbox-title').textContent = title || 'Item Preview';
+    document.getElementById('addon-lightbox-img').src = src;
+    modal.style.display = 'flex';
+};
+
+window.closeAddonImageModal = function() {
+    const modal = document.getElementById('addon-image-lightbox');
+    if (modal) modal.style.display = 'none';
+};
 </script>
 
 @endsection

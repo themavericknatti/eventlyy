@@ -151,6 +151,7 @@ $router->post('/host/event/management/{id}/toggle-flyer', [HostEventController::
 $router->post('/host/event/management/{id}/request-staff', [HostEventController::class, 'requestStaff']);
 $router->post('/host/event/management/{id}/toggle-staff-checkin', [HostEventController::class, 'toggleStaffCheckin']);
 $router->post('/host/event/management/{id}/request-domain', [HostEventController::class, 'requestCustomDomain']);
+$router->post('/host/event/management/{id}/addon-redeem', [HostEventController::class, 'toggleAddonRedemption']);
 $router->post('/host/event/domain-request/{id}/pay', [HostEventController::class, 'payCustomDomainFee']);
 $router->get('/host/event/domain-request/callback', [HostEventController::class, 'domainPaymentCallback']);
 $router->post('/host/event/duplicate/{id}', [HostEventController::class, 'duplicateEvent']);

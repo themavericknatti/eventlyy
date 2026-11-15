@@ -202,6 +202,63 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                             </table>
                             <?php endforeach; ?>
 
+                            <?php if (!empty($addons) && is_array($addons)): ?>
+                            <!-- Merchandise & Add-On Voucher Section -->
+                            <div style="margin-top: 24px; padding: 18px 20px; background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                    <tr>
+                                        <td>
+                                            <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #0d9488; letter-spacing: 0.06em; margin-bottom: 4px;">
+                                                🛍️ Official Merchandise &amp; Add-On Voucher
+                                            </div>
+                                            <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                                                Items Confirmed for Collection
+                                            </div>
+                                            <p style="margin: 0 0 12px; font-size: 12px; color: #475569; line-height: 1.45;">
+                                                Show this confirmation email or your digital pass QR code at the event entrance or official merchandise desk to claim your items.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <table role="presentation" width="100%" cellpadding="8" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #ccfbf1; border-radius: 8px;">
+                                                <?php foreach ($addons as $addonItem): 
+                                                    $aName = $addonItem['addon_name'] ?? ($addonItem['name'] ?? 'Merchandise Item');
+                                                    $aQty = (int)($addonItem['quantity'] ?? 1);
+                                                    $aPrice = (float)($addonItem['total_price'] ?? ($addonItem['unit_price'] ?? 0));
+                                                    $aDesc = $addonItem['addon_description'] ?? ($addonItem['description'] ?? '');
+                                                    $aImg = $addonItem['image'] ?? ($addonItem['addon_image'] ?? null);
+                                                ?>
+                                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                        <td style="padding: 10px 12px; font-size: 13px; color: #1e293b;">
+                                                            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                                                <tr>
+                                                                    <?php if (!empty($aImg)): ?>
+                                                                        <td style="padding-right: 10px; vertical-align: middle;">
+                                                                            <img src="<?= e(\url($aImg)) ?>" alt="<?= e($aName) ?>" width="40" height="40" style="display: block; width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid #ccfbf1;" />
+                                                                        </td>
+                                                                    <?php endif; ?>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <strong style="color: #0d9488;"><?= $aQty ?>&times;</strong> <strong><?= e($aName) ?></strong>
+                                                                        <?php if (!empty($aDesc)): ?>
+                                                                            <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;"><?= e($aDesc) ?></div>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                        <td align="right" style="padding: 10px 12px; font-size: 13px; font-weight: 700; color: #0d9488; white-space: nowrap; vertical-align: middle;">
+                                                            <?= $aPrice > 0 ? format_price($aPrice) : 'Included' ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <?php endif; ?>
+
                             <!-- Call-to-Action Button -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; margin-bottom: 12px;">
                                 <tr>
