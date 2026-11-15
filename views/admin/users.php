@@ -387,6 +387,61 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     border-color: rgba(239, 68, 68, 0.35);
 }
 
+
+.au-export-btn {
+    padding: 0.42rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1 !important;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.au-export-btn:hover {
+    background: rgba(99, 102, 241, 0.2);
+}
+.au-dossier-btn {
+    padding: 0.42rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 9px;
+    background: rgba(14, 165, 233, 0.1);
+    color: #0284c7 !important;
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+.au-dossier-btn:hover {
+    background: rgba(14, 165, 233, 0.2);
+}
+.au-purge-btn {
+    padding: 0.42rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 9px;
+    background: rgba(225, 29, 72, 0.1);
+    color: #e11d48 !important;
+    border: 1px solid rgba(225, 29, 72, 0.25);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+.au-purge-btn:hover {
+    background: rgba(225, 29, 72, 0.2);
+    border-color: rgba(225, 29, 72, 0.4);
+}
+
 .au-btn-disabled {
     padding: 0.42rem 0.75rem;
     font-size: 0.8rem;
@@ -665,6 +720,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                         $isTargetSuperAdmin = ($roleSlug === 'super-admin');
                         $isTargetAdmin = in_array($roleSlug, ['admin', 'super-admin']);
                         $canModify = !$isSelf && ($isCurrentSuperAdmin || !$isTargetAdmin);
+                        $canPurge = $isCurrentSuperAdmin && !$isSelf && (!$isTargetSuperAdmin || $user['id'] != 1);
                     ?>
                     <tr<?= $isUnverifiedHost ? ' style="background:rgba(245,158,11,0.03);"' : '' ?>>
                         <td>
@@ -737,6 +793,17 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                                         Suspend
                                     </button>
                                 <?php endif; ?>
+                                <button type="button" class="au-dossier-btn" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>" data-dossier-url="<?= route('admin/users/dossier', ['id' => $user['id']]) ?>" data-export-url="<?= route('admin/users/export-data', ['id' => $user['id']]) ?>" title="View Full Data Dossier (NDPA 2023)">
+                                    🗂️ Data
+                                </button>
+                                <a href="<?= route('admin/users/export-data', ['id' => $user['id']]) ?>" class="au-export-btn" title="Download NDPA Data Export (JSON)" download>
+                                    📥
+                                </a>
+                                <?php if (!empty($canPurge)): ?>
+                                    <button type="button" class="au-purge-btn" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>" data-user-email="<?= e($user['email']) ?>" title="Permanently Delete All User Records (NDPA Erasure)">
+                                        🗑️
+                                    </button>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
@@ -777,6 +844,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                 $isTargetSuperAdmin = ($roleSlug === 'super-admin');
                 $isTargetAdmin = in_array($roleSlug, ['admin', 'super-admin']);
                 $canModify = !$isSelf && ($isCurrentSuperAdmin || !$isTargetAdmin);
+                        $canPurge = $isCurrentSuperAdmin && !$isSelf && (!$isTargetSuperAdmin || $user['id'] != 1);
             ?>
             <article class="au-user-card"<?= $isUnverifiedHost ? ' style="border-color:rgba(245,158,11,0.3);"' : '' ?>>
                 <div class="au-card-top">
@@ -953,6 +1021,96 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                 <button type="submit" class="admin-action-btn primary" style="padding: 0.55rem 1.15rem; border-radius: 11px; font-weight: 800;">Yes, Resend</button>
             </div>
         </form>
+    </div>
+</div>
+
+
+<!-- Confirm Purge / Delete User Records Modal (NDPA 2023) -->
+<div class="modal-overlay hidden" id="purge-modal" role="dialog" aria-modal="true" aria-labelledby="purge-modal-title">
+    <div class="modal-card" style="border: 2px solid #ef4444; max-width: min(92vw, 560px);">
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+            <div style="width:40px; height:40px; border-radius:12px; background:rgba(239,68,68,0.12); color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </div>
+            <div>
+                <h3 id="purge-modal-title" style="margin: 0; font-size: 1.25rem; color:#ef4444;">Permanently Delete All User Records</h3>
+                <span style="font-size:0.78rem; color:rgb(var(--muted));">NDPA 2023 &amp; GDPR Right to Erasure / Right to be Forgotten</span>
+            </div>
+        </div>
+        
+        <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.25); border-radius:14px; padding:1rem; margin-bottom:1.25rem; font-size:0.88rem; line-height:1.5;">
+            <p style="margin:0 0 0.5rem; font-weight:700; color:#ef4444;">⚠️ CAUTION: This action is permanent and irreversible.</p>
+            <p style="margin:0; color:rgb(var(--text));">
+                You are about to permanently delete user <strong id="purge-user-name" style="color:rgb(var(--text));">User</strong> (<span id="purge-user-email">email</span>).
+                All login credentials, personal profiles, active sessions, layaway records, reviews, and support inquiries will be destroyed. All tickets and financial transactions will have personal identifiers permanently anonymized in accordance with statutory audit regulations.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ route('admin/users') }}" id="purge-form">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="delete_user_data" />
+            <input type="hidden" name="user_id" id="purge-user-id" value="" />
+            
+            <div style="margin-bottom:1.25rem;">
+                <label for="purge-confirm-text" style="display:block; font-size:0.8rem; font-weight:700; margin-bottom:0.4rem; color:rgb(var(--text));">
+                    Type <code style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 6px; border-radius:4px; font-weight:900;">DELETE</code> to confirm:
+                </label>
+                <input type="text" id="purge-confirm-text" name="confirm_text" required placeholder="DELETE" style="width:100%; padding:0.6rem 0.85rem; border-radius:10px; border:1px solid rgba(239,68,68,0.35); background:rgba(var(--card),0.8); color:rgb(var(--text)); font-family:inherit; font-size:0.95rem; box-sizing:border-box;" />
+            </div>
+
+            <div style="margin-bottom:1.25rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.84rem; cursor:pointer;">
+                    <input type="checkbox" name="force" value="1" id="purge-force-chk" style="accent-color:#ef4444;" />
+                    <span>Force delete even if user has events (anonymize organizer records)</span>
+                </label>
+            </div>
+
+            <div class="modal-actions" style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" class="admin-action-btn" id="purge-cancel-btn" style="padding: 0.55rem 1.15rem; border-radius: 11px;">Cancel</button>
+                <button type="submit" id="purge-submit-btn" class="admin-action-btn danger" disabled style="padding: 0.55rem 1.35rem; border-radius: 11px; font-weight: 800; opacity:0.5; cursor:not-allowed;">Permanently Delete Records</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Full Compliance Data Dossier Modal (NDPA 2023) -->
+<div class="modal-overlay hidden" id="dossier-modal" role="dialog" aria-modal="true" aria-labelledby="dossier-modal-title">
+    <div class="modal-card" style="max-width: min(94vw, 920px); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; padding: 1.75rem;">
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid rgba(var(--muted),0.15); padding-bottom:0.85rem; flex-shrink:0;">
+            <div>
+                <span style="font-size:0.75rem; color:rgb(var(--brand)); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">NDPA 2023 &bull; Data Subject Access Request (DSAR)</span>
+                <h3 id="dossier-modal-title" style="margin:0.2rem 0 0; font-size:1.35rem;">Complete User Data Dossier</h3>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+                <a id="dossier-download-link" href="#" class="au-export-btn" download style="padding:0.45rem 0.85rem; font-size:0.82rem;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download JSON
+                </a>
+                <button type="button" id="dossier-close-x-btn" style="background:none; border:none; font-size:1.6rem; line-height:1; cursor:pointer; color:rgb(var(--muted)); padding:0 0.4rem;">&times;</button>
+            </div>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div style="overflow-y:auto; flex-grow:1; padding-right:0.5rem;" id="dossier-scroll-area">
+            <div id="dossier-modal-loading" style="text-align:center; padding:3rem 0;">
+                <svg class="animate-spin" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 1rem; color:rgb(var(--brand));">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <p style="margin:0; color:rgb(var(--muted)); font-size:0.95rem;">Compiling comprehensive data dossier from all database tables...</p>
+            </div>
+
+            <div id="dossier-modal-content" class="hidden" style="display:flex; flex-direction:column; gap:1.25rem;">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-actions" style="margin-top:1rem; border-top:1px solid rgba(var(--muted), 0.15); padding-top:0.85rem; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+            <span style="font-size:0.78rem; color:rgb(var(--muted));">Legal Standard: NDPA 2023 § 24–36 &bull; Data Subject Portability &amp; Access</span>
+            <button type="button" class="admin-action-btn primary" id="dossier-close-btn" style="padding: 0.55rem 1.35rem; border-radius: 11px; font-weight: 800;">Close</button>
+        </div>
     </div>
 </div>
 
@@ -1321,6 +1479,231 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     });
+
+    // ═══════════════════════════════════════════════════════════
+    // NDPA 2023 & GDPR Privacy Data Management: Purge & Dossier
+    // ═══════════════════════════════════════════════════════════
+
+    // Purge / Delete User Records
+    document.querySelectorAll('.au-purge-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const uid = this.dataset.userId;
+            const name = this.dataset.userName || 'this user';
+            const email = this.dataset.userEmail || '';
+            document.getElementById('purge-user-id').value = uid;
+            document.getElementById('purge-user-name').textContent = name;
+            document.getElementById('purge-user-email').textContent = email;
+            document.getElementById('purge-confirm-text').value = '';
+            const submitBtn = document.getElementById('purge-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+            openModal('purge-modal');
+        });
+    });
+
+    const purgeInput = document.getElementById('purge-confirm-text');
+    if (purgeInput) {
+        purgeInput.addEventListener('input', function() {
+            const submitBtn = document.getElementById('purge-submit-btn');
+            if (this.value.trim().toUpperCase() === 'DELETE') {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+        });
+    }
+
+    const purgeCancel = document.getElementById('purge-cancel-btn');
+    if (purgeCancel) purgeCancel.addEventListener('click', () => closeModal('purge-modal'));
+
+    // Dossier Modal
+    const dossierModal = document.getElementById('dossier-modal');
+    const dossierCloseBtn = document.getElementById('dossier-close-btn');
+    const dossierCloseX = document.getElementById('dossier-close-x-btn');
+    if (dossierCloseBtn) dossierCloseBtn.addEventListener('click', () => closeModal('dossier-modal'));
+    if (dossierCloseX) dossierCloseX.addEventListener('click', () => closeModal('dossier-modal'));
+
+    document.querySelectorAll('.au-dossier-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.dossierUrl;
+            const exportUrl = this.dataset.exportUrl;
+            const userName = this.dataset.userName || 'User';
+            if (!url) return;
+
+            document.getElementById('dossier-modal-title').textContent = `Data Dossier: ${userName}`;
+            document.getElementById('dossier-download-link').href = exportUrl;
+            openModal('dossier-modal');
+
+            const loading = document.getElementById('dossier-modal-loading');
+            const content = document.getElementById('dossier-modal-content');
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            content.innerHTML = '';
+
+            fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+
+                    const u = data.user || {};
+                    const hp = data.host_profile || null;
+                    const m = data.metrics || {};
+                    const roles = (data.roles || []).map(r => r.name).join(', ') || 'Attendee';
+
+                    let htmlOutput = `
+                        <!-- Metrics Row -->
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem;">
+                            <div class="au-stat-card" style="margin:0; padding:0.75rem; background:rgba(var(--muted),0.04);">
+                                <div class="au-stat-body">
+                                    <span class="au-stat-num" style="font-size:1.3rem;">${m.tickets_purchased_count || 0}</span>
+                                    <span class="au-stat-lbl">Tickets Bought</span>
+                                </div>
+                            </div>
+                            <div class="au-stat-card" style="margin:0; padding:0.75rem; background:rgba(var(--muted),0.04);">
+                                <div class="au-stat-body">
+                                    <span class="au-stat-num" style="font-size:1.3rem; color:rgb(var(--brand));">${m.total_amount_spent_formatted || '₦0.00'}</span>
+                                    <span class="au-stat-lbl">Total Spent</span>
+                                </div>
+                            </div>
+                            <div class="au-stat-card" style="margin:0; padding:0.75rem; background:rgba(var(--muted),0.04);">
+                                <div class="au-stat-body">
+                                    <span class="au-stat-num" style="font-size:1.3rem;">${m.events_hosted_count || 0}</span>
+                                    <span class="au-stat-lbl">Events Hosted</span>
+                                </div>
+                            </div>
+                            <div class="au-stat-card" style="margin:0; padding:0.75rem; background:rgba(var(--muted),0.04);">
+                                <div class="au-stat-body">
+                                    <span class="au-stat-num" style="font-size:1.3rem; color:#10b981;">${m.total_revenue_generated_formatted || '₦0.00'}</span>
+                                    <span class="au-stat-lbl">Gross Sales</span>
+                                </div>
+                            </div>
+                            <div class="au-stat-card" style="margin:0; padding:0.75rem; background:rgba(var(--muted),0.04);">
+                                <div class="au-stat-body">
+                                    <span class="au-stat-num" style="font-size:1.3rem;">${m.transactions_count || 0}</span>
+                                    <span class="au-stat-lbl">Transactions</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 1. Personal Identity & Profile -->
+                        <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                            <h4 style="margin:0 0 0.85rem; font-size:1rem; color:rgb(var(--text)); font-weight:700;">1. Personal Identity &amp; System Account</h4>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; font-size:0.88rem;">
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">User ID:</strong><p style="margin:0.2rem 0 0; font-weight:700;">#${u.id}</p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Full Name:</strong><p style="margin:0.2rem 0 0; font-weight:700;">${u.name || '-'}</p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Email:</strong><p style="margin:0.2rem 0 0; font-weight:600;">${u.email || '-'}</p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Phone Number:</strong><p style="margin:0.2rem 0 0;">${u.phone || 'None recorded'}</p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Account Status:</strong><p style="margin:0.2rem 0 0;"><span class="au-status-badge is-${u.status}">${u.status}</span></p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Email Verified:</strong><p style="margin:0.2rem 0 0;">${u.email_verified_at ? '✓ ' + u.email_verified_at : '⚠️ Unverified'}</p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">System Roles:</strong><p style="margin:0.2rem 0 0; font-weight:600;">${roles}</p></div>
+                                <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Member Since:</strong><p style="margin:0.2rem 0 0;">${u.created_at || '-'}</p></div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Host Details
+                    if (hp) {
+                        htmlOutput += `
+                            <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                                <h4 style="margin:0 0 0.85rem; font-size:1rem; color:rgb(var(--text)); font-weight:700;">2. Organizer Profile &amp; Banking Settlements</h4>
+                                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; font-size:0.88rem;">
+                                    <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Settlement Bank:</strong><p style="margin:0.2rem 0 0; font-weight:700;">${hp.payout_bank || 'Not set'}</p></div>
+                                    <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Account Number:</strong><p style="margin:0.2rem 0 0; font-family:monospace; font-weight:700;">${hp.payout_account || 'Not set'}</p></div>
+                                    <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Sort / Routing Code:</strong><p style="margin:0.2rem 0 0; font-family:monospace;">${hp.payout_routing || 'N/A'}</p></div>
+                                    <div><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Host Rating:</strong><p style="margin:0.2rem 0 0; font-weight:700;">${hp.rating || 5.0} ★</p></div>
+                                    <div style="grid-column: 1 / -1;"><strong style="color:rgb(var(--muted)); font-size:0.75rem; text-transform:uppercase;">Bio / Description:</strong><p style="margin:0.2rem 0 0; font-style:italic;">${hp.bio || 'No organizer bio set.'}</p></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Tickets
+                    const tickets = data.tickets || [];
+                    htmlOutput += `
+                        <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+                                <h4 style="margin:0; font-size:1rem; color:rgb(var(--text)); font-weight:700;">3. Tickets Purchased &amp; Admissions (${tickets.length})</h4>
+                            </div>
+                            ${tickets.length > 0 ? `
+                                <div style="max-height:220px; overflow-y:auto; border:1px solid rgba(var(--muted),0.12); border-radius:10px;">
+                                    <table style="width:100%; font-size:0.82rem; border-collapse:collapse;">
+                                        <thead><tr style="background:rgba(var(--muted),0.06); text-align:left;"><th style="padding:6px 10px;">Event</th><th style="padding:6px 10px;">Tier</th><th style="padding:6px 10px;">Price</th><th style="padding:6px 10px;">Status</th><th style="padding:6px 10px;">Date</th><th style="padding:6px 10px;">Scanned</th></tr></thead>
+                                        <tbody>
+                                            ${tickets.map(t => `<tr style="border-top:1px solid rgba(var(--muted),0.08);"><td style="padding:6px 10px; font-weight:600;">${t.event_name}</td><td style="padding:6px 10px;">${t.ticket_tier_name || 'Regular'}</td><td style="padding:6px 10px;">₦${Number(t.price).toLocaleString()}</td><td style="padding:6px 10px;"><span class="au-status-badge is-${t.status}">${t.status}</span></td><td style="padding:6px 10px;">${t.purchase_date ? t.purchase_date.substring(0, 10) : '-'}</td><td style="padding:6px 10px;">${t.checked_in ? '✓ ' + (t.checked_in_at || '') : 'No'}</td></tr>`).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : '<p style="margin:0; font-size:0.85rem; color:rgb(var(--muted));">No ticket records found.</p>'}
+                        </div>
+                    `;
+
+                    // Transactions
+                    const trs = data.transactions || [];
+                    htmlOutput += `
+                        <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                            <h4 style="margin:0 0 0.85rem; font-size:1rem; color:rgb(var(--text)); font-weight:700;">4. Financial Transactions (${trs.length})</h4>
+                            ${trs.length > 0 ? `
+                                <div style="max-height:200px; overflow-y:auto; border:1px solid rgba(var(--muted),0.12); border-radius:10px;">
+                                    <table style="width:100%; font-size:0.82rem; border-collapse:collapse;">
+                                        <thead><tr style="background:rgba(var(--muted),0.06); text-align:left;"><th style="padding:6px 10px;">Reference</th><th style="padding:6px 10px;">Event</th><th style="padding:6px 10px;">Amount</th><th style="padding:6px 10px;">Method</th><th style="padding:6px 10px;">Status</th><th style="padding:6px 10px;">Date</th></tr></thead>
+                                        <tbody>
+                                            ${trs.map(tr => `<tr style="border-top:1px solid rgba(var(--muted),0.08);"><td style="padding:6px 10px; font-family:monospace;">${tr.reference}</td><td style="padding:6px 10px;">${tr.event_name || '-'}</td><td style="padding:6px 10px; font-weight:700;">₦${Number(tr.total_amount).toLocaleString()}</td><td style="padding:6px 10px;">${tr.payment_method || 'paystack'}</td><td style="padding:6px 10px;"><span class="au-status-badge is-${tr.status}">${tr.status}</span></td><td style="padding:6px 10px;">${tr.created_at ? tr.created_at.substring(0, 16) : '-'}</td></tr>`).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : '<p style="margin:0; font-size:0.85rem; color:rgb(var(--muted));">No payment transactions recorded.</p>'}
+                        </div>
+                    `;
+
+                    // Hosted Events
+                    const events = data.hosted_events || [];
+                    if (events.length > 0) {
+                        htmlOutput += `
+                            <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                                <h4 style="margin:0 0 0.85rem; font-size:1rem; color:rgb(var(--text)); font-weight:700;">5. Events Hosted (${events.length})</h4>
+                                <div style="max-height:200px; overflow-y:auto; border:1px solid rgba(var(--muted),0.12); border-radius:10px;">
+                                    <table style="width:100%; font-size:0.82rem; border-collapse:collapse;">
+                                        <thead><tr style="background:rgba(var(--muted),0.06); text-align:left;"><th style="padding:6px 10px;">Event Title</th><th style="padding:6px 10px;">Date</th><th style="padding:6px 10px;">Status</th><th style="padding:6px 10px;">Tickets Sold</th><th style="padding:6px 10px;">Gross Revenue</th></tr></thead>
+                                        <tbody>
+                                            ${events.map(ev => `<tr style="border-top:1px solid rgba(var(--muted),0.08);"><td style="padding:6px 10px; font-weight:700;">${ev.name}</td><td style="padding:6px 10px;">${ev.date}</td><td style="padding:6px 10px;"><span class="au-status-badge is-${ev.status}">${ev.status}</span></td><td style="padding:6px 10px;">${ev.tickets_sold}</td><td style="padding:6px 10px; font-weight:700; color:#10b981;">₦${Number(ev.gross_sales || 0).toLocaleString()}</td></tr>`).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Layaways & Transfers & Inquiries
+                    const layaway = data.layaway_payments || [];
+                    const inquiries = data.support_inquiries || [];
+                    htmlOutput += `
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
+                            <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                                <h4 style="margin:0 0 0.75rem; font-size:0.95rem; font-weight:700;">Layaway Installments (${layaway.length})</h4>
+                                ${layaway.length > 0 ? layaway.map(lp => `<div style="padding:0.35rem 0; font-size:0.82rem; border-bottom:1px solid rgba(var(--muted),0.08); display:flex; justify-content:space-between;"><span>${lp.event_name || 'Event'}</span><strong>₦${Number(lp.amount).toLocaleString()} (${lp.status})</strong></div>`).join('') : '<p style="margin:0; font-size:0.82rem; color:rgb(var(--muted));">No layaways.</p>'}
+                            </div>
+                            <div style="background:rgba(var(--card),0.5); border:1px solid rgba(var(--muted),0.15); border-radius:14px; padding:1.15rem;">
+                                <h4 style="margin:0 0 0.75rem; font-size:0.95rem; font-weight:700;">Support Inquiries (${inquiries.length})</h4>
+                                ${inquiries.length > 0 ? inquiries.map(inq => `<div style="padding:0.35rem 0; font-size:0.82rem; border-bottom:1px solid rgba(var(--muted),0.08); display:flex; justify-content:space-between;"><span>${inq.subject || 'Inquiry'}</span><span class="au-status-badge">${inq.status}</span></div>`).join('') : '<p style="margin:0; font-size:0.82rem; color:rgb(var(--muted));">No inquiries.</p>'}
+                            </div>
+                        </div>
+                    `;
+
+                    content.innerHTML = htmlOutput;
+                })
+                .catch(err => {
+                    loading.classList.remove('hidden');
+                    loading.innerHTML = '<p style="color:#ef4444;">Failed to compile data dossier. Please check console.</p>';
+                });
+        });
+    });
+
 });
 </script>
 @endsection

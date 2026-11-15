@@ -178,6 +178,8 @@ $router->get('/admin/overview', [AdminController::class, 'dashboard']);
 $router->get('/admin/users', [AdminUserController::class, 'users']);
 $router->get('/admin/users/detail', [AdminUserController::class, 'userDetail']);
 $router->post('/admin/users', [AdminUserController::class, 'postAction']);
+$router->get('/admin/users/export-data', [AdminUserController::class, 'exportUserData']);
+$router->get('/admin/users/dossier', [AdminUserController::class, 'userDossier']);
 $router->get('/admin/attendees', [AdminAttendeeController::class, 'index']);
 $router->get('/admin/attendees/export', [AdminAttendeeController::class, 'exportCsv']);
 $router->get('/admin/attendees/export-pdf', [AdminAttendeeController::class, 'exportPdf']);

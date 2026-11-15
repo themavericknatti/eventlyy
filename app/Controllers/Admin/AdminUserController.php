@@ -79,7 +79,15 @@ class AdminUserController extends Controller
             return redirect('/admin/users');
         }
 
-        // Execute action via ManageUserStatusAction
+        // Handle permanent record purge & NDPA erasure
+        if ($action === 'delete_user_data') {
+            $force = !empty($data['force']);
+            $outcome = $this->userService->deleteUserData($userId, $user->id, $force);
+            Application::$app->session->setFlash($outcome['status'], $outcome['message']);
+            return redirect('/admin/users');
+        }
+
+        // Execute standard action via ManageUserStatusAction
         $outcome = $this->userStatusAction->execute($action, $userId, $user->id);
 
         Application::$app->session->setFlash($outcome['status'], $outcome['message']);
@@ -100,5 +108,55 @@ class AdminUserController extends Controller
         }
 
         return Application::$app->response->json($detail);
+    }
+
+    /**
+     * Download comprehensive user data dossier as a JSON file.
+     * Complies with NDPA 2023 & GDPR Right of Access / Data Subject Access Request.
+     */
+    public function exportUserData(Request $request)
+    {
+        $userId = $request->getBody()['id'] ?? $request->getString('id');
+        if (!$userId) {
+            Application::$app->session->setFlash('error', 'User ID is missing for data export.');
+            return redirect('/admin/users');
+        }
+
+        $dossier = $this->userService->getFullUserData($userId);
+        if (!$dossier) {
+            Application::$app->session->setFlash('error', 'User not found for data export.');
+            return redirect('/admin/users');
+        }
+
+        $userEmail = $dossier['user']['email'] ?? 'user';
+        $safeEmail = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $userEmail);
+        $filename = "eventlyy-user-data-export-{$userId}-{$safeEmail}-" . date('Ymd-His') . ".json";
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        echo json_encode($dossier, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
+     * Return comprehensive user data dossier as JSON for inspection in admin UI.
+     */
+    public function userDossier(Request $request)
+    {
+        $userId = $request->getBody()['id'] ?? $request->getString('id');
+        if (!$userId) {
+            return Application::$app->response->json(['error' => 'User ID is missing.'], 400);
+        }
+
+        $dossier = $this->userService->getFullUserData($userId);
+        if (!$dossier) {
+            return Application::$app->response->json(['error' => 'User not found.'], 404);
+        }
+
+        return Application::$app->response->json($dossier);
     }
 }
