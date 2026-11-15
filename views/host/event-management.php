@@ -4323,6 +4323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.innerHTML = '<span>⏳</span> Processing...';
 
                 const formData = new FormData();
+                formData.append('csrf_token', csrfToken);
                 formData.append('_token', csrfToken);
                 formData.append('action', action);
 
@@ -4330,7 +4331,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: formData
                 })
@@ -4370,6 +4372,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.innerHTML = '<span>⏳</span> Sending...';
 
                 const formData = new FormData();
+                formData.append('csrf_token', csrfToken);
                 formData.append('_token', csrfToken);
                 formData.append('action', 'resend');
 
@@ -4377,7 +4380,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: formData
                 })
@@ -4414,6 +4418,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.innerHTML = '<span>⏳</span> Refunding...';
 
                 const formData = new FormData();
+                formData.append('csrf_token', csrfToken);
                 formData.append('_token', csrfToken);
                 formData.append('action', 'refund');
 
@@ -4421,7 +4426,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: formData
                 })

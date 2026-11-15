@@ -285,49 +285,162 @@ class HostTicketController extends Controller
         }
 
         if ($action === 'resend') {
+            $attendeeEmail = trim((string)($ticket['attendee_email'] ?? ''));
+            if (empty($attendeeEmail) || !filter_var($attendeeEmail, FILTER_VALIDATE_EMAIL)) {
+                $errMsg = 'Attendee does not have a valid email address on file.';
+                if (!$isJson) {
+                    Application::$app->session->setFlash('error', $errMsg);
+                    return $tabRedirect ? redirect($tabRedirect) : back();
+                }
+                return Application::$app->response->json(['success' => false, 'message' => $errMsg], 400);
+            }
+
             try {
                 $db = Application::$app->db->pdo;
                 $evStmt = $db->prepare("SELECT name, date, location FROM events WHERE id = :event_id LIMIT 1");
                 $evStmt->execute(['event_id' => $ticket['event_id']]);
                 $evRow = $evStmt->fetch();
 
-                $evName = $evRow['name'] ?? $ticket['event_name'];
-                $evDate = !empty($evRow['date']) ? date('D, M d, Y • g:i A', strtotime($evRow['date'])) : date('D, M d, Y', strtotime($ticket['purchase_date']));
-                $evLocation = $evRow['location'] ?? 'Venue';
+                $evName = $evRow['name'] ?? ($ticket['event_name'] ?? 'Event');
+                $evDate = !empty($evRow['date']) ? date('D, M d, Y • g:i A', strtotime($evRow['date'])) : (!empty($ticket['purchase_date']) ? date('D, M d, Y', strtotime($ticket['purchase_date'])) : 'TBD');
+                $evLocation = $evRow['location'] ?? ($ticket['event_location'] ?? 'Venue');
                 $isIssued = !empty($ticket['is_issued']);
-                $payMethod = $isIssued ? 'Host Issued Pass' : (strtoupper($ticket['payment_method'] ?? 'Online'));
+                $payMethod = $isIssued ? 'Host Issued Pass' : (strtoupper($ticket['payment_method'] ?? 'Online Payment'));
 
-                \Ace\Mail::send(
-                    $ticket['attendee_email'],
-                    'Your Ticket Pass - ' . $evName,
-                    'emails/ticket_confirmation',
-                    [
-                        'attendee_name' => $ticket['attendee_name'],
-                        'event_name' => $evName,
-                        'event_date' => $evDate,
-                        'event_location' => $evLocation,
-                        'payment_method' => $payMethod,
-                        'total_amount' => (float)$ticket['price'],
-                        'tickets' => [[
-                            'ticket_code' => $ticket['id'],
-                            'attendee_name' => $ticket['attendee_name'],
-                            'ticket_type' => $ticket['ticket_tier'] ?? 'Standard Admission',
-                            'price' => (float)$ticket['price'],
-                            'status' => $ticket['status'],
-                            'checked_in' => !empty($ticket['checked_in'])
-                        ]]
-                    ]
-                );
+                // Find all tickets belonging to this order/attendee for this event
+                $ticketsToSend = [];
+                if (!empty($ticket['status_detail']) && preg_match('/(?:Ref:\s*)([A-Za-z0-9\-_]+)/i', $ticket['status_detail'], $mRef)) {
+                    $ref = trim($mRef[1]);
+                    $tStmt = $db->prepare("
+                        SELECT t.*, tt.name as ticket_type, t.id as ticket_code
+                        FROM tickets t
+                        LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+                        WHERE t.event_id = :event_id AND (t.status_detail LIKE :ref OR t.id = :t_id)
+                        ORDER BY t.id ASC
+                    ");
+                    $tStmt->execute([
+                        'event_id' => $ticket['event_id'],
+                        'ref' => '%' . $ref . '%',
+                        't_id' => $ticket['id']
+                    ]);
+                    $found = $tStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    if (!empty($found)) {
+                        foreach ($found as $tItem) {
+                            $ticketsToSend[] = [
+                                'ticket_code' => $tItem['ticket_code'] ?? $tItem['id'],
+                                'attendee_name' => $tItem['attendee_name'] ?? $ticket['attendee_name'],
+                                'ticket_type' => $tItem['ticket_type'] ?? 'Standard Admission',
+                                'price' => (float)($tItem['price'] ?? 0),
+                                'status' => $tItem['status'] ?? 'Paid',
+                                'checked_in' => !empty($tItem['checked_in'])
+                            ];
+                        }
+                    }
+                }
+
+                if (empty($ticketsToSend)) {
+                    $ticketsToSend[] = [
+                        'ticket_code' => $ticket['id'],
+                        'attendee_name' => $ticket['attendee_name'] ?? 'Attendee',
+                        'ticket_type' => $ticket['ticket_type'] ?? 'Standard Admission',
+                        'price' => (float)($ticket['price'] ?? 0),
+                        'status' => $ticket['status'] ?? 'Paid',
+                        'checked_in' => !empty($ticket['checked_in'])
+                    ];
+                }
+
+                // Fetch any add-on merchandise for this buyer/attendee
+                $addonStmt = $db->prepare("
+                    SELECT oa.*, ea.name as addon_name, ea.description as addon_desc, ea.image as addon_image
+                    FROM order_addons oa
+                    JOIN event_addons ea ON ea.id = oa.addon_id
+                    WHERE oa.event_id = :event_id AND LOWER(oa.buyer_email) = :email
+                    ORDER BY oa.id ASC
+                ");
+                $addonStmt->execute([
+                    'event_id' => $ticket['event_id'],
+                    'email' => strtolower($attendeeEmail)
+                ]);
+                $addons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+                // Calculate total
+                $totalAmount = 0.0;
+                foreach ($ticketsToSend as $tItem) {
+                    $totalAmount += (float)($tItem['price'] ?? 0);
+                }
+                foreach ($addons as $addonItem) {
+                    $totalAmount += (float)($addonItem['total_price'] ?? 0);
+                }
+
+                $emailParams = [
+                    'attendee_name' => $ticket['attendee_name'] ?? 'Valued Guest',
+                    'event_name' => $evName,
+                    'event_date' => $evDate,
+                    'event_location' => $evLocation,
+                    'payment_method' => $payMethod,
+                    'total_amount' => $totalAmount,
+                    'tickets' => $ticketsToSend,
+                    'addons' => $addons,
+                    'is_issued' => $isIssued,
+                ];
+
+                $emailSubject = 'Your Admission Pass - ' . $evName;
+                $queueRef = 'RESEND-TKT-' . $ticket['id'] . '-' . time();
+                $queued = false;
+
+                try {
+                    \Ace\EmailQueue::queue(
+                        $attendeeEmail,
+                        $emailSubject,
+                        'emails/ticket_confirmation',
+                        $emailParams,
+                        $queueRef,
+                        1 // High priority for manual host resend
+                    );
+                    \Ace\EmailQueue::processAfterResponse();
+                    $queued = true;
+                } catch (\Throwable $qErr) {
+                    error_log("EmailQueue failed for ticket {$ticket['id']}: " . $qErr->getMessage());
+                    // Fallback to direct send if queue fails
+                    try {
+                        $sent = \Ace\Mail::send(
+                            $attendeeEmail,
+                            $emailSubject,
+                            'emails/ticket_confirmation',
+                            $emailParams
+                        );
+                        $queued = $sent;
+                    } catch (\Throwable $mailErr) {
+                        error_log("Direct Mail::send also failed for ticket {$ticket['id']}: " . $mailErr->getMessage());
+                        $queued = false;
+                    }
+                }
+
+                if (!$queued) {
+                    $errMsg = 'Failed to queue or send ticket email. Please check mail configuration.';
+                    if (!$isJson) {
+                        Application::$app->session->setFlash('error', $errMsg);
+                        return $tabRedirect ? redirect($tabRedirect) : back();
+                    }
+                    return Application::$app->response->json(['success' => false, 'message' => $errMsg], 500);
+                }
+
+                $msg = 'Ticket pass email successfully queued for ' . $attendeeEmail . '!';
+                if (!$isJson) {
+                    Application::$app->session->setFlash('success', $msg);
+                    return $tabRedirect ? redirect($tabRedirect) : back();
+                }
+                return Application::$app->response->json(['success' => true, 'message' => $msg]);
+
             } catch (\Exception $e) {
                 error_log("Failed to resend ticket email: " . $e->getMessage());
+                $errMsg = 'Error dispatching ticket email: ' . $e->getMessage();
+                if (!$isJson) {
+                    Application::$app->session->setFlash('error', $errMsg);
+                    return $tabRedirect ? redirect($tabRedirect) : back();
+                }
+                return Application::$app->response->json(['success' => false, 'message' => $errMsg], 500);
             }
-
-            $msg = 'Ticket successfully resent to ' . $ticket['attendee_email'];
-            if (!$isJson) {
-                Application::$app->session->setFlash('success', $msg);
-                return $tabRedirect ? redirect($tabRedirect) : back();
-            }
-            return Application::$app->response->json(['success' => true, 'message' => $msg]);
         }
 
         if ($action === 'refund') {

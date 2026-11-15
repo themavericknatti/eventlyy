@@ -209,6 +209,10 @@ class EmailQueue
             } else {
                 // Apache/mod_php: flush output and send Connection: close
                 if (!headers_sent()) {
+                    $size = ob_get_length();
+                    if ($size !== false && $size > 0) {
+                        header('Content-Length: ' . $size);
+                    }
                     header('Connection: close');
                 }
                 // Flush all output buffers

@@ -34,14 +34,14 @@ class CsrfMiddleware extends Middleware
             }
 
             $body = $request->getBody();
-            $submittedToken = $body['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            $submittedToken = $body['csrf_token'] ?? $body['_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 
             if (empty($submittedToken)) {
                 $rawInput = file_get_contents('php://input');
                 if (!empty($rawInput)) {
                     $jsonData = json_decode($rawInput, true);
-                    if (is_array($jsonData) && isset($jsonData['csrf_token'])) {
-                        $submittedToken = $jsonData['csrf_token'];
+                    if (is_array($jsonData)) {
+                        $submittedToken = $jsonData['csrf_token'] ?? $jsonData['_token'] ?? '';
                     }
                 }
             }
