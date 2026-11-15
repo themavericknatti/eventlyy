@@ -146,7 +146,12 @@ class AdminEventService
             FROM events e
             INNER JOIN users u ON e.organizer_id = u.id
             WHERE {$whereClause}
-            ORDER BY e.created_at DESC
+            ORDER BY 
+                CASE 
+                    WHEN e.status != 'completed' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR THEN 0
+                    ELSE 1
+                END ASC,
+                e.date DESC
         ");
         $stmt->execute($params);
         $events = $stmt->fetchAll() ?: [];
