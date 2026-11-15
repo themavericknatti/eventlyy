@@ -17628,6 +17628,12 @@ button[type="submit"]:disabled,
 }
 
 /* ── Vintage Support Bureau Components (.vn-sp-*) ─────────────────────────── */
+.vn-sp-section {
+    margin-bottom: 4rem;
+}
+.vn-sp-section--last {
+    margin-bottom: 2rem;
+}
 .vn-sp-section-head {
     text-align: center;
     margin-bottom: 2.5rem;
@@ -17869,6 +17875,10 @@ button[type="submit"]:disabled,
     color: var(--vn-ink-muted);
     font-size: 0.9rem;
     margin: 0 0 1.5rem;
+}
+.vn-sp-form-fields {
+    display: grid;
+    gap: 1.25rem;
 }
 .vn-sp-form-card label {
     display: block;
@@ -18759,7 +18769,8 @@ button[type="submit"]:disabled,
 @media (max-width: 960px) {
     .vn-ab-hero-grid,
     .vn-lg-layout,
-    .vn-sp-grid {
+    .vn-sp-grid,
+    .vn-sp-contact-grid {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
@@ -19094,12 +19105,257 @@ button[type="submit"]:disabled,
     }
 }
 
-/* ── 12. Vintage Legal Codex Responsive Suite (.legal-codex-page / .vn-lg-*) ── */
+/* ── 12. Vintage Legal Codex & Support Bureau Responsive Suite (.legal-codex-page / .vn-lg-* / .vn-sp-*) ── */
 @media (max-width: 768px) {
     .container.legal-codex-page,
-    .container:has(.vn-lg-wrapper) {
+    .container:has(.vn-lg-wrapper),
+    .container:has(.vn-sp-wrapper) {
         padding-left: 8px !important;
         padding-right: 8px !important;
+    }
+
+    /* ── Vintage Support Page Responsive Overhaul (.vn-sp-*) ── */
+    .vn-sp-wrapper {
+        padding: 0.35rem 0 3.5rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: clip;
+    }
+
+    .vn-sp-hero {
+        padding: 1.5rem 1rem 1.65rem !important;
+        border-radius: 14px !important;
+        margin-bottom: 1.75rem !important;
+        box-sizing: border-box !important;
+    }
+
+    .vn-sp-title {
+        font-size: clamp(1.65rem, 6.5vw, 2.25rem) !important;
+        line-height: 1.2 !important;
+        margin: 0.4rem 0 0.65rem !important;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .vn-sp-lead {
+        font-size: 0.92rem !important;
+        line-height: 1.55 !important;
+        padding: 0 0.25rem;
+    }
+
+    .vn-sp-section {
+        margin-bottom: 2rem !important;
+    }
+
+    .vn-sp-section-head {
+        margin-bottom: 1.5rem !important;
+        padding: 0 0.5rem;
+    }
+
+    .vn-sp-section-title {
+        font-size: clamp(1.4rem, 5.5vw, 1.85rem) !important;
+        line-height: 1.25 !important;
+        margin: 0.4rem 0 0.4rem !important;
+    }
+
+    .vn-sp-section-lead {
+        font-size: 0.88rem !important;
+        line-height: 1.55 !important;
+    }
+
+    /* Quick Help Cards */
+    .vn-sp-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+        margin-bottom: 2.25rem !important;
+    }
+
+    .vn-sp-card {
+        padding: 1.25rem 1.15rem !important;
+        border-radius: 14px !important;
+        box-sizing: border-box !important;
+    }
+
+    .vn-sp-card-icon {
+        width: 42px !important;
+        height: 42px !important;
+        margin-bottom: 0.85rem !important;
+        border-radius: 10px !important;
+    }
+
+    .vn-sp-card-title {
+        font-size: 1.22rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    .vn-sp-card-desc {
+        font-size: 0.88rem !important;
+        line-height: 1.55 !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .vn-sp-card-link {
+        font-size: 0.85rem !important;
+    }
+
+    /* Opportunities / Involvement Grid */
+    .vn-sp-involve-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+        margin-bottom: 2.25rem !important;
+    }
+
+    .vn-sp-involve-card {
+        padding: 1.25rem 1.15rem !important;
+        border-radius: 14px !important;
+        box-sizing: border-box !important;
+    }
+
+    .vn-sp-involve-icon {
+        width: 42px !important;
+        height: 42px !important;
+        margin-bottom: 0.85rem !important;
+        border-radius: 10px !important;
+    }
+
+    .vn-sp-involve-title {
+        font-size: 1.22rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    .vn-sp-involve-desc {
+        font-size: 0.88rem !important;
+        line-height: 1.55 !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .vn-sp-involve-details {
+        gap: 0.35rem !important;
+        margin-bottom: 1.15rem !important;
+    }
+
+    .vn-sp-involve-tag {
+        font-size: 0.72rem !important;
+        padding: 0.25rem 0.55rem !important;
+    }
+
+    .vn-sp-involve-btn {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.88rem !important;
+        justify-content: center !important;
+    }
+
+    /* FAQs */
+    .vn-sp-faq-list {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 2.25rem !important;
+        gap: 0.65rem !important;
+    }
+
+    .vn-sp-faq-item {
+        border-radius: 12px !important;
+    }
+
+    .vn-sp-faq-item summary {
+        font-size: 0.98rem !important;
+        padding: 0.95rem 1.05rem !important;
+        line-height: 1.4 !important;
+        gap: 0.65rem !important;
+    }
+
+    .vn-sp-faq-body {
+        padding: 0 1.05rem 1.05rem !important;
+        font-size: 0.88rem !important;
+        line-height: 1.6 !important;
+    }
+
+    /* Contact & Form Grid */
+    .vn-sp-contact-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .vn-sp-contact-info {
+        padding: 1.25rem 1.15rem !important;
+        border-radius: 14px !important;
+        box-sizing: border-box !important;
+    }
+
+    .vn-sp-contact-info h2 {
+        font-size: 1.45rem !important;
+        line-height: 1.25 !important;
+        margin: 0.4rem 0 0.65rem !important;
+    }
+
+    .vn-sp-contact-info p {
+        font-size: 0.88rem !important;
+        line-height: 1.55 !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    .vn-sp-channel {
+        padding: 0.75rem 0.85rem !important;
+        border-radius: 10px !important;
+        gap: 0.75rem !important;
+    }
+
+    .vn-sp-channel-icon {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+    }
+
+    .vn-sp-channel-content {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .vn-sp-channel-content strong {
+        font-size: 0.74rem !important;
+    }
+
+    .vn-sp-channel-content a {
+        font-size: 0.88rem !important;
+        word-break: break-all;
+    }
+
+    .vn-sp-form-card {
+        padding: 1.25rem 1.15rem !important;
+        border-radius: 14px !important;
+        box-sizing: border-box !important;
+    }
+
+    .vn-sp-form-card h3 {
+        font-size: 1.35rem !important;
+        margin-bottom: 0.3rem !important;
+    }
+
+    .vn-sp-form-card p {
+        font-size: 0.85rem !important;
+        margin-bottom: 1.15rem !important;
+    }
+
+    .vn-sp-form-card label {
+        font-size: 0.82rem !important;
+    }
+
+    .vn-sp-form-card input,
+    .vn-sp-form-card select,
+    .vn-sp-form-card textarea {
+        padding: 0.75rem 0.85rem !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+    }
+
+    .vn-sp-dispatch-btn {
+        height: 46px !important;
+        font-size: 0.9rem !important;
+        width: 100% !important;
     }
 
     .vn-lg-wrapper {
@@ -19276,9 +19532,43 @@ button[type="submit"]:disabled,
 
 @media (max-width: 480px) {
     .container.legal-codex-page,
-    .container:has(.vn-lg-wrapper) {
+    .container:has(.vn-lg-wrapper),
+    .container:has(.vn-sp-wrapper) {
         padding-left: 5px !important;
         padding-right: 5px !important;
+    }
+
+    /* Support Bureau Phone Tier */
+    .vn-sp-wrapper {
+        padding: 0.15rem 0 3rem !important;
+    }
+
+    .vn-sp-hero {
+        padding: 1.15rem 0.75rem 1.25rem !important;
+        border-radius: 12px !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    .vn-sp-title {
+        font-size: clamp(1.45rem, 6.2vw, 1.85rem) !important;
+    }
+
+    .vn-sp-card,
+    .vn-sp-involve-card,
+    .vn-sp-contact-info,
+    .vn-sp-form-card {
+        padding: 1.1rem 0.85rem !important;
+        border-radius: 12px !important;
+    }
+
+    .vn-sp-faq-item summary {
+        font-size: 0.92rem !important;
+        padding: 0.85rem 0.85rem !important;
+    }
+
+    .vn-sp-faq-body {
+        padding: 0 0.85rem 0.85rem !important;
+        font-size: 0.85rem !important;
     }
 
     .vn-lg-wrapper {

@@ -92,7 +92,7 @@ $supportEmail = site_setting('support_email', 'support@eventlyy.com');
     </section>
 
     <!-- ═══ Get Involved — Opportunities Grid ═══ -->
-    <section style="margin-bottom: 4rem;">
+    <section class="vn-sp-section">
         <div class="vn-sp-section-head">
             <span class="vn-badge">Fellowship &amp; Alliance</span>
             <h2 class="vn-sp-section-title">Champion the <?= e($siteName) ?> Mission</h2>
@@ -197,7 +197,7 @@ $supportEmail = site_setting('support_email', 'support@eventlyy.com');
     </section>
 
     <!-- ═══ FAQ Section ═══ -->
-    <section id="faq-section" style="margin-bottom: 4rem;">
+    <section id="faq-section" class="vn-sp-section">
         <div class="vn-sp-section-head">
             <span class="vn-badge">Knowledge Archives</span>
             <h2 class="vn-sp-section-title">Frequently Consulted Inquiries</h2>
@@ -250,7 +250,7 @@ $supportEmail = site_setting('support_email', 'support@eventlyy.com');
     </section>
 
     <!-- ═══ Contact Form Section ═══ -->
-    <section style="margin-bottom: 2rem;">
+    <section class="vn-sp-section vn-sp-section--last">
         <div class="vn-sp-contact-grid">
             <div class="vn-sp-contact-info">
                 <span class="vn-badge">Dispatch Office</span>
@@ -287,7 +287,7 @@ $supportEmail = site_setting('support_email', 'support@eventlyy.com');
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="send_support_message" />
                     
-                    <div style="display: grid; gap: 1.25rem;">
+                    <div class="vn-sp-form-fields">
                         <div>
                             <label for="contact-name">Full Name</label>
                             <input type="text" name="name" id="contact-name" placeholder="Your full name" required value="<?= e($usrName) ?>" autocomplete="name" />
