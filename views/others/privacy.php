@@ -9,7 +9,7 @@
  * @package Eventlyy
  * @subpackage Views/Privacy
  * @author Celio Natti
- * @version 4.0.0
+ * @version 5.0.0
  */
 
 $siteName = $siteName ?? site_setting('site_title', 'Eventlyy');
@@ -39,6 +39,7 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
             <div class="vn-lg-tabs">
                 <a href="{{ route('terms') }}" class="vn-lg-tab">Terms of Service</a>
                 <a href="{{ route('privacy') }}" class="vn-lg-tab active">Privacy Policy</a>
+                <a href="{{ route('guide') }}" class="vn-lg-tab">Platform Guide</a>
             </div>
         </div>
 
@@ -49,9 +50,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
         <h1 class="vn-lg-title">Privacy Policy &amp; How We Handle Your Data</h1>
 
         <div class="vn-lg-meta">
-            <span class="vn-lg-meta-item">📅 Last refreshed: November 14, 2026</span>
+            <span class="vn-lg-meta-item">📅 Last refreshed: November 15, 2026</span>
             <span class="vn-lg-meta-item">&bull;</span>
-            <span class="vn-lg-meta-item">⏱️ ~7 min read</span>
+            <span class="vn-lg-meta-item">⏱️ ~10 min read</span>
             <span class="vn-lg-meta-item">&bull;</span>
             <span class="vn-lg-meta-item">🌐 <?= e($siteName) ?> Community</span>
         </div>
@@ -74,6 +75,10 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <strong>💳 Payments Stay Locked</strong>
                     <span>Your card details are handled by Paystack (PCI-DSS certified). We never see, touch, or store your raw card numbers.</span>
                 </div>
+                <div class="vn-lg-summary-card">
+                    <strong>📱 WhatsApp? Only What You Need</strong>
+                    <span>If we send your ticket via WhatsApp, we use your phone number for delivery only. We don't read your messages, access contacts, or keep message history.</span>
+                </div>
             </div>
         </div>
     </header>
@@ -85,7 +90,7 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
         <aside class="vn-lg-toc">
             <div class="vn-lg-toc-title">
                 <span>Jump To Section</span>
-                <span style="font-size: 0.85rem; color: var(--vn-brass); font-family: var(--vn-font-serif); font-style: italic;">§ 1–14</span>
+                <span style="font-size: 0.85rem; color: var(--vn-brass); font-family: var(--vn-font-serif); font-style: italic;">§ 1–15</span>
             </div>
             <ul class="vn-lg-toc-list">
                 <li><a href="#section-1" class="vn-lg-toc-link">§ 1. Introduction</a></li>
@@ -96,12 +101,13 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 <li><a href="#section-6" class="vn-lg-toc-link">§ 6. Payment Security</a></li>
                 <li><a href="#section-7" class="vn-lg-toc-link">§ 7. Layaway &amp; Payment Data</a></li>
                 <li><a href="#section-8" class="vn-lg-toc-link">§ 8. QR Codes &amp; Check-In</a></li>
-                <li><a href="#section-9" class="vn-lg-toc-link">§ 9. Cookies &amp; Sessions</a></li>
-                <li><a href="#section-10" class="vn-lg-toc-link">§ 10. How Long We Keep Data</a></li>
-                <li><a href="#section-11" class="vn-lg-toc-link">§ 11. Your Rights</a></li>
-                <li><a href="#section-12" class="vn-lg-toc-link">§ 12. Children &amp; Minors</a></li>
-                <li><a href="#section-13" class="vn-lg-toc-link">§ 13. Updates to This Policy</a></li>
-                <li><a href="#section-14" class="vn-lg-toc-link">§ 14. Contact Us</a></li>
+                <li><a href="#section-9" class="vn-lg-toc-link">§ 9. WhatsApp &amp; Messaging Data</a></li>
+                <li><a href="#section-10" class="vn-lg-toc-link">§ 10. Cookies &amp; Sessions</a></li>
+                <li><a href="#section-11" class="vn-lg-toc-link">§ 11. How Long We Keep Data</a></li>
+                <li><a href="#section-12" class="vn-lg-toc-link">§ 12. Your Rights</a></li>
+                <li><a href="#section-13" class="vn-lg-toc-link">§ 13. Children &amp; Minors</a></li>
+                <li><a href="#section-14" class="vn-lg-toc-link">§ 14. Updates to This Policy</a></li>
+                <li><a href="#section-15" class="vn-lg-toc-link">§ 15. Contact Us</a></li>
             </ul>
         </aside>
 
@@ -134,7 +140,11 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <li><strong>Account registration:</strong> Your name, email address, phone number, and a password (which we store as a secure hash — we never see or store your actual password).</li>
                     <li><strong>Event hosting:</strong> Your organization/brand name, event details (title, description, dates, location, ticket tiers, pricing), and bank account info (10-digit NUBAN) for payouts.</li>
                     <li><strong>Ticket purchases:</strong> Your name and email (used for ticket delivery and confirmation).</li>
+                    <li><strong>Phone numbers:</strong> We collect phone numbers for WhatsApp ticket delivery (only when the attendee opts in or the host enables WhatsApp delivery).</li>
                     <li><strong>Layaway payments:</strong> Transaction records for each installment payment you make toward a layaway ticket.</li>
+                    <li><strong>Guest performer info:</strong> Hosts provide guest performer details (name, role, phone, social handles) which we display on the event page.</li>
+                    <li><strong>Feedback responses:</strong> If an attendee submits post-event feedback (rating, review text), we collect and store that.</li>
+                    <li><strong>Team member data:</strong> Staff login credentials (staff code), role, and workstation activity logs.</li>
                     <li><strong>Support requests:</strong> Any info you include when you email us or submit a support request.</li>
                 </ul>
 
@@ -143,7 +153,8 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <li><strong>Device &amp; browser info:</strong> Your IP address, browser type, operating system, and device type.</li>
                     <li><strong>Usage data:</strong> Pages you visit, events you view, and actions you take on the platform.</li>
                     <li><strong>Check-in data:</strong> When your QR code is scanned at an event, we record the scan timestamp and entry status.</li>
-                    <li><strong>Referral data:</strong> If you arrive through a referral link, we track that referral for attribution purposes.</li>
+                    <li><strong>Referral tracking data:</strong> When users share referral links, we track clicks and conversions for attribution.</li>
+                    <li><strong>WhatsApp delivery data:</strong> If a ticket is sent via WhatsApp, we process the recipient's phone number through WhatsApp's API. We do NOT store WhatsApp message content.</li>
                 </ul>
 
                 <div class="vn-lg-callout vn-lg-callout--forest">
@@ -167,10 +178,17 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <li><strong>Processing tickets:</strong> Generating your tickets, issuing QR codes, and sending confirmation emails.</li>
                     <li><strong>Processing payments:</strong> Handling ticket purchases, layaway installments, promo code discounts, and host payouts through Paystack.</li>
                     <li><strong>Managing layaway:</strong> Tracking your partial payments, sending payment reminders, notifying you when layaway is complete, and converting expired layaway to event credits.</li>
+                    <li><strong>WhatsApp ticket delivery:</strong> Sending ticket QR passes and event-day alerts via WhatsApp (CallMeBot or similar API).</li>
+                    <li><strong>Event day operations:</strong> Sending event reminders and day-of alerts with venue details.</li>
                     <li><strong>Event check-in:</strong> Verifying your ticket at the door via QR scan and preventing duplicate entries.</li>
+                    <li><strong>Team workstation access:</strong> Authenticating and authorizing event staff for their assigned roles.</li>
                     <li><strong>Ticket transfers:</strong> Facilitating ticket transfers between users when requested.</li>
                     <li><strong>Email communications:</strong> Sending you ticket confirmations, layaway updates, payment receipts, event reminders, and important platform announcements.</li>
                     <li><strong>Referral tracking:</strong> Attributing ticket sales to referral links so hosts can track their marketing.</li>
+                    <li><strong>Accounting and financial reporting:</strong> Generating host accounting reports and CSV exports.</li>
+                    <li><strong>Order recovery:</strong> Allowing buyers to self-recover lost orders using their payment reference.</li>
+                    <li><strong>Feedback collection:</strong> Gathering attendee feedback to help hosts improve future events.</li>
+                    <li><strong>Flyer page hosting:</strong> Hosting branded event flyer pages for social media sharing.</li>
                     <li><strong>Platform improvement:</strong> Understanding how people use <?= e($siteName) ?> so we can make it better.</li>
                     <li><strong>Safety &amp; security:</strong> Detecting fraud, preventing abuse, and protecting the platform and its users.</li>
                     <li><strong>Legal compliance:</strong> Meeting our obligations under Nigerian law, including tax and financial reporting requirements.</li>
@@ -199,8 +217,11 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 </p>
                 <ul class="vn-lg-list">
                     <li><strong>Event hosts:</strong> When you buy a ticket, the host gets your name, email, ticket tier, and check-in status — that's it. They need this to verify your entry and send event updates.</li>
+                    <li><strong>Event staff/team members:</strong> Staff with assigned roles (Security, Coordinator, Support, etc.) can see attendee names, ticket types, and check-in status during events — nothing more.</li>
                     <li><strong>Paystack:</strong> Our payment processor handles all financial transactions. They receive the payment info needed to process your purchase securely.</li>
                     <li><strong>Email service provider:</strong> We use email services to send you transactional emails (ticket confirmations, layaway updates, receipts). They process your email address to deliver messages on our behalf.</li>
+                    <li><strong>WhatsApp API provider:</strong> When tickets are sent via WhatsApp, the phone number and message content are processed by the WhatsApp messaging API provider. They handle delivery only.</li>
+                    <li><strong>Attendee feedback:</strong> Feedback submitted by attendees is visible to the event host. It may be displayed publicly if the host enables reviews on their event page.</li>
                     <li><strong>Law enforcement:</strong> We will share data if we're legally required to do so by a valid court order, subpoena, or legal process under Nigerian law.</li>
                 </ul>
 
@@ -256,12 +277,39 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <li>This data is used to prevent duplicate entries — one scan per ticket, no exceptions.</li>
                     <li>Event hosts can see the check-in status of their attendees through their host dashboard.</li>
                     <li>Check-in data is retained as part of the event record and is subject to our standard data retention practices.</li>
+                    <li>QR codes are also accessible via a web-based ticket pass page (<code>/pass/{code}</code>).</li>
+                    <li>Ticket passes include: event name, date, venue, ticket tier, admits count, and the QR code.</li>
+                    <li>Check-in records include: scanner identity (staff member or host), timestamp, and admission count.</li>
                 </ul>
             </section>
 
-            <!-- § 9 — Cookies -->
+            <!-- § 9 — WhatsApp & Messaging Data -->
             <section class="vn-lg-section" id="section-9">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 9.</span> Cookies &amp; Sessions</h2>
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 9.</span> WhatsApp &amp; Messaging Data</h2>
+                <p class="vn-lg-text">
+                    If WhatsApp delivery is enabled for an event, here's exactly how we handle your messaging data:
+                </p>
+                <ul class="vn-lg-list">
+                    <li>When WhatsApp delivery is used, we send the attendee's ticket details and QR pass link via WhatsApp.</li>
+                    <li>Phone numbers are formatted to <strong>E.164 international format</strong> for delivery.</li>
+                    <li>We do <strong>NOT</strong> read WhatsApp messages, access contacts, or retain message history beyond delivery status.</li>
+                    <li>Hosts can trigger event-day WhatsApp alerts that include venue info and pass links.</li>
+                    <li>WhatsApp delivery is optional and supplementary to email — it never replaces email as the primary delivery channel.</li>
+                </ul>
+
+                <div class="vn-lg-callout vn-lg-callout--amber">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+                    </svg>
+                    <div>
+                        <strong>WhatsApp is delivery-only:</strong> We use WhatsApp solely to deliver ticket passes and event-day alerts. We never use it for marketing, never access your contact list, and never store message content beyond confirming delivery status.
+                    </div>
+                </div>
+            </section>
+
+            <!-- § 10 — Cookies -->
+            <section class="vn-lg-section" id="section-10">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 10.</span> Cookies &amp; Sessions</h2>
                 <p class="vn-lg-text">
                     We use cookies — but only the necessary kind. Here's what's running:
                 </p>
@@ -276,9 +324,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 10 — Data Retention -->
-            <section class="vn-lg-section" id="section-10">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 10.</span> How Long We Keep Your Data</h2>
+            <!-- § 11 — Data Retention -->
+            <section class="vn-lg-section" id="section-11">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 11.</span> How Long We Keep Your Data</h2>
                 <p class="vn-lg-text">
                     We don't keep your data forever. Here's the breakdown:
                 </p>
@@ -287,6 +335,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <li><strong>Transaction records:</strong> Kept for <strong>6 years</strong> after the transaction to comply with Nigerian tax and financial record-keeping laws.</li>
                     <li><strong>Layaway records:</strong> Kept for the layaway period plus 12 months for dispute resolution, then anonymized or deleted.</li>
                     <li><strong>Check-in logs:</strong> Kept for 12 months after the event, then deleted.</li>
+                    <li><strong>Feedback data:</strong> Kept for the lifetime of the event listing, then anonymized.</li>
+                    <li><strong>Team/staff records:</strong> Kept for 12 months after the event, then deleted.</li>
+                    <li><strong>WhatsApp delivery logs:</strong> Kept for 30 days for troubleshooting, then deleted.</li>
                     <li><strong>Support emails:</strong> Kept for 24 months after your issue is resolved.</li>
                 </ul>
                 <p class="vn-lg-text">
@@ -294,9 +345,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 11 — Your Rights -->
-            <section class="vn-lg-section" id="section-11">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 11.</span> Your Rights Under the NDPA</h2>
+            <!-- § 12 — Your Rights -->
+            <section class="vn-lg-section" id="section-12">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 12.</span> Your Rights Under the NDPA</h2>
                 <p class="vn-lg-text">
                     Under the Nigeria Data Protection Act (NDPA) 2023, you have real rights over your data. Here they are:
                 </p>
@@ -314,9 +365,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 12 — Children -->
-            <section class="vn-lg-section" id="section-12">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 12.</span> Children &amp; Minors</h2>
+            <!-- § 13 — Children -->
+            <section class="vn-lg-section" id="section-13">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 13.</span> Children &amp; Minors</h2>
                 <p class="vn-lg-text">
                     <?= e($siteName) ?> is designed for users aged <strong>16 and above</strong>. We do not knowingly collect personal data from anyone under 16 without verified parental or guardian consent.
                 </p>
@@ -325,9 +376,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 13 — Updates -->
-            <section class="vn-lg-section" id="section-13">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 13.</span> Updates to This Policy</h2>
+            <!-- § 14 — Updates -->
+            <section class="vn-lg-section" id="section-14">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 14.</span> Updates to This Policy</h2>
                 <p class="vn-lg-text">
                     We may update this Privacy Policy from time to time — to reflect new features (like layaway), legal requirements, or better ways of explaining things. When we do:
                 </p>
@@ -338,9 +389,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                 </ul>
             </section>
 
-            <!-- § 14 — Contact -->
-            <section class="vn-lg-section" id="section-14">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 14.</span> Contact Us</h2>
+            <!-- § 15 — Contact -->
+            <section class="vn-lg-section" id="section-15">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 15.</span> Contact Us</h2>
                 <p class="vn-lg-text">
                     Got questions about your data, want to exercise your rights, or just curious about how we handle things? We're here:
                 </p>

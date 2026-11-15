@@ -156,4 +156,18 @@ class HomeController extends Controller
             'supportEmail' => $supportEmail,
         ]);
     }
+    /**
+     * Render the platform guide page
+     */
+    public function guide(Request $request): string
+    {
+        $siteName = site_setting('site_title', 'Eventlyy');
+        $supportEmail = site_setting('support_email', 'support@eventlyy.com');
+
+        return $this->render('others/guide', [
+            'title' => 'Platform Guide - ' . $siteName,
+            'siteName' => $siteName,
+            'supportEmail' => $supportEmail,
+        ]);
+    }
 }

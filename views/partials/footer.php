@@ -178,6 +178,7 @@ $restOfTitle = mb_substr($siteTitle, 1);
         <div class="footer-section">
             <h4>Legal &amp; Help</h4>
             <nav>
+                <a href="{{ route('guide') }}">Platform Guide</a>
                 <a href="{{ route('privacy') }}">Privacy Policy</a>
                 <a href="{{ route('terms') }}">Terms of Service</a>
                 <a href="{{ route('support') }}">Help &amp; Support</a>

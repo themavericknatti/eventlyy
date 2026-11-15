@@ -9,7 +9,7 @@
  * @package Eventlyy
  * @subpackage Views/Terms
  * @author Celio Natti
- * @version 4.0.0
+ * @version 5.0.0
  */
 
 $siteName = $siteName ?? site_setting('site_title', 'Eventlyy');
@@ -39,6 +39,7 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
             <div class="vn-lg-tabs">
                 <a href="{{ route('terms') }}" class="vn-lg-tab active">Terms of Service</a>
                 <a href="{{ route('privacy') }}" class="vn-lg-tab">Privacy Policy</a>
+                <a href="{{ route('guide') }}" class="vn-lg-tab">Platform Guide</a>
             </div>
         </div>
 
@@ -49,9 +50,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
         <h1 class="vn-lg-title">Terms of Service &amp; Community Guidelines</h1>
 
         <div class="vn-lg-meta">
-            <span class="vn-lg-meta-item">📅 Last refreshed: November 14, 2026</span>
+            <span class="vn-lg-meta-item">📅 Last refreshed: November 15, 2026</span>
             <span class="vn-lg-meta-item">&bull;</span>
-            <span class="vn-lg-meta-item">⏱️ ~8 min read</span>
+            <span class="vn-lg-meta-item">⏱️ ~12 min read</span>
             <span class="vn-lg-meta-item">&bull;</span>
             <span class="vn-lg-meta-item">🌐 <?= e($siteName) ?> Community</span>
         </div>
@@ -85,7 +86,7 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
         <aside class="vn-lg-toc">
             <div class="vn-lg-toc-title">
                 <span>Jump To Section</span>
-                <span style="font-size: 0.85rem; color: var(--vn-brass); font-family: var(--vn-font-serif); font-style: italic;">§ 1–18</span>
+                <span style="font-size: 0.85rem; color: var(--vn-brass); font-family: var(--vn-font-serif); font-style: italic;">§ 1–24</span>
             </div>
             <ul class="vn-lg-toc-list">
                 <li><a href="#section-1" class="vn-lg-toc-link">§ 1. Agreement to Terms</a></li>
@@ -99,15 +100,19 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 <li><a href="#section-9" class="vn-lg-toc-link">§ 9. Ticket Transfers</a></li>
                 <li><a href="#section-10" class="vn-lg-toc-link">§ 10. Promo Codes &amp; Referrals</a></li>
                 <li><a href="#section-11" class="vn-lg-toc-link">§ 11. Host Payouts</a></li>
-                <li><a href="#section-12" class="vn-lg-toc-link">§ 12. Prohibited Content</a></li>
-                <li><a href="#section-13" class="vn-lg-toc-link">§ 13. Intellectual Property</a></li>
-                <li><a href="#section-14" class="vn-lg-toc-link">§ 14. Limitation of Liability</a></li>
-                <li><a href="#section-15" class="vn-lg-toc-link">§ 15. Indemnification</a></li>
-                <li><a href="#section-16" class="vn-lg-toc-link">§ 16. Force Majeure</a></li>
-                <li><a href="#section-17" class="vn-lg-toc-link">§ 17. Governing Law (Nigeria)</a></li>
-                <li><a href="#section-18" class="vn-lg-toc-link">§ 18. Account Termination</a></li>
-                <li><a href="#section-19" class="vn-lg-toc-link">§ 19. Changes to These Terms</a></li>
-                <li><a href="#section-20" class="vn-lg-toc-link">§ 20. Contact Us</a></li>
+                <li><a href="#section-12" class="vn-lg-toc-link">§ 12. Event Day Operations</a></li>
+                <li><a href="#section-13" class="vn-lg-toc-link">§ 13. Team &amp; Staff Workstations</a></li>
+                <li><a href="#section-14" class="vn-lg-toc-link">§ 14. Embeddable Checkout &amp; API</a></li>
+                <li><a href="#section-15" class="vn-lg-toc-link">§ 15. Progressive Web App (PWA)</a></li>
+                <li><a href="#section-16" class="vn-lg-toc-link">§ 16. Prohibited Content</a></li>
+                <li><a href="#section-17" class="vn-lg-toc-link">§ 17. Intellectual Property</a></li>
+                <li><a href="#section-18" class="vn-lg-toc-link">§ 18. Limitation of Liability</a></li>
+                <li><a href="#section-19" class="vn-lg-toc-link">§ 19. Indemnification</a></li>
+                <li><a href="#section-20" class="vn-lg-toc-link">§ 20. Force Majeure</a></li>
+                <li><a href="#section-21" class="vn-lg-toc-link">§ 21. Governing Law (Nigeria)</a></li>
+                <li><a href="#section-22" class="vn-lg-toc-link">§ 22. Account Termination</a></li>
+                <li><a href="#section-23" class="vn-lg-toc-link">§ 23. Changes to These Terms</a></li>
+                <li><a href="#section-24" class="vn-lg-toc-link">§ 24. Contact Us</a></li>
             </ul>
         </aside>
 
@@ -173,6 +178,13 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                     <li><strong>Recurring events:</strong> If you set up recurring events, each occurrence is treated as its own event for ticketing and payment purposes.</li>
                     <li><strong>Compliance is on you:</strong> Make sure your event complies with all applicable Nigerian laws, local government regulations, and venue requirements.</li>
                     <li><strong>Bank details:</strong> To receive payouts, you need to provide valid bank account details (NUBAN). Wrong details = delayed payments, and that's on you.</li>
+                    <li><strong>Guest performers:</strong> Hosts can add guest performers and artists to their event listing — including name, role, phone number, and social media handle. You're responsible for ensuring you have permission to display any performer's information.</li>
+                    <li><strong>Auto-generated flyer page:</strong> Hosts can enable a branded flyer page for their event at <code>/f/{id}</code>, designed for social media sharing with a direct link to checkout. The flyer page uses your event details and imagery — keep them accurate.</li>
+                    <li><strong>Event duplication:</strong> Hosts can duplicate an existing event to quickly reuse settings, ticket tiers, and descriptions for a new occurrence. Each duplicated event is its own independent listing — changes to one do not affect the other.</li>
+                    <li><strong>Team staffing:</strong> Hosts can request on-the-ground event staff through the platform, including Security Scanners, Coordinators, Ushers, Support Desk, Tech Ops, and Finance Desk personnel. Staff availability is subject to <?= e($siteName) ?>'s operational capacity, and staffing requests are not guaranteed.</li>
+                    <li><strong>Custom domains:</strong> Hosts can request a custom domain for their event's checkout page. Custom domain setup and approval is handled by <?= e($siteName) ?> and subject to availability and DNS configuration requirements.</li>
+                    <li><strong>Accounting reports:</strong> Hosts get access to detailed financial accounting reports for their events — including ticket sales breakdowns, fee summaries, and payout ledgers — with CSV export for offline bookkeeping.</li>
+                    <li><strong>Fee absorption:</strong> Hosts choose whether to absorb the platform fees themselves or pass them on to attendees at checkout. Either way, the full fee breakdown is always visible to the buyer before payment.</li>
                 </ul>
             </section>
 
@@ -184,8 +196,12 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
                 <ul class="vn-lg-list">
                     <li><strong>One scan, one entry:</strong> Each QR code is unique. Once it's scanned at the door, it's marked as used — permanently. Group tickets admit the number of people specified on the ticket.</li>
+                    <li><strong>Admits count:</strong> Each ticket tier has an "admits" value — the number of people a single ticket allows entry for. For example, a VIP Table ticket might admit 5 people. The admits count is displayed on the ticket and enforced at check-in.</li>
+                    <li><strong>Max per person:</strong> Hosts can set a maximum number of tickets of a given tier that one person can purchase per order. This helps ensure fair access and prevents bulk-buying.</li>
                     <li><strong>No scalping:</strong> Reselling tickets above face value or through unauthorized channels is not allowed and will void the ticket.</li>
                     <li><strong>Host's call at the gate:</strong> The event host (or their door team) has the final say on entry. Invalid, tampered, or already-scanned tickets will be denied.</li>
+                    <li><strong>WhatsApp ticket delivery:</strong> In addition to email, tickets with QR codes can be delivered directly to your WhatsApp. WhatsApp delivery boasts a 95%+ open rate, so you're less likely to miss your ticket. Message delivery depends on a valid WhatsApp-enabled phone number being on file.</li>
+                    <li><strong>Digital Ticket Pass:</strong> Every ticket has a web-viewable Digital Ticket Pass at <code>/pass/{code}</code>. Your pass page shows your QR code, event details, venue info, and admission details — all in one place. Bookmark it, save it to your home screen, or share the link (carefully!) for easy access on event day.</li>
                 </ul>
 
                 <div class="vn-lg-callout vn-lg-callout--amber">
@@ -213,6 +229,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                     <li><strong>Who pays the fee?</strong> The host chooses whether to absorb fees or pass them to the attendee. Either way, you'll see the full breakdown before you pay.</li>
                     <li><strong>Currency:</strong> Our primary currency is Nigerian Naira (₦/NGN). Some events may also support USD, EUR, or GBP at the host's discretion, using our configured exchange rates.</li>
                     <li><strong>Free events:</strong> Free tickets have no fees. Zero. Nada.</li>
+                    <li><strong>Instant checkout:</strong> Ticket confirmation emails are processed asynchronously via a background queue, so your checkout completes instantly — no waiting around for an email before you're confirmed. Your ticket is secured the moment payment goes through.</li>
+                    <li><strong>Order recovery:</strong> Lost connection during checkout? No stress. If your payment went through but you didn't get redirected to a confirmation page, you can self-recover your order at <code>/order/verify/{reference}</code> using your payment reference. No need to contact support or worry about double charges.</li>
+                    <li><strong>Resend ticket delivery:</strong> After purchase, you can resend your ticket confirmation email or request WhatsApp delivery of your tickets at any time from your order details page. Handy if your email got buried or you switched phones.</li>
                 </ul>
             </section>
 
@@ -270,6 +289,8 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                     <li><strong>Fully paid tickets only:</strong> You can only transfer tickets that are fully paid. Layaway tickets still being paid off cannot be transferred.</li>
                     <li><strong>One transfer:</strong> Transfers are final. The new ticket holder becomes the rightful owner.</li>
                     <li><strong>Not a resale platform:</strong> Transfers are meant for genuine "can't attend" situations. Using this feature to run a resale operation is not allowed.</li>
+                    <li><strong>Email notifications:</strong> Both the sender and the recipient receive email notifications when a transfer is initiated and completed, so everyone stays in the loop.</li>
+                    <li><strong>New QR code issued:</strong> When a ticket is transferred, the original QR code is immediately invalidated and a brand-new QR code is generated for the recipient. The old code will not work at the door — this prevents the original holder from using a screenshot to sneak in after transferring.</li>
                 </ul>
             </section>
 
@@ -283,9 +304,11 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                     <li><strong>One code per checkout:</strong> You can only apply one promo code per transaction.</li>
                     <li><strong>Host's terms apply:</strong> Promo codes are created and managed by hosts. Expiry dates, usage limits, and eligible tickets are all set by the host.</li>
                     <li><strong>Non-stackable:</strong> Promo codes cannot be combined with other offers unless the host explicitly allows it.</li>
+                    <li><strong>Discount types:</strong> Hosts can create either percentage-based discounts (e.g., 20% off) or fixed-amount discounts (e.g., ₦1,000 off). Each code can have a maximum number of uses and an expiry date, after which it automatically becomes invalid.</li>
+                    <li><strong>Usage limits:</strong> Hosts set how many times a promo code can be redeemed in total. Once the limit is reached, the code stops working — even if it hasn't expired yet.</li>
                 </ul>
                 <p class="vn-lg-text">
-                    We also have a <strong>referral system</strong> — you can share referral links for events. If someone buys a ticket through your link, the host can track that referral. Referral rewards (if any) are determined entirely by the host, not by <?= e($siteName) ?>.
+                    We also have a <strong>referral system</strong> — you can share referral links for events. If someone buys a ticket through your link, the host can track that referral. Referral rewards (if any) are determined entirely by the host, not by <?= e($siteName) ?>. Referral links are trackable per event, and hosts can enable or disable referral tracking at any time from their event dashboard.
                 </p>
             </section>
 
@@ -303,9 +326,74 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </ul>
             </section>
 
-            <!-- § 12 — Prohibited Content -->
+            <!-- § 12 — Event Day Operations -->
             <section class="vn-lg-section" id="section-12">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 12.</span> Prohibited Content &amp; Behavior</h2>
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 12.</span> Event Day Operations</h2>
+                <p class="vn-lg-text">
+                    <?= e($siteName) ?> doesn't just handle ticket sales — we also provide tools to make your event day run smoothly. Here's what's available:
+                </p>
+                <ul class="vn-lg-list">
+                    <li><strong>Event reminders:</strong> Hosts can send email reminders to all ticket holders before the event. This is a great way to share last-minute updates, parking info, or just build hype. Reminder emails are sent through <?= e($siteName) ?>'s infrastructure and are subject to our anti-spam policies.</li>
+                    <li><strong>Event-day WhatsApp alerts:</strong> Hosts can send event-day WhatsApp alerts to attendees with venue information, directions, and direct links to their QR pass pages. WhatsApp alerts require attendees to have a valid WhatsApp-enabled phone number on file.</li>
+                    <li><strong>Post-event feedback:</strong> After the event wraps up, hosts can send feedback request emails to all attendees. This helps hosts improve future events and gives attendees a voice. Feedback data is owned by the host.</li>
+                    <li><strong>Ticket verification &amp; check-in:</strong> <?= e($siteName) ?> provides real-time QR code scanning for event-day check-in. The system validates the admit count on each ticket, prevents duplicate scans, and maintains a live check-in log. Hosts and their door team can see who's checked in and who hasn't, in real time.</li>
+                </ul>
+
+                <div class="vn-lg-callout vn-lg-callout--amber">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <div>
+                        <strong>Heads up for hosts:</strong> WhatsApp alerts and email reminders are communication tools — use them responsibly. Spamming attendees or sending misleading messages through these channels may result in your event being flagged or your account being reviewed.
+                    </div>
+                </div>
+            </section>
+
+            <!-- § 13 — Team & Staff Workstations -->
+            <section class="vn-lg-section" id="section-13">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 13.</span> Team &amp; Staff Workstations</h2>
+                <p class="vn-lg-text">
+                    <?= e($siteName) ?> provides a dedicated team portal for event-day staff and crew. Here's how it works:
+                </p>
+                <ul class="vn-lg-list">
+                    <li><strong>Separate login:</strong> Team members log in via a dedicated portal at <code>/teams/login</code>. This is separate from regular attendee or host accounts.</li>
+                    <li><strong>Staff roles:</strong> Each team member is assigned a specific role — <strong>Security Scanner</strong>, <strong>Coordinator</strong>, <strong>Usher</strong>, <strong>Support Desk</strong>, <strong>Tech Ops</strong>, or <strong>Finance Desk</strong>. Roles determine what actions and data each team member can access.</li>
+                    <li><strong>Specialized workstations:</strong> Each role gets a purpose-built workstation view optimized for their responsibilities. Security Scanners see the QR scanning interface; Coordinators see the event overview dashboard; Ushers manage seating and flow; Support Desk handles attendee inquiries; Tech Ops monitors technical infrastructure; and Finance Desk tracks real-time revenue and transactions.</li>
+                    <li><strong>Access &amp; accountability:</strong> Team member access is granted and revoked by the event host. All actions taken through the team portal are logged for accountability. Misuse of team access may result in removal and account action.</li>
+                </ul>
+            </section>
+
+            <!-- § 14 — Embeddable Checkout & API -->
+            <section class="vn-lg-section" id="section-14">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 14.</span> Embeddable Checkout &amp; API</h2>
+                <p class="vn-lg-text">
+                    Want to sell tickets from your own website? <?= e($siteName) ?> makes that possible:
+                </p>
+                <ul class="vn-lg-list">
+                    <li><strong>Embeddable checkout widget:</strong> Hosts can embed a checkout widget on external websites via an iframe at <code>/embed/{id}</code>. This lets attendees purchase tickets without leaving the host's site. The embedded widget is served by <?= e($siteName) ?> and subject to these Terms.</li>
+                    <li><strong>Headless JSON API:</strong> For hosts who want full control over the checkout experience, a headless JSON API is available at <code>/api/v1/events/{id}</code>. This allows custom checkout integrations with your own frontend. API usage is subject to rate limits, and all transactions processed through the API are governed by these Terms just like any other <?= e($siteName) ?> purchase.</li>
+                </ul>
+                <p class="vn-lg-text">
+                    By using the embed widget or API, you agree not to modify, intercept, or misrepresent the checkout flow, pricing, or ticket information in any way.
+                </p>
+            </section>
+
+            <!-- § 15 — Progressive Web App (PWA) -->
+            <section class="vn-lg-section" id="section-15">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 15.</span> Progressive Web App (PWA)</h2>
+                <p class="vn-lg-text">
+                    <?= e($siteName) ?> works as an installable Progressive Web App (PWA) on mobile devices. You can add it to your home screen for a native app-like experience — quick access to your tickets, events, and pass pages without needing to download anything from an app store.
+                </p>
+                <p class="vn-lg-text">
+                    The PWA experience is provided "as is" and depends on your device's browser and OS support for PWA features. Some features (like push notifications) may not be available on all devices or browsers. We don't guarantee that the PWA will function identically to the web experience on every device.
+                </p>
+            </section>
+
+            <!-- § 16 — Prohibited Content -->
+            <section class="vn-lg-section" id="section-16">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 16.</span> Prohibited Content &amp; Behavior</h2>
                 <p class="vn-lg-text">
                     Keep it clean and legal. The following are not allowed on <?= e($siteName) ?>:
                 </p>
@@ -323,9 +411,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 13 — Intellectual Property -->
-            <section class="vn-lg-section" id="section-13">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 13.</span> Intellectual Property</h2>
+            <!-- § 17 — Intellectual Property -->
+            <section class="vn-lg-section" id="section-17">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 17.</span> Intellectual Property</h2>
                 <p class="vn-lg-text">
                     Everything that makes <?= e($siteName) ?> work — the code, the design, the logo, the brand name, the UI — is our intellectual property, protected under Nigerian copyright law and applicable international treaties.
                 </p>
@@ -336,9 +424,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </ul>
             </section>
 
-            <!-- § 14 — Limitation of Liability -->
-            <section class="vn-lg-section" id="section-14">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 14.</span> Limitation of Liability</h2>
+            <!-- § 18 — Limitation of Liability -->
+            <section class="vn-lg-section" id="section-18">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 18.</span> Limitation of Liability</h2>
                 <p class="vn-lg-text">
                     To the maximum extent allowed by Nigerian law:
                 </p>
@@ -352,9 +440,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 15 — Indemnification -->
-            <section class="vn-lg-section" id="section-15">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 15.</span> Indemnification</h2>
+            <!-- § 19 — Indemnification -->
+            <section class="vn-lg-section" id="section-19">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 19.</span> Indemnification</h2>
                 <p class="vn-lg-text">
                     You agree to defend, indemnify, and hold harmless <?= e($siteName) ?>, its team, and its affiliates from any claims, damages, losses, or legal fees arising from:
                 </p>
@@ -369,17 +457,17 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 16 — Force Majeure -->
-            <section class="vn-lg-section" id="section-16">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 16.</span> Force Majeure</h2>
+            <!-- § 20 — Force Majeure -->
+            <section class="vn-lg-section" id="section-20">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 20.</span> Force Majeure</h2>
                 <p class="vn-lg-text">
                     We're not responsible for things genuinely beyond anyone's control — natural disasters, pandemics, government orders, internet outages, power failures, civil unrest, or acts of God. If something like this happens and it affects our service, we'll do our best to keep you informed, but we won't be held liable for the disruption.
                 </p>
             </section>
 
-            <!-- § 17 — Governing Law -->
-            <section class="vn-lg-section" id="section-17">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 17.</span> Governing Law &amp; Jurisdiction</h2>
+            <!-- § 21 — Governing Law -->
+            <section class="vn-lg-section" id="section-21">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 21.</span> Governing Law &amp; Jurisdiction</h2>
                 <p class="vn-lg-text">
                     These Terms are governed by and interpreted under the <strong>laws of the Federal Republic of Nigeria</strong>, including but not limited to:
                 </p>
@@ -394,9 +482,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 18 — Account Termination -->
-            <section class="vn-lg-section" id="section-18">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 18.</span> Account Termination</h2>
+            <!-- § 22 — Account Termination -->
+            <section class="vn-lg-section" id="section-22">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 22.</span> Account Termination</h2>
                 <p class="vn-lg-text">
                     We can suspend or terminate your account if:
                 </p>
@@ -415,9 +503,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 19 — Changes to Terms -->
-            <section class="vn-lg-section" id="section-19">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 19.</span> Changes to These Terms</h2>
+            <!-- § 23 — Changes to Terms -->
+            <section class="vn-lg-section" id="section-23">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 23.</span> Changes to These Terms</h2>
                 <p class="vn-lg-text">
                     We may update these Terms from time to time — to reflect new features, legal requirements, or just to make things clearer. When we make significant changes:
                 </p>
@@ -431,9 +519,9 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                 </p>
             </section>
 
-            <!-- § 20 — Contact -->
-            <section class="vn-lg-section" id="section-20">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 20.</span> Contact Us</h2>
+            <!-- § 24 — Contact -->
+            <section class="vn-lg-section" id="section-24">
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 24.</span> Contact Us</h2>
                 <p class="vn-lg-text">
                     Got questions, concerns, or just want to say hi? Reach out to our team:
                 </p>

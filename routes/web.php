@@ -108,6 +108,7 @@ $router->get('/cron/expire-layaways', [LayawayController::class, 'expireCron']);
 
 $router->get('/terms', [HomeController::class, 'terms']);
 $router->get('/privacy', [HomeController::class, 'privacy']);
+$router->get('/guide', [HomeController::class, 'guide']);
 
 // Auth Routes
 $router->get('/login', [AuthController::class, 'loginView']);
