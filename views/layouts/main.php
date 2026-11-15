@@ -65,7 +65,7 @@
 
     @include('partials/header')
 
-    <main class="container{{ app()->request->is('event/*') ? ' event-detail-page' : '' }}{{ app()->request->is('terms', 'privacy', 'guide', 'support') ? ' legal-codex-page' : '' }}">
+    <main class="container{{ app()->request->is('event/*') ? ' event-detail-page' : '' }}{{ app()->request->is('terms', 'privacy', 'guide', 'support', 'about', 'profile') ? ' legal-codex-page' : '' }}{{ app()->request->is('/') ? ' home-page' : '' }}{{ app()->request->is('about') ? ' about-page' : '' }}{{ app()->request->is('profile') ? ' profile-page' : '' }}">
         @session('success')
         <div class="alert alert-success">
             <span>✅</span> {!! $value !!}
