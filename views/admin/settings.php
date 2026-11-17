@@ -84,6 +84,30 @@ Admin Settings - Manage Site &amp; System Configurations
             </div>
         </a>
 
+        <a href="{{ route('admin/teams') }}" class="as-shortcut-tile as-shortcut--teal">
+            <span class="as-shortcut-icon">🏢</span>
+            <div>
+                <strong>Teams &amp; Staff</strong>
+                <span>Staff registry, roles &amp; deployments</span>
+            </div>
+        </a>
+
+        <a href="{{ route('host/event/ticket-verification') }}" class="as-shortcut-tile as-shortcut--purple">
+            <span class="as-shortcut-icon">🎟️</span>
+            <div>
+                <strong>Ticket Scanner</strong>
+                <span>Gate verification &amp; attendee check-in</span>
+            </div>
+        </a>
+
+        <a href="{{ route('host/dashboard') }}" class="as-shortcut-tile as-shortcut--brass">
+            <span class="as-shortcut-icon">🎪</span>
+            <div>
+                <strong>Host Operations</strong>
+                <span>Switch to event organizer dashboard</span>
+            </div>
+        </a>
+
         <a href="{{ route('admin/domain-requests') }}" class="as-shortcut-tile as-shortcut--amber">
             <span class="as-shortcut-icon">🌐</span>
             <div>
