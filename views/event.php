@@ -14,7 +14,14 @@
  * @version 3.1.0
  */
 
-$eventImg = !empty($event->image) ? $event->image : 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&q=80&auto=format&fit=crop';
+$siteTitle = site_setting('site_title', 'Eventlyy');
+$siteLogo = site_setting('site_logo');
+$absSiteLogo = !empty($siteLogo) ? (str_starts_with($siteLogo, 'http') ? $siteLogo : url($siteLogo)) : url('assets/images/logo.png');
+
+$rawImg = !empty($event->image) ? $event->image : 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&q=80&auto=format&fit=crop';
+$absEventImg = str_starts_with($rawImg, 'http') ? $rawImg : url($rawImg);
+$eventImg = $absEventImg;
+
 $rawDesc = $event->description ?? '';
 $heroSummary = (mb_strlen($rawDesc) > 160) ? mb_strimwidth($rawDesc, 0, 160, '…') : $rawDesc;
 $eventDate = strtotime($event->date ?? '');
@@ -31,11 +38,68 @@ $hoursUntilClose = $salesCloseTimestamp ? ($salesCloseTimestamp - $now) / 3600 :
 $showCountdown = !$isCompleted && !$isLiveNow && $salesCloseTimestamp && $hoursUntilClose > 0 && $hoursUntilClose <= 24;
 
 $shareUrl = event_url($event);
-$shareText = urlencode("Check out " . ($event->name ?? 'this event') . " on Eventlyy!");
 $encodedShareUrl = urlencode($shareUrl);
+
+$shareMsg = "🎟️ Grab passes for " . ($event->name ?? 'this event') . " on " . $siteTitle . "!\n" . $shareUrl;
+$shareText = urlencode($shareMsg);
+$waShareText = urlencode("🎟️ *" . ($event->name ?? 'this event') . "* on " . $siteTitle . "\n📅 " . (!empty($eventDate) ? date('D, M d, Y', $eventDate) : '') . (!empty($event->location) ? ' • 📍 ' . $event->location : '') . "\n\n" . $shareUrl);
+$tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" . str_replace(' ', '', $siteTitle));
 ?>
 
 @extends('layouts/main')
+
+@section('meta')
+<!-- OpenGraph / Social Share Cards (WhatsApp, Facebook, LinkedIn, iMessage, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="<?= e($siteTitle) ?>">
+<meta property="og:title" content="<?= e($event->name) ?> — Tickets &amp; Passes | <?= e($siteTitle) ?>">
+<meta property="og:description" content="<?= e($heroSummary ?: ($event->name . ' live on ' . $siteTitle)) ?>">
+<meta property="og:url" content="<?= e($shareUrl) ?>">
+<meta property="og:image" content="<?= e($absEventImg) ?>">
+<meta property="og:image:secure_url" content="<?= e($absEventImg) ?>">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="<?= e($event->name) ?> Poster">
+<?php if (!empty($absSiteLogo)): ?>
+<meta property="og:logo" content="<?= e($absSiteLogo) ?>">
+<?php endif; ?>
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@<?= e(str_replace(' ', '', $siteTitle)) ?>">
+<meta name="twitter:title" content="<?= e($event->name) ?> | <?= e($siteTitle) ?>">
+<meta name="twitter:description" content="<?= e($heroSummary ?: ($event->name . ' live on ' . $siteTitle)) ?>">
+<meta name="twitter:image" content="<?= e($absEventImg) ?>">
+<meta name="twitter:image:alt" content="<?= e($event->name) ?>">
+
+<!-- Schema.org JSON-LD -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": <?= json_encode($event->name) ?>,
+    "description": <?= json_encode($heroSummary ?: $event->name) ?>,
+    "image": [<?= json_encode($absEventImg) ?>],
+    "url": <?= json_encode($shareUrl) ?>,
+    <?php if (!empty($eventDate)): ?>
+    "startDate": <?= json_encode(date('c', $eventDate)) ?>,
+    <?php endif; ?>
+    <?php if (!empty($event->location)): ?>
+    "location": {
+        "@type": "Place",
+        "name": <?= json_encode($event->location) ?>
+    },
+    <?php endif; ?>
+    "organizer": {
+        "@type": "Organization",
+        "name": <?= json_encode($siteTitle) ?>,
+        "url": <?= json_encode(url()) ?><?php if (!empty($absSiteLogo)): ?>,
+        "logo": <?= json_encode($absSiteLogo) ?>
+        <?php endif; ?>
+    }
+}
+</script>
+@endsection
 
 @section('title')
 <?= e($event->name) ?> — Eventlyy Box Office
@@ -49,7 +113,7 @@ $encodedShareUrl = urlencode($shareUrl);
     text-decoration: none;
 }
 .ve-min-w-0 { min-width: 0; }
-.ve-share-btn--full { grid-column: 1 / -1; }
+
 .ve-series-head {
     display: flex;
     justify-content: space-between;
@@ -217,10 +281,25 @@ $encodedShareUrl = urlencode($shareUrl);
                 <div class="ve-share-block">
                     <span class="ve-block-label">Share This Experience</span>
                     <div class="ve-share-btns">
-                        <a href="https://api.whatsapp.com/send?text=<?= $shareText ?>%20<?= $encodedShareUrl ?>" target="_blank" rel="noopener" class="ve-share-btn">WhatsApp</a>
-                        <a href="https://twitter.com/intent/tweet?url=<?= $encodedShareUrl ?>&text=<?= $shareText ?>" target="_blank" rel="noopener" class="ve-share-btn">X / Twitter</a>
-                        <button type="button" id="copy-share-link" class="ve-share-btn ve-share-btn--full">
-                            🔗 <span id="copy-btn-text">Copy Event Link</span>
+                        <a href="https://api.whatsapp.com/send?text=<?= $waShareText ?>" target="_blank" rel="noopener" class="ve-share-btn ve-share-btn--whatsapp" title="Share on WhatsApp">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                            <span>WhatsApp</span>
+                        </a>
+                        <a href="https://twitter.com/intent/tweet?url=<?= $encodedShareUrl ?>&text=<?= $tweetText ?>" target="_blank" rel="noopener" class="ve-share-btn ve-share-btn--twitter" title="Share on X">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                            <span>X / Twitter</span>
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=<?= $encodedShareUrl ?>" target="_blank" rel="noopener" class="ve-share-btn ve-share-btn--facebook" title="Share on Facebook">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            <span>Facebook</span>
+                        </a>
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?= $encodedShareUrl ?>" target="_blank" rel="noopener" class="ve-share-btn ve-share-btn--linkedin" title="Share on LinkedIn">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                            <span>LinkedIn</span>
+                        </a>
+                        <button type="button" id="copy-share-link" class="ve-share-btn ve-share-btn--copy ve-share-btn--full" title="Copy event link">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <span id="copy-btn-text">Copy Event Link</span>
                         </button>
                     </div>
                 </div>
@@ -229,9 +308,18 @@ $encodedShareUrl = urlencode($shareUrl);
                 <div class="ve-share-block">
                     <span class="ve-block-label">📅 Add to Calendar</span>
                     <div class="ve-cal-btns">
-                        <a href="<?= event_google_calendar_url($event) ?>" target="_blank" rel="noopener" class="ve-share-btn">Google</a>
-                        <a href="<?= event_ics_url($event) ?>" download class="ve-share-btn">iCal</a>
-                        <a href="<?= event_outlook_calendar_url($event) ?>" target="_blank" rel="noopener" class="ve-share-btn">Outlook</a>
+                        <a href="<?= event_google_calendar_url($event) ?>" target="_blank" rel="noopener" class="ve-share-btn ve-share-btn--gcal" title="Add to Google Calendar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 3h-1V1h-2v2H9V1H7v2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" fill="#4285F4"/><rect x="4" y="8" width="16" height="13" rx="1" fill="#fff"/><path d="M8 12h3v3H8zm5 0h3v3h-3zM8 16.5h3v2.5H8zm5 0h3v2.5h-3z" fill="#4285F4" opacity=".5"/></svg>
+                            <span>Google</span>
+                        </a>
+                        <a href="<?= event_ics_url($event) ?>" download class="ve-share-btn ve-share-btn--ical" title="Download iCal file">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+                            <span>iCal</span>
+                        </a>
+                        <a href="<?= event_outlook_calendar_url($event) ?>" target="_blank" rel="noopener" class="ve-share-btn ve-share-btn--outlook" title="Add to Outlook Calendar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 7.387v10.478c0 .23-.08.424-.238.576-.16.154-.352.23-.578.23h-8.26v-12.6h8.26c.226 0 .418.077.578.232.158.154.238.348.238.577v.507zM13.924 3.076V21.23l-13.924-2.11V5.187l13.924-2.11zM8.17 15.565c.79-.03 1.467-.356 2.026-.977.56-.62.84-1.39.84-2.31 0-.99-.273-1.788-.817-2.395-.544-.608-1.244-.92-2.1-.94-.84.02-1.543.335-2.105.945-.562.61-.843 1.393-.843 2.35 0 .93.272 1.705.817 2.325.545.62 1.244.94 2.1.97l.082.032zm-.194-5.14c.54.01.98.23 1.316.656.337.427.505.974.505 1.642 0 .698-.168 1.265-.505 1.7-.337.434-.774.656-1.316.664-.55-.008-.994-.23-1.333-.664-.34-.435-.51-1.002-.51-1.7 0-.668.17-1.215.51-1.642.34-.426.784-.646 1.333-.655z"/></svg>
+                            <span>Outlook</span>
+                        </a>
                     </div>
                 </div>
             </div>

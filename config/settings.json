@@ -45,12 +45,12 @@
     "announcement_link_text": "",
     "announcement_link_url": "",
     "announcement_dismiss_text": "",
-    "announcement_updated_at": "1794671203",
-    "theme_primary_color": "#108a55",
-    "theme_secondary_color": "#1aae6c",
-    "theme_preset": "emerald",
+    "announcement_updated_at": "1794908854",
+    "theme_primary_color": "#dc2626",
+    "theme_secondary_color": "#16a34a",
+    "theme_preset": "christmas",
     "holiday_fx_enabled": "1",
-    "holiday_fx_mode": "sync_theme",
+    "holiday_fx_mode": "christmas",
     "holiday_fx_intensity": "festive",
     "holiday_fx_allow_toggle": "1"
 }

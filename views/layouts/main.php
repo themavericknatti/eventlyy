@@ -30,6 +30,27 @@
     <?php if ($metaKeys = site_setting('meta_keywords')): ?>
     <meta name="keywords" content="<?= e($metaKeys) ?>">
     <?php endif; ?>
+    @yield('meta')
+    <?php if (empty($this->sections['meta'])): ?>
+    <?php
+        $siteTitle = site_setting('site_title', 'Eventlyy');
+        $siteLogo = site_setting('site_logo');
+        $siteLogoUrl = !empty($siteLogo) ? (str_starts_with($siteLogo, 'http') ? $siteLogo : url($siteLogo)) : url('assets/images/logo.png');
+        $defaultOgDesc = site_setting('meta_description') ?: 'Find your next obsession. Live in the moment with Eventlyy verified tickets.';
+        $defaultOgUrl = url(app()->request->getPath());
+    ?>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<?= e($siteTitle) ?>">
+    <meta property="og:title" content="<?= e($siteTitle) ?> — Live Experiences &amp; Verified Passes">
+    <meta property="og:description" content="<?= e($defaultOgDesc) ?>">
+    <meta property="og:url" content="<?= e($defaultOgUrl) ?>">
+    <meta property="og:image" content="<?= e($siteLogoUrl) ?>">
+    <meta property="og:logo" content="<?= e($siteLogoUrl) ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= e($siteTitle) ?>">
+    <meta name="twitter:description" content="<?= e($defaultOgDesc) ?>">
+    <meta name="twitter:image" content="<?= e($siteLogoUrl) ?>">
+    <?php endif; ?>
     <?php
     $styleVer = asset_version('assets/css/style.css');
     $successVer = asset_version('assets/css/success.css');

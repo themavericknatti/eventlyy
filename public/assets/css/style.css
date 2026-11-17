@@ -15542,6 +15542,115 @@ button[type="submit"]:disabled,
     background: var(--ve-brass-glow);
 }
 
+/* ── Platform-Branded Share Buttons ── */
+.ve-share-btn--full {
+    grid-column: 1 / -1;
+}
+
+.ve-share-btn svg {
+    flex-shrink: 0;
+}
+
+/* WhatsApp */
+.ve-share-btn--whatsapp {
+    border-color: #25D366;
+    color: #128C7E;
+}
+.ve-share-btn--whatsapp:hover {
+    background: #25D366;
+    border-color: #25D366;
+    color: #fff;
+}
+
+/* X / Twitter */
+.ve-share-btn--twitter {
+    border-color: #536471;
+    color: var(--ve-ink, #14171A);
+    background: rgba(0, 0, 0, 0.04);
+    font-weight: 700;
+}
+[data-theme="dark"] .ve-share-btn--twitter,
+.dark .ve-share-btn--twitter {
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #f3ede2 !important;
+    background: rgba(255, 255, 255, 0.08);
+}
+.ve-share-btn--twitter:hover {
+    background: #14171A;
+    border-color: #14171A;
+    color: #ffffff !important;
+}
+[data-theme="dark"] .ve-share-btn--twitter:hover,
+.dark .ve-share-btn--twitter:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #14171A !important;
+}
+
+/* Facebook */
+.ve-share-btn--facebook {
+    border-color: #1877F2;
+    color: #1877F2;
+}
+.ve-share-btn--facebook:hover {
+    background: #1877F2;
+    border-color: #1877F2;
+    color: #fff;
+}
+
+/* LinkedIn */
+.ve-share-btn--linkedin {
+    border-color: #0A66C2;
+    color: #0A66C2;
+}
+.ve-share-btn--linkedin:hover {
+    background: #0A66C2;
+    border-color: #0A66C2;
+    color: #fff;
+}
+
+/* Copy Link */
+.ve-share-btn--copy {
+    border-color: var(--ve-brass);
+    color: var(--ve-brass-dark, var(--ve-brass));
+}
+.ve-share-btn--copy:hover {
+    background: var(--ve-brass);
+    border-color: var(--ve-brass);
+    color: #fff;
+}
+
+/* Calendar button accents */
+.ve-share-btn--gcal {
+    border-color: #4285F4;
+    color: #4285F4;
+}
+.ve-share-btn--gcal:hover {
+    background: #4285F4;
+    border-color: #4285F4;
+    color: #fff;
+}
+
+.ve-share-btn--ical {
+    border-color: #5E5CE6;
+    color: #5E5CE6;
+}
+.ve-share-btn--ical:hover {
+    background: #5E5CE6;
+    border-color: #5E5CE6;
+    color: #fff;
+}
+
+.ve-share-btn--outlook {
+    border-color: #0078D4;
+    color: #0078D4;
+}
+.ve-share-btn--outlook:hover {
+    background: #0078D4;
+    border-color: #0078D4;
+    color: #fff;
+}
+
 /* ── Series & Completed Cards ── */
 .ve-series-card {
     background: var(--ve-parchment-warm);
@@ -16072,25 +16181,29 @@ button[type="submit"]:disabled,
         gap: 1.75rem;
     }
 
-    /* Show mobile poster showcase at top of hero main */
+    /* Show mobile poster showcase at top of hero main - generous full height & width */
     .ve-mobile-poster {
         display: block;
         width: 100%;
-        aspect-ratio: 16 / 9;
-        max-height: 280px;
+        aspect-ratio: 4 / 5;
+        max-height: 520px;
+        min-height: 280px;
         border-radius: 14px;
         overflow: hidden;
         border: 2px solid var(--ve-border-dark);
-        margin: -0.25rem 0 1.25rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        margin: -0.25rem 0 1.5rem;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
         background: #0f0d0b;
+        position: relative;
     }
 
     .ve-mobile-poster img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        object-position: center top;
         display: block;
+        transition: transform 0.3s ease;
     }
 
     /* Hide redundant desktop poster wrap in sidebar */
@@ -16271,6 +16384,20 @@ button[type="submit"]:disabled,
     .ve-hero-main {
         padding: 1.25rem 1rem;
         border-radius: 16px;
+    }
+
+    /* Expand mobile poster to full width of hero card and taller height */
+    .ve-mobile-poster {
+        margin: -1.25rem -1rem 1.35rem -1rem !important;
+        width: calc(100% + 2rem) !important;
+        max-width: calc(100% + 2rem) !important;
+        border-radius: 14px 14px 0 0 !important;
+        border: none !important;
+        border-bottom: 2px solid var(--ve-border-dark) !important;
+        aspect-ratio: 4 / 5 !important;
+        max-height: 480px !important;
+        min-height: 300px !important;
+        box-shadow: none !important;
     }
 
     /* ── Single-column Postmark Meta Stack (Guarantees zero overflow for Date/Time/Venue) ── */
@@ -19542,14 +19669,82 @@ button[type="submit"]:disabled,
 
     .pf-header__actions {
         width: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
         gap: 0.65rem !important;
+        margin-top: 0.35rem !important;
+        box-sizing: border-box !important;
     }
 
     .pf-header__actions .pf-btn {
         width: 100% !important;
+        min-height: 48px !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.92rem !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
+        display: inline-flex !important;
+        align-items: center !important;
         justify-content: center !important;
+        gap: 0.5rem !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .pf-header__actions .pf-btn svg {
+        width: 17px !important;
+        height: 17px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .pf-header__actions .pf-btn--primary {
+        background: linear-gradient(135deg, rgb(var(--brand)), color-mix(in srgb, rgb(var(--brand)) 75%, rgb(var(--accent)))) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(var(--brand), 0.32) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .pf-header__actions .pf-btn--primary:hover {
+        filter: brightness(1.08) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(var(--brand), 0.42) !important;
+    }
+
+    .pf-header__actions .pf-btn--danger-ghost {
+        background: rgba(239, 68, 68, 0.08) !important;
+        color: #ef4444 !important;
+        border: 1.5px solid rgba(239, 68, 68, 0.35) !important;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08) !important;
+    }
+
+    .pf-header__actions .pf-btn--danger-ghost:hover {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+    }
+
+    /* Tab navigation touch momentum scrolling */
+    .pf-nav-container {
+        margin-bottom: 1.25rem !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .pf-nav {
+        gap: 0.45rem !important;
+        padding-bottom: 0.4rem !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .pf-nav-btn {
+        padding: 0.6rem 0.95rem !important;
+        font-size: 0.85rem !important;
+        min-height: 42px !important;
+        flex-shrink: 0 !important;
     }
 
     .pf-card {
@@ -20114,6 +20309,16 @@ button[type="submit"]:disabled,
     .vn-lg-hero {
         padding: 1.15rem 0.65rem 1.25rem !important;
         border-radius: 12px !important;
+    }
+
+    .ve-mobile-poster {
+        margin: -1.15rem -0.65rem 1.25rem -0.65rem !important;
+        width: calc(100% + 1.3rem) !important;
+        max-width: calc(100% + 1.3rem) !important;
+        border-radius: 10px 10px 0 0 !important;
+        aspect-ratio: 4 / 5 !important;
+        max-height: 460px !important;
+        min-height: 280px !important;
     }
 
     .vn-hero-title,
@@ -21260,10 +21465,22 @@ button[type="submit"]:disabled,
 
     .pf-header__actions {
         width: 100%;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.75rem;
     }
 
     .pf-header__actions .pf-btn {
-        flex: 1;
+        min-height: 48px;
+        height: auto;
+        padding: 0.75rem 1.15rem;
+        font-size: 0.94rem;
+        font-weight: 700;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
     }
 
     .pf-ticket-card__body {

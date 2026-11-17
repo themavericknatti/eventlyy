@@ -40,6 +40,10 @@ $eventSlug = !empty($event->custom_url) ? $event->custom_url : ($event->slug ?? 
 $checkoutUrl = url('f/' . $eventSlug . '/checkout');
 
 // Social Share links
+$absEventImg = str_starts_with($eventImg, 'http') ? $eventImg : url($eventImg);
+$absSiteLogo = !empty($siteLogo) ? (str_starts_with($siteLogo, 'http') ? $siteLogo : url($siteLogo)) : '';
+$waShareText = urlencode("🎟️ *" . ($event->name ?? 'this event') . "* on " . $siteTitle . "\n📅 " . (!empty($event->date) ? date('M j, Y · g:i A', strtotime($event->date)) : 'TBA') . "\n📍 " . ($event->location ?? 'TBA') . "\n\n🔗 Get tickets:");
+$tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" . str_replace(' ', '', $siteTitle) . " 🎟️");
 $shareText = urlencode("🎟️ Grab tickets for " . ($event->name ?? 'this event') . " on " . $siteTitle . "!");
 $encodedFlyerUrl = urlencode($flyerUrl);
 ?>
@@ -54,13 +58,21 @@ $encodedFlyerUrl = urlencode($flyerUrl);
     <meta property="og:type" content="website">
     <meta property="og:title" content="<?= e($event->name) ?> — Event Flyer">
     <meta property="og:description" content="<?= e($shortDesc) ?>">
-    <meta property="og:image" content="<?= e($eventImg) ?>">
+    <meta property="og:image" content="<?= e($absEventImg) ?>">
+    <meta property="og:image:secure_url" content="<?= e($absEventImg) ?>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= e($event->name) ?> event poster">
     <meta property="og:url" content="<?= e($flyerUrl) ?>">
     <meta property="og:site_name" content="<?= e($siteTitle) ?>">
+    <?php if (!empty($absSiteLogo)): ?>
+    <meta property="og:logo" content="<?= e($absSiteLogo) ?>">
+    <?php endif; ?>
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?= e($event->name) ?>">
     <meta name="twitter:description" content="<?= e($shortDesc) ?>">
-    <meta name="twitter:image" content="<?= e($eventImg) ?>">
+    <meta name="twitter:image" content="<?= e($absEventImg) ?>">
+    <meta name="twitter:image:alt" content="<?= e($event->name) ?> event poster">
 
     <?= site_favicon_tags() ?>
 
@@ -206,13 +218,21 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                             <button type="button" class="flyer-share-btn flyer-share-btn--copy" id="btn-copy-link" data-url="<?= e($flyerUrl) ?>" title="Copy flyer ticket link">
                                 <span>🔗</span> <span id="copy-btn-label">Copy Link</span>
                             </button>
-                            <a href="https://api.whatsapp.com/send?text=<?= $shareText ?>%20<?= $encodedFlyerUrl ?>" target="_blank" rel="noopener" class="flyer-share-btn flyer-share-btn--whatsapp" title="Share on WhatsApp">
+                            <a href="https://api.whatsapp.com/send?text=<?= $waShareText ?>%20<?= $encodedFlyerUrl ?>" target="_blank" rel="noopener" class="flyer-share-btn flyer-share-btn--whatsapp" title="Share on WhatsApp">
                                 <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
                                 <span>WhatsApp</span>
                             </a>
-                            <a href="https://twitter.com/intent/tweet?text=<?= $shareText ?>&url=<?= $encodedFlyerUrl ?>" target="_blank" rel="noopener" class="flyer-share-btn flyer-share-btn--twitter" title="Share on X">
+                            <a href="https://twitter.com/intent/tweet?text=<?= $tweetText ?>&url=<?= $encodedFlyerUrl ?>" target="_blank" rel="noopener" class="flyer-share-btn flyer-share-btn--twitter" title="Share on X">
                                 <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                                 <span>X</span>
+                            </a>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=<?= $encodedFlyerUrl ?>" target="_blank" rel="noopener" class="flyer-share-btn flyer-share-btn--facebook" title="Share on Facebook">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                <span>Facebook</span>
+                            </a>
+                            <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?= $encodedFlyerUrl ?>" target="_blank" rel="noopener" class="flyer-share-btn flyer-share-btn--linkedin" title="Share on LinkedIn">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                                <span>LinkedIn</span>
                             </a>
                         </div>
                     </div>
