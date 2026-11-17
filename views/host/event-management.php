@@ -851,6 +851,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                 'fulfilled' => ['bg' => 'rgba(16, 185, 129, 0.12)', 'color' => '#10b981', 'label' => '✅ Fulfilled'],
                                 'partially_fulfilled' => ['bg' => 'rgba(59, 130, 246, 0.12)', 'color' => '#3b82f6', 'label' => '🔄 Partially Fulfilled'],
                                 'declined' => ['bg' => 'rgba(239, 68, 68, 0.12)', 'color' => '#ef4444', 'label' => '❌ Declined'],
+                                'expired' => ['bg' => 'rgba(107, 114, 128, 0.12)', 'color' => '#6b7280', 'label' => '⏰ Expired / Closed'],
                             ];
                             $st = $statusColors[$staffRequest['status']] ?? $statusColors['pending'];
                         ?>

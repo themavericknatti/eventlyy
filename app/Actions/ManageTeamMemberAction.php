@@ -164,6 +164,19 @@ class ManageTeamMemberAction
                 'message' => "Staff status updated to {$newStatus}.",
                 'new_status' => $newStatus
             ];
+        } elseif ($action === 'decline_request' || $action === 'dismiss_request') {
+            $requestId = $data['request_id'] ?? '';
+            if (empty($requestId)) {
+                return ['status' => 'error', 'message' => 'Staff assistance request ID is missing.'];
+            }
+
+            $stmt = $db->prepare("UPDATE event_staff_requests SET status = 'declined', updated_at = NOW() WHERE id = :id");
+            $stmt->execute(['id' => $requestId]);
+
+            return [
+                'status' => 'success',
+                'message' => 'Staff assistance request has been declined.'
+            ];
         }
 
         return ['status' => 'error', 'message' => 'Invalid team action.'];

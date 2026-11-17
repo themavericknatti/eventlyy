@@ -45,6 +45,14 @@ class AutoPayoutService
             // Unassign all staff roles for this completed event
             $unassign = $db->prepare("DELETE FROM event_staff_assignments WHERE event_id = :event_id");
             $unassign->execute(['event_id' => $evt['id']]);
+
+            // Auto-close and expire any pending staff requests for this completed event
+            $closeReq = $db->prepare("
+                UPDATE event_staff_requests 
+                SET status = 'expired', updated_at = NOW() 
+                WHERE event_id = :event_id AND status IN ('pending', 'partially_fulfilled')
+            ");
+            $closeReq->execute(['event_id' => $evt['id']]);
             $completedCount++;
         }
 

@@ -271,7 +271,18 @@ class AdminService
         $checkInRate = $totalTickets > 0 ? round(($checkedInTickets / $totalTickets) * 100, 1) : 0;
         
         $unresolvedSupport = (int)$db->query("SELECT COUNT(*) FROM support_inquiries WHERE status IN ('new', 'read')")->fetchColumn();
-        $pendingStaffRequestsCount = (int)$db->query("SELECT COUNT(*) FROM event_staff_requests WHERE status IN ('pending', 'partially_fulfilled')")->fetchColumn();
+        
+        // Auto-reconcile expired staffing requests for concluded events before counting
+        (new \App\Services\TeamService())->cleanupExpiredStaffRequests();
+        $completionHours = event_completion_hours();
+        $pendingStaffRequestsCount = (int)$db->query("
+            SELECT COUNT(*) 
+            FROM event_staff_requests esr
+            JOIN events e ON esr.event_id = e.id
+            WHERE esr.status IN ('pending', 'partially_fulfilled')
+              AND e.status = 'published'
+              AND (e.date IS NULL OR e.date >= NOW() - INTERVAL {$completionHours} HOUR)
+        ")->fetchColumn();
         $pendingPayoutsCount = (int)$db->query("SELECT COUNT(*) FROM payouts WHERE status = 'pending'")->fetchColumn();
         $todayLiveEvents = (int)$db->query("SELECT COUNT(*) FROM events WHERE status = 'published' AND (DATE(date) = CURDATE() OR (date <= NOW() AND date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR))")->fetchColumn();
         $cancelledEvents = (int)$db->query("SELECT COUNT(*) FROM events WHERE status = 'cancelled'")->fetchColumn();

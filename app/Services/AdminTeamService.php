@@ -283,6 +283,8 @@ class AdminTeamService
      */
     public function getPendingStaffRequests(): array
     {
+        (new TeamService())->cleanupExpiredStaffRequests();
+
         $db = Application::$app->db->pdo;
         $completionHours = event_completion_hours();
 

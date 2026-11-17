@@ -26,11 +26,35 @@ class TeamService
         $db = Application::$app->db->pdo;
         $completionHours = event_completion_hours();
 
+        $this->cleanupExpiredStaffRequests();
+
         $stmt = $db->prepare("
             DELETE esa FROM event_staff_assignments esa
             INNER JOIN events e ON esa.event_id = e.id
             WHERE e.status IN ('completed', 'past')
                OR (e.status = 'published' AND e.date < NOW() - INTERVAL {$completionHours} HOUR)
+        ");
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Automatically close/expire unfulfilled staffing requests for events that have concluded or completed.
+     */
+    public function cleanupExpiredStaffRequests(): int
+    {
+        $db = Application::$app->db->pdo;
+        $completionHours = event_completion_hours();
+
+        $stmt = $db->prepare("
+            UPDATE event_staff_requests esr
+            INNER JOIN events e ON esr.event_id = e.id
+            SET esr.status = 'expired', esr.updated_at = NOW()
+            WHERE esr.status IN ('pending', 'partially_fulfilled')
+              AND (
+                  e.status IN ('completed', 'past', 'cancelled')
+                  OR (e.date IS NOT NULL AND e.date < NOW() - INTERVAL " . (int)$completionHours . " HOUR)
+              )
         ");
         $stmt->execute();
         return $stmt->rowCount();

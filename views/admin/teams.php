@@ -242,10 +242,18 @@ Admin Teams - Manage Your <?= e($siteName) ?> Teams
                         <?php endif; ?>
                     </div>
 
-                    <div style="display:flex; gap:0.5rem; align-items:center; border-top:1px dashed rgba(var(--muted),0.15); padding-top:0.65rem; margin-top:0.25rem;">
+                    <div style="display:flex; gap:0.5rem; align-items:center; border-top:1px dashed rgba(var(--muted),0.15); padding-top:0.65rem; margin-top:0.25rem; flex-wrap:wrap;">
                         <button type="button" class="admin-action-btn primary" style="font-size:0.8rem; padding:0.45rem 0.9rem; border-radius:8px; display:inline-flex; align-items:center; gap:0.35rem;" onclick="prefillAssignForm('<?= $req['event_id'] ?>', '<?= !empty($req['roles_array'][0]['role_id']) ? $req['roles_array'][0]['role_id'] : '' ?>')">
                             <span>⚡</span> Assign Staff to This Event
                         </button>
+                        <form method="POST" action="{{ route('admin/teams') }}" style="display:inline; margin:0;" onsubmit="return confirm('Are you sure you want to decline this staffing assistance request?');">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="decline_request">
+                            <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                            <button type="submit" class="admin-action-btn danger-ghost" style="font-size:0.8rem; padding:0.45rem 0.75rem; border-radius:8px; display:inline-flex; align-items:center; gap:0.35rem; color:#ef4444; border:1px solid rgba(239,68,68,0.3); background:transparent; cursor:pointer;">
+                                <span>✕</span> Decline
+                            </button>
+                        </form>
                     </div>
                 </div>
             <?php endforeach; ?>
