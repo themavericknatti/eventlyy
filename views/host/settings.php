@@ -234,6 +234,65 @@ Host Settings - Manage Your <?= e($siteName) ?> Account
 
         <!-- Right Column: Account Specs & Preferences -->
         <div class="hs-workspace-side">
+
+            <!-- Organizer Quick Operations & Shortcuts -->
+            <div class="hs-card">
+                <div class="hs-card-header">
+                    <div class="hs-card-title-group">
+                        <span class="hs-card-icon">⚡</span>
+                        <div>
+                            <h3 class="hs-card-title">Organizer Shortcuts</h3>
+                            <p class="hs-card-sub">Fast access to host tools &amp; utilities.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="hs-card-body hs-p-0">
+                    <div class="hs-shortcuts-list">
+                        <a href="{{ route('host/event/ticket-verification') }}" class="hs-shortcut-link">
+                            <span class="hs-shortcut-icon">🎟️</span>
+                            <div class="hs-shortcut-meta">
+                                <strong>Verify Tickets</strong>
+                                <small>Gate attendee scanner &amp; check-in</small>
+                            </div>
+                            <span class="hs-shortcut-arrow">→</span>
+                        </a>
+                        <a href="{{ route('host/event/create') }}" class="hs-shortcut-link">
+                            <span class="hs-shortcut-icon">➕</span>
+                            <div class="hs-shortcut-meta">
+                                <strong>Create Event</strong>
+                                <small>Launch new event experience</small>
+                            </div>
+                            <span class="hs-shortcut-arrow">→</span>
+                        </a>
+                        <a href="{{ route('host/promo-codes') }}" class="hs-shortcut-link">
+                            <span class="hs-shortcut-icon">🏷️</span>
+                            <div class="hs-shortcut-meta">
+                                <strong>Promo Codes</strong>
+                                <small>Discounts &amp; ticket incentives</small>
+                            </div>
+                            <span class="hs-shortcut-arrow">→</span>
+                        </a>
+                        <a href="{{ route('host/financials') }}" class="hs-shortcut-link">
+                            <span class="hs-shortcut-icon">💳</span>
+                            <div class="hs-shortcut-meta">
+                                <strong>Financials &amp; Settlements</strong>
+                                <small>Revenue &amp; automated bank payouts</small>
+                            </div>
+                            <span class="hs-shortcut-arrow">→</span>
+                        </a>
+                        <?php if (function_exists('hasRole') && (hasRole('admin') || hasRole('super-admin'))): ?>
+                        <a href="{{ route('admin/overview') }}" class="hs-shortcut-link hs-shortcut-link--admin">
+                            <span class="hs-shortcut-icon">🛡️</span>
+                            <div class="hs-shortcut-meta">
+                                <strong>Admin Console</strong>
+                                <small>Switch to site administration</small>
+                            </div>
+                            <span class="hs-shortcut-arrow">→</span>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
             
             <!-- Host Specs Card -->
             <div class="hs-card">
@@ -695,6 +754,69 @@ body[data-theme='dark'] .hs-shell {
 .hs-btn-theme-toggle:hover {
     background: var(--hs-bg-subtle-hover);
     border-color: var(--hs-primary);
+}
+
+/* Shortcuts List */
+.hs-shortcuts-list {
+    display: flex;
+    flex-direction: column;
+}
+.hs-shortcut-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--hs-border);
+    text-decoration: none;
+    color: var(--hs-text-main);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.hs-shortcut-link:last-child {
+    border-bottom: none;
+}
+.hs-shortcut-link:hover {
+    background: var(--hs-bg-subtle);
+    color: var(--hs-primary);
+}
+.hs-shortcut-icon {
+    font-size: 1.25rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.hs-shortcut-meta {
+    flex: 1;
+    min-width: 0;
+}
+.hs-shortcut-meta strong {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.hs-shortcut-meta small {
+    display: block;
+    font-size: 0.74rem;
+    color: var(--hs-text-muted);
+    margin-top: 1px;
+}
+.hs-shortcut-arrow {
+    color: var(--hs-text-muted);
+    font-size: 0.95rem;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+.hs-shortcut-link:hover .hs-shortcut-arrow {
+    color: var(--hs-primary);
+    transform: translateX(3px);
+}
+.hs-shortcut-link--admin {
+    background: rgba(var(--brand), 0.04);
+}
+.hs-shortcut-link--admin:hover {
+    background: rgba(var(--brand), 0.09);
 }
 
 /* Specs List */
