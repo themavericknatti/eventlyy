@@ -53,7 +53,15 @@
 
 <body class="vn-shell">
     @include('partials/host-header')
-    <main class="container">
+    <?php
+        $hostMainClass = 'container';
+        if (app()->request->is('host/event/create*')) {
+            $hostMainClass .= ' create-event-page';
+        } elseif (app()->request->is('host/event/edit*')) {
+            $hostMainClass .= ' edit-event-page';
+        }
+    ?>
+    <main class="<?= $hostMainClass ?>">
         @session('success')
         <div class="alert alert-success">
             <span>✅</span> {!! $value !!}

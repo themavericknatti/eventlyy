@@ -25649,3 +25649,41 @@ body.vn-modal-lock {
     background: rgba(239, 68, 68, 0.18);
     color: #f87171;
 }
+
+
+/* ==========================================================================
+   Create & Edit Event Full-Width Mobile Display Suite
+   ========================================================================== */
+@media (max-width: 768px) {
+    .container.create-event-page,
+    .container.edit-event-page,
+    .container:has(.create-event-wrapper),
+    .container:has(.edit-event-wrapper) {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .create-event-wrapper,
+    .edit-event-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        box-sizing: border-box !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .container.create-event-page,
+    .container.edit-event-page,
+    .container:has(.create-event-wrapper),
+    .container:has(.edit-event-wrapper) {
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+}

@@ -890,21 +890,34 @@ Create Event - <?= e($siteName) ?> Host
     }
 }
 
-/* ══ Mobile Breakpoint (<= 600px) ══ */
-@media (max-width: 600px) {
+/* ══ Mobile Breakpoint (<= 768px & Full-Width Display) ══ */
+@media (max-width: 768px) {
     .create-event-wrapper {
-        padding: 0;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 0 !important;
+    }
+
+    .create-event-hero {
+        padding: 0 0.35rem;
+        margin-bottom: 1.25rem;
     }
 
     .form-card {
-        padding: 1.25rem 0.95rem;
-        border-radius: 18px;
+        padding: 1.25rem 0.75rem !important;
+        border-radius: 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     .event-form-section {
-        padding: 1.15rem 0.85rem;
-        border-radius: 14px;
-        margin-bottom: 1.25rem;
+        padding: 1.15rem 0.65rem !important;
+        border-radius: 12px !important;
+        margin-bottom: 1.25rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     .event-section-header {
@@ -1037,6 +1050,55 @@ Create Event - <?= e($siteName) ?> Host
     .form-publish-btn {
         width: 100%;
         min-height: 52px;
+    }
+}
+
+/* ══ Small Screen Phones (<= 480px Full-Edge Optimization) ══ */
+@media (max-width: 480px) {
+    .create-event-hero {
+        padding: 0 0.15rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-card {
+        padding: 0.95rem 0.45rem !important;
+        border-radius: 12px !important;
+    }
+
+    .event-form-section {
+        padding: 0.85rem 0.45rem !important;
+        border-radius: 10px !important;
+        margin-bottom: 0.95rem !important;
+    }
+
+    .ticket-card,
+    .addon-card,
+    .guest-card {
+        padding: 0.85rem 0.45rem !important;
+        border-radius: 10px !important;
+    }
+
+    .ticket-access-shelf {
+        padding: 0.65rem 0.45rem !important;
+        border-radius: 8px !important;
+    }
+
+    .setting-tile,
+    .setting-card {
+        padding: 0.85rem 0.5rem !important;
+        border-radius: 10px !important;
+    }
+
+    .event-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.45rem;
+    }
+
+    .event-input,
+    .event-select,
+    .event-textarea {
+        padding: 0.65rem 0.65rem !important;
     }
 }
 
