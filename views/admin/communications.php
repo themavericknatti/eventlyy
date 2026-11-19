@@ -23,14 +23,50 @@ Communications Center - Admin
     $historyItems = $history['items'] ?? [];
     $totalPages = $history['totalPages'] ?? 1;
     $currentPage = $history['page'] ?? 1;
+
+    $prefill = $prefill ?? [
+        'to' => trim($_GET['to'] ?? ''),
+        'name' => trim($_GET['name'] ?? ''),
+        'subject' => trim($_GET['subject'] ?? ''),
+        'inquiry_id' => (int)($_GET['inquiry_id'] ?? 0),
+    ];
+    $hasPrefill = !empty($prefill['to']);
 ?>
 
 <!-- Page Header -->
 <section class="page-hero" style="margin-bottom: 1.5rem;">
     <span class="panel-badge">Admin — Communications</span>
     <h1 style="margin: 0.5rem 0 0; font-size: 1.65rem;">📨 Communications Center</h1>
-    <p style="margin: 0.3rem 0 0; color: var(--vn-ink-muted); font-size: 0.92rem;">Send announcements, updates, and messages to hosts and users via email</p>
+    <p style="margin: 0.3rem 0 0; color: var(--vn-ink-muted); font-size: 0.92rem;">Send announcements, updates, and messages to hosts and users via email queue</p>
 </section>
+
+<?php if (!empty($queueStats)): ?>
+<div style="background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.2); border-radius: 12px; padding: 0.9rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.25rem;">📬</span>
+        <div>
+            <strong style="font-size: 0.9rem; color: rgb(var(--text)); display: block;">Asynchronous Background Email Queue</strong>
+            <span style="font-size: 0.78rem; color: var(--vn-ink-muted);">Broadcasts are dispatched through the background queue to eliminate timeouts and ensure high delivery rates.</span>
+        </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.82rem; font-weight: 700; flex-wrap: wrap;">
+        <span style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+            ⏳ <?= number_format($queueStats['pending'] ?? 0) ?> Pending
+        </span>
+        <span style="background: rgba(245, 158, 11, 0.12); color: #d97706; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+            ⚙️ <?= number_format($queueStats['processing'] ?? 0) ?> Processing
+        </span>
+        <span style="background: rgba(16, 185, 129, 0.12); color: #10b981; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+            ✅ <?= number_format($queueStats['sent'] ?? 0) ?> Sent
+        </span>
+        <?php if (($queueStats['failed'] ?? 0) > 0): ?>
+            <span style="background: rgba(239, 68, 68, 0.12); color: #ef4444; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+                ❌ <?= number_format($queueStats['failed']) ?> Failed
+            </span>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Compose & Preview Grid -->
 <div class="comms-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
@@ -40,8 +76,20 @@ Communications Center - Admin
         <h2 style="margin: 0 0 1.25rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
             ✍️ Compose Message
         </h2>
+
+        <?php if ($hasPrefill): ?>
+        <div style="background: rgba(11, 115, 102, 0.08); border: 1px solid rgba(11, 115, 102, 0.25); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+            <div style="font-size: 0.88rem; color: #0B7366; font-weight: 600;">
+                💬 Replying to Support Inquiry <?= !empty($prefill['inquiry_id']) ? '#' . (int)$prefill['inquiry_id'] : '' ?> (<?= e($prefill['name'] ? $prefill['name'] . ' — ' : '') ?><?= e($prefill['to']) ?>)
+            </div>
+            <a href="/admin/communications" style="font-size: 0.8rem; color: #64748b; text-decoration: underline; white-space: nowrap;">Clear</a>
+        </div>
+        <?php endif; ?>
+
         <form method="POST" action="/admin/communications" id="broadcastForm">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="inquiry_id" value="<?= (int)($prefill['inquiry_id'] ?? 0) ?>">
+            <input type="hidden" id="prefillName" value="<?= e($prefill['name'] ?? '') ?>">
 
             <!-- Audience Type -->
             <div style="margin-bottom: 1rem;">
@@ -51,15 +99,15 @@ Communications Center - Admin
                     <option value="all_users">📢 All Users</option>
                     <option value="all_hosts">🎪 All Hosts / Organizers</option>
                     <option value="single_host">👤 Individual Host</option>
-                    <option value="single_user">👤 Individual User</option>
+                    <option value="single_user" <?= $hasPrefill ? 'selected' : '' ?>>👤 Individual User</option>
                 </select>
             </div>
 
             <!-- Recipient Email (shown for individual) -->
-            <div id="recipientField" style="margin-bottom: 1rem; display: none;">
+            <div id="recipientField" style="margin-bottom: 1rem; display: <?= $hasPrefill ? 'block' : 'none' ?>;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Recipient Email <span style="color: #ef4444;">*</span></label>
                 <div style="position: relative;">
-                    <input type="email" name="recipient_email" id="recipientEmail" placeholder="Search by name or email..." autocomplete="off" style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
+                    <input type="email" name="recipient_email" id="recipientEmail" value="<?= e($prefill['to']) ?>" placeholder="Search by name or email..." autocomplete="off" style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
                     <div id="recipientDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgb(var(--card)); border: 1px solid rgba(var(--muted), 0.15); border-radius: 10px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.12);"></div>
                 </div>
             </div>
@@ -76,7 +124,7 @@ Communications Center - Admin
             <!-- Subject -->
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 0.35rem;">Subject <span style="color: #ef4444;">*</span></label>
-                <input type="text" name="subject" id="subjectInput" required placeholder="Enter email subject..." style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
+                <input type="text" name="subject" id="subjectInput" required value="<?= e($prefill['subject']) ?>" placeholder="Enter email subject..." style="width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid rgba(var(--muted), 0.15); border-radius: 10px; font-size: 0.9rem; background: rgb(var(--card)); color: rgb(var(--text)); box-sizing: border-box;">
             </div>
 
             <!-- Message Body -->
@@ -111,8 +159,15 @@ Communications Center - Admin
         <div id="emailPreview" style="border: 1px solid rgba(var(--muted), 0.12); border-radius: 12px; overflow: hidden; font-size: 0.85rem;">
             <!-- Preview Header -->
             <div style="background: #0B7366; padding: 16px; text-align: center;">
-                <?php if ($previewLogo = email_logo_src()): ?>
-                    <img src="<?= $previewLogo ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" height="32" style="display: inline-block; max-height: 32px; height: 32px; width: auto; vertical-align: middle; border: 0; margin-right: 8px;" />
+                <?php 
+                    $previewLogo = null;
+                    $logoSetting = site_setting('site_logo');
+                    if (!empty($logoSetting)) {
+                        $previewLogo = (str_starts_with($logoSetting, 'http://') || str_starts_with($logoSetting, 'https://')) ? $logoSetting : asset($logoSetting);
+                    }
+                ?>
+                <?php if ($previewLogo): ?>
+                    <img src="<?= e($previewLogo) ?>" alt="<?= e(site_setting('site_title', 'Eventlyy')) ?>" height="32" style="display: inline-block; max-height: 32px; height: 32px; width: auto; vertical-align: middle; border: 0; margin-right: 8px;" />
                     <span style="color: #fff; font-weight: 700; font-size: 14px; margin-left: 6px; vertical-align: middle;" id="previewBrand"><?= e(site_setting('site_title', 'Eventlyy')) ?></span>
                 <?php else: ?>
                     <span style="display: inline-block; width: 28px; height: 28px; line-height: 28px; background: #fff; color: #0B7366; font-weight: 900; font-size: 16px; border-radius: 6px;"><?= strtoupper(mb_substr(site_setting('site_title', 'Eventlyy'), 0, 1)) ?></span>
@@ -124,8 +179,8 @@ Communications Center - Admin
                 <div id="previewUrgent" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 8px 12px; font-weight: 700; font-size: 12px; text-align: center; border-radius: 6px; margin-bottom: 12px;">
                     ⚠️ Urgent Communication
                 </div>
-                <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 8px;" id="previewSubject">Email Subject</p>
-                <p style="font-size: 13px; color: #475569; margin: 0 0 12px;">Hi <span id="previewRecipient">Recipient</span>,</p>
+                <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 8px;" id="previewSubject"><?= e(!empty($prefill['subject']) ? $prefill['subject'] : 'Email Subject') ?></p>
+                <p style="font-size: 13px; color: #475569; margin: 0 0 12px;">Hi <span id="previewRecipient"><?= e(!empty($prefill['name']) ? $prefill['name'] : (!empty($prefill['to']) ? $prefill['to'] : 'Recipient')) ?></span>,</p>
                 <div style="font-size: 13px; line-height: 1.6; color: #475569; margin-bottom: 16px; min-height: 60px; white-space: pre-wrap;" id="previewMessage">Your message will appear here...</div>
                 <div id="previewCta" style="display: none; text-align: center; margin: 16px 0;">
                     <span style="display: inline-block; background: #0B7366; color: #fff; padding: 8px 20px; font-weight: 700; font-size: 12px; border-radius: 8px;" id="previewCtaBtn">Button Text</span>
@@ -210,6 +265,10 @@ Communications Center - Admin
                             <td style="padding: 0.65rem 0.5rem;">
                                 <?php if ($log['status'] === 'sent'): ?>
                                     <span style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px;">✅ Sent</span>
+                                <?php elseif ($log['status'] === 'queued'): ?>
+                                    <span style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px;">⏳ Queued</span>
+                                <?php elseif ($log['status'] === 'partial'): ?>
+                                    <span style="background: rgba(245, 158, 11, 0.12); color: #d97706; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px;">⚠️ Partial</span>
                                 <?php else: ?>
                                     <span style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px;">❌ Failed</span>
                                 <?php endif; ?>
@@ -275,11 +334,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const val = this.value;
         const showIndividual = (val === 'single_host' || val === 'single_user');
         recipientField.style.display = showIndividual ? 'block' : 'none';
-        if (!showIndividual) recipientInput.value = '';
+        if (!showIndividual) {
+            recipientInput.value = '';
+        }
 
         // Update preview recipient
         const labels = { all_users: 'User', all_hosts: 'Host', single_host: 'Host', single_user: 'User' };
-        previewRecipient.textContent = labels[val] || 'Recipient';
+        const prefillName = document.getElementById('prefillName')?.value;
+        if (showIndividual && (recipientInput.value || prefillName)) {
+            previewRecipient.textContent = prefillName || recipientInput.value;
+        } else {
+            previewRecipient.textContent = labels[val] || 'Recipient';
+        }
     });
 
     // Live preview updates
@@ -313,6 +379,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout = null;
     recipientInput.addEventListener('input', function() {
         const query = this.value.trim();
+        if (query) {
+            previewRecipient.textContent = query;
+        } else {
+            previewRecipient.textContent = audienceSelect.value === 'single_host' ? 'Host' : 'User';
+        }
         clearTimeout(searchTimeout);
         if (query.length < 2) {
             recipientDropdown.style.display = 'none';

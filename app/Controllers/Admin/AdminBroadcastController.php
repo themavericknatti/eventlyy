@@ -23,10 +23,20 @@ class AdminBroadcastController extends Controller
         $page = (int)($_GET['page'] ?? 1);
         if ($page < 1) $page = 1;
         $history = $this->broadcastService->getBroadcastHistory($page);
+        $queueStats = \Ace\EmailQueue::getStatus();
+
+        $prefill = [
+            'to' => trim($_GET['to'] ?? ''),
+            'name' => trim($_GET['name'] ?? ''),
+            'subject' => trim($_GET['subject'] ?? ''),
+            'inquiry_id' => (int)($_GET['inquiry_id'] ?? 0),
+        ];
 
         return $this->render('admin/communications', [
             'title' => 'Communications Center',
             'history' => $history,
+            'queueStats' => $queueStats,
+            'prefill' => $prefill,
         ]);
     }
 
@@ -42,6 +52,7 @@ class AdminBroadcastController extends Controller
         $ctaUrl = trim($body['cta_url'] ?? '');
         $priority = trim($body['priority'] ?? 'normal');
         $recipientEmail = trim($body['recipient_email'] ?? '');
+        $inquiryId = (int)($body['inquiry_id'] ?? 0);
 
         // Validation
         if (empty($audienceType) || empty($subject) || empty($message)) {
@@ -73,15 +84,30 @@ class AdminBroadcastController extends Controller
 
         if ($result['total'] === 0) {
             Application::$app->session->setFlash('warning', $result['error'] ?? 'No active recipients found for the selected audience.');
-        } elseif ($result['sent'] > 0) {
-            $msg = "Successfully sent {$result['sent']} email(s)!";
-            if ($result['failed'] > 0) {
-                $msg .= " ({$result['failed']} failed)";
+        } elseif (($result['queued'] ?? 0) > 0 || ($result['sent'] ?? 0) > 0) {
+            $count = $result['queued'] ?? $result['sent'];
+            $msg = "🚀 Successfully queued {$count} email(s) into the background delivery queue!";
+            if (!empty($result['failed']) && $result['failed'] > 0) {
+                $msg .= " ({$result['failed']} invalid recipients skipped)";
             }
+
+            // If replying to a support inquiry, resolve the inquiry
+            if ($inquiryId > 0) {
+                try {
+                    $db = Application::$app->db->pdo;
+                    $updateStmt = $db->prepare("UPDATE support_inquiries SET status = 'resolved' WHERE id = :id");
+                    $updateStmt->execute(['id' => $inquiryId]);
+                    $msg .= " Support Inquiry #{$inquiryId} marked as resolved.";
+                } catch (\Throwable $e) {}
+
+                Application::$app->session->setFlash('success', $msg);
+                return redirect('/admin/support');
+            }
+
             Application::$app->session->setFlash('success', $msg);
         } else {
-            $errDetail = !empty($result['last_error']) ? ': ' . $result['last_error'] : '. Please check your mail server configuration and try again.';
-            Application::$app->session->setFlash('error', 'Failed to send emails' . $errDetail);
+            $errDetail = !empty($result['error']) ? ': ' . $result['error'] : '. Please check your configuration and try again.';
+            Application::$app->session->setFlash('error', 'Failed to queue broadcast emails' . $errDetail);
         }
 
         return back();

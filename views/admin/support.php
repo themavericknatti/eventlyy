@@ -251,6 +251,19 @@ Support Inquiries - Admin Panel
     border-color: rgba(16, 185, 129, 0.4);
 }
 
+.support-action-btn--reply {
+    background: rgba(11, 115, 102, 0.12);
+    color: #0B7366;
+    border-color: rgba(11, 115, 102, 0.25);
+    text-decoration: none;
+}
+
+.support-action-btn--reply:hover {
+    background: rgba(11, 115, 102, 0.22);
+    border-color: rgba(11, 115, 102, 0.45);
+    color: #0B7366;
+}
+
 .support-action-btn--delete {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
@@ -453,6 +466,10 @@ Support Inquiries - Admin Panel
 
                         <!-- Action Buttons -->
                         <div class="support-actions">
+                            <a href="/admin/communications?to=<?= urlencode($inquiry['email']) ?>&name=<?= urlencode($inquiry['name']) ?>&subject=<?= urlencode('Re: Support Inquiry - ' . ucfirst($inquiry['subject'])) ?>&inquiry_id=<?= (int)$inquiry['id'] ?>" class="support-action-btn support-action-btn--reply" title="Reply to <?= e($inquiry['name']) ?> via Admin Communications">
+                                💬 Reply via Email
+                            </a>
+
                             <?php if ($inquiry['status'] === 'new'): ?>
                                 <form method="POST" action="{{ route('admin/support') }}" style="margin:0;">
                                     <?= csrf_field() ?>

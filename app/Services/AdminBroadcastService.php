@@ -37,10 +37,45 @@ class AdminBroadcastService
             case 'single_host':
             case 'single_user':
                 if (empty($recipientEmail)) return [];
+                $recipientEmail = trim($recipientEmail);
+
+                // 1. Check registered users
                 $stmt = $db->prepare("SELECT email, name FROM users WHERE email = :email AND status = 'active' LIMIT 1");
                 $stmt->execute(['email' => $recipientEmail]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                return $row ? [$row] : [];
+                if ($row) {
+                    return [$row];
+                }
+
+                // 2. Check support inquiries (e.g. guests / inquiries)
+                try {
+                    $stmtSupport = $db->prepare("SELECT email, name FROM support_inquiries WHERE email = :email ORDER BY id DESC LIMIT 1");
+                    $stmtSupport->execute(['email' => $recipientEmail]);
+                    $supportRow = $stmtSupport->fetch(\PDO::FETCH_ASSOC);
+                    if ($supportRow && !empty($supportRow['name'])) {
+                        return [$supportRow];
+                    }
+                } catch (\Throwable $e) {}
+
+                // 3. Check event tickets / attendees
+                try {
+                    $stmtTicket = $db->prepare("SELECT attendee_email as email, attendee_name as name FROM event_tickets WHERE attendee_email = :email ORDER BY id DESC LIMIT 1");
+                    $stmtTicket->execute(['email' => $recipientEmail]);
+                    $ticketRow = $stmtTicket->fetch(\PDO::FETCH_ASSOC);
+                    if ($ticketRow && !empty($ticketRow['name'])) {
+                        return [$ticketRow];
+                    }
+                } catch (\Throwable $e) {}
+
+                // 4. Fallback for any valid email address
+                if (filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+                    return [[
+                        'email' => $recipientEmail,
+                        'name' => 'Valued Customer',
+                    ]];
+                }
+
+                return [];
 
             default:
                 return [];
@@ -79,39 +114,61 @@ class AdminBroadcastService
         $siteName = site_setting('site_title', 'Eventlyy');
         $db = Application::$app->db->pdo;
 
-        // Prepare insert statement once outside the loop for high performance
-        $stmt = $db->prepare("
-            INSERT INTO admin_broadcast_logs 
-            (admin_id, audience_type, recipient_count, recipient_email, recipient_name, subject, message, cta_text, cta_url, priority, status, sent_at)
-            VALUES (:admin_id, :audience_type, :recipient_count, :email, :name, :subject, :message, :cta_text, :cta_url, :priority, :status, NOW())
-        ");
+        // Build unique queue reference and determine queue priority
+        $reference = 'BROADCAST-' . $adminId . '-' . time();
+        $queuePriority = match (strtolower($priority)) {
+            'urgent', 'high' => 2,
+            'important' => 5,
+            'low' => 20,
+            default => 10,
+        };
 
-        $batchResult = Mail::sendBatch(
-            $recipients,
-            $subject,
-            'emails/admin_broadcast',
-            function (array $recipient) use ($subject, $message, $ctaText, $ctaUrl, $priority, $siteName) {
-                return [
-                    'recipientName' => $recipient['name'] ?? 'User',
+        // Prepare message payloads for the asynchronous background EmailQueue
+        $messages = [];
+        $validRecipients = [];
+        foreach ($recipients as $recipient) {
+            $email = trim($recipient['email'] ?? '');
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            $name = $recipient['name'] ?? 'User';
+            $validRecipients[] = $recipient;
+
+            $messages[] = [
+                'to' => $email,
+                'name' => $name,
+                'subject' => $subject,
+                'view' => 'emails/admin_broadcast',
+                'params' => [
+                    'recipientName' => $name,
                     'subject' => $subject,
                     'messageBody' => $message,
                     'ctaText' => $ctaText,
                     'ctaUrl' => $ctaUrl,
                     'priority' => $priority,
                     'siteName' => $siteName,
-                ];
-            }
-        );
+                ],
+            ];
+        }
 
-        $sentCount = $batchResult['sent'];
-        $failedCount = $batchResult['failed'];
-        $errors = $batchResult['errors'] ?? [];
+        // Batch queue all messages in email_queue table
+        $queuedCount = 0;
+        if (!empty($messages)) {
+            $queuedCount = \Ace\EmailQueue::queueMessages($messages, $reference, $queuePriority);
+        }
+
+        // Prepare insert statement for broadcast history logs
+        $stmt = $db->prepare("
+            INSERT INTO admin_broadcast_logs 
+            (admin_id, audience_type, recipient_count, recipient_email, recipient_name, subject, message, cta_text, cta_url, priority, status, sent_at)
+            VALUES (:admin_id, :audience_type, :recipient_count, :email, :name, :subject, :message, :cta_text, :cta_url, :priority, :status, NOW())
+        ");
 
         // Log each recipient outcome to database
         foreach ($recipients as $recipient) {
             $email = $recipient['email'];
-            $isFailed = isset($errors[$email]);
-            $status = $isFailed ? 'failed' : 'sent';
+            $isValid = filter_var($email, FILTER_VALIDATE_EMAIL);
+            $status = $isValid ? 'queued' : 'failed';
 
             try {
                 $stmt->execute([
@@ -132,11 +189,17 @@ class AdminBroadcastService
             }
         }
 
+        // Trigger immediate background worker dispatch after HTTP response is flushed
+        if ($queuedCount > 0) {
+            \Ace\EmailQueue::processAfterResponse(100);
+        }
+
         return [
             'total' => $totalRecipients,
-            'sent' => $sentCount,
-            'failed' => $failedCount,
-            'last_error' => Mail::getLastError(),
+            'queued' => $queuedCount,
+            'sent' => $queuedCount,
+            'failed' => max(0, $totalRecipients - $queuedCount),
+            'reference' => $reference,
         ];
     }
 
@@ -206,12 +269,35 @@ class AdminBroadcastService
             ");
             $stmt->execute(['q1' => $searchTerm, 'q2' => $searchTerm]);
         } else {
-            $stmt = $db->prepare("
-                SELECT email, name FROM users 
-                WHERE status = 'active' AND (name LIKE :q1 OR email LIKE :q2)
-                ORDER BY name ASC LIMIT 10
-            ");
-            $stmt->execute(['q1' => $searchTerm, 'q2' => $searchTerm]);
+            // Search active users as well as recent support inquiry contacts
+            try {
+                $stmt = $db->prepare("
+                    SELECT email, name FROM (
+                        SELECT email, name FROM users 
+                        WHERE status = 'active' AND (name LIKE :q1 OR email LIKE :q2)
+                        UNION
+                        SELECT email, name FROM support_inquiries
+                        WHERE (name LIKE :q3 OR email LIKE :q4)
+                    ) AS combined
+                    WHERE email IS NOT NULL AND email != ''
+                    GROUP BY email
+                    ORDER BY name ASC 
+                    LIMIT 10
+                ");
+                $stmt->execute([
+                    'q1' => $searchTerm,
+                    'q2' => $searchTerm,
+                    'q3' => $searchTerm,
+                    'q4' => $searchTerm,
+                ]);
+            } catch (\Throwable $e) {
+                $stmt = $db->prepare("
+                    SELECT email, name FROM users 
+                    WHERE status = 'active' AND (name LIKE :q1 OR email LIKE :q2)
+                    ORDER BY name ASC LIMIT 10
+                ");
+                $stmt->execute(['q1' => $searchTerm, 'q2' => $searchTerm]);
+            }
         }
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];

@@ -134,7 +134,7 @@ class EmailQueue
 
         // Fetch the claimed rows
         $fetchStmt = $pdo->prepare("
-            SELECT id, recipient_email, recipient_name, subject, view_template, view_params
+            SELECT id, recipient_email, recipient_name, subject, view_template, view_params, reference
             FROM email_queue
             WHERE status = 'processing'
             ORDER BY priority ASC, created_at ASC
@@ -153,6 +153,19 @@ class EmailQueue
             SET status = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'pending' END,
                 last_error = :error
             WHERE id = :id
+        ");
+
+        $broadcastLogSentStmt = $pdo->prepare("
+            UPDATE admin_broadcast_logs 
+            SET status = 'sent' 
+            WHERE recipient_email = :email AND status = 'queued' 
+            ORDER BY sent_at DESC LIMIT 1
+        ");
+        $broadcastLogFailStmt = $pdo->prepare("
+            UPDATE admin_broadcast_logs 
+            SET status = 'failed' 
+            WHERE recipient_email = :email AND status = 'queued' 
+            ORDER BY sent_at DESC LIMIT 1
         ");
 
         foreach ($rows as $row) {
@@ -174,15 +187,40 @@ class EmailQueue
                 if ($sent) {
                     $successStmt->execute([':id' => $row['id']]);
                     $result['sent']++;
+
+                    // Sync status in admin_broadcast_logs if part of a broadcast
+                    if (!empty($row['reference']) && str_starts_with($row['reference'], 'BROADCAST-')) {
+                        try {
+                            $broadcastLogSentStmt->execute([':email' => $row['recipient_email']]);
+                        } catch (\Throwable $eLog) {
+                            // Non-blocking log sync failure
+                        }
+                    }
                 } else {
                     $error = Mail::getLastError() ?: 'Mail::send() returned false';
                     $failStmt->execute([':error' => $error, ':id' => $row['id']]);
                     $result['failed']++;
+
+                    if (!empty($row['reference']) && str_starts_with($row['reference'], 'BROADCAST-')) {
+                        try {
+                            $broadcastLogFailStmt->execute([':email' => $row['recipient_email']]);
+                        } catch (\Throwable $eLog) {
+                            // Non-blocking log sync failure
+                        }
+                    }
                 }
             } catch (\Throwable $e) {
                 $failStmt->execute([':error' => $e->getMessage(), ':id' => $row['id']]);
                 $result['failed']++;
                 error_log("EmailQueue: Failed to send email #{$row['id']}: " . $e->getMessage());
+
+                if (!empty($row['reference']) && str_starts_with($row['reference'], 'BROADCAST-')) {
+                    try {
+                        $broadcastLogFailStmt->execute([':email' => $row['recipient_email']]);
+                    } catch (\Throwable $eLog) {
+                        // Non-blocking log sync failure
+                    }
+                }
             }
         }
 
