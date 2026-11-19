@@ -499,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const formData = new FormData();
                 formData.append('reference', ref);
                 formData.append('phone', phoneVal);
+                formData.append('csrf_token', '<?= e(csrf_token()) ?>');
 
                 fetch('<?= \url('/order/send-whatsapp') ?>', {
                     method: 'POST',
