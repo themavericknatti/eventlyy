@@ -1111,51 +1111,53 @@ function startQrScanner() {
         });
     }
 
-    if (typeof Html5Qrcode.getCameras === 'function') {
-        Html5Qrcode.getCameras().then(function(cameras) {
-            var targetCamera = null;
-            if (cameras && cameras.length > 0) {
-                for (var i = 0; i < cameras.length; i++) {
-                    var lbl = (cameras[i].label || '').toLowerCase();
-                    if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
-                        targetCamera = cameras[i];
-                        break;
+    // Prefer native rear environment camera directly (ideal for iPhone Safari & Android Chrome)
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        onQrCodeScanned,
+        function() {}
+    ).then(onCamStarted).catch(function(err1) {
+        console.warn('Direct facingMode environment failed, trying camera enumeration fallback:', err1);
+        if (typeof Html5Qrcode.getCameras === 'function') {
+            return Html5Qrcode.getCameras().then(function(cameras) {
+                var targetCamera = null;
+                if (cameras && cameras.length > 0) {
+                    for (var i = 0; i < cameras.length; i++) {
+                        var lbl = (cameras[i].label || '').toLowerCase();
+                        if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
+                            targetCamera = cameras[i];
+                            break;
+                        }
+                    }
+                    if (!targetCamera) {
+                        targetCamera = cameras[0];
                     }
                 }
-                if (!targetCamera) {
-                    targetCamera = cameras[cameras.length - 1];
+                if (targetCamera && targetCamera.id) {
+                    return html5QrcodeScanner.start(targetCamera.id, config, onQrCodeScanned, function() {});
                 }
-            }
-
-            if (targetCamera && targetCamera.id) {
-                return html5QrcodeScanner.start(targetCamera.id, config, onQrCodeScanned, function() {});
-            }
-            return html5QrcodeScanner.start({ facingMode: "environment" }, config, onQrCodeScanned, function() {});
-        }).catch(function() {
-            return html5QrcodeScanner.start({ facingMode: "environment" }, config, onQrCodeScanned, function() {});
-        }).catch(function() {
-            return html5QrcodeScanner.start({ facingMode: "user" }, config, onQrCodeScanned, function() {});
-        }).then(onCamStarted).catch(function(err) {
-            console.warn('Camera start error:', err);
-            var reason = 'Camera permission denied or camera not found.';
-            if (!isSecure) {
-                reason = 'Browser blocks live camera over unsecure HTTP. Use HTTPS or the "Snap Photo / Upload QR Image" option below.';
-            }
-            renderCameraError(reason);
-        });
-    } else {
-        html5QrcodeScanner.start({ facingMode: "environment" }, config, onQrCodeScanned, function() {})
-        .catch(function() {
-            return html5QrcodeScanner.start({ facingMode: "user" }, config, onQrCodeScanned, function() {});
-        }).then(onCamStarted).catch(function(err) {
-            console.warn('Camera start error:', err);
-            var reason = 'Camera permission denied or camera not found.';
-            if (!isSecure) {
-                reason = 'Browser blocks live camera over unsecure HTTP. Use HTTPS or the "Snap Photo / Upload QR Image" option below.';
-            }
-            renderCameraError(reason);
-        });
-    }
+                return html5QrcodeScanner.start({ facingMode: "user" }, config, onQrCodeScanned, function() {});
+            }).then(onCamStarted).catch(function(finalErr) {
+                console.warn('Camera start error:', finalErr);
+                var reason = 'Camera permission denied or camera not found.';
+                if (!isSecure) {
+                    reason = 'Browser blocks live camera over unsecure HTTP. Use HTTPS or the "Snap Photo / Upload QR Image" option below.';
+                }
+                renderCameraError(reason);
+            });
+        } else {
+            return html5QrcodeScanner.start({ facingMode: "user" }, config, onQrCodeScanned, function() {})
+                .then(onCamStarted).catch(function(finalErr) {
+                    console.warn('Camera start error:', finalErr);
+                    var reason = 'Camera permission denied or camera not found.';
+                    if (!isSecure) {
+                        reason = 'Browser blocks live camera over unsecure HTTP. Use HTTPS or the "Snap Photo / Upload QR Image" option below.';
+                    }
+                    renderCameraError(reason);
+                });
+        }
+    });
 }
 
 function stopQrScanner() {
@@ -1190,7 +1192,7 @@ function renderCameraError(msg) {
 function extractTicketCode(raw) {
     if (!raw) return '';
     var str = String(raw).trim();
-    var urlMatch = str.match(/(?:ticket\/|qr\/|code=)([A-Za-z0-9\-_]+)/i);
+    var urlMatch = str.match(/(?:ticket\/|qr\/|pass\/|code=)([A-Za-z0-9\-_]+)/i);
     if (urlMatch && urlMatch[1]) {
         return urlMatch[1].trim();
     }

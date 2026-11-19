@@ -156,8 +156,8 @@
     function extractTicketCode(raw) {
         if (!raw) return '';
         var str = String(raw).trim();
-        // Extract from URLs (e.g. https://domain.com/ticket/EV-12345 or /ticket/qr/12345)
-        var urlMatch = str.match(/(?:ticket\/|qr\/|code=)([A-Za-z0-9\-_]+)/i);
+        // Extract from URLs (e.g. https://domain.com/ticket/EV-12345, /pass/EV-12345, or /ticket/qr/12345)
+        var urlMatch = str.match(/(?:ticket\/|qr\/|pass\/|code=)([A-Za-z0-9\-_]+)/i);
         if (urlMatch && urlMatch[1]) {
             return urlMatch[1].trim();
         }
@@ -328,83 +328,53 @@
         updateScannerStatus('📷 Starting camera...', 'info');
         setupVideoObserver('qr-scanner');
 
-        // Multi-level camera fallback ladder for iOS (Safari) and Android
-        if (typeof Html5Qrcode.getCameras === 'function') {
-            Html5Qrcode.getCameras().then(function (cameras) {
-                var targetCamera = null;
-                if (cameras && cameras.length > 0) {
-                    // Try to identify the rear/back camera on multi-camera iPhones & Androids
-                    for (var i = 0; i < cameras.length; i++) {
-                        var lbl = (cameras[i].label || '').toLowerCase();
-                        if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
-                            targetCamera = cameras[i];
-                            break;
+        // Prefer native rear environment camera directly (ideal for iPhone Safari & Android Chrome)
+        html5QrcodeScanner.start(
+            { facingMode: 'environment' },
+            config,
+            onScanSuccess,
+            onScanError
+        ).then(function () {
+            updateScannerStatus('Point camera at attendee QR code', 'info');
+            enforcePlaysInline('qr-scanner');
+        }).catch(function (err1) {
+            console.warn('Direct facingMode environment failed, trying camera enumeration fallback:', err1);
+            if (typeof Html5Qrcode.getCameras === 'function') {
+                return Html5Qrcode.getCameras().then(function (cameras) {
+                    var targetCamera = null;
+                    if (cameras && cameras.length > 0) {
+                        for (var i = 0; i < cameras.length; i++) {
+                            var lbl = (cameras[i].label || '').toLowerCase();
+                            if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
+                                targetCamera = cameras[i];
+                                break;
+                            }
+                        }
+                        if (!targetCamera) {
+                            targetCamera = cameras[0];
                         }
                     }
-                    if (!targetCamera) {
-                        targetCamera = cameras[cameras.length - 1]; // Rear cameras are typically listed last on mobile
+                    if (targetCamera && targetCamera.id) {
+                        return html5QrcodeScanner.start(targetCamera.id, config, onScanSuccess, onScanError);
                     }
-                }
-
-                if (targetCamera && targetCamera.id) {
-                    return html5QrcodeScanner.start(
-                        targetCamera.id,
-                        config,
-                        onScanSuccess,
-                        onScanError
-                    );
-                }
-
-                // If no camera identified or labels are blank (common on iOS before first permission grant)
-                return html5QrcodeScanner.start(
-                    { facingMode: 'environment' },
-                    config,
-                    onScanSuccess,
-                    onScanError
-                );
-            }).catch(function (err1) {
-                console.warn('Camera ID / environment facingMode attempt failed, trying facingMode environment fallback:', err1);
-                return html5QrcodeScanner.start(
-                    { facingMode: 'environment' },
-                    config,
-                    onScanSuccess,
-                    onScanError
-                );
-            }).catch(function (err2) {
-                console.warn('facingMode environment failed, trying front/user camera:', err2);
-                return html5QrcodeScanner.start(
-                    { facingMode: 'user' },
-                    config,
-                    onScanSuccess,
-                    onScanError
-                );
-            }).then(function () {
-                updateScannerStatus('Point camera at attendee QR code', 'info');
-                enforcePlaysInline('qr-scanner');
-            }).catch(function (finalErr) {
-                handleCameraError(finalErr);
-            });
-        } else {
-            // Fallback for browsers without getCameras API
-            html5QrcodeScanner.start(
-                { facingMode: 'environment' },
-                config,
-                onScanSuccess,
-                onScanError
-            ).catch(function () {
-                return html5QrcodeScanner.start(
-                    { facingMode: 'user' },
-                    config,
-                    onScanSuccess,
-                    onScanError
-                );
-            }).then(function () {
-                updateScannerStatus('Point camera at attendee QR code', 'info');
-                enforcePlaysInline('qr-scanner');
-            }).catch(function (finalErr) {
-                handleCameraError(finalErr);
-            });
-        }
+                    return html5QrcodeScanner.start({ facingMode: 'user' }, config, onScanSuccess, onScanError);
+                }).then(function () {
+                    updateScannerStatus('Point camera at attendee QR code', 'info');
+                    enforcePlaysInline('qr-scanner');
+                }).catch(function (finalErr) {
+                    handleCameraError(finalErr);
+                });
+            } else {
+                return html5QrcodeScanner.start({ facingMode: 'user' }, config, onScanSuccess, onScanError)
+                    .then(function () {
+                        updateScannerStatus('Point camera at attendee QR code', 'info');
+                        enforcePlaysInline('qr-scanner');
+                    })
+                    .catch(function (finalErr) {
+                        handleCameraError(finalErr);
+                    });
+            }
+        });
     }
 
     function handleCameraError(err) {

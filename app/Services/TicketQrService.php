@@ -77,17 +77,11 @@ class TicketQrService
     }
 
     /**
-     * Render a branded QR code with matrix-aware logo space reservation and center emblem.
+     * Render a clean, ultra-high-contrast, perfectly scannable QR code.
      *
-     * Uses chillerlan/php-qrcode to generate the QR matrix with a 7×7 module quiet zone
-     * in the center (via addLogoSpace), then composites a teal circle with a cursive italic
-     * "E" character rendered in the InstrumentSerif-Italic font.
-     *
-     * The approach ensures:
-     * 1. The QR matrix algorithm reserves empty space — no Reed-Solomon codewords destroyed
-     * 2. ECC Level H (30%) provides ample error correction headroom
-     * 3. The emblem is size-proportional and stays within the safe zone
-     * 4. Output is resampled to the exact requested pixel dimension
+     * Uses ECC Level M (15%) or Q (25%) for maximum optical scan speed and compatibility
+     * across all smartphone cameras (iPhone Safari WebKit, Android Chrome) and hardware scanners.
+     * Keeps all data codewords, timing patterns, and alignment modules 100% intact.
      *
      * @param string $code The ticket code text to encode
      * @param int $targetSize Final output dimension in pixels
@@ -95,24 +89,20 @@ class TicketQrService
      */
     protected function renderBrandedQr(string $code, int $targetSize): string
     {
-        $scale = 10;          // High-res internal rendering scale
-        $logoModules = 7;     // 7×7 modules reserved in center (safe for ECC-H)
+        $scale = 10; // High internal resolution scale for crisp edges
 
         $options = new QROptions([
             'outputInterface' => QRGdImagePNG::class,
-            'eccLevel'        => EccLevel::H,
+            'eccLevel'        => EccLevel::M,
             'scale'           => $scale,
             'outputBase64'    => false,
-            'addLogoSpace'    => true,
-            'logoSpaceWidth'  => $logoModules,
-            'logoSpaceHeight' => $logoModules,
             'quietzoneSize'   => 4,
         ]);
 
         $qr = new QRCode($options);
         $rawPng = $qr->render($code);
 
-        // If GD is not available, return the raw (un-badged) QR code
+        // If GD is not available, return the raw QR code
         if (!extension_loaded('gd')) {
             return $rawPng;
         }
@@ -127,38 +117,8 @@ class TicketQrService
 
         $w = imagesx($qrImg);
         $h = imagesy($qrImg);
-        $centerX = (int)($w / 2);
-        $centerY = (int)($h / 2);
 
-        // Badge fits snugly inside the reserved 7×7 module quiet zone
-        $badgeSize = $logoModules * $scale;
-
-        // Brand colors: Deep Emerald Teal (#0B7366) and Pure White (#FFFFFF)
-        $white = imagecolorallocate($qrImg, 255, 255, 255);
-        $teal  = imagecolorallocate($qrImg, 11, 115, 102);
-
-        // 1. Outer protective white circular isolation halo
-        imagefilledellipse($qrImg, $centerX, $centerY, $badgeSize, $badgeSize, $white);
-
-        // 2. Inner brand teal circular badge (84% of outer = 2px white ring at scale 10)
-        $innerBadge = (int)round($badgeSize * 0.84);
-        imagefilledellipse($qrImg, $centerX, $centerY, $innerBadge, $innerBadge, $teal);
-
-        // 3. Bold cursive italic "E" character
-        $fontPath = $this->resolveFontPath();
-        if ($fontPath && function_exists('imagettftext')) {
-            $fontSize = (int)round($innerBadge * 0.58);
-            $bbox = @imagettfbbox($fontSize, 0, $fontPath, 'E');
-            if ($bbox) {
-                $textWidth  = abs($bbox[4] - $bbox[0]);
-                $textHeight = abs($bbox[5] - $bbox[1]);
-                $tx = (int)round($centerX - ($textWidth / 2)) - $bbox[0] - 1;
-                $ty = (int)round($centerY + ($textHeight / 2)) - 3;
-                imagettftext($qrImg, $fontSize, 0, $tx, $ty, $white, $fontPath, 'E');
-            }
-        }
-
-        // 4. Resample to the exact requested target dimension
+        // Resample smoothly to the exact requested target dimension
         if ($w !== $targetSize || $h !== $targetSize) {
             $resized = imagecreatetruecolor($targetSize, $targetSize);
             imagealphablending($resized, false);

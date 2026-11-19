@@ -391,40 +391,35 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                             </div>
                         </div>
 
-                        <!-- Protected Admission Code Box (QR & Plain Code delivered via Email & WhatsApp) -->
+                        <!-- Admission Code Box -->
                         <div class="suc-pass-code-box">
                             <div>
-                                <span class="suc-pass-code-label">Admission Code &bull; Protected</span>
-                                <div class="suc-pass-code-val" style="letter-spacing: 0.14em; font-family: Consolas, Monaco, monospace; color: #64748b; font-weight: 800;">
-                                    <?= e(substr($tCode, 0, 3) . '••••••••') ?>
+                                <span class="suc-pass-code-label">Unique Admission Code</span>
+                                <div class="suc-pass-code-val" style="letter-spacing: 0.12em; font-family: Consolas, Monaco, monospace; color: #108a55; font-weight: 800;">
+                                    <?= e($tCode) ?>
                                 </div>
                             </div>
                             <div class="suc-pass-code-actions">
-                                <span class="suc-pass-valid-tag" style="background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
-                                    <span>🔒</span> Sent to Email &amp; WhatsApp
-                                </span>
+                                <button type="button" class="suc-copy-code-btn" data-code="<?= e($tCode) ?>" title="Copy Admission Code">
+                                    📋 Copy Code
+                                </button>
+                                <?php if (!empty($t['security_pin'])): ?>
+                                    <span style="font-size:0.75rem; color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:3px 8px; border-radius:6px; font-weight:700; font-family:monospace;">
+                                        PIN: <?= e($t['security_pin']) ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right: Pass Delivered Badge (QR sent via Email & WhatsApp) -->
-                    <div class="suc-pass-qr-stub" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.45rem; text-align:center; padding:1.25rem 1rem;">
-                        <div style="width:48px; height:48px; border-radius:50%; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; justify-content:center;">
-                            <span style="font-size:1.6rem; line-height:1;">🔒</span>
+                    <!-- Right: Official Scannable QR Code -->
+                    <div class="suc-pass-qr-stub" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; text-align:center; padding:1rem;">
+                        <div style="background:#ffffff; padding:6px; border-radius:10px; border:1px solid rgba(var(--muted),0.2); box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                            <img src="<?= url('/ticket/qr/' . urlencode($tCode) . '?s=220') ?>" alt="QR Code #<?= e($tCode) ?>" width="110" height="110" style="display:block; border-radius:4px;" />
                         </div>
-                        <span style="display:block; font-size:0.85rem; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.04em;">Pass Dispatched</span>
-                        <span style="display:block; font-size:0.75rem; color:#64748b; line-height:1.45; max-width:210px;">
-                            Admission QR pass &amp; unlock PIN delivered to <strong><?= e($order['attendee_email']) ?></strong>
-                        </span>
-                        <div style="margin-top:0.35rem; display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:700; color:#0d9488; background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.25); padding:4px 10px; border-radius:99px;">
-                            <span>✉️</span> Check Email &amp; WhatsApp
-                        </div>
-                        <?php if (\Ace\Application::$app->user): ?>
-                            <a href="<?= url('/profile?tab=tickets') ?>" 
-                               style="display:inline-flex; align-items:center; gap:4px; margin-top:0.35rem; color:#6366f1; font-size:0.75rem; font-weight:700; text-decoration:underline;">
-                                👤 View in My Account &rarr;
-                            </a>
-                        <?php endif; ?>
+                        <a href="<?= url('/pass/' . urlencode($tCode)) ?>" target="_blank" style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#108a55; text-decoration:none;">
+                            📱 Open Mobile Pass →
+                        </a>
                     </div>
                 </div>
 

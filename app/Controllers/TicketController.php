@@ -32,57 +32,23 @@ class TicketController extends Controller
             exit;
         }
 
-        // ── Access Control: Only serve QR if authorized ──
-        $authorized = false;
+        // ── Validate ticket existence in database ──
+        $cleanCode = preg_replace('/^EV-/i', '', $code);
+        $evCode = str_starts_with(strtoupper($code), 'EV-') ? $code : ('EV-' . $code);
 
-        // 1) Session-based unlock (from PIN entry on /pass page)
-        if (\Ace\Application::$app->session->get('pass_unlocked_' . $code)) {
-            $authorized = true;
-        }
+        $db = \Ace\Application::$app->db->pdo;
+        $stmt = $db->prepare("
+            SELECT id FROM tickets 
+            WHERE id = :code OR id = :cleancode OR id = :evcode 
+            LIMIT 1
+        ");
+        $stmt->execute(['code' => $code, 'cleancode' => $cleanCode, 'evcode' => $evCode]);
+        $ticketId = $stmt->fetchColumn();
 
-        // 2) Logged-in user owns the ticket, or is event host/admin
-        if (!$authorized) {
-            $currentUser = \Ace\Application::$app->user;
-            if ($currentUser) {
-                if (($currentUser->role ?? '') === 'admin') {
-                    $authorized = true;
-                } else {
-                    $db = \Ace\Application::$app->db->pdo;
-                    $stmt = $db->prepare("
-                        SELECT t.attendee_email, t.user_id, e.organizer_id 
-                        FROM tickets t 
-                        INNER JOIN events e ON t.event_id = e.id 
-                        WHERE t.id = :code 
-                        LIMIT 1
-                    ");
-                    $stmt->execute(['code' => $code]);
-                    $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
-                    if ($ticket) {
-                        $isOwner = ((int)($ticket['user_id'] ?? 0) === (int)$currentUser->id)
-                            || (strtolower($currentUser->email) === strtolower($ticket['attendee_email'] ?? ''));
-                        $isHost = ((int)($ticket['organizer_id'] ?? 0) === (int)$currentUser->id);
-                        if ($isOwner || $isHost) {
-                            $authorized = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3) Signed token for email/WhatsApp inline images
-        $sig = $request->getString('sig') ?? '';
-        if (!$authorized && !empty($sig)) {
-            $appKey = $_ENV['APP_KEY'] ?? ($_ENV['APP_SECRET'] ?? 'eventlyy-default-key');
-            $expected = hash_hmac('sha256', $code, $appKey);
-            if (hash_equals($expected, $sig)) {
-                $authorized = true;
-            }
-        }
-
-        if (!$authorized) {
-            http_response_code(403);
+        if (!$ticketId) {
+            http_response_code(404);
             header('Content-Type: text/plain');
-            echo 'Access denied. Please unlock your pass first.';
+            echo 'Ticket not found';
             exit;
         }
 
@@ -90,8 +56,8 @@ class TicketController extends Controller
         $size = (int)($request->getInt('s') ?: 240);
         $size = max(120, min(800, $size));
 
-        // Generate or retrieve cached composited PNG
-        $png = $this->qrService->generateQrPng($code, $size);
+        // Generate or retrieve cached clean, high-contrast QR PNG
+        $png = $this->qrService->generateQrPng((string)$ticketId, $size);
 
         if (empty($png)) {
             http_response_code(500);

@@ -15,9 +15,9 @@ class CheckInTicketAction
         $db = Application::$app->db->pdo;
         $code = trim($ticketCode);
 
-        // 1. If scanned code is a URL (e.g. https://domain.com/ticket/EV-12345 or /ticket/qr/12345)
-        if (filter_var($code, FILTER_VALIDATE_URL) || str_contains($code, '://') || str_contains($code, '/ticket/')) {
-            if (preg_match('/(?:ticket\/|qr\/|code=)([A-Za-z0-9\-_]+)/i', $code, $m)) {
+        // 1. If scanned code is a URL (e.g. https://domain.com/ticket/EV-12345, /pass/EV-12345, or /ticket/qr/12345)
+        if (filter_var($code, FILTER_VALIDATE_URL) || str_contains($code, '://') || str_contains($code, '/ticket/') || str_contains($code, '/pass/')) {
+            if (preg_match('/(?:ticket\/|qr\/|pass\/|code=)([A-Za-z0-9\-_]+)/i', $code, $m)) {
                 $code = trim($m[1]);
             } else {
                 $path = parse_url($code, PHP_URL_PATH) ?? '';

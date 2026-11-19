@@ -494,7 +494,7 @@ if (!empty($rawImg)) {
                 <span>📍 <?= e($ticket['event_location'] ?? 'Venue TBA') ?></span>
             </div>
 
-            <!-- Scannable High-Res QR Code or Locked State -->
+            <!-- Scannable High-Res QR Code -->
             <?php if ($isLayaway): ?>
                 <div class="vip-pin-lock-container">
                     <div class="vip-pin-lock-icon" style="background:rgba(99,102,241,0.15); border-color:rgba(99,102,241,0.35);">
@@ -508,92 +508,19 @@ if (!empty($rawImg)) {
                         Complete Layaway Plan →
                     </a>
                 </div>
-            <?php elseif ($isUnlocked): ?>
+            <?php else: ?>
                 <div class="vip-qr-box" title="Gate Admission QR Code — Scan at entrance">
                     <img src="<?= url('/ticket/qr/' . urlencode($ticketCode) . '?s=300') ?>" alt="Ticket QR Code #<?= e($ticketCode) ?>" />
                 </div>
-            <?php else: ?>
-                <!-- Dedicated High-Contrast PIN-Locked Container -->
-                <div class="vip-pin-lock-container">
-                    <div class="vip-pin-lock-icon">
-                        <span>🔒</span>
-                    </div>
-                    <h2 class="vip-pin-heading">Pass Protected</h2>
-                    <p class="vip-pin-subheading">
-                        Enter your 4-digit Security PIN to unlock and display your scannable entry QR code.
-                    </p>
-
-                    <?php if ($flashErr = \Ace\Application::$app->session->getFlash('error')): ?>
-                        <div class="vip-pin-alert vip-pin-alert--error">
-                            <?= e($flashErr) ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($flashSucc = \Ace\Application::$app->session->getFlash('success')): ?>
-                        <div class="vip-pin-alert vip-pin-alert--success">
-                            <?= e($flashSucc) ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <form method="POST" action="<?= url('/pass/' . e($ticketCode) . '/unlock') ?>" style="display:flex; flex-direction:column; align-items:center; width:100%;">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>" />
-                        
-                        <input type="text" 
-                               name="pin" 
-                               class="vip-pin-input-field"
-                               maxlength="4" 
-                               pattern="[0-9]{4}" 
-                               required 
-                               inputmode="numeric" 
-                               autocomplete="one-time-code"
-                               placeholder="••••" 
-                               autofocus />
-
-                        <button type="submit" class="vip-pin-submit-btn">
-                            🔓 Unlock Admission Pass
-                        </button>
-                    </form>
-
-                    <div id="pin-resend-msg" style="display:none; width:100%; margin-top:0.75rem;" class="vip-pin-alert"></div>
-                    
-                    <button type="button" onclick="resendPin()" id="resend-pin-btn" class="vip-pin-resend-link">
-                        <span>✉️</span> Send PIN to my Email
-                    </button>
+                <div class="vip-pass-code-pill" title="Official admission code">
+                    <span><?= e($ticketCode) ?></span>
                 </div>
-
-                <script>
-                function resendPin() {
-                    const btn = document.getElementById('resend-pin-btn');
-                    const msg = document.getElementById('pin-resend-msg');
-                    btn.disabled = true;
-                    btn.textContent = '⏳ Sending PIN...';
-                    fetch('<?= url('/pass/' . e($ticketCode) . '/resend-pin') ?>', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ csrf_token: '<?= e(csrf_token()) ?>' })
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        msg.style.display = 'block';
-                        msg.className = 'vip-pin-alert ' + (data.success ? 'vip-pin-alert--success' : 'vip-pin-alert--error');
-                        msg.textContent = data.message;
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>✉️</span> Resend PIN to my Email';
-                    })
-                    .catch(() => {
-                        msg.style.display = 'block';
-                        msg.className = 'vip-pin-alert vip-pin-alert--error';
-                        msg.textContent = 'Failed to connect. Please try again.';
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>✉️</span> Send PIN to my Email';
-                    });
-                }
-                </script>
+                <?php if (!empty($ticket['security_pin'])): ?>
+                    <div style="margin: 0 auto 0.75rem; font-size: 0.78rem; color: rgba(255,255,255,0.7); display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.06); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);">
+                        <span>🔐 Security PIN:</span> <strong style="font-family: monospace; letter-spacing: 0.12em; color: #34d399; font-size: 0.88rem;"><?= e($ticket['security_pin']) ?></strong>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
-
-            <!-- Admission Code Pill (Masked when Locked) -->
-            <div class="vip-pass-code-pill" title="<?= $isUnlocked ? 'Official admission code' : 'Protected admission code' ?>">
-                <span><?= $isUnlocked ? e($ticketCode) : 'EV-••••••••' ?></span>
-            </div>
 
             <!-- Pass Holder & Tier Details Grid -->
             <div class="vip-pass-grid">
@@ -609,8 +536,6 @@ if (!empty($rawImg)) {
                     <label>Gate Status</label>
                     <?php if ($isLayaway): ?>
                         <strong style="color: #818cf8;">Payment Required</strong>
-                    <?php elseif (!$isUnlocked): ?>
-                        <strong style="color: #fbbf24;">🔒 PIN Locked</strong>
                     <?php else: ?>
                         <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">
                             <?= $isCheckedIn ? 'Checked In' : 'Ready for Scan' ?>
