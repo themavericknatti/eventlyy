@@ -89,25 +89,25 @@
     <main class="container{{ app()->request->is('event/*') ? ' event-detail-page' : '' }}{{ app()->request->is('terms', 'privacy', 'guide', 'support', 'about', 'profile') ? ' legal-codex-page' : '' }}{{ app()->request->is('/') ? ' home-page' : '' }}{{ app()->request->is('about') ? ' about-page' : '' }}{{ app()->request->is('profile') ? ' profile-page' : '' }}">
         @session('success')
         <div class="alert alert-success">
-            <span>✅</span> {!! $value !!}
+            <span>✅</span> {{ $value }}
         </div>
         @endsession
 
         @session('error')
         <div class="alert alert-danger">
-            <span>❌</span> {!! $value !!}
+            <span>❌</span> {{ $value }}
         </div>
         @endsession
 
         @session('warning')
         <div class="alert alert-warning">
-            <span>⚠️</span> {!! $value !!}
+            <span>⚠️</span> {{ $value }}
         </div>
         @endsession
 
         @session('info')
         <div class="alert alert-info">
-            <span>ℹ️</span> {!! $value !!}
+            <span>ℹ️</span> {{ $value }}
         </div>
         @endsession
 

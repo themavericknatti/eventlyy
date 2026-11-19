@@ -257,18 +257,20 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
 
             <!-- § 7 — Layaway Data -->
             <section class="vn-lg-section" id="section-7">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 7.</span> Layaway &amp; Partial Payment Data</h2>
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 7.</span> Layaway, Partial Payments &amp; Event Credits</h2>
                 <p class="vn-lg-text">
-                    If you use our layaway feature, here's what additional data we handle:
+                    If you use our layaway feature or hold event credits, here's what additional data we handle:
                 </p>
                 <ul class="vn-lg-list">
                     <li><strong>Payment history:</strong> We track each installment you make — the amount, date, and Paystack transaction reference.</li>
-                    <li><strong>Balance tracking:</strong> We maintain a running balance showing how much you've paid and how much is left.</li>
-                    <li><strong>Status records:</strong> Whether your layaway is active, completed, or expired.</li>
-                    <li><strong>Credit records:</strong> If your layaway expires, we record the event credit balance assigned to your account.</li>
+                    <li><strong>Balance tracking:</strong> We maintain a running balance showing how much you've paid and how much is remaining.</li>
+                    <li><strong>Status records:</strong> Whether your layaway plan is active, completed, or expired.</li>
+                    <li><strong>Credit balance &amp; redemption:</strong> If a layaway plan expires without 100% completion, we record the converted Event Credit balance associated with your email address and track its redemption against future ticket checkouts.</li>
+                    <li><strong>Public Credit Lookup:</strong> We provide a lookup hub (<code>/credits</code>) where attendees can check their available credit balance by submitting their email address. No credit card details, banking credentials, or unrelated personal data are ever exposed.</li>
+                    <li><strong>Automatic Account Linking:</strong> When a guest attendee registers an account or logs in with the email address used during checkout, our system securely associates their event credits, installment history, and tickets to their authenticated profile.</li>
                 </ul>
                 <p class="vn-lg-text">
-                    This data is kept for the duration of the layaway period and for a reasonable time afterward for accounting and dispute resolution.
+                    This data is kept securely for the duration of your account and for accounting, audit reconciliation, and fraud prevention purposes.
                 </p>
             </section>
 
@@ -282,9 +284,9 @@ Privacy Policy &amp; Your Data &bull; <?= e($siteName) ?>
                     <li>We record the <strong>scan timestamp</strong> and <strong>admission status</strong> (admitted or denied).</li>
                     <li>This data is used to prevent duplicate entries — one scan per ticket, no exceptions.</li>
                     <li>Event hosts can see the check-in status of their attendees through their host dashboard.</li>
-                    <li>Check-in data is retained as part of the event record and is subject to our standard data retention practices.</li>
-                    <li>QR codes are also accessible via a web-based ticket pass page (<code>/pass/{code}</code>).</li>
-                    <li>Ticket passes include: event name, date, venue, ticket tier, admits count, and the QR code.</li>
+                    <li><strong>Layaway pass lockdown:</strong> Tickets on active, incomplete layaway plans do NOT generate active scannable QR passes. The web pass page (<code>/pass/{code}</code>) displays a locked status and check-in is rejected at the gate until final payment is verified.</li>
+                    <li>QR codes are accessible via a web-based ticket pass page (<code>/pass/{code}</code>) only once fully paid or host-issued.</li>
+                    <li>Ticket passes include: event name, date, venue, ticket tier, admits count, and the active QR code.</li>
                     <li>Check-in records include: scanner identity (staff member or host), timestamp, and admission count.</li>
                 </ul>
             </section>

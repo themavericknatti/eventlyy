@@ -51,7 +51,18 @@ class UploadService
         // Place a protective .htaccess to block PHP execution in upload dirs
         $htaccess = $dir . '/.htaccess';
         if (!file_exists($htaccess)) {
-            @file_put_contents($htaccess, "# Prevent PHP execution in uploads\n<FilesMatch \"\\.(php|phtml|php3|php4|php5|php7|phps)$\">\n    Deny from all\n</FilesMatch>\n");
+            $rules = "# Prevent any script execution in uploads\n"
+                   . "Options -ExecCGI -Indexes\n"
+                   . "RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pht .phps .shtml .cgi .pl .py .sh\n"
+                   . "AddType text/plain .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pht .phps .shtml .cgi .pl .py .sh\n"
+                   . "<IfModule mod_php.c>\n    php_flag engine off\n</IfModule>\n"
+                   . "<IfModule mod_php7.c>\n    php_flag engine off\n</IfModule>\n"
+                   . "<IfModule mod_php8.c>\n    php_flag engine off\n</IfModule>\n"
+                   . "<FilesMatch \"(?i)\\.(php|phtml|php3|php4|php5|php7|php8|phar|pht|phps|shtml|cgi|pl|py|sh|bash|exe|bat|cmd|ps1|vbs)$\">\n"
+                   . "    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n"
+                   . "    <IfModule !mod_authz_core.c>\n        Deny from all\n    </IfModule>\n"
+                   . "</FilesMatch>\n";
+            @file_put_contents($htaccess, $rules);
         }
 
         return true;
@@ -95,11 +106,60 @@ class UploadService
         $filename = $file['name'];
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
+        // Strict blacklist to prevent any script execution or dangerous types
+        $dangerous = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'pht', 'phps', 'shtml', 'cgi', 'pl', 'py', 'sh', 'bash', 'exe', 'bat', 'cmd', 'ps1', 'vbs', 'html', 'htm', 'js', 'jar'];
+        if (in_array($extension, $dangerous, true)) {
+            Logger::error("UploadService: Blocked attempt to upload forbidden file type: '{$filename}' (ext: {$extension})");
+            return [
+                'success' => false,
+                'error' => 'Security violation: File type not permitted.'
+            ];
+        }
+
         if (!empty($allowedExtensions) && !in_array($extension, $allowedExtensions)) {
             return [
                 'success' => false,
                 'error' => 'Invalid file type. Allowed: ' . implode(', ', $allowedExtensions)
             ];
+        }
+
+        // Verify real MIME type using Fileinfo if available
+        if (!empty($file['tmp_name']) && file_exists($file['tmp_name'])) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo ? finfo_file($finfo, $file['tmp_name']) : (function_exists('mime_content_type') ? mime_content_type($file['tmp_name']) : '');
+            if ($finfo) {
+                finfo_close($finfo);
+            }
+
+            if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+                $validMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+                if (!empty($mimeType) && !in_array($mimeType, $validMimes, true)) {
+                    Logger::error("UploadService: Spoofed image MIME type: '{$mimeType}' for '{$filename}'");
+                    return [
+                        'success' => false,
+                        'error' => 'Invalid image content detected. File is not a valid image format.'
+                    ];
+                }
+
+                // Deep inspect image dimensions to ensure valid raster data and block polyglots
+                $imgInfo = @getimagesize($file['tmp_name']);
+                if ($imgInfo === false) {
+                    Logger::error("UploadService: getimagesize failed for '{$filename}'");
+                    return [
+                        'success' => false,
+                        'error' => 'Invalid image file. The uploaded file is not a readable image.'
+                    ];
+                }
+            } elseif ($extension === 'svg') {
+                $svgContent = @file_get_contents($file['tmp_name']);
+                if ($svgContent === false || preg_match('/<\s*(?:script|iframe|object|embed|applet|foreignobject)|(?:javascript|data):|on[a-z]+\s*=/i', $svgContent)) {
+                    Logger::error("UploadService: Malicious SVG content detected in '{$filename}'");
+                    return [
+                        'success' => false,
+                        'error' => 'Security violation: Malicious script tags or event handlers detected in SVG.'
+                    ];
+                }
+            }
         }
 
         // Generate unique cryptographically secure name

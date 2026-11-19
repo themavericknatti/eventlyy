@@ -296,6 +296,12 @@ class EventApiController extends Controller
         $email = trim((string)($data['email'] ?? ''));
         $phone = trim((string)($data['phone'] ?? ''));
         $externalCallbackUrl = trim((string)($data['callback_url'] ?? ($data['redirect_url'] ?? '')));
+        if (!empty($externalCallbackUrl)) {
+            $scheme = strtolower(parse_url($externalCallbackUrl, PHP_URL_SCHEME) ?? '');
+            if (!filter_var($externalCallbackUrl, FILTER_VALIDATE_URL) || !in_array($scheme, ['http', 'https'], true)) {
+                $externalCallbackUrl = '';
+            }
+        }
         $promoCode = strtoupper(trim((string)($data['promo_code'] ?? '')));
         $refCode = trim((string)($data['ref'] ?? ''));
 

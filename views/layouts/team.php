@@ -209,25 +209,25 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     <main class="container <?= $isLoginPage ? 'auth-container' : 'team-main-container' ?>">
         @session('success')
         <div class="alert alert-success" style="margin-bottom:1.25rem;">
-            <span>✅</span> {!! $value !!}
+            <span>✅</span> {{ $value }}
         </div>
         @endsession
 
         @session('error')
         <div class="alert alert-danger" style="margin-bottom:1.25rem;">
-            <span>❌</span> {!! $value !!}
+            <span>❌</span> {{ $value }}
         </div>
         @endsession
 
         @session('warning')
         <div class="alert alert-warning" style="margin-bottom:1.25rem;">
-            <span>⚠️</span> {!! $value !!}
+            <span>⚠️</span> {{ $value }}
         </div>
         @endsession
 
         @session('info')
         <div class="alert alert-info" style="margin-bottom:1.25rem;">
-            <span>ℹ️</span> {!! $value !!}
+            <span>ℹ️</span> {{ $value }}
         </div>
         @endsession
 

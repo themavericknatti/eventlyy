@@ -68,8 +68,8 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                     <span>Every QR ticket is unique and admits exactly the number of people printed on it. Screenshotting someone else's code or reselling above face value = instant void.</span>
                 </div>
                 <div class="vn-lg-summary-card">
-                    <strong>💰 Layaway? Finish Before the Event</strong>
-                    <span>You can pay for tickets in installments (layaway). But if you haven't paid in full before the event starts, no refund — your payments become event credits for a future event.</span>
+                    <strong>💰 Layaway Protected by Event Credits</strong>
+                    <span>Pay in flexible installments with pass locked until fully paid. If an event starts before you finish, your funds automatically convert into Event Credits you can spend on any future event.</span>
                 </div>
                 <div class="vn-lg-summary-card">
                     <strong>🛡️ We're the Tech, Not the Venue</strong>
@@ -243,15 +243,16 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
 
             <!-- § 7 — Layaway -->
             <section class="vn-lg-section" id="section-7">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 7.</span> Layaway — Pay Bit by Bit</h2>
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 7.</span> Layaway &amp; Event Credits</h2>
                 <p class="vn-lg-text">
-                    We get it — not everyone can drop the full amount at once. That's why we offer <strong>Layaway</strong> (partial payments). Here's how it works and the rules you need to know:
+                    We get it — not everyone can drop the full amount at once. That's why we offer <strong>Layaway</strong> (partial payments) and protected <strong>Event Credits</strong>. Here's how it works and the rules you need to know:
                 </p>
                 <ul class="vn-lg-list">
-                    <li><strong>How it works:</strong> Choose a ticket, pay a minimum deposit at checkout (including applicable fees), and make additional payments over time until you've paid the full ticket price.</li>
-                    <li><strong>Your ticket is reserved:</strong> While you're paying it off, your ticket slot is held for you. But it's <strong>not active</strong> — you can't check in or use it until it's fully paid.</li>
-                    <li><strong>No check-in until fully paid:</strong> Even if you show up at the venue, a layaway ticket that isn't fully paid will be <strong>denied at the door</strong>. No exceptions.</li>
-                    <li><strong>No ticket transfer until fully paid:</strong> You can't transfer a layaway ticket to someone else until the balance is cleared.</li>
+                    <li><strong>How it works:</strong> Choose a ticket, pay a minimum deposit at checkout (including applicable fees), and make additional installment payments at your pace until you've paid the full ticket price.</li>
+                    <li><strong>Your ticket is reserved:</strong> While you're paying it off, your ticket slot is secured and reserved for you. However, the ticket is <strong>strictly locked and inactive</strong> — scannable entry QR codes are not generated or displayed, passes cannot be delivered for admission, and check-in at the gate is blocked until payment reaches 100%.</li>
+                    <li><strong>No check-in or admission until fully paid:</strong> Door ushers and scanner workstations will deny check-in to any layaway ticket with an outstanding balance. No exceptions.</li>
+                    <li><strong>No ticket transfer until fully paid:</strong> You cannot transfer a layaway ticket to someone else until the balance is completely cleared.</li>
+                    <li><strong>Host escrow protection:</strong> Incomplete layaway installment funds are held in secure trust and are <strong>never</strong> released into a host's withdrawable balance or payout escrow until the ticket has been 100% paid by the attendee.</li>
                 </ul>
 
                 <div class="vn-lg-callout vn-lg-callout--amber">
@@ -261,12 +262,20 @@ Terms of Service &amp; Community Guidelines &bull; <?= e($siteName) ?>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <div>
-                        <strong>Real talk — no refunds on layaway:</strong> If the event starts and you haven't finished paying, your layaway expires. <strong>You will NOT get a refund.</strong> Instead, the amount you've paid so far becomes <strong>event credit</strong> that you can use toward a future event on <?= e($siteName) ?>. Credits are non-transferable and non-cashable.
+                        <strong>Real talk — no cash refunds on layaway:</strong> If the event begins and you have not completed paying your balance, your layaway plan expires. <strong>You will NOT receive a cash refund.</strong> Instead, 100% of the funds you paid toward ticket installments are automatically converted into <strong>Event Credits</strong> under your email address to use on future events on <?= e($siteName) ?>.
                     </div>
                 </div>
 
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text, #0f172a); margin: 1.4rem 0 0.6rem;">How Event Credits Work</h3>
+                <ul class="vn-lg-list">
+                    <li><strong>Redeemable on ANY event:</strong> Event credits are not restricted to the original host. You can apply them toward ticket purchases for any upcoming event on the platform.</li>
+                    <li><strong>Checkout redemption:</strong> At checkout, enter or apply your available credit balance. If your credits cover 100% of the order, your ticket is issued instantly with zero card charge. If partial, your credit reduces the payable balance, and you pay only the remainder.</li>
+                    <li><strong>Public Credits Hub:</strong> Guest buyers who do not have an account can look up and track their credit balance anytime at <code>/credits</code> or <code>/layaway/credits</code> using their email address.</li>
+                    <li><strong>Automatic Account Linking:</strong> If you purchased tickets or earned credits as a guest, signing up or logging in with the same email address will automatically link all credits, layaway history, and tickets to your registered account profile.</li>
+                </ul>
+
                 <p class="vn-lg-text">
-                    <strong>Bottom line:</strong> Layaway is a convenience feature. It's on you to finish paying before the event. Set reminders, check your layaway dashboard, and stay on top of it. We'll send you email updates along the way, but the responsibility is yours.
+                    <strong>Bottom line:</strong> Layaway is a convenience feature with zero downside risk of total loss — if you can't finish before showtime, your money is preserved as Event Credits. However, it's on you to finish paying before the event if you want entry to that specific show.
                 </p>
             </section>
 

@@ -41,25 +41,25 @@
     <main class="container">
         @session('success')
             <div class="alert alert-success">
-                <span>✅</span> {!! $value !!}
+                <span>✅</span> {{ $value }}
             </div>
         @endsession
 
         @session('error')
             <div class="alert alert-danger">
-                <span>❌</span> {!! $value !!}
+                <span>❌</span> {{ $value }}
             </div>
         @endsession
 
         @session('warning')
             <div class="alert alert-warning">
-                <span>⚠️</span> {!! $value !!}
+                <span>⚠️</span> {{ $value }}
             </div>
         @endsession
 
         @session('info')
             <div class="alert alert-info">
-                <span>ℹ️</span> {!! $value !!}
+                <span>ℹ️</span> {{ $value }}
             </div>
         @endsession
         

@@ -618,8 +618,8 @@ class CheckoutController extends Controller
             $remainingBalance = max(0, $netSubtotal - $depositTicketSubtotal);
         }
 
-        // ── Direct / Offline Layaway (if non-paystack) ─────────
-        if ($isLayaway && $paymentMethod !== 'paystack') {
+        // ── Direct / Offline Layaway or Deposit 100% Covered by Event Credit ─
+        if ($isLayaway && ($chargedAmount <= 0.00 || $paymentMethod !== 'paystack')) {
             $currentUser = Application::$app->user;
             $userId = $currentUser ? $currentUser->id : null;
             $layawayService = new \App\Services\LayawayService();
@@ -629,7 +629,14 @@ class CheckoutController extends Controller
                 $fee, $extraCharge
             );
             if ($result['success']) {
+                // Finalize any event credits applied to deposit
+                if (!empty($appliedCreditsList)) {
+                    foreach ($appliedCreditsList as $crItem) {
+                        $layawayService->applyCredit($crItem['credit_id'], $email, $crItem['deduct']);
+                    }
+                }
                 $ref = $result['reference'] ?? '';
+                $pmName = ($chargedAmount <= 0.00 && $appliedCreditAmount > 0) ? 'EVENT CREDIT (LAYAWAY)' : 'LAYAWAY DEPOSIT';
                 Application::$app->session->set('order_success', [
                     'event_id' => $event['id'],
                     'event_name' => $event['name'],
@@ -637,7 +644,7 @@ class CheckoutController extends Controller
                     'event_location' => $event['location'] ?? '',
                     'attendee_name' => $name,
                     'attendee_email' => $email,
-                    'payment_method' => 'LAYAWAY DEPOSIT',
+                    'payment_method' => $pmName,
                     'payment_reference' => $ref,
                     'total_amount' => $chargedAmount,
                     'deposit_ticket_amount' => $depositTicketSubtotal,
@@ -1041,8 +1048,16 @@ class CheckoutController extends Controller
                 'addons' => $result['addons'] ?? []
             ]);
 
-            // Redirect to external host domain if callback URL was specified
-            if (!empty($externalCallback)) {
+            // Redirect to external host domain if callback URL was specified and verified safe
+            $isSafeCallback = function($url) {
+                if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+                    return false;
+                }
+                $scheme = strtolower(parse_url($url, PHP_URL_SCHEME) ?? '');
+                return in_array($scheme, ['http', 'https'], true);
+            };
+
+            if (!empty($externalCallback) && $isSafeCallback($externalCallback)) {
                 $sep = str_contains($externalCallback, '?') ? '&' : '?';
                 return redirect($externalCallback . $sep . 'reference=' . urlencode($reference) . '&status=success');
             }
@@ -1050,8 +1065,8 @@ class CheckoutController extends Controller
             return redirect('/success?ref=' . urlencode($reference));
         }
 
-        // Redirect to external host domain on failure if callback was specified
-        if (!empty($externalCallback)) {
+        // Redirect to external host domain on failure if callback was specified and verified safe
+        if (!empty($externalCallback) && isset($isSafeCallback) && $isSafeCallback($externalCallback)) {
             $sep = str_contains($externalCallback, '?') ? '&' : '?';
             return redirect($externalCallback . $sep . 'reference=' . urlencode($reference) . '&status=error&message=' . urlencode($result['message'] ?? 'Payment verification failed.'));
         }

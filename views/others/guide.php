@@ -196,6 +196,7 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
                 <ul class="vn-lg-list">
                     <li><strong>Select your tier:</strong> Choose your ticket tier (e.g., General Admission, VIP, Table of 5). Pay attention to the <strong>Admits</strong> count (how many guests one ticket permits) and the <strong>Max Per Person</strong> limit set by the host.</li>
                     <li><strong>Promo codes:</strong> If you have an organizer discount code, enter it in the checkout field and click <strong>Apply</strong> to instantly calculate your savings before payment.</li>
+                    <li><strong>Redeem Event Credits:</strong> Have credits from a previous layaway plan? Enter your email or apply your available balance at checkout to reduce your total or get tickets completely free!</li>
                     <li><strong>Payment method:</strong> Complete your payment securely via <strong>Paystack</strong> using debit/credit card, bank transfer, USSD, or mobile money.</li>
                     <li><strong>Fee transparency:</strong> You will always see the exact breakdown of ticket price, platform processing fee, and total amount before you authorize payment.</li>
                 </ul>
@@ -223,7 +224,7 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
 
             <!-- § 5 -->
             <section class="vn-lg-section" id="section-5">
-                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 5.</span> Layaway &bull; Pay Bit by Bit</h2>
+                <h2 class="vn-lg-section-heading"><span class="vn-lg-section-num">§ 5.</span> Layaway &bull; Pay Bit by Bit &amp; Event Credits</h2>
                 <p class="vn-lg-text">
                     Want VIP or Table tickets but prefer spreading payments over time? Look for the <strong>Layaway</strong> badge:
                 </p>
@@ -231,8 +232,12 @@ Platform Guide &amp; Knowledge Base &bull; <?= e($siteName) ?>
                     <li><strong>Pay deposit:</strong> Lock in your ticket by paying an initial deposit (percentage set by the host) at checkout.</li>
                     <li><strong>Layaway dashboard (<code>/layaway</code>):</strong> Track your outstanding balance, payment history, and deadline anytime in your account dashboard.</li>
                     <li><strong>Flexible installments:</strong> Pay increments at your own pace anytime before the event starts.</li>
-                    <li><strong>Activation:</strong> Once your final installment is confirmed, your ticket pass is automatically activated and dispatched via Email and WhatsApp.</li>
-                    <li><strong>Event credit policy:</strong> Incomplete layaways that expire when the event begins are converted into platform event credit for future purchases.</li>
+                    <li><strong>Pass Lockdown for Security:</strong> While your plan is incomplete, your ticket pass is locked. Scannable QR codes are not generated and door check-in is strictly blocked until your final installment is paid.</li>
+                    <li><strong>Pass Activation:</strong> Once your final installment is confirmed (100% paid), your QR admission pass is instantly activated and dispatched via Email and WhatsApp.</li>
+                    <li><strong>Event Credit Policy:</strong> If an event begins before you finish paying, you do not lose your money! Your installment payments automatically convert into <strong>Event Credits</strong> tied to your email address.</li>
+                    <li><strong>Redeem on ANY Event:</strong> Use your Event Credits during checkout on any future event on the platform.</li>
+                    <li><strong>Public Credits Hub:</strong> Check your credit balance anytime without logging in at <code>/credits</code> or <code>/layaway/credits</code>.</li>
+                    <li><strong>Auto-Account Linking:</strong> When you register or log in with the email used as a guest, your Event Credits, layaway payment history, and tickets automatically link to your profile.</li>
                 </ul>
             </section>
 
