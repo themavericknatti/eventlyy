@@ -135,11 +135,12 @@ class HostController extends Controller
         // 2. Fetch stats to calculate balances
         $stats = $this->hostService->getDashboardStats($user->id);
         $withdrawType = trim($_POST['withdraw_type'] ?? 'completed');
+        $selectedEventId = !empty($_POST['event_id']) ? (int)$_POST['event_id'] : null;
 
         if ($withdrawType === 'escrow') {
             if (empty($_POST['escrow_agreed']) && empty($_POST['escrow_agreement'])) {
                 Application::$app->session->setFlash('error', 'You must accept the Escrow Release Agreement terms before requesting an escrow payout.');
-                return Application::$app->response->redirect('/host/dashboard');
+                return Application::$app->response->redirect('/host/financials');
             }
             $maxAmount = $stats['availableEscrowBalance'] ?? 0.00;
             $typeLabel = 'Escrow Funds (Early Withdrawal)';
@@ -148,41 +149,87 @@ class HostController extends Controller
             $typeLabel = 'Completed Events Balance';
         }
 
+        // For single-event withdrawals, recalculate max from that specific event
+        if ($selectedEventId) {
+            $completionHoursPreCheck = event_completion_hours();
+            $singleStmt = $db->prepare("
+                SELECT e.id, e.pass_fee,
+                       COALESCE((SELECT SUM(t.price) FROM tickets t WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)), 0.00) as ticket_sales,
+                       COALESCE((SELECT SUM(oa.total_price) FROM order_addons oa WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'), 0.00) as addon_sales,
+                       COALESCE((SELECT SUM(tx.discount_amount) FROM transactions tx WHERE tx.event_id = e.id AND tx.status = 'completed' AND tx.type = 'payment'), 0.00) as discounts
+                FROM events e
+                WHERE e.id = :event_id AND e.organizer_id = :org_id
+                LIMIT 1
+            ");
+            $singleStmt->execute(['event_id' => $selectedEventId, 'org_id' => $user->id]);
+            $singleEvt = $singleStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($singleEvt) {
+                $sNet = max(0.00, (float)$singleEvt['ticket_sales'] + (float)$singleEvt['addon_sales'] - (float)$singleEvt['discounts']);
+                $sHostNet = !empty($singleEvt['pass_fee']) ? $sNet : round($sNet * 0.95, 2);
+                $sPriorStmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE event_id = :eid AND status IN ('pending', 'processed', 'completed')");
+                $sPriorStmt->execute(['eid' => $selectedEventId]);
+                $sPrior = (float)$sPriorStmt->fetchColumn();
+                $maxAmount = round(max(0.00, $sHostNet - $sPrior), 2);
+            }
+        }
+
         if ($maxAmount <= 0) {
             if ($withdrawType === 'escrow' && ($stats['layawayPendingRevenue'] ?? 0) > 0) {
                 Application::$app->session->setFlash('info', 'You have no available funds to withdraw for Early Escrow Release. You currently have ' . format_price($stats['layawayPendingRevenue']) . ' in active layaway plan deposits, which remain safely locked in escrow reserve until attendees complete full payment.');
             } else {
                 Application::$app->session->setFlash('error', 'You have no available funds to withdraw for the selected option (' . $typeLabel . ').');
             }
-            return Application::$app->response->redirect('/host/dashboard');
+            return Application::$app->response->redirect('/host/financials');
         }
 
         $payoutType = ($withdrawType === 'escrow') ? 'escrow' : 'completed';
 
         // 3. Find all host events matching the withdrawal type with unrequested balances
+        $completionHours = event_completion_hours();
+        $eventFilter = $selectedEventId ? " AND e.id = " . (int)$selectedEventId : "";
+
         if ($withdrawType === 'escrow') {
             $eventsStmt = $db->prepare("
                 SELECT e.id, e.name, e.pass_fee,
-                       SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) as net_sales
+                       COALESCE((
+                           SELECT SUM(t.price) FROM tickets t 
+                           WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                       ), 0.00) as ticket_sales,
+                       COALESCE((
+                           SELECT SUM(oa.total_price) FROM order_addons oa 
+                           WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'
+                       ), 0.00) as addon_sales,
+                       COALESCE((
+                           SELECT SUM(tx.discount_amount) FROM transactions tx 
+                           WHERE tx.event_id = e.id AND tx.status = 'completed' AND tx.type = 'payment'
+                       ), 0.00) as discounts
                 FROM events e
-                INNER JOIN tickets t ON e.id = t.event_id AND t.status = 'Paid'
-                    AND (t.is_issued = 0 OR t.is_issued IS NULL)
                 WHERE e.organizer_id = :org_id
                   AND e.status = 'published'
-                  AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
-                GROUP BY e.id
+                  AND e.date >= NOW() - INTERVAL " . (int)$completionHours . " HOUR
+                  {$eventFilter}
                 ORDER BY e.date ASC
             ");
         } else {
             $eventsStmt = $db->prepare("
                 SELECT e.id, e.name, e.pass_fee,
-                       SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) as net_sales
+                       COALESCE((
+                           SELECT SUM(t.price) FROM tickets t 
+                           WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                       ), 0.00) as ticket_sales,
+                       COALESCE((
+                           SELECT SUM(oa.total_price) FROM order_addons oa 
+                           WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'
+                       ), 0.00) as addon_sales,
+                       COALESCE((
+                           SELECT SUM(tx.discount_amount) FROM transactions tx 
+                           WHERE tx.event_id = e.id AND tx.status = 'completed' AND tx.type = 'payment'
+                       ), 0.00) as discounts
                 FROM events e
-                INNER JOIN tickets t ON e.id = t.event_id AND t.status = 'Paid'
-                    AND (t.is_issued = 0 OR t.is_issued IS NULL)
                 WHERE e.organizer_id = :org_id
-                  AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . event_completion_hours() . " HOUR))
-                GROUP BY e.id
+                  AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . (int)$completionHours . " HOUR))
+                  {$eventFilter}
                 ORDER BY e.id ASC
             ");
         }
@@ -191,8 +238,16 @@ class HostController extends Controller
 
         $totalRequested = 0.00;
         $createdCount = 0;
+        $remainingQuota = $maxAmount;
 
         foreach ($eligibleEvents as $evt) {
+            if ($remainingQuota <= 0.00) {
+                break;
+            }
+
+            $netSales = max(0.00, (float)$evt['ticket_sales'] + (float)$evt['addon_sales'] - (float)$evt['discounts']);
+            $evtNet = !empty($evt['pass_fee']) ? $netSales : round($netSales * 0.95, 2);
+
             $payoutsStmt = $db->prepare("
                 SELECT COALESCE(SUM(amount), 0)
                 FROM payouts
@@ -201,8 +256,9 @@ class HostController extends Controller
             $payoutsStmt->execute(['event_id' => $evt['id']]);
             $priorPayouts = (float)$payoutsStmt->fetchColumn();
 
-            $unrequested = round(max(0.00, (float)$evt['net_sales'] - $priorPayouts), 2);
-            if ($unrequested <= 0.00) {
+            $unrequested = round(max(0.00, $evtNet - $priorPayouts), 2);
+            $amountToRequest = round(min($unrequested, $remainingQuota), 2);
+            if ($amountToRequest <= 0.00) {
                 continue;
             }
 
@@ -214,20 +270,22 @@ class HostController extends Controller
             $insStmt->execute([
                 'org_id' => $user->id,
                 'evt_id' => $evt['id'],
-                'amount' => $unrequested,
+                'amount' => $amountToRequest,
                 'type' => $payoutType
             ]);
 
-            $totalRequested += $unrequested;
+            $totalRequested += $amountToRequest;
+            $remainingQuota -= $amountToRequest;
             $createdCount++;
         }
 
         if ($createdCount === 0 || $totalRequested <= 0.00) {
             Application::$app->session->setFlash('error', 'All funds for your eligible events have already been requested or disbursed.');
-            return Application::$app->response->redirect('/host/dashboard');
+            return Application::$app->response->redirect('/host/financials');
         }
 
-        Application::$app->session->setFlash('success', 'Withdrawal request of ' . format_price($totalRequested) . ' (' . $typeLabel . ') across ' . $createdCount . ' event(s) submitted successfully!');
-        return Application::$app->response->redirect('/host/dashboard');
+        $eventNote = $selectedEventId ? ' for this event' : ' across ' . $createdCount . ' event(s)';
+        Application::$app->session->setFlash('success', 'Withdrawal request of ' . format_price($totalRequested) . ' (' . $typeLabel . ')' . $eventNote . ' submitted successfully!');
+        return Application::$app->response->redirect('/host/financials');
     }
 }

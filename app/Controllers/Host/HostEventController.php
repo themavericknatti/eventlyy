@@ -326,11 +326,16 @@ class HostEventController extends Controller
             $totalRevenue += (float)($tt['revenue'] ?? 0.00);
         }
         
+        $db = Application::$app->db->pdo;
+        $discStmt = $db->prepare("SELECT COALESCE(SUM(discount_amount), 0.00) FROM transactions WHERE event_id = :event_id AND status = 'completed' AND type = 'payment'");
+        $discStmt->execute(['event_id' => $event->id]);
+        $eventDiscounts = (float)$discStmt->fetchColumn();
+        $netTicketRevenue = max(0.00, $totalRevenue - $eventDiscounts);
+
         $occupancyPercentage = $totalCapacity > 0 ? (($ticketsSold + $ticketsIssued) / $totalCapacity) * 100 : 0;
-        $avgPrice = $ticketsSold > 0 ? ($totalRevenue / $ticketsSold) : 0;
+        $avgPrice = $ticketsSold > 0 ? ($netTicketRevenue / $ticketsSold) : 0;
 
         // Layaway reserved funds (incomplete layaways; NOT accessible until fully paid)
-        $db = Application::$app->db->pdo;
         $layStmt = $db->prepare("
             SELECT COALESCE(SUM(lp.amount), 0.00) as reserved_amount,
                    COUNT(DISTINCT t.id) as layaway_count
@@ -494,7 +499,9 @@ class HostEventController extends Controller
             'collectedAddonsCount' => $collectedAddonsCount,
             'pendingAddonsCount' => $pendingAddonsCount,
             'recurringOccurrences' => $recurringOccurrences,
-            'totalRevenue' => $totalRevenue,
+            'totalRevenue' => $netTicketRevenue,
+            'nominalTicketRevenue' => $totalRevenue,
+            'eventDiscounts' => $eventDiscounts,
             'ticketsSold' => $ticketsSold,
             'ticketsIssued' => $ticketsIssued,
             'totalCapacity' => $totalCapacity,

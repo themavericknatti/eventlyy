@@ -700,6 +700,12 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                 </td>
                                 <td>
                                     <strong style="color:rgb(var(--text));"><?= format_price($ev['gross_sales']) ?></strong>
+                                    <?php if (($ev['addon_sales'] ?? 0) > 0): ?>
+                                        <span style="font-size:0.72rem; color:#6366f1; display:block;">+<?= format_price($ev['addon_sales']) ?> add-ons</span>
+                                    <?php endif; ?>
+                                    <?php if (($ev['discounts'] ?? 0) > 0): ?>
+                                        <span style="font-size:0.72rem; color:#ef4444; display:block;">−<?= format_price($ev['discounts']) ?> promos</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <strong style="color:#10b981; font-size:0.95rem;"><?= format_price($ev['net_sales']) ?></strong>
@@ -725,6 +731,23 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
                                     <?php endif; ?>
                                 </td>
                                 <td style="text-align:right;">
+                                    <?php if ($hasRemainder && $bankConfigured): ?>
+                                        <?php if ($ev['state_badge'] === 'completed'): ?>
+                                            <form method="POST" action="{{ route('host/withdraw') }}" style="display:inline-block; margin-bottom:4px;">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="withdraw_type" value="completed">
+                                                <input type="hidden" name="event_id" value="<?= (int)$ev['id'] ?>">
+                                                <button type="submit" class="fin-btn fin-btn--primary" style="padding:0.35rem 0.65rem; font-size:0.76rem; border-radius:8px;" title="Withdraw <?= format_price($ev['unrequested_balance']) ?> for this event">
+                                                    💸 Withdraw
+                                                </button>
+                                            </form>
+                                        <?php elseif ($ev['state_badge'] === 'upcoming' || $ev['state_badge'] === 'live'): ?>
+                                            <button type="button" class="fin-btn fin-btn--escrow per-event-escrow-btn" data-event-id="<?= (int)$ev['id'] ?>" data-event-name="<?= e($ev['name']) ?>" data-event-amount="<?= format_price($ev['unrequested_balance']) ?>" style="padding:0.35rem 0.65rem; font-size:0.76rem; border-radius:8px;" title="Request early escrow release for this event">
+                                                ⚡ Escrow Release
+                                            </button>
+                                        <?php endif; ?>
+                                        <br>
+                                    <?php endif; ?>
                                     <a href="{{ route('host/event/management/' . $ev['id']) }}" class="admin-action-btn" style="padding:0.4rem 0.75rem; font-size:0.8rem; border-radius:8px; text-decoration:none; display:inline-block; font-weight:700;">
                                         Manage →
                                     </a>
@@ -935,6 +958,7 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
             <form method="POST" action="{{ route('host/withdraw') }}" id="escrow-withdrawal-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="withdraw_type" value="escrow">
+                <input type="hidden" name="event_id" id="escrow-event-id" value="">
 
                 <?php if (($layawayPendingRevenue ?? 0) > 0): ?>
                 <div style="background:rgba(251, 191, 36, 0.08); border:1px solid rgba(251, 191, 36, 0.25); border-radius:10px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.82rem; color:#92400e; display:flex; align-items:flex-start; gap:0.5rem;">
@@ -1004,8 +1028,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const cancelBtn = document.getElementById('escrow-modal-cancel');
     const checkbox = document.getElementById('escrow-agree-checkbox');
     const confirmBtn = document.getElementById('escrow-confirm-btn');
+    const eventIdInput = document.getElementById('escrow-event-id');
 
-    function openEscrowModal() {
+    function openEscrowModal(eventId, eventName) {
+        if (eventIdInput) eventIdInput.value = eventId || '';
         if (modalBackdrop) modalBackdrop.style.display = 'flex';
     }
 
@@ -1017,9 +1043,19 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmBtn.style.opacity = '0.5';
             confirmBtn.style.cursor = 'not-allowed';
         }
+        if (eventIdInput) eventIdInput.value = '';
     }
 
-    if (escrowBtn) escrowBtn.addEventListener('click', openEscrowModal);
+    // Global escrow button (all upcoming events)
+    if (escrowBtn) escrowBtn.addEventListener('click', function() { openEscrowModal('', ''); });
+
+    // Per-event escrow buttons in the table
+    document.querySelectorAll('.per-event-escrow-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            openEscrowModal(this.getAttribute('data-event-id'), this.getAttribute('data-event-name'));
+        });
+    });
+
     if (closeBtn) closeBtn.addEventListener('click', closeEscrowModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeEscrowModal);
 

@@ -77,9 +77,14 @@ if (empty($hostBankName) || $payoutReady === 'Not Set') {
             if (empty($hostBankAccount)) {
                 $hostBankAccount = $hp['payout_account'] ?? '';
             }
+            $hasBank = !empty($hp['payout_bank']) && !empty($hp['payout_account']);
             if (($hp['user_status'] ?? '') === 'suspended') {
                 $payoutReady = 'Flagged / Frozen';
-            } elseif (!empty($hp['payout_bank']) && !empty($hp['payout_account'])) {
+            } elseif (!($is_event_passed ?? false)) {
+                $payoutReady = 'In Escrow Custody';
+            } elseif (($remaining_balance ?? 0) <= 0.00) {
+                $payoutReady = 'Settled in Full';
+            } elseif ($hasBank) {
                 $payoutReady = 'Ready to Disburse';
             } else {
                 $payoutReady = 'Incomplete Details';
@@ -297,19 +302,15 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
         <div class="ed-kpi-card ed-kpi--blue">
             <div class="ed-kpi-header">
                 <span class="ed-kpi-icon">💳</span>
-                <span class="ed-kpi-badge">Gross Volume</span>
+                <span class="ed-kpi-badge">Gross Inflow</span>
             </div>
             <div class="ed-kpi-body">
                 <div class="ed-kpi-val"><?= format_price($gross_revenue) ?></div>
-                <div class="ed-kpi-label">Online Ticket Sales</div>
+                <div class="ed-kpi-label">Total Inflow Paid by Buyers</div>
             </div>
             <div class="ed-kpi-footer">
+                <span>Net Sales: <strong><?= format_price($net_online_sales ?? $host_earnings) ?></strong></span>
                 <span>Orders: <strong><?= number_format($tickets_sold) ?></strong></span>
-                <?php if ($issued_nominal > 0): ?>
-                    <span>Issued: <strong><?= format_price($issued_nominal) ?></strong></span>
-                <?php else: ?>
-                    <span>Direct platform checkouts</span>
-                <?php endif; ?>
             </div>
         </div>
 
@@ -317,8 +318,8 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
         <div class="ed-kpi-card ed-kpi--green">
             <div class="ed-kpi-header">
                 <span class="ed-kpi-icon">💰</span>
-                <span class="ed-kpi-badge <?= $payoutReady === 'Ready to Disburse' ? 'is-ready' : 'is-warning' ?>">
-                    <?= e($payoutReady) ?>
+                <span class="ed-kpi-badge <?= $payoutReady === 'Ready to Disburse' ? 'is-ready' : ($payoutReady === 'In Escrow Custody' ? 'is-escrow' : 'is-warning') ?>">
+                    <?= $payoutReady === 'In Escrow Custody' ? '🔒 In Escrow' : e($payoutReady) ?>
                 </span>
             </div>
             <div class="ed-kpi-body">
@@ -327,7 +328,7 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
             </div>
             <div class="ed-kpi-footer">
                 <span>Disbursed: <strong><?= format_price($disbursed_payouts) ?></strong></span>
-                <span>Unpaid: <strong><?= format_price($remaining_balance) ?></strong></span>
+                <span><?= $isEventPassed ? 'Unpaid' : 'In Custody' ?>: <strong><?= format_price($remaining_balance) ?></strong></span>
             </div>
         </div>
 
@@ -659,21 +660,21 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
                 <!-- 5-Metric Financial Strip -->
                 <div class="ed-fin-strip">
                     <div class="ed-fin-tile">
-                        <span class="ed-fin-lbl">Online Gross Sales</span>
+                        <span class="ed-fin-lbl">Gross Inflow (Buyers)</span>
                         <div class="ed-fin-val"><?= format_price($gross_revenue) ?></div>
-                        <span class="ed-fin-sub"><?= number_format($tickets_sold) ?> tickets checked out</span>
+                        <span class="ed-fin-sub">Net Sales: <?= format_price($net_online_sales ?? $host_earnings) ?></span>
                     </div>
 
                     <div class="ed-fin-tile">
                         <span class="ed-fin-lbl ed-text-purple">Platform Retained Fees</span>
                         <div class="ed-fin-val ed-text-purple"><?= format_price($platform_profit) ?></div>
-                        <span class="ed-fin-sub"><?= !empty($event['pass_fee']) ? 'Buyer paid fees' : 'Host absorbed' ?></span>
+                        <span class="ed-fin-sub"><?= !empty($event['pass_fee']) ? 'Buyer covered fee' : 'Host absorbed 5%' ?></span>
                     </div>
 
                     <div class="ed-fin-tile">
                         <span class="ed-fin-lbl ed-text-success">Host Total Entitlement</span>
                         <div class="ed-fin-val ed-text-success"><?= format_price($host_earnings) ?></div>
-                        <span class="ed-fin-sub">Net payable to host</span>
+                        <span class="ed-fin-sub">Net payout earned</span>
                     </div>
 
                     <div class="ed-fin-tile">
@@ -694,8 +695,10 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
                         <span class="ed-fin-sub">
                             <?php if ($pending_payouts > 0): ?>
                                 ⚠️ <?= format_price($pending_payouts) ?> pending approval
+                            <?php elseif ($isEventPassed): ?>
+                                ✓ <?= format_price($available_to_disburse) ?> ready for settlement
                             <?php else: ?>
-                                ✓ <?= format_price($available_to_disburse) ?> available to settle
+                                🔒 <?= format_price($remaining_balance) ?> safeguarded in escrow
                             <?php endif; ?>
                         </span>
                     </div>
@@ -1606,6 +1609,14 @@ body[data-theme='dark'] .ed-shell {
 :root[data-theme='dark'] .ed-kpi-badge.is-ready,
 [data-theme='dark'] .ed-kpi-badge.is-ready {
     color: #34d399;
+}
+.ed-kpi-badge.is-escrow {
+    background: rgba(99, 102, 241, 0.15);
+    color: #4f46e5;
+}
+:root[data-theme='dark'] .ed-kpi-badge.is-escrow,
+[data-theme='dark'] .ed-kpi-badge.is-escrow {
+    color: #818cf8;
 }
 .ed-kpi-badge.is-warning {
     background: rgba(245, 158, 11, 0.15);

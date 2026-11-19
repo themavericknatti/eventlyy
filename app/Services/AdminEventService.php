@@ -232,8 +232,7 @@ class AdminEventService
             $ticketTypes[] = $tt;
         }
 
-        // Exact online ticket sales face value
-        // Total online ticket purchases subtotal (cash collected by app from buyers)
+        // 1. Exact online ticket sales face value (organic checkouts only, excluding comped/issued)
         $ticketSubtotalStmt = $db->prepare("
             SELECT COALESCE(SUM(price), 0)
             FROM tickets
@@ -242,6 +241,27 @@ class AdminEventService
         ");
         $ticketSubtotalStmt->execute(['event_id' => $id]);
         $ticketSalesSubtotal = (float)$ticketSubtotalStmt->fetchColumn();
+
+        // 2. Exact online merchandise / add-on sales
+        $addonsSubtotalStmt = $db->prepare("
+            SELECT COALESCE(SUM(total_price), 0)
+            FROM order_addons
+            WHERE event_id = :event_id AND redemption_status != 'cancelled'
+        ");
+        $addonsSubtotalStmt->execute(['event_id' => $id]);
+        $addonsSalesSubtotal = (float)$addonsSubtotalStmt->fetchColumn();
+
+        // 3. Total discounts applied (promo codes, credits) on completed payment transactions
+        $discountsStmt = $db->prepare("
+            SELECT COALESCE(SUM(discount_amount), 0)
+            FROM transactions
+            WHERE event_id = :event_id AND type = 'payment' AND status = 'completed'
+        ");
+        $discountsStmt->execute(['event_id' => $id]);
+        $totalDiscounts = (float)$discountsStmt->fetchColumn();
+
+        // Net online sales realized from buyers after discount absorption
+        $netOnlineSales = max(0.00, $ticketSalesSubtotal + $addonsSalesSubtotal - $totalDiscounts);
 
         // Nominal value of issued / complimentary tickets (handled offline by host)
         $issuedNominalStmt = $db->prepare("
@@ -252,16 +272,11 @@ class AdminEventService
         $issuedNominalStmt->execute(['event_id' => $id]);
         $issuedNominalSubtotal = (float)$issuedNominalStmt->fetchColumn();
 
-        // Host net earnings for this event (platform payout entitlement - online ticket purchases only)
-        $hostEarningsStmt = $db->prepare("
-            SELECT COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0)
-            FROM tickets t
-            INNER JOIN events e ON t.event_id = e.id
-            WHERE t.event_id = :event_id AND t.status = 'Paid'
-              AND (t.is_issued = 0 OR t.is_issued IS NULL)
-        ");
-        $hostEarningsStmt->execute(['event_id' => $id]);
-        $hostEarnings = (float)$hostEarningsStmt->fetchColumn();
+        // Host net earnings for this event (platform payout entitlement)
+        // If pass_fee = 1 (buyer covered platform fee on top): host entitled to 100% of realized net sales
+        // If pass_fee = 0 (host absorbs platform fee): 5% is retained by platform from net sales
+        $isPassFee = !empty($event['pass_fee']);
+        $hostEarnings = $isPassFee ? $netOnlineSales : round($netOnlineSales * 0.95, 2);
 
         // Platform profit directly calculated from completed payment transactions for this event
         $profitStmt = $db->prepare("
@@ -272,15 +287,8 @@ class AdminEventService
         $profitStmt->execute(['event_id' => $id]);
         $platformProfit = (float)$profitStmt->fetchColumn();
 
-        if ($platformProfit == 0 && $ticketSalesSubtotal > 0) {
-            $platformProfitStmt = $db->prepare("
-                SELECT COALESCE(SUM(t.price * 0.05), 0)
-                FROM tickets t
-                WHERE t.event_id = :event_id AND t.status = 'Paid'
-                  AND (t.is_issued = 0 OR t.is_issued IS NULL)
-            ");
-            $platformProfitStmt->execute(['event_id' => $id]);
-            $platformProfit = (float)$platformProfitStmt->fetchColumn();
+        if ($platformProfit == 0 && $netOnlineSales > 0) {
+            $platformProfit = $isPassFee ? round($netOnlineSales * 0.05, 2) : max(0.00, round($netOnlineSales * 0.05, 2));
         }
 
         // Total gross transactions volume paid by buyers on platform
@@ -382,6 +390,7 @@ class AdminEventService
         $hostBankName = '';
         $hostBankAccount = '';
         $hostPayoutReady = 'Not Set';
+        $hostBankConfigured = false;
         if (!empty($event['organizer_id'])) {
             try {
                 $hpStmt = $db->prepare("
@@ -395,9 +404,15 @@ class AdminEventService
                 if ($hp) {
                     $hostBankName = $hp['payout_bank'] ?? '';
                     $hostBankAccount = $hp['payout_account'] ?? '';
+                    $hostBankConfigured = !empty($hp['payout_bank']) && !empty($hp['payout_account']);
+
                     if (($hp['user_status'] ?? '') === 'suspended') {
                         $hostPayoutReady = 'Flagged / Frozen';
-                    } elseif (!empty($hp['payout_bank']) && !empty($hp['payout_account'])) {
+                    } elseif (!$isEventPassed) {
+                        $hostPayoutReady = 'In Escrow Custody';
+                    } elseif ($remainingBalance <= 0.00) {
+                        $hostPayoutReady = 'Settled in Full';
+                    } elseif ($hostBankConfigured) {
                         $hostPayoutReady = 'Ready to Disburse';
                     } else {
                         $hostPayoutReady = 'Incomplete Details';
@@ -417,6 +432,10 @@ class AdminEventService
             'total_capacity' => $totalCapacity,
             'total_revenue' => $grossRevenue,
             'gross_revenue' => $grossRevenue,
+            'ticket_sales_subtotal' => $ticketSalesSubtotal,
+            'addons_sales_subtotal' => $addonsSalesSubtotal,
+            'total_discounts' => $totalDiscounts,
+            'net_online_sales' => $netOnlineSales,
             'host_earnings' => $hostEarnings,
             'platform_profit' => $platformProfit,
             'disbursed_payouts' => $disbursedPayouts,
@@ -433,6 +452,7 @@ class AdminEventService
             'attendees' => $attendees,
             'host_bank_name' => $hostBankName,
             'host_bank_account' => $hostBankAccount,
+            'host_bank_configured' => $hostBankConfigured,
             'host_payout_ready' => $hostPayoutReady
         ];
     }

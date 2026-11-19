@@ -254,7 +254,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
             <span class="mgmt-kpi-label">Gross Revenue</span>
             <div class="mgmt-kpi-val" style="color:#10b981;"><?= format_price($totalRevenue + $totalAddonsRevenue) ?></div>
             <span class="mgmt-kpi-sub">
-                <?= format_price($totalRevenue) ?> tickets<?php if ($totalAddonsRevenue > 0): ?> + <strong style="color:#0d9488;"><?= format_price($totalAddonsRevenue) ?> merch</strong><?php endif; ?>
+                <?= format_price($totalRevenue) ?> tickets<?php if ($totalAddonsRevenue > 0): ?> + <strong style="color:#0d9488;"><?= format_price($totalAddonsRevenue) ?> merch</strong><?php endif; ?><?php if (!empty($eventDiscounts) && $eventDiscounts > 0): ?> <span style="color:#ef4444; font-size:0.73rem;">(-<?= format_price($eventDiscounts) ?> promo)</span><?php endif; ?>
             </span>
         </article>
 
