@@ -82,6 +82,7 @@ $router->get('/event/{id}/calendar.ics', [EventController::class, 'calendarIcs']
 
 $router->get('/checkout/paystack/callback', [CheckoutController::class, 'paystackCallback']);
 $router->post('/checkout/validate-promo', [CheckoutController::class, 'validatePromo']);
+$router->post('/checkout/validate-credit', [CheckoutController::class, 'validateCreditAjax']);
 $router->get('/checkout/{event_id?}', [CheckoutController::class, 'checkout']);
 $router->post('/checkout/{event_id?}', [CheckoutController::class, 'processCheckout']);
 $router->get('/success', [CheckoutController::class, 'success']);
@@ -101,6 +102,9 @@ $router->get('/cron/process-email-queue', [CheckoutController::class, 'processEm
 
 // Layaway & Installment Payment System
 $router->get('/layaway', [LayawayController::class, 'dashboard']);
+$router->get('/layaway/credits', [LayawayController::class, 'publicCreditsView']);
+$router->get('/credits', [LayawayController::class, 'publicCreditsView']);
+$router->post('/layaway/check-credits', [LayawayController::class, 'checkCreditsAjax']);
 $router->post('/layaway/pay', [LayawayController::class, 'makePayment']);
 $router->get('/layaway/callback', [LayawayController::class, 'paymentCallback']);
 $router->post('/layaway/apply-credit', [LayawayController::class, 'applyCredit']);

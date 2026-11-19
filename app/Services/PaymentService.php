@@ -341,6 +341,18 @@ class PaymentService
                 }
             }
 
+            // If event credits were applied to partially cover this order, finalize deduction now
+            if (!empty($orderData['applied_credits_list']) && is_array($orderData['applied_credits_list'])) {
+                try {
+                    $layawayService = new \App\Services\LayawayService();
+                    foreach ($orderData['applied_credits_list'] as $crItem) {
+                        $layawayService->applyCredit((int)$crItem['credit_id'], $email, (float)$crItem['deduct']);
+                    }
+                } catch (\Throwable $e) {
+                    error_log("Failed to finalize applied credits on payment completion: " . $e->getMessage());
+                }
+            }
+
             $txSubtotal = (!empty($orderData['is_layaway']) && !empty($orderData['deposit_ticket_amount']))
                 ? (float)$orderData['deposit_ticket_amount']
                 : $calculatedSubtotal;

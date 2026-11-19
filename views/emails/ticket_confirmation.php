@@ -151,6 +151,7 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                                 $qrSrc = function_exists('ticket_qr_email_src') ? ticket_qr_email_src($tCode, 260) : ticket_qr_url($tCode, 260);
                                 $tPrice = (float)($t['price'] ?? 0);
                                 $tAttendeeName = !empty($t['attendee_name']) ? $t['attendee_name'] : ($attendee_name ?? 'Attendee');
+                                $isTicketLayaway = (($t['status'] ?? '') === 'Layaway') || !empty($t['is_layaway']);
                             ?>
                             <table class="ticket-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid <?= $primaryColor ?>; border-radius: 14px; overflow: hidden; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                 <!-- Card Header Strip -->
@@ -177,26 +178,49 @@ $introText = !empty($greeting_text) ? $greeting_text : ($isIssuedOnly
                                             <strong style="font-size: 13px; color: #0f172a; margin-left: 5px;"><?= e($tAttendeeName) ?></strong>
                                         </div>
                                         <br/>
-                                        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 10px;">
-                                            <img class="qr-code-img" src="<?= $qrSrc ?>" alt="QR Code for <?= e($tCode) ?>" width="135" height="135" style="display: block; margin: 0 auto; width: 135px; height: 135px; border-radius: 4px;" />
-                                        </div>
-                                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.06em; margin-bottom: 4px;">
-                                            Unique Admission Code
-                                        </div>
-                                        <div>
-                                            <span class="ticket-code-badge" style="display: inline-block; font-family: Consolas, Monaco, 'Courier New', monospace; background-color: #f1f5f9; color: <?= $primaryColor ?>; border: 1px dashed <?= $primaryColor ?>; font-size: 16px; font-weight: 800; padding: 5px 14px; border-radius: 8px; letter-spacing: 0.08em; margin-bottom: 6px;">
-                                                <?= e($tCode) ?>
-                                            </span>
-                                        </div>
-                                        <!-- Direct Mobile VIP Pass Link -->
-                                        <div style="margin-top: 10px; margin-bottom: 8px;">
-                                            <a href="<?= \url('/pass/' . $tCode) ?>" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; font-size: 13px; font-weight: 700; padding: 9px 20px; border-radius: 8px; letter-spacing: 0.02em; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
-                                                📱 Open Mobile Pass &amp; QR &rarr;
-                                            </a>
-                                        </div>
-                                        <p style="margin: 4px 0 0; font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
-                                            ⚡ Present this QR code or click above at gate entry
-                                        </p>
+                                        <?php if ($isTicketLayaway): ?>
+                                            <div style="background-color: #fef2f2; border: 1px dashed #ef4444; border-radius: 12px; padding: 18px 16px; margin: 10px auto 14px; max-width: 380px; text-align: center;">
+                                                <div style="font-size: 28px; line-height: 1; margin-bottom: 6px;">🔒</div>
+                                                <div style="font-size: 13px; font-weight: 800; color: #dc2626; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;">
+                                                    Pass Locked &bull; Layaway Incomplete
+                                                </div>
+                                                <p style="margin: 0 0 10px; font-size: 12px; color: #7f1d1d; line-height: 1.45;">
+                                                    This ticket is reserved under a layaway plan. Your official entry QR pass unlocks automatically once payment is fully completed.
+                                                </p>
+                                                <a href="<?= \url('/layaway') ?>" style="display: inline-block; background-color: #dc2626; color: #ffffff !important; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 18px; border-radius: 6px;">
+                                                    Complete Payment to Unlock &rarr;
+                                                </a>
+                                            </div>
+                                            <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.06em; margin-bottom: 4px;">
+                                                Reservation Reference
+                                            </div>
+                                            <div>
+                                                <span class="ticket-code-badge" style="display: inline-block; font-family: Consolas, Monaco, 'Courier New', monospace; background-color: #f1f5f9; color: #64748b; border: 1px dashed #94a3b8; font-size: 15px; font-weight: 800; padding: 5px 14px; border-radius: 8px; letter-spacing: 0.08em; margin-bottom: 6px;">
+                                                    <?= e($tCode) ?>
+                                                </span>
+                                            </div>
+                                        <?php else: ?>
+                                            <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 10px;">
+                                                <img class="qr-code-img" src="<?= $qrSrc ?>" alt="QR Code for <?= e($tCode) ?>" width="135" height="135" style="display: block; margin: 0 auto; width: 135px; height: 135px; border-radius: 4px;" />
+                                            </div>
+                                            <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.06em; margin-bottom: 4px;">
+                                                Unique Admission Code
+                                            </div>
+                                            <div>
+                                                <span class="ticket-code-badge" style="display: inline-block; font-family: Consolas, Monaco, 'Courier New', monospace; background-color: #f1f5f9; color: <?= $primaryColor ?>; border: 1px dashed <?= $primaryColor ?>; font-size: 16px; font-weight: 800; padding: 5px 14px; border-radius: 8px; letter-spacing: 0.08em; margin-bottom: 6px;">
+                                                    <?= e($tCode) ?>
+                                                </span>
+                                            </div>
+                                            <!-- Direct Mobile VIP Pass Link -->
+                                            <div style="margin-top: 10px; margin-bottom: 8px;">
+                                                <a href="<?= \url('/pass/' . $tCode) ?>" target="_blank" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; font-size: 13px; font-weight: 700; padding: 9px 20px; border-radius: 8px; letter-spacing: 0.02em; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
+                                                    📱 Open Mobile Pass &amp; QR &rarr;
+                                                </a>
+                                            </div>
+                                            <p style="margin: 4px 0 0; font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
+                                                ⚡ Present this QR code or click above at gate entry
+                                            </p>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             </table>

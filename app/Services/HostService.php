@@ -179,6 +179,30 @@ class HostService
         // Total combined withdrawable balance (Completed + Escrow)
         $totalAvailableBalance = max(0.00, $availableBalance + $availableEscrowBalance);
 
+        // 8. Layaway In-Progress Funds (Locked in platform reserve; NOT accessible for early escrow withdrawal until 100% complete)
+        $stmt = $db->prepare("
+            SELECT COALESCE(SUM(lp.amount), 0.00)
+            FROM layaway_payments lp
+            INNER JOIN tickets t ON lp.layaway_ticket_id = t.id
+            INNER JOIN events e ON t.event_id = e.id
+            WHERE e.organizer_id = :organizer_id
+              AND lp.status = 'completed'
+              AND t.status = 'Layaway'
+        ");
+        $stmt->execute(['organizer_id' => $hostId]);
+        $layawayPendingRevenue = (float)$stmt->fetchColumn();
+
+        // 8b. Active incomplete layaway ticket count
+        $stmt = $db->prepare("
+            SELECT COUNT(t.id)
+            FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            WHERE e.organizer_id = :organizer_id
+              AND t.status = 'Layaway'
+        ");
+        $stmt->execute(['organizer_id' => $hostId]);
+        $layawayPendingCount = (int)$stmt->fetchColumn();
+
         return [
             'totalEventsCount' => $totalEventsCount,
             'totalOccurrencesCount' => $totalOccurrencesCount,
@@ -195,7 +219,9 @@ class HostService
             'pendingPayouts' => $pendingPayouts,
             'availableBalance' => $availableBalance,
             'availableEscrowBalance' => $availableEscrowBalance,
-            'totalAvailableBalance' => $totalAvailableBalance
+            'totalAvailableBalance' => $totalAvailableBalance,
+            'layawayPendingRevenue' => $layawayPendingRevenue,
+            'layawayPendingCount' => $layawayPendingCount
         ];
     }
 
@@ -304,6 +330,21 @@ class HostService
             $evt['total_disbursed'] = (float)($pData['total_disbursed'] ?? 0.00);
             $evt['pending_amount'] = (float)($pData['pending_amount'] ?? 0.00);
             $evt['unrequested_balance'] = max(0.00, round($evt['net_sales'] - ($evt['total_disbursed'] + $evt['pending_amount']), 2));
+
+            // Layaway reserved funds (incomplete layaways; NOT accessible for early escrow withdrawal)
+            $layStmt = $db->prepare("
+                SELECT COALESCE(SUM(lp.amount), 0.00) as reserved_amount,
+                       COUNT(DISTINCT t.id) as layaway_count
+                FROM layaway_payments lp
+                INNER JOIN tickets t ON lp.layaway_ticket_id = t.id
+                WHERE t.event_id = :event_id
+                  AND lp.status = 'completed'
+                  AND t.status = 'Layaway'
+            ");
+            $layStmt->execute(['event_id' => $eid]);
+            $layData = $layStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+            $evt['layaway_reserved'] = (float)($layData['reserved_amount'] ?? 0.00);
+            $evt['layaway_count'] = (int)($layData['layaway_count'] ?? 0);
         }
         unset($evt);
 

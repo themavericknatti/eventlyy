@@ -557,6 +557,11 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
             <span class="fin-card-label" style="color: #ea580c;">🔒 Escrow Balance (Upcoming)</span>
             <h3 class="fin-card-value" style="color: #ea580c;"><?= format_price($escrowRevenue ?? 0) ?></h3>
             <p class="fin-card-meta" style="font-size:0.78rem;">Withdrawable: <strong><?= format_price($availableEscrowBalance ?? 0) ?></strong></p>
+            <?php if (($layawayPendingRevenue ?? 0) > 0): ?>
+            <p class="fin-card-meta" style="font-size:0.74rem; color:#b45309; margin-top:0.25rem;">
+                ⏳ <?= format_price($layawayPendingRevenue) ?> layaway reserved (<?= (int)($layawayPendingCount ?? 0) ?> plan<?= (int)($layawayPendingCount ?? 0) !== 1 ? 's' : '' ?>) — locked until full payment
+            </p>
+            <?php endif; ?>
         </div>
         <div style="margin-top:0.85rem; width:100%;">
             <?php if (($availableEscrowBalance ?? 0.00) > 0 && $bankConfigured): ?>
@@ -930,6 +935,13 @@ Financials &amp; Payouts - <?= e($siteName) ?> Host
             <form method="POST" action="{{ route('host/withdraw') }}" id="escrow-withdrawal-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="withdraw_type" value="escrow">
+
+                <?php if (($layawayPendingRevenue ?? 0) > 0): ?>
+                <div style="background:rgba(251, 191, 36, 0.08); border:1px solid rgba(251, 191, 36, 0.25); border-radius:10px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.82rem; color:#92400e; display:flex; align-items:flex-start; gap:0.5rem;">
+                    <span>⏳</span>
+                    <span><strong><?= format_price($layawayPendingRevenue) ?></strong> from <?= (int)($layawayPendingCount ?? 0) ?> layaway plan<?= (int)($layawayPendingCount ?? 0) !== 1 ? 's' : '' ?> is <strong>not included</strong> in your withdrawable escrow. These deposits are locked until attendees complete full payment.</span>
+                </div>
+                <?php endif; ?>
 
                 <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.84rem; font-weight:600; user-select:none; margin-bottom:1.25rem; padding:0.75rem; border-radius:12px; background:rgba(var(--muted),0.06); border:1px solid rgba(var(--muted),0.15);">
                     <input type="checkbox" id="escrow-agree-checkbox" name="escrow_agreed" value="1" required style="margin-top:0.2rem; width:16px; height:16px; cursor:pointer;">

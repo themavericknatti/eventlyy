@@ -1118,6 +1118,11 @@ Host Dashboard — Manage Your <?= e($siteName) ?> Events
                 <span class="card-label" style="color: var(--vn-brass);">🔒 Escrow (Active Events)</span>
                 <h3 id="escrow-revenue" class="card-value" style="color: var(--vn-brass);"><?= format_price($escrowRevenue ?? 0) ?></h3>
                 <p class="card-meta" style="font-size:0.78rem;">Withdrawable: <strong><?= format_price($availableEscrowBalance ?? 0) ?></strong></p>
+                <?php if (($layawayPendingRevenue ?? 0) > 0): ?>
+                <p class="card-meta" style="font-size:0.74rem; color:#b45309; margin-top:0.25rem;">
+                    ⏳ <?= format_price($layawayPendingRevenue) ?> layaway reserved (<?= (int)($layawayPendingCount ?? 0) ?> plan<?= (int)($layawayPendingCount ?? 0) !== 1 ? 's' : '' ?>) — locked until full payment
+                </p>
+                <?php endif; ?>
             </div>
             <div style="margin-top:0.85rem; width:100%;">
                 <?php if (($availableEscrowBalance ?? 0.00) > 0): ?>
@@ -1634,6 +1639,12 @@ Host Dashboard — Manage Your <?= e($siteName) ?> Events
             <?= csrf_field() ?>
             <input type="hidden" name="withdraw_type" value="escrow">
             <input type="hidden" name="escrow_agreed" value="1">
+            <?php if (($layawayPendingRevenue ?? 0) > 0): ?>
+            <div style="background:rgba(251, 191, 36, 0.08); border:1px solid rgba(251, 191, 36, 0.25); border-radius:var(--vn-radius-sm); padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.82rem; color:#92400e; display:flex; align-items:flex-start; gap:0.5rem;">
+                <span>⏳</span>
+                <span><strong><?= format_price($layawayPendingRevenue) ?></strong> from <?= (int)($layawayPendingCount ?? 0) ?> layaway plan<?= (int)($layawayPendingCount ?? 0) !== 1 ? 's' : '' ?> is <strong>not included</strong> in this balance. These deposits are locked until attendees complete full payment.</span>
+            </div>
+            <?php endif; ?>
             <div style="background:var(--vn-parchment-warm); border:1px solid var(--vn-border); border-radius:var(--vn-radius-sm); padding:1rem; margin-bottom:1rem; font-size:0.85rem; color:var(--vn-ink-muted); line-height:1.5;">
                 <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer;">
                     <input type="checkbox" name="escrow_agreement" value="1" required style="margin-top:3px;">

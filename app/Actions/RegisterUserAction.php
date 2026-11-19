@@ -49,6 +49,20 @@ class RegisterUserAction
                     'email' => strtolower(trim($user->email))
                 ]);
 
+                // Auto-link any layaway credits matching this email
+                $creditLinkStmt = $db->prepare("UPDATE layaway_credits SET user_id = :user_id WHERE LOWER(email) = :email AND (user_id IS NULL OR user_id = 0)");
+                $creditLinkStmt->execute([
+                    'user_id' => $user->id,
+                    'email' => strtolower(trim($user->email))
+                ]);
+
+                // Auto-link any layaway payments matching this email
+                $payLinkStmt = $db->prepare("UPDATE layaway_payments SET user_id = :user_id WHERE LOWER(payer_email) = :email AND (user_id IS NULL OR user_id = 0)");
+                $payLinkStmt->execute([
+                    'user_id' => $user->id,
+                    'email' => strtolower(trim($user->email))
+                ]);
+
                 // Clear existing verifications for this email
                 $delStmt = $db->prepare("DELETE FROM email_verifications WHERE email = :email");
                 $delStmt->execute(['email' => $user->email]);

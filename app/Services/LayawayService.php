@@ -642,6 +642,7 @@ class LayawayService
                             'emails/layaway_expired',
                             [
                                 'attendee_name' => $candidate['attendee_name'],
+                                'attendee_email' => $candidate['attendee_email'],
                                 'event_name' => $candidate['event_name'],
                                 'original_event_date' => date('D, M d, Y', strtotime($candidate['event_date'])),
                                 'total_paid' => $totalPaid,

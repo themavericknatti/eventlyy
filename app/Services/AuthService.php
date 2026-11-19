@@ -65,6 +65,20 @@ class AuthService
             // Clear failed login attempts on successful login
             $rateLimiter->clear($ip, $email);
 
+            // Auto-link any guest tickets, layaway credits, and layaway payments to this user
+            try {
+                $db = Application::$app->db->pdo;
+                $emailLower = strtolower(trim($dbUser->email));
+                $db->prepare("UPDATE tickets SET user_id = :uid WHERE LOWER(attendee_email) = :email AND user_id IS NULL")
+                   ->execute(['uid' => $dbUser->id, 'email' => $emailLower]);
+                $db->prepare("UPDATE layaway_credits SET user_id = :uid WHERE LOWER(email) = :email AND (user_id IS NULL OR user_id = 0)")
+                   ->execute(['uid' => $dbUser->id, 'email' => $emailLower]);
+                $db->prepare("UPDATE layaway_payments SET user_id = :uid WHERE LOWER(payer_email) = :email AND (user_id IS NULL OR user_id = 0)")
+                   ->execute(['uid' => $dbUser->id, 'email' => $emailLower]);
+            } catch (\Throwable $e) {
+                error_log("Failed to auto-link guest records on login: " . $e->getMessage());
+            }
+
             $remember = !empty($credentials['remember']);
             Application::$app->login($dbUser, $remember);
             return true;

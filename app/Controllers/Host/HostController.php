@@ -149,7 +149,11 @@ class HostController extends Controller
         }
 
         if ($maxAmount <= 0) {
-            Application::$app->session->setFlash('error', 'You have no available funds to withdraw for the selected option (' . $typeLabel . ').');
+            if ($withdrawType === 'escrow' && ($stats['layawayPendingRevenue'] ?? 0) > 0) {
+                Application::$app->session->setFlash('info', 'You have no available funds to withdraw for Early Escrow Release. You currently have ' . format_price($stats['layawayPendingRevenue']) . ' in active layaway plan deposits, which remain safely locked in escrow reserve until attendees complete full payment.');
+            } else {
+                Application::$app->session->setFlash('error', 'You have no available funds to withdraw for the selected option (' . $typeLabel . ').');
+            }
             return Application::$app->response->redirect('/host/dashboard');
         }
 

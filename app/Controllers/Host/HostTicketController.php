@@ -74,6 +74,22 @@ class HostTicketController extends Controller
             $isEventStarted = !empty($ticket['event_date']) && strtotime($ticket['event_date']) <= time();
             $isCheckedIn = !empty($ticket['checked_in']);
             $isRefunded = in_array($ticket['status'] ?? '', ['Cancelled', 'Refunded']);
+            $isLayaway = (($ticket['status'] ?? '') === 'Layaway');
+
+            $layawayProgress = null;
+            if ($isLayaway) {
+                $totalPaid = \App\Models\LayawayPayment::getTotalPaid($ticket['id']);
+                $ticketPrice = (float)($ticket['price'] ?? 0);
+                $remaining = max(0, $ticketPrice - $totalPaid);
+                $percentage = $ticketPrice > 0 ? min(100, round(($totalPaid / $ticketPrice) * 100)) : 0;
+                $layawayProgress = [
+                    'total_paid' => $totalPaid,
+                    'total_paid_formatted' => format_price($totalPaid),
+                    'remaining' => $remaining,
+                    'remaining_formatted' => format_price($remaining),
+                    'percentage' => $percentage
+                ];
+            }
 
             return Application::$app->response->json([
                 'success' => true,
@@ -90,7 +106,7 @@ class HostTicketController extends Controller
                             'name' => $ticket['event_name'],
                             'date' => $ticket['event_date'] ?? null,
                             'location' => $ticket['event_location'] ?? null
-                        ], $ticket)
+                        ], array_merge($ticket, ['is_layaway' => $isLayaway]))
                     ) : null,
                     'user_id' => $ticket['user_id'] ?? null,
                     'is_user' => !empty($ticket['user_id']),
@@ -105,7 +121,10 @@ class HostTicketController extends Controller
                     'checked_in_time' => !empty($ticket['checked_in_at']) ? date('h:i A', strtotime($ticket['checked_in_at'])) : null,
                     'purchase_date' => $ticket['purchase_date'] ?? null,
                     'purchase_date_formatted' => !empty($ticket['purchase_date']) ? date('M d, Y \a\t h:i A', strtotime($ticket['purchase_date'])) : 'N/A',
-                    'qr_url' => ticket_qr_url($ticket['id'], 220),
+                    'qr_url' => $isLayaway ? null : ticket_qr_url($ticket['id'], 220),
+                    'is_layaway' => $isLayaway,
+                    'can_check_in' => (!$isLayaway && !$isRefunded),
+                    'layaway_progress' => $layawayProgress,
                     'is_refunded' => $isRefunded,
                     'is_event_started' => $isEventStarted,
                     'action_url' => route('host/event/ticket/' . $ticket['id'] . '/action'),
@@ -240,6 +259,15 @@ class HostTicketController extends Controller
         $tabRedirect = !empty($ticket['event_id']) ? ('/host/event/management/' . $ticket['event_id'] . '?tab=attendees#tab-attendees') : null;
 
         if ($action === 'check_in') {
+            if (($ticket['status'] ?? '') === 'Layaway') {
+                $msg = 'Cannot check in an incomplete layaway ticket. Full payment is required before admission.';
+                if (!$isJson) {
+                    Application::$app->session->setFlash('error', $msg);
+                    return $tabRedirect ? redirect($tabRedirect) : back();
+                }
+                return Application::$app->response->json(['success' => false, 'message' => $msg], 400);
+            }
+
             if (in_array($ticket['status'], ['Cancelled', 'Refunded']) || ($ticket['status_detail'] ?? '') === 'Refunded') {
                 $msg = 'Cannot check in a refunded or cancelled ticket.';
                 if (!$isJson) {
@@ -372,19 +400,48 @@ class HostTicketController extends Controller
                     $totalAmount += (float)($addonItem['total_price'] ?? 0);
                 }
 
-                $emailParams = [
-                    'attendee_name' => $ticket['attendee_name'] ?? 'Valued Guest',
-                    'event_name' => $evName,
-                    'event_date' => $evDate,
-                    'event_location' => $evLocation,
-                    'payment_method' => $payMethod,
-                    'total_amount' => $totalAmount,
-                    'tickets' => $ticketsToSend,
-                    'addons' => $addons,
-                    'is_issued' => $isIssued,
-                ];
+                $isTicketLayaway = ($ticket['status'] === 'Layaway');
 
-                $emailSubject = 'Your Admission Pass - ' . $evName;
+                if ($isTicketLayaway) {
+                    $totalPaid = \App\Models\LayawayPayment::getTotalPaid($ticket['id']);
+                    $ticketPrice = (float)($ticket['price'] ?? 0);
+                    $remaining = max(0, $ticketPrice - $totalPaid);
+
+                    $emailParams = [
+                        'attendee_name' => $ticket['attendee_name'] ?? 'Valued Guest',
+                        'event_name' => $evName,
+                        'event_date' => $evDate,
+                        'event_location' => $evLocation,
+                        'ticket_type' => $ticket['ticket_type'] ?? 'Standard Admission',
+                        'total_price' => $ticketPrice,
+                        'deposit_paid' => $totalPaid,
+                        'remaining_balance' => $remaining,
+                        'ticket_code' => $ticket['id'],
+                        'tickets' => $ticketsToSend,
+                        'addons' => $addons,
+                    ];
+
+                    $emailSubject = 'Layaway Reservation Status & Reminder - ' . $evName;
+                    $emailView = 'emails/layaway_confirmation';
+                    $msg = 'Layaway payment reminder email successfully queued for ' . $attendeeEmail . '!';
+                } else {
+                    $emailParams = [
+                        'attendee_name' => $ticket['attendee_name'] ?? 'Valued Guest',
+                        'event_name' => $evName,
+                        'event_date' => $evDate,
+                        'event_location' => $evLocation,
+                        'payment_method' => $payMethod,
+                        'total_amount' => $totalAmount,
+                        'tickets' => $ticketsToSend,
+                        'addons' => $addons,
+                        'is_issued' => $isIssued,
+                    ];
+
+                    $emailSubject = 'Your Admission Pass - ' . $evName;
+                    $emailView = 'emails/ticket_confirmation';
+                    $msg = 'Ticket pass email successfully queued for ' . $attendeeEmail . '!';
+                }
+
                 $queueRef = 'RESEND-TKT-' . $ticket['id'] . '-' . time();
                 $queued = false;
 
@@ -392,7 +449,7 @@ class HostTicketController extends Controller
                     \Ace\EmailQueue::queue(
                         $attendeeEmail,
                         $emailSubject,
-                        'emails/ticket_confirmation',
+                        $emailView,
                         $emailParams,
                         $queueRef,
                         1 // High priority for manual host resend
@@ -406,7 +463,7 @@ class HostTicketController extends Controller
                         $sent = \Ace\Mail::send(
                             $attendeeEmail,
                             $emailSubject,
-                            'emails/ticket_confirmation',
+                            $emailView,
                             $emailParams
                         );
                         $queued = $sent;

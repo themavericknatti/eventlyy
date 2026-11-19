@@ -3,7 +3,8 @@ $primaryColor = function_exists('theme_primary_color') ? theme_primary_color() :
 $secondaryColor = function_exists('theme_secondary_color') ? theme_secondary_color() : '#b45309';
 $siteTitle = site_setting('site_title', 'Eventlyy');
 $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://localhost', '/');
-$layawayUrl = $appUrl . '/layaway';
+$attendeeEmailParam = !empty($attendee_email) ? ('?email=' . urlencode($attendee_email)) : '';
+$layawayUrl = $appUrl . '/layaway/credits' . $attendeeEmailParam;
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">

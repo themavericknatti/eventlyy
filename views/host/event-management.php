@@ -281,6 +281,19 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
         </article>
     </section>
 
+    <?php if (($layawayReservedAmount ?? 0) > 0): ?>
+    <section style="margin-bottom:1.75rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.85rem 1.15rem; border-radius:var(--vn-radius-md, 0.5rem); background:rgba(251, 191, 36, 0.08); border:1px solid rgba(251, 191, 36, 0.25);">
+            <span style="font-size:1.3rem;">⏳</span>
+            <div style="flex:1; min-width:0;">
+                <span style="font-size:0.82rem; font-weight:700; color:#b45309;">Layaway Reserved: <?= format_price($layawayReservedAmount) ?></span>
+                <span style="font-size:0.76rem; color:var(--vn-ink-muted, #6b7280); margin-left:0.5rem;">(<?= (int)$layawayActiveCount ?> active plan<?= (int)$layawayActiveCount !== 1 ? 's' : '' ?>)</span>
+            </div>
+            <span style="font-size:0.74rem; color:var(--vn-ink-muted, #6b7280); text-align:right; max-width:260px;">Partial deposits locked until attendees complete full payment</span>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <!-- ════════════════════════════════════════════════════════════════
          4. ORGANIZED TAB NAVIGATION
          ════════════════════════════════════════════════════════════════ -->
@@ -652,7 +665,11 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                             </button>
 
                                             <?php if (!$isRefunded): ?>
-                                                <?php if ($isCheckedIn): ?>
+                                                <?php if (($t['status'] ?? '') === 'Layaway'): ?>
+                                                    <button type="button" class="admin-action-btn" disabled style="padding:0.3rem 0.65rem; font-size:0.76rem; border-radius:6px; background:rgba(99,102,241,0.08); color:#6366f1; border:1px solid rgba(99,102,241,0.25); opacity:0.85; cursor:not-allowed;" title="Layaway plan incomplete — full payment required before check-in">
+                                                        🔒 Incomplete
+                                                    </button>
+                                                <?php elseif ($isCheckedIn): ?>
                                                     <form method="POST" action="<?= route('host/event/ticket/' . $t['id'] . '/action') ?>" class="attendee-checkin-form" data-ticket-id="<?= e($t['id']) ?>" style="display:inline;">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="tab" value="attendees">
@@ -672,7 +689,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                                     </form>
                                                 <?php endif; ?>
 
-                                                <?php if (!$isCheckedIn && !$isEventStarted): ?>
+                                                <?php if (!$isCheckedIn && !$isEventStarted && ($t['status'] ?? '') !== 'Layaway'): ?>
                                                     <form method="POST" action="<?= route('host/event/ticket/' . $t['id'] . '/action') ?>" class="attendee-refund-form" data-ticket-id="<?= e($t['id']) ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to refund this ticket?');">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="tab" value="attendees">
@@ -765,7 +782,11 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                 </button>
 
                                 <?php if (!$isRefunded): ?>
-                                    <?php if ($isCheckedIn): ?>
+                                    <?php if (($t['status'] ?? '') === 'Layaway'): ?>
+                                        <button type="button" class="admin-action-btn flex-1 text-center" disabled style="justify-content:center; padding:0.45rem 0.75rem; font-size:0.8rem; background:rgba(99,102,241,0.08); color:#6366f1; border:1px solid rgba(99,102,241,0.25); opacity:0.85; cursor:not-allowed;" title="Layaway plan incomplete — full payment required before check-in">
+                                            🔒 Layaway Incomplete
+                                        </button>
+                                    <?php elseif ($isCheckedIn): ?>
                                         <form method="POST" action="<?= route('host/event/ticket/' . $t['id'] . '/action') ?>" class="flex-1 attendee-checkin-form" data-ticket-id="<?= e($t['id']) ?>" style="margin:0;">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="tab" value="attendees">
@@ -785,7 +806,7 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                                         </form>
                                     <?php endif; ?>
 
-                                    <?php if (!$isCheckedIn && !$isEventStarted): ?>
+                                    <?php if (!$isCheckedIn && !$isEventStarted && ($t['status'] ?? '') !== 'Layaway'): ?>
                                         <form method="POST" action="<?= route('host/event/ticket/' . $t['id'] . '/action') ?>" class="attendee-refund-form" data-ticket-id="<?= e($t['id']) ?>" style="margin:0;" onsubmit="return confirm('Are you sure you want to refund this ticket?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="tab" value="attendees">
@@ -1917,10 +1938,15 @@ if (result.success &amp;&amp; result.authorization_url) {
                     </div>
 
                     <div class="htd-qr-container">
-                        <div class="htd-qr-box">
+                        <div class="htd-qr-box" id="htm-qr-box">
                             <img id="htm-qr-img" src="" alt="QR Pass" width="135" height="135" />
                         </div>
-                        <span class="htd-qr-note">Scan with Scanner</span>
+                        <div id="htm-qr-locked-box" style="display:none; width:135px; height:135px; background:rgba(99,102,241,0.06); border:2px dashed rgba(99,102,241,0.3); border-radius:12px; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0.5rem; box-sizing:border-box;">
+                            <span style="font-size:1.8rem; line-height:1; margin-bottom:0.25rem;">🔒</span>
+                            <strong style="color:#6366f1; font-size:0.75rem; line-height:1.2;">Pass Locked</strong>
+                            <small style="color:rgb(var(--muted)); font-size:0.65rem; margin-top:2px;">Incomplete Plan</small>
+                        </div>
+                        <span class="htd-qr-note" id="htm-qr-note">Scan with Scanner</span>
                     </div>
 
                     <!-- Actions Stack -->
@@ -4146,6 +4172,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnRefund.className = 'htd-action-btn htd-btn--disabled';
                 btnRefund.innerHTML = '<span>✓</span> Ticket Refunded';
             }
+        } else if (ticket.is_layaway || ticket.status === 'Layaway') {
+            if (statusPill) {
+                statusPill.className = 'htd-pill';
+                statusPill.style.background = 'rgba(99,102,241,0.15)';
+                statusPill.style.color = '#6366f1';
+                statusPill.textContent = '⏳ Layaway Plan (Incomplete)';
+            }
+            if (gateIcon) gateIcon.textContent = '🔒';
+            if (gateTitle) gateTitle.textContent = 'Admission Locked:';
+            let progText = 'Payment incomplete. Admission pass inactive.';
+            if (ticket.layaway_progress) {
+                progText = `${ticket.layaway_progress.total_paid_formatted} paid (${ticket.layaway_progress.percentage}%). Needs ${ticket.layaway_progress.remaining_formatted}.`;
+            }
+            if (gateDesc) gateDesc.textContent = progText;
+
+            if (btnToggle) {
+                btnToggle.style.display = 'none'; // Cannot check in!
+            }
+            if (btnRefund) {
+                btnRefund.disabled = true;
+                btnRefund.className = 'htd-action-btn htd-btn--disabled';
+                btnRefund.title = 'Layaway installments are protected and converted to credit on expiry';
+                btnRefund.innerHTML = '<span>🔒</span> Layaway Active';
+            }
         } else if (ticket.checked_in) {
             if (statusPill) {
                 statusPill.className = 'htd-pill htd-pill--success';
@@ -4204,8 +4254,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (ticket.whatsapp_url) {
                 btnWa.href = ticket.whatsapp_url;
                 btnWa.style.display = 'inline-flex';
+                if (ticket.is_layaway || ticket.status === 'Layaway') {
+                    btnWa.innerHTML = '<span>💬</span> Send Layaway Reminder (WhatsApp)';
+                    btnWa.title = 'Send layaway payment reminder and payment link via WhatsApp';
+                } else {
+                    btnWa.innerHTML = '<span>💬</span> Deliver Pass to WhatsApp';
+                    btnWa.title = 'Deliver scannable pass to WhatsApp';
+                }
             } else {
                 btnWa.style.display = 'none';
+            }
+        }
+
+        const btnResend = document.getElementById('htm-btn-resend-email');
+        if (btnResend) {
+            if (ticket.is_layaway || ticket.status === 'Layaway') {
+                btnResend.innerHTML = '<span>✉️</span> Resend Layaway Reminder';
+                btnResend.title = 'Resend layaway plan status and payment reminder email';
+            } else {
+                btnResend.innerHTML = '<span>✉️</span> Resend Ticket Email';
+                btnResend.title = 'Resend ticket confirmation and admission pass email';
             }
         }
     }
@@ -4566,7 +4634,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (stubTagEl) stubTagEl.textContent = (t.ticket_type || 'PASS').substring(0, 10).toUpperCase();
 
                     const qrImgEl = document.getElementById('htm-qr-img');
-                    if (qrImgEl) qrImgEl.src = t.qr_url;
+                    const qrBoxEl = document.getElementById('htm-qr-box');
+                    const qrLockedEl = document.getElementById('htm-qr-locked-box');
+                    const qrNoteEl = document.getElementById('htm-qr-note');
+
+                    if (t.is_layaway || t.status === 'Layaway' || !t.qr_url) {
+                        if (qrBoxEl) qrBoxEl.style.display = 'none';
+                        if (qrLockedEl) qrLockedEl.style.display = 'flex';
+                        if (qrNoteEl) qrNoteEl.textContent = '🔒 Payment Required';
+                    } else {
+                        if (qrBoxEl) qrBoxEl.style.display = 'flex';
+                        if (qrLockedEl) qrLockedEl.style.display = 'none';
+                        if (qrNoteEl) qrNoteEl.textContent = 'Scan with Scanner';
+                        if (qrImgEl) qrImgEl.src = t.qr_url;
+                    }
 
                     const stubFootEl = document.getElementById('htm-stub-footer-id');
                     if (stubFootEl) stubFootEl.textContent = 'ID: ' + String(t.id).substring(0, 14);

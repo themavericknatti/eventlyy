@@ -10,6 +10,7 @@ $siteTitle = site_setting('site_title', 'Eventlyy');
 $eventDate = !empty($ticket['event_date']) ? strtotime($ticket['event_date']) : null;
 $isCheckedIn = !empty($ticket['checked_in']);
 $isCancelled = in_array($ticket['status'] ?? '', ['Cancelled', 'Refunded']);
+$isLayaway = (($ticket['status'] ?? '') === 'Layaway');
 $ticketCode = $ticket['id'];
 $admits = (int)($ticket['ticket_admits'] ?? 1);
 
@@ -331,6 +332,8 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 <div class="vip-pass-status-pill vip-pass-status--checked">✓ CHECKED IN</div>
             <?php elseif ($isCancelled): ?>
                 <div class="vip-pass-status-pill vip-pass-status--cancelled">CANCELLED</div>
+            <?php elseif ($isLayaway): ?>
+                <div class="vip-pass-status-pill" style="background:#6366f1; color:#ffffff;">⏳ INCOMPLETE LAYAWAY</div>
             <?php else: ?>
                 <div class="vip-pass-status-pill vip-pass-status--valid">● VALID TICKET</div>
             <?php endif; ?>
@@ -345,10 +348,23 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 <span>📍 <?= e($ticket['event_location'] ?? 'Venue TBA') ?></span>
             </div>
 
-            <!-- Scannable High-Res QR Code -->
-            <div class="vip-qr-box" title="Gate Admission QR Code — Scan at entrance">
-                <img src="<?= url('/ticket/qr/' . urlencode($ticketCode) . '?s=300') ?>" alt="Ticket QR Code #<?= e($ticketCode) ?>" />
-            </div>
+            <!-- Scannable High-Res QR Code or Locked Layaway Notice -->
+            <?php if ($isLayaway): ?>
+                <div class="vip-qr-box" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1.75rem 1rem; background:rgba(99,102,241,0.08); border:2px dashed #6366f1; border-radius:14px; text-align:center;">
+                    <span style="font-size:2.8rem; margin-bottom:0.4rem; line-height:1;">🔒</span>
+                    <strong style="color:#6366f1; font-size:1.05rem;">Admission Pass Inactive</strong>
+                    <p style="margin:0.35rem 0 0; font-size:0.8rem; color:rgba(255,255,255,0.7); line-height:1.45; max-width:280px;">
+                        This ticket is on a partial layaway plan. Admission QR code is released once final payment is completed.
+                    </p>
+                    <a href="<?= \url('/layaway') ?>" style="margin-top:0.85rem; display:inline-block; background:#6366f1; color:#ffffff; font-weight:700; font-size:0.82rem; padding:0.5rem 1.15rem; border-radius:8px; text-decoration:none;">
+                        Complete Layaway Plan →
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="vip-qr-box" title="Gate Admission QR Code — Scan at entrance">
+                    <img src="<?= url('/ticket/qr/' . urlencode($ticketCode) . '?s=300') ?>" alt="Ticket QR Code #<?= e($ticketCode) ?>" />
+                </div>
+            <?php endif; ?>
 
             <div class="vip-pass-code-pill" title="Official admission code">
                 <span><?= e($ticketCode) ?></span>
@@ -366,9 +382,13 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 </div>
                 <div class="vip-pass-item">
                     <label>Gate Status</label>
-                    <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">
-                        <?= $isCheckedIn ? 'Checked In' : 'Ready for Scan' ?>
-                    </strong>
+                    <?php if ($isLayaway): ?>
+                        <strong style="color: #6366f1;">Payment Required</strong>
+                    <?php else: ?>
+                        <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">
+                            <?= $isCheckedIn ? 'Checked In' : 'Ready for Scan' ?>
+                        </strong>
+                    <?php endif; ?>
                 </div>
                 <div class="vip-pass-item">
                     <label>Issued Via</label>

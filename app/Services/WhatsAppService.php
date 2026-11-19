@@ -87,6 +87,26 @@ class WhatsAppService
         $dateStr = $eventDate ? date('D, M d, Y • g:i A', $eventDate) : 'Date TBA';
         $location = $event['location'] ?? 'Venue TBA';
 
+        $isLayaway = (($ticket['status'] ?? '') === 'Layaway') || !empty($ticket['is_layaway']);
+        if ($isLayaway) {
+            $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://localhost', '/');
+            $layawayUrl = function_exists('url') ? url('/layaway') : $appUrl . '/layaway';
+
+            $msg = "⏳ *Layaway Reservation - Payment Incomplete* \n\n";
+            $msg .= "Hey *{$attendeeName}*, your reservation for *{$eventName}* is active via Layaway on {$siteTitle}! 🎟️\n\n";
+            $msg .= "🗓️ *Event Date:* {$dateStr}\n";
+            $msg .= "📍 *Venue:* {$location}\n";
+            $msg .= "🎫 *Reserved Tier:* {$tierName}\n";
+            $msg .= "🔑 *Reference Code:* `{$ticketCode}`\n\n";
+            $msg .= "🔒 *Admission Status:* Scannable gate QR pass is *inactive*. Payment must be completed before event entry is permitted.\n\n";
+            $msg .= "💳 *Complete Your Layaway Payment:* \n";
+            $msg .= "👉 {$layawayUrl}\n\n";
+            $msg .= "💡 *Note:* Pay off your remaining balance anytime before the event starts to unlock your entry QR pass. If incomplete, payments automatically convert into Event Credits for future tickets!\n\n";
+            $msg .= "— *{$siteTitle} Team*";
+
+            return $msg;
+        }
+
         $passUrl = self::getPassUrl($ticketCode);
 
         $msg = "🎟️ *Your Admission Pass is Ready!* \n\n";

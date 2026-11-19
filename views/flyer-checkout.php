@@ -193,6 +193,12 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                             <strong id="val-discount">-</strong>
                         </div>
 
+                        <!-- Event Credit Row (shown when credit applied) -->
+                        <div class="charge-row charge-row--discount" id="row-credit" style="display:none; color: #f59e0b;">
+                            <span>Event Credit Applied</span>
+                            <strong id="val-credit">-</strong>
+                        </div>
+
                         <!-- Dynamic Layaway Rows (shown when Layaway is active) -->
                         <div class="charge-row charge-row--layaway-dep" id="row-layaway-deposit" style="display:none;">
                             <span>Deposit Portion (<?= $minPercent ?>%)</span>
@@ -311,6 +317,27 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                                 <button type="button" class="promo-apply-btn" id="btn-apply-code">Apply</button>
                             </div>
                             <span id="promo-status-msg" class="promo-status-msg" aria-live="polite"></span>
+                        </div>
+
+                        <!-- Event Credits Box -->
+                        <div class="input-group" style="margin-top:0.75rem; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.3); border-radius:12px; padding:0.85rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                                <label style="margin:0; font-size:0.82rem; font-weight:700; color:#fbbf24;">✨ Have Event Credits?</label>
+                                <a href="<?= \url('/layaway/credits') ?>" target="_blank" style="font-size:0.72rem; color:#f59e0b; text-decoration:underline;">Check balance ↗</a>
+                            </div>
+                            <?php if (!empty($totalCreditBalance) && $totalCreditBalance > 0): ?>
+                                <p style="margin:0 0 0.5rem; font-size:0.78rem; color:#cbd5e1;">Available credit: <strong style="color:#fbbf24;"><?= format_price($totalCreditBalance) ?></strong></p>
+                                <button type="button" class="promo-apply-btn" id="btn-apply-credit" style="width:100%; justify-content:center; background:#d97706; border-color:#d97706; padding:0.6rem; color:#fff;">
+                                    Apply <?= format_price(min($totalCreditBalance, $totalAmount)) ?> Credit
+                                </button>
+                            <?php else: ?>
+                                <p style="margin:0 0 0.5rem; font-size:0.75rem; color:#94a3b8;">Redeem credits from uncompleted layaways on this purchase.</p>
+                                <button type="button" class="promo-apply-btn" id="btn-apply-credit" style="width:100%; justify-content:center; background:#d97706; border-color:#d97706; padding:0.6rem; color:#fff;">
+                                    Apply Available Credits
+                                </button>
+                            <?php endif; ?>
+                            <input type="hidden" name="use_credit" id="flyer-use-credit-input" value="0">
+                            <span id="credit-status-msg" class="promo-status-msg" style="display:none;" aria-live="polite"></span>
                         </div>
 
                         <!-- Ticket Add-Ons & Event Merchandise Shelf -->
@@ -756,6 +783,85 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                     promoBtn.textContent = 'Apply';
                     promoMsg.textContent = 'Network error while validating promo code.';
                     promoMsg.style.color = '#ef4444';
+                });
+            });
+        }
+
+        // ── Event Credit Validation & Application (Flyer Checkout) ──
+        const creditBtn = document.getElementById('btn-apply-credit');
+        const creditMsg = document.getElementById('credit-status-msg');
+        const rowCredit = document.getElementById('row-credit');
+        const valCredit = document.getElementById('val-credit');
+        const useCreditInput = document.getElementById('flyer-use-credit-input');
+
+        if (creditBtn) {
+            creditBtn.addEventListener('click', function() {
+                const emailInput = document.querySelector('input[name="email"]') || document.getElementById('buyer-email');
+                const email = emailInput ? emailInput.value.trim() : '<?= !empty($currentUser->email) ? e($currentUser->email) : '' ?>';
+
+                if (!email) {
+                    if (creditMsg) {
+                        creditMsg.style.display = 'block';
+                        creditMsg.style.color = '#ef4444';
+                        creditMsg.textContent = 'Please enter your email in the attendee info above first.';
+                    }
+                    if (emailInput) emailInput.focus();
+                    return;
+                }
+
+                creditBtn.disabled = true;
+                creditBtn.textContent = 'Checking credits...';
+
+                fetch('/checkout/validate-credit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        email: email,
+                        current_total: '<?= $totalAmount ?>',
+                        csrf_token: '<?= csrf_token() ?>'
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (creditMsg) creditMsg.style.display = 'block';
+                    if (data.success) {
+                        if (creditMsg) {
+                            creditMsg.style.color = '#10b981';
+                            creditMsg.textContent = '✓ ' + data.message;
+                        }
+                        if (rowCredit && valCredit) {
+                            rowCredit.style.display = 'flex';
+                            valCredit.textContent = '-' + data.formatted_discount;
+                        }
+                        if (useCreditInput) useCreditInput.value = '1';
+
+                        if (data.is_free) {
+                            appliedDiscount = baseTicketSubtotal + 999999;
+                            recalcFlyerAll();
+                        } else {
+                            appliedDiscount = parseFloat(data.applied_credit || 0);
+                            recalcFlyerAll();
+                        }
+                        creditBtn.textContent = '✓ Credit Applied (' + data.formatted_discount + ')';
+                    } else {
+                        if (creditMsg) {
+                            creditMsg.style.color = '#ef4444';
+                            creditMsg.textContent = '✕ ' + (data.message || 'No credits found.');
+                        }
+                        if (rowCredit) rowCredit.style.display = 'none';
+                        if (useCreditInput) useCreditInput.value = '0';
+                        creditBtn.disabled = false;
+                        creditBtn.textContent = 'Apply Available Credits';
+                    }
+                })
+                .catch(() => {
+                    creditBtn.disabled = false;
+                    creditBtn.textContent = 'Apply Available Credits';
+                    if (creditMsg) {
+                        creditMsg.style.display = 'block';
+                        creditMsg.style.color = '#ef4444';
+                        creditMsg.textContent = 'Failed to check event credits. Please try again.';
+                    }
                 });
             });
         }

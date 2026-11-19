@@ -14,9 +14,17 @@ class LayawayController extends Controller
 
     public function __construct()
     {
-        // Public endpoints exempt from AuthMiddleware: callback and cron
+        // Public endpoints exempt from AuthMiddleware: callback, cron, and public credit checking
         $action = Application::$app->request->getPath();
-        if (!str_contains($action, '/layaway/callback') && !str_contains($action, '/cron/expire-layaways')) {
+        $publicPaths = ['/layaway/callback', '/cron/expire-layaways', '/layaway/credits', '/layaway/check-credits'];
+        $isPublic = false;
+        foreach ($publicPaths as $p) {
+            if (str_contains($action, $p)) {
+                $isPublic = true;
+                break;
+            }
+        }
+        if (!$isPublic) {
             $this->registerMiddleware(new AuthMiddleware());
         }
         $this->layawayService = new LayawayService();
@@ -42,6 +50,74 @@ class LayawayController extends Controller
             'layaways' => $layaways,
             'credits' => $credits
         ]);
+    }
+
+    /**
+     * Public Event Credits Hub & Lookup (accessible by guests and registered users)
+     */
+    public function publicCreditsView(Request $request): string
+    {
+        $user = Application::$app->user;
+        $email = $user ? $user->email : trim((string)($request->getBody()['email'] ?? ($_GET['email'] ?? '')));
+        
+        $credits = [];
+        $totalBalance = 0.00;
+
+        if (!empty($email)) {
+            $userId = $user ? (int)$user->id : null;
+            $credits = \App\Models\LayawayCredit::findAvailableByEmail($email, $userId);
+            $totalBalance = \App\Models\LayawayCredit::getTotalAvailable($email, $userId);
+        }
+
+        return $this->render('layaway/credits', [
+            'title' => 'Event Credits Hub - ' . site_setting('site_title', 'Eventlyy'),
+            'user' => $user,
+            'email' => $email,
+            'credits' => $credits,
+            'totalBalance' => $totalBalance
+        ]);
+    }
+
+    /**
+     * AJAX endpoint to check available credits by email
+     */
+    public function checkCreditsAjax(Request $request)
+    {
+        header('Content-Type: application/json');
+        $data = $request->getBody();
+        $email = trim((string)($data['email'] ?? ''));
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Please provide a valid email address.'
+            ]);
+            exit;
+        }
+
+        $user = Application::$app->user;
+        $userId = ($user && strtolower($user->email) === strtolower($email)) ? (int)$user->id : null;
+        
+        $credits = \App\Models\LayawayCredit::findAvailableByEmail($email, $userId);
+        $total = \App\Models\LayawayCredit::getTotalAvailable($email, $userId);
+
+        echo json_encode([
+            'success' => true,
+            'email' => $email,
+            'total_available' => $total,
+            'formatted_total' => format_price($total),
+            'count' => count($credits),
+            'credits' => array_map(function($c) {
+                return [
+                    'id' => (int)$c['id'],
+                    'remaining_amount' => (float)$c['remaining_amount'],
+                    'formatted_amount' => format_price((float)$c['remaining_amount']),
+                    'original_event_name' => $c['original_event_name'] ?? 'Concluded Event',
+                    'expires_at' => !empty($c['expires_at']) ? date('M d, Y', strtotime($c['expires_at'])) : null
+                ];
+            }, $credits)
+        ]);
+        exit;
     }
 
     /**

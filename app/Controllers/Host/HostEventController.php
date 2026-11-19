@@ -329,6 +329,22 @@ class HostEventController extends Controller
         $occupancyPercentage = $totalCapacity > 0 ? (($ticketsSold + $ticketsIssued) / $totalCapacity) * 100 : 0;
         $avgPrice = $ticketsSold > 0 ? ($totalRevenue / $ticketsSold) : 0;
 
+        // Layaway reserved funds (incomplete layaways; NOT accessible until fully paid)
+        $db = Application::$app->db->pdo;
+        $layStmt = $db->prepare("
+            SELECT COALESCE(SUM(lp.amount), 0.00) as reserved_amount,
+                   COUNT(DISTINCT t.id) as layaway_count
+            FROM layaway_payments lp
+            INNER JOIN tickets t ON lp.layaway_ticket_id = t.id
+            WHERE t.event_id = :event_id
+              AND lp.status = 'completed'
+              AND t.status = 'Layaway'
+        ");
+        $layStmt->execute(['event_id' => $event->id]);
+        $layData = $layStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $layawayReservedAmount = (float)($layData['reserved_amount'] ?? 0.00);
+        $layawayActiveCount = (int)($layData['layaway_count'] ?? 0);
+
         // Fetch event reviews / feedback
         $db = Application::$app->db->pdo;
         $stmt = $db->prepare("
@@ -497,7 +513,9 @@ class HostEventController extends Controller
             'isAdmin' => $isAdmin,
             'activeTab' => $activeTab,
             'organizerName' => $organizerName,
-            'organizerEmail' => $organizerEmail
+            'organizerEmail' => $organizerEmail,
+            'layawayReservedAmount' => $layawayReservedAmount,
+            'layawayActiveCount' => $layawayActiveCount
         ]);
     }
 

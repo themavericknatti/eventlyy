@@ -127,6 +127,14 @@ class CheckoutController extends Controller
             }
         }
 
+        // Check available event credits for logged-in user
+        $userCredits = [];
+        $totalCreditBalance = 0.00;
+        if ($currentUser && !empty($currentUser->email)) {
+            $userCredits = \App\Models\LayawayCredit::findAvailableByEmail($currentUser->email, (int)$currentUser->id);
+            $totalCreditBalance = \App\Models\LayawayCredit::getTotalAvailable($currentUser->email, (int)$currentUser->id);
+        }
+
         return $this->render('checkout', [
             'title' => 'Checkout - ' . $event['name'],
             'event' => $event,
@@ -140,7 +148,9 @@ class CheckoutController extends Controller
             'currentUser' => $currentUser,
             'qtyMap' => $qtyMap,
             'refCode' => $refCode,
-            'eventAddons' => $eventAddons
+            'eventAddons' => $eventAddons,
+            'userCredits' => $userCredits,
+            'totalCreditBalance' => $totalCreditBalance
         ]);
     }
 
@@ -269,6 +279,14 @@ class CheckoutController extends Controller
             }
         }
 
+        // Check available event credits for logged-in user
+        $userCredits = [];
+        $totalCreditBalance = 0.00;
+        if ($currentUser && !empty($currentUser->email)) {
+            $userCredits = \App\Models\LayawayCredit::findAvailableByEmail($currentUser->email, (int)$currentUser->id);
+            $totalCreditBalance = \App\Models\LayawayCredit::getTotalAvailable($currentUser->email, (int)$currentUser->id);
+        }
+
         return $this->render('flyer-checkout', [
             'title' => 'Checkout — ' . $event['name'],
             'event' => (object)$event,
@@ -284,7 +302,9 @@ class CheckoutController extends Controller
             'qtyMap' => $qtyMap,
             'refCode' => $refCode,
             'eventAddons' => $eventAddons,
-            'flyerUrl' => event_flyer_url($event)
+            'flyerUrl' => event_flyer_url($event),
+            'userCredits' => $userCredits,
+            'totalCreditBalance' => $totalCreditBalance
         ]);
     }
 
@@ -476,6 +496,35 @@ class CheckoutController extends Controller
         $extraCharge = $netSubtotal > 0 ? (float)get_setting('extra_charge', 100.00) : 0.00;
         $totalPaid = $netSubtotal > 0 ? max(0, $netSubtotal + $fee + $extraCharge) : 0.00;
 
+        // ── Apply Event Credits (Usable for Full or Layaway purchases) ──
+        $useCredit = !empty($data['use_credit']) || !empty($data['apply_credits']);
+        $appliedCreditAmount = 0.00;
+        $appliedCreditsList = [];
+
+        if ($useCredit && $totalPaid > 0) {
+            $currentUser = Application::$app->user;
+            $creditUserId = ($currentUser && strtolower($currentUser->email) === strtolower($email)) ? (int)$currentUser->id : null;
+            $availableCredits = \App\Models\LayawayCredit::findAvailableByEmail($email, $creditUserId);
+
+            $neededCredit = $totalPaid;
+            foreach ($availableCredits as $ac) {
+                if ($neededCredit <= 0.00) break;
+                $rem = (float)$ac['remaining_amount'];
+                if ($rem <= 0) continue;
+                $deductThis = min($neededCredit, $rem);
+                $appliedCreditAmount += $deductThis;
+                $neededCredit -= $deductThis;
+                $appliedCreditsList[] = [
+                    'credit_id' => (int)$ac['id'],
+                    'deduct' => $deductThis
+                ];
+            }
+
+            if ($appliedCreditAmount > 0) {
+                $totalPaid = max(0.00, round($totalPaid - $appliedCreditAmount, 2));
+            }
+        }
+
         // Track referral if passed in checkout submission
         $refCode = trim($data['ref'] ?? ($_POST['ref'] ?? ($_GET['ref'] ?? ($_COOKIE['event_ref_code_' . $event['id']] ?? ''))));
         if (!empty($refCode)) {
@@ -535,10 +584,16 @@ class CheckoutController extends Controller
             }
         }
 
-        // ── Direct Free Ticket Issuance (0 or 0.00 total) ───────
-        // Free tickets bypass Paystack and all external payment gateways entirely!
+        // ── Direct Free Ticket or 100% Credit Ticket Issuance (0 or 0.00 total) ───────
         if ($totalPaid <= 0.00) {
-            return $this->issueTicketsDirectly($event, $name, $email, 'free', $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery, $selectedAddons);
+            if (!empty($appliedCreditsList)) {
+                $layawayService = new \App\Services\LayawayService();
+                foreach ($appliedCreditsList as $crItem) {
+                    $layawayService->applyCredit($crItem['credit_id'], $email, $crItem['deduct']);
+                }
+            }
+            $pmMethod = ($appliedCreditAmount > 0) ? 'event_credit' : 'free';
+            return $this->issueTicketsDirectly($event, $name, $email, $pmMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery, $selectedAddons);
         }
 
         // ── Layaway / Partial Payment Preparation ────────────────
@@ -557,6 +612,9 @@ class CheckoutController extends Controller
             
             // Charges added to deposit at checkout: platform fee (if pass_fee) + extra service charge
             $chargedAmount = round($depositTicketSubtotal + $fee + $extraCharge, 2);
+            if ($appliedCreditAmount > 0) {
+                $chargedAmount = max(0.00, round($chargedAmount - $appliedCreditAmount, 2));
+            }
             $remainingBalance = max(0, $netSubtotal - $depositTicketSubtotal);
         }
 
@@ -600,7 +658,8 @@ class CheckoutController extends Controller
                 $event, $name, $email, $chargedAmount, $qtyMap, 
                 $promoCode, $discountAmount, $refCode, $normalizedAttendees, 
                 $isLayaway, $totalPaid, $depositTicketSubtotal, $remainingBalance,
-                $phone, $whatsappDelivery, $selectedAddons
+                $phone, $whatsappDelivery, $selectedAddons,
+                $appliedCreditAmount, $appliedCreditsList
             );
         }
 
@@ -673,6 +732,57 @@ class CheckoutController extends Controller
     }
 
     /**
+     * AJAX endpoint to validate and preview applying event credits during checkout.
+     */
+    public function validateCreditAjax(Request $request): string
+    {
+        header('Content-Type: application/json');
+        $data = $request->getBody();
+        $email = trim((string)($data['email'] ?? ''));
+        $currentTotal = (float)($data['current_total'] ?? 0.00);
+
+        $currentUser = Application::$app->user;
+        if (empty($email) && $currentUser) {
+            $email = $currentUser->email;
+        }
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Please enter a valid email address to check event credits.'
+            ]);
+        }
+
+        $userId = ($currentUser && strtolower($currentUser->email) === strtolower($email)) ? (int)$currentUser->id : null;
+        $credits = \App\Models\LayawayCredit::findAvailableByEmail($email, $userId);
+        $totalBalance = \App\Models\LayawayCredit::getTotalAvailable($email, $userId);
+
+        if ($totalBalance <= 0 || empty($credits)) {
+            return json_encode([
+                'success' => false,
+                'message' => 'No available event credits found for ' . $email . '.'
+            ]);
+        }
+
+        $appliedCredit = min($totalBalance, $currentTotal);
+        $newTotal = max(0.00, round($currentTotal - $appliedCredit, 2));
+        $isFree = ($newTotal <= 0.00);
+
+        return json_encode([
+            'success' => true,
+            'email' => $email,
+            'total_balance' => $totalBalance,
+            'formatted_balance' => format_price($totalBalance),
+            'applied_credit' => $appliedCredit,
+            'formatted_discount' => format_price($appliedCredit),
+            'new_total' => $newTotal,
+            'formatted_new_total' => format_price($newTotal),
+            'is_free' => $isFree,
+            'message' => '✨ ' . format_price($appliedCredit) . ' event credit applied!'
+        ]);
+    }
+
+    /**
      * Initialize Paystack Transaction and redirect user to Paystack hosted checkout.
      */
     private function initializePaystack(
@@ -691,7 +801,9 @@ class CheckoutController extends Controller
         float $remainingBalance = 0.00,
         string $phone = '',
         bool $whatsappDelivery = false,
-        array $selectedAddons = []
+        array $selectedAddons = [],
+        float $appliedCreditAmount = 0.00,
+        array $appliedCreditsList = []
     )
     {
         try {
@@ -775,7 +887,9 @@ class CheckoutController extends Controller
                 'fee_amount' => $fee,
                 'extra_charge_amount' => $extraCharge,
                 'total_full_amount' => $totalFullAmount > 0 ? $totalFullAmount : $totalAmount,
-                'remaining_balance' => $remainingBalance
+                'remaining_balance' => $remainingBalance,
+                'applied_credit_amount' => $appliedCreditAmount,
+                'applied_credits_list' => $appliedCreditsList
             ];
 
             Application::$app->session->set('pending_order', $orderPayload);

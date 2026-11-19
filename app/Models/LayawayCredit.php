@@ -53,4 +53,17 @@ class LayawayCredit extends Model
         $stmt->execute($params);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
+
+    /**
+     * Get total available credit balance for an email / user
+     */
+    public static function getTotalAvailable(string $email, ?int $userId = null): float
+    {
+        $credits = self::findAvailableByEmail($email, $userId);
+        $total = 0.00;
+        foreach ($credits as $c) {
+            $total += (float)$c['remaining_amount'];
+        }
+        return round($total, 2);
+    }
 }

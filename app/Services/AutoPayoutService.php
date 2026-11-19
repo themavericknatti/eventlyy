@@ -56,6 +56,13 @@ class AutoPayoutService
             $completedCount++;
         }
 
+        // Auto-expire any incomplete layaway reservations whose event has ended (converts to attendee credits)
+        try {
+            (new \App\Services\LayawayService())->expireUnpaidLayaways();
+        } catch (\Throwable $layErr) {
+            error_log("Failed to expire unpaid layaways in processAutoPayouts: " . $layErr->getMessage());
+        }
+
         // 2. Query completed events eligible for auto-payout request:
         // Either:
         // - Event marked completed and updated_at is older than delayMinutes
