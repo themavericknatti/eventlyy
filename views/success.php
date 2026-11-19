@@ -28,11 +28,7 @@ $isFree = ($totalAmount <= 0.00);
 $ticketCount = count($order['tickets'] ?? []);
 $orderRef = !empty($order['payment_reference']) 
     ? $order['payment_reference'] 
-    : (!empty($order['tickets'][0]['ticket_code']) 
-        ? $order['tickets'][0]['ticket_code'] 
-        : (!empty($order['tickets'][0]['id']) 
-            ? $order['tickets'][0]['id'] 
-            : ('ORD-' . time())));
+    : ('ORD-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8)));
 
 $calendarEvent = [
     'name' => $order['event_name'] ?? 'Event',
@@ -91,7 +87,6 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
     <!-- ═══ Viral "I'm Going!" Story Card Launch Banner ═══ -->
     <?php
     $firstTicket = $order['tickets'][0] ?? [];
-    $firstTicketCode = $firstTicket['ticket_code'] ?? ($firstTicket['id'] ?? $orderRef);
     $firstTicketType = !empty($firstTicket['ticket_type']) ? $firstTicket['ticket_type'] : 'General Admission';
     $primaryAttendeeName = !empty($order['attendee_name']) && $order['attendee_name'] !== 'Attendee' 
         ? $order['attendee_name'] 
@@ -136,12 +131,6 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
 
     // ═══ WhatsApp Delivery Configuration ═══
     $buyerPhone = $order['attendee_phone'] ?? '';
-    $waDefaultMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
-        ['name' => $order['event_name'], 'date' => $order['event_date'], 'location' => $order['event_location']],
-        ['attendee_name' => $primaryAttendeeName, 'ticket_code' => $firstTicketCode, 'ticket_type' => $firstTicketType],
-        $siteTitle
-    );
-    $initialWaUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl($buyerPhone, $waDefaultMsg);
     ?>
 
     <!-- ═══ WhatsApp Instant Delivery & Gate Alerts Banner ═══ -->
@@ -169,7 +158,6 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
 
             <button type="button" id="btn-suc-send-whatsapp"
                     data-ref="<?= e($orderRef) ?>"
-                    data-wa-url="<?= e($initialWaUrl) ?>"
                     style="display: inline-flex; align-items: center; gap: 7px; background: #25D366; color: #fff; padding: 0.65rem 1.25rem; border-radius: 12px; font-weight: 800; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.35);">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
                 <span>Send to WhatsApp</span>
@@ -343,7 +331,6 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
     <div class="suc-passes-list">
         <?php foreach ($order['tickets'] as $index => $t): 
             $tCode = $t['ticket_code'] ?? ($t['id'] ?? 'EV-' . ($index + 1));
-            $qrSrc = ticket_qr_url($tCode, 240);
             $ticketType = !empty($t['ticket_type']) ? $t['ticket_type'] : 'General Admission';
             $holderName = !empty($t['attendee_name']) && $t['attendee_name'] !== 'Attendee' 
                 ? $t['attendee_name'] 
@@ -377,21 +364,6 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                                 title="Generate Instagram &amp; WhatsApp Story Card for this ticket">
                             <span>📸</span> Story Pass
                         </button>
-                        <?php
-                            $ticketPhone = $t['attendee_phone'] ?? $buyerPhone;
-                            $indivWaMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
-                                ['name' => $order['event_name'], 'date' => $order['event_date'], 'location' => $order['event_location']],
-                                ['attendee_name' => $holderName, 'ticket_code' => $tCode, 'ticket_type' => $ticketType],
-                                $siteTitle
-                            );
-                            $indivWaUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl($ticketPhone, $indivWaMsg);
-                        ?>
-                        <a href="<?= e($indivWaUrl) ?>" target="_blank" rel="noopener" class="no-print"
-                           style="display:inline-flex; align-items:center; gap:5px; padding:0.4rem 0.85rem; border-radius:9999px; background:rgba(37,211,102,0.15); border:1px solid rgba(37,211,102,0.35); color:#25D366; font-size:0.78rem; font-weight:700; text-decoration:none; transition:all 0.15s ease;"
-                           title="Send this ticket's QR pass directly via WhatsApp">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
-                            <span>WhatsApp Pass</span>
-                        </a>
                     </div>
                 </div>
 
@@ -419,31 +391,40 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                             </div>
                         </div>
 
-                        <!-- Unique Admission Code Box -->
+                        <!-- Protected Admission Code Box (QR & Plain Code delivered via Email & WhatsApp) -->
                         <div class="suc-pass-code-box">
                             <div>
-                                <span class="suc-pass-code-label">Unique Admission Code</span>
-                                <div class="suc-pass-code-val"><?= e($tCode) ?></div>
+                                <span class="suc-pass-code-label">Admission Code &bull; Protected</span>
+                                <div class="suc-pass-code-val" style="letter-spacing: 0.14em; font-family: Consolas, Monaco, monospace; color: #64748b; font-weight: 800;">
+                                    <?= e(substr($tCode, 0, 3) . '••••••••') ?>
+                                </div>
                             </div>
                             <div class="suc-pass-code-actions">
-                                <button type="button" class="suc-copy-code-btn" data-code="<?= e($tCode) ?>" title="Copy ticket code">
-                                    📋 Copy
-                                </button>
-                                <span class="suc-pass-valid-tag">Valid Pass</span>
+                                <span class="suc-pass-valid-tag" style="background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
+                                    <span>🔒</span> Sent to Email &amp; WhatsApp
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right: QR Code Stub -->
-                    <div class="suc-pass-qr-stub">
-                        <div class="suc-qr-frame" title="Scan this QR code at the entrance gate">
-                            <img src="<?= $qrSrc ?>" 
-                                 alt="QR Code for Ticket <?= e($tCode) ?>" 
-                                 width="135" height="135" 
-                                 class="suc-qr-img" />
+                    <!-- Right: Pass Delivered Badge (QR sent via Email & WhatsApp) -->
+                    <div class="suc-pass-qr-stub" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.45rem; text-align:center; padding:1.25rem 1rem;">
+                        <div style="width:48px; height:48px; border-radius:50%; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; justify-content:center;">
+                            <span style="font-size:1.6rem; line-height:1;">🔒</span>
                         </div>
-                        <span class="suc-qr-label">SCAN AT ENTRY GATE</span>
-                        <span class="suc-qr-code-text"><?= e($tCode) ?></span>
+                        <span style="display:block; font-size:0.85rem; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.04em;">Pass Dispatched</span>
+                        <span style="display:block; font-size:0.75rem; color:#64748b; line-height:1.45; max-width:210px;">
+                            Admission QR pass &amp; unlock PIN delivered to <strong><?= e($order['attendee_email']) ?></strong>
+                        </span>
+                        <div style="margin-top:0.35rem; display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:700; color:#0d9488; background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.25); padding:4px 10px; border-radius:99px;">
+                            <span>✉️</span> Check Email &amp; WhatsApp
+                        </div>
+                        <?php if (\Ace\Application::$app->user): ?>
+                            <a href="<?= url('/profile?tab=tickets') ?>" 
+                               style="display:inline-flex; align-items:center; gap:4px; margin-top:0.35rem; color:#6366f1; font-size:0.75rem; font-weight:700; text-decoration:underline;">
+                                👤 View in My Account &rarr;
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -508,7 +489,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (waSendBtn) {
         waSendBtn.addEventListener('click', function () {
             const ref = this.getAttribute('data-ref');
-            const fallbackUrl = this.getAttribute('data-wa-url');
             const phoneVal = waPhoneInput ? waPhoneInput.value.trim() : '';
 
             showToast('📲 Preparing WhatsApp ticket pass...');
@@ -531,21 +511,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.whatsapp_url) {
                         window.open(data.whatsapp_url, '_blank');
                         showToast('✓ WhatsApp pass opened!');
-                    } else if (fallbackUrl) {
-                        window.open(fallbackUrl, '_blank');
+                    } else {
+                        showToast('✕ ' + (data.message || 'Could not generate WhatsApp pass.'));
                     }
                 })
                 .catch(() => {
                     waSendBtn.disabled = false;
                     waSendBtn.style.opacity = '1';
-                    if (fallbackUrl) {
-                        window.open(fallbackUrl, '_blank');
-                    }
+                    showToast('✕ Error connecting to WhatsApp service.');
                 });
-            } else if (fallbackUrl) {
-                waSendBtn.disabled = false;
-                waSendBtn.style.opacity = '1';
-                window.open(fallbackUrl, '_blank');
             }
         });
     }

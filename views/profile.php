@@ -991,6 +991,12 @@ Your Account Hub — Eventlyy
                                             <span class="pf-ticket-detail-label">Purchased On</span>
                                             <span class="pf-ticket-detail-value"><?= $tkPurchaseDate ?></span>
                                         </div>
+                                        <?php if (!empty($tk['security_pin'])): ?>
+                                        <div class="pf-ticket-detail-item">
+                                            <span class="pf-ticket-detail-label">Security PIN</span>
+                                            <span class="pf-ticket-detail-value" style="font-family:Consolas,monospace; letter-spacing:0.1em; color:#0d9488; font-weight:700;">🔐 <?= htmlspecialchars($tk['security_pin']) ?></span>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 

@@ -103,9 +103,10 @@ class LayawayService
                     if (empty($attName)) $attName = $name;
                     if (empty($attEmail)) $attEmail = $email;
 
+                    $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Layaway', :status_detail, NOW(), 0)
+                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, security_pin, purchase_date, checked_in)
+                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Layaway', :status_detail, :security_pin, NOW(), 0)
                     ");
                     $statusDetail = "Layaway Reservation - Plan Total: " . format_price($seatPrice) . " | Ref: " . $reference;
                     $insertStmt->execute([
@@ -116,7 +117,8 @@ class LayawayService
                         'name' => $attName,
                         'email' => $attEmail,
                         'price' => $seatPrice,
-                        'status_detail' => $statusDetail
+                        'status_detail' => $statusDetail,
+                        'security_pin' => $securityPin
                     ]);
 
                     $createdTickets[] = [
@@ -125,7 +127,8 @@ class LayawayService
                         'attendee_email' => $attEmail,
                         'ticket_type' => $tt['name'],
                         'price' => $seatPrice,
-                        'status' => 'Layaway'
+                        'status' => 'Layaway',
+                        'security_pin' => $securityPin
                     ];
                 }
             }
@@ -437,7 +440,8 @@ class LayawayService
                         'event_location' => $ticket['event_location'] ?? 'Venue TBA',
                         'ticket_code' => $ticket['id'],
                         'ticket_type' => $ticket['ticket_type_name'],
-                        'total_amount' => (float)$ticket['price']
+                        'total_amount' => (float)$ticket['price'],
+                        'security_pin' => $ticket['security_pin'] ?? ''
                     ]
                 );
             } catch (\Throwable $e) {

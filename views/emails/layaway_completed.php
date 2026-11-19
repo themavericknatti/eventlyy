@@ -117,6 +117,13 @@ $qrSrc = function_exists('ticket_qr_email_src') ? ticket_qr_email_src($ticket_co
                                                 📱 Open Mobile Pass &amp; QR &rarr;
                                             </a>
                                         </div>
+                                        <?php if (!empty($security_pin)): ?>
+                                        <div style="margin-top: 8px; background-color: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 14px; display: inline-block;">
+                                            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #92400e; letter-spacing: 0.04em;">🔐 Pass Security PIN:</span>
+                                            <strong style="font-size: 16px; color: #92400e; margin-left: 6px; font-family: Consolas, Monaco, monospace; letter-spacing: 0.15em;"><?= e($security_pin) ?></strong>
+                                            <div style="font-size: 10.5px; color: #a16207; margin-top: 3px;">Use this PIN to unlock your QR pass on the web</div>
+                                        </div>
+                                        <?php endif; ?>
                                         <p style="margin: 4px 0 0; font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
                                             ⚡ Present this QR code or click above at gate entry
                                         </p>

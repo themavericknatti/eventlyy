@@ -13,6 +13,7 @@ $isCancelled = in_array($ticket['status'] ?? '', ['Cancelled', 'Refunded']);
 $isLayaway = (($ticket['status'] ?? '') === 'Layaway');
 $ticketCode = $ticket['id'];
 $admits = (int)($ticket['ticket_admits'] ?? 1);
+$isUnlocked = !empty($isUnlocked);
 
 $rawImg = $ticket['event_image'] ?? '';
 $evImg = '';
@@ -30,7 +31,7 @@ if (!empty($rawImg)) {
 @extends('layouts/main')
 
 @section('title')
-Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
+<?= $isUnlocked ? ('Pass #' . e($ticketCode)) : 'Protected Admission Pass' ?> — <?= e($ticket['event_name']) ?>
 @endsection
 
 @section('style')
@@ -126,6 +127,12 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
     color: #f87171;
 }
 
+.vip-pass-status--locked {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+}
+
 .vip-pass-body {
     padding: 1.5rem 1.75rem 2rem;
     text-align: center;
@@ -155,7 +162,7 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
     gap: 5px;
 }
 
-/* Scannable QR Container */
+/* Scannable QR Container (Visible ONLY when Unlocked) */
 .vip-qr-box {
     margin: 1.25rem auto 1.5rem;
     width: 250px;
@@ -198,6 +205,143 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
     right: -4px;
     border-width: 0 4px 4px 0;
     border-bottom-right-radius: 12px;
+}
+
+/* Dedicated High-Contrast PIN Lock Container */
+.vip-pin-lock-container {
+    margin: 1.25rem auto 1.5rem;
+    width: 100%;
+    max-width: 380px;
+    background: #1e293b;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 1.75rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 35px rgba(99, 102, 241, 0.15);
+    box-sizing: border-box;
+}
+
+.vip-pin-lock-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1.5px solid rgba(99, 102, 241, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.85rem;
+    margin-bottom: 0.75rem;
+}
+
+.vip-pin-heading {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 0.35rem;
+}
+
+.vip-pin-subheading {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0 0 1.25rem;
+    line-height: 1.45;
+    max-width: 290px;
+}
+
+.vip-pin-input-field {
+    width: 160px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0.35em;
+    padding: 0.65rem 0.75rem;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #34d399;
+    outline: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.vip-pin-input-field:focus {
+    border-color: #10b981;
+    background: #090d16;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25), inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.vip-pin-input-field::placeholder {
+    color: #475569;
+    letter-spacing: 0.35em;
+}
+
+.vip-pin-submit-btn {
+    width: 100%;
+    max-width: 260px;
+    margin-top: 1rem;
+    padding: 0.85rem 1.5rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.15s ease;
+}
+
+.vip-pin-submit-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.vip-pin-resend-link {
+    margin-top: 1rem;
+    background: none;
+    border: none;
+    color: #38bdf8;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vip-pin-resend-link:hover {
+    color: #7dd3fc;
+}
+
+.vip-pin-alert {
+    width: 100%;
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.85rem;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.vip-pin-alert--error {
+    background: rgba(239, 68, 68, 0.18);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+.vip-pin-alert--success {
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
 }
 
 .vip-pass-code-pill {
@@ -334,8 +478,10 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 <div class="vip-pass-status-pill vip-pass-status--cancelled">CANCELLED</div>
             <?php elseif ($isLayaway): ?>
                 <div class="vip-pass-status-pill" style="background:#6366f1; color:#ffffff;">⏳ INCOMPLETE LAYAWAY</div>
+            <?php elseif (!$isUnlocked): ?>
+                <div class="vip-pass-status-pill vip-pass-status--locked">🔒 PIN LOCKED</div>
             <?php else: ?>
-                <div class="vip-pass-status-pill vip-pass-status--valid">● VALID TICKET</div>
+                <div class="vip-pass-status-pill vip-pass-status--valid">● READY FOR SCAN</div>
             <?php endif; ?>
         </div>
 
@@ -348,26 +494,105 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 <span>📍 <?= e($ticket['event_location'] ?? 'Venue TBA') ?></span>
             </div>
 
-            <!-- Scannable High-Res QR Code or Locked Layaway Notice -->
+            <!-- Scannable High-Res QR Code or Locked State -->
             <?php if ($isLayaway): ?>
-                <div class="vip-qr-box" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1.75rem 1rem; background:rgba(99,102,241,0.08); border:2px dashed #6366f1; border-radius:14px; text-align:center;">
-                    <span style="font-size:2.8rem; margin-bottom:0.4rem; line-height:1;">🔒</span>
-                    <strong style="color:#6366f1; font-size:1.05rem;">Admission Pass Inactive</strong>
-                    <p style="margin:0.35rem 0 0; font-size:0.8rem; color:rgba(255,255,255,0.7); line-height:1.45; max-width:280px;">
-                        This ticket is on a partial layaway plan. Admission QR code is released once final payment is completed.
+                <div class="vip-pin-lock-container">
+                    <div class="vip-pin-lock-icon" style="background:rgba(99,102,241,0.15); border-color:rgba(99,102,241,0.35);">
+                        <span>⏳</span>
+                    </div>
+                    <h2 class="vip-pin-heading" style="color:#818cf8;">Layaway Plan Inactive</h2>
+                    <p class="vip-pin-subheading">
+                        This admission ticket is reserved under an active layaway installment plan. Your gate QR code is automatically released upon final payment.
                     </p>
-                    <a href="<?= \url('/layaway') ?>" style="margin-top:0.85rem; display:inline-block; background:#6366f1; color:#ffffff; font-weight:700; font-size:0.82rem; padding:0.5rem 1.15rem; border-radius:8px; text-decoration:none;">
+                    <a href="<?= \url('/layaway') ?>" class="vip-pin-submit-btn" style="text-decoration:none; display:inline-block; background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
                         Complete Layaway Plan →
                     </a>
                 </div>
-            <?php else: ?>
+            <?php elseif ($isUnlocked): ?>
                 <div class="vip-qr-box" title="Gate Admission QR Code — Scan at entrance">
                     <img src="<?= url('/ticket/qr/' . urlencode($ticketCode) . '?s=300') ?>" alt="Ticket QR Code #<?= e($ticketCode) ?>" />
                 </div>
+            <?php else: ?>
+                <!-- Dedicated High-Contrast PIN-Locked Container -->
+                <div class="vip-pin-lock-container">
+                    <div class="vip-pin-lock-icon">
+                        <span>🔒</span>
+                    </div>
+                    <h2 class="vip-pin-heading">Pass Protected</h2>
+                    <p class="vip-pin-subheading">
+                        Enter your 4-digit Security PIN to unlock and display your scannable entry QR code.
+                    </p>
+
+                    <?php if ($flashErr = \Ace\Application::$app->session->getFlash('error')): ?>
+                        <div class="vip-pin-alert vip-pin-alert--error">
+                            <?= e($flashErr) ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($flashSucc = \Ace\Application::$app->session->getFlash('success')): ?>
+                        <div class="vip-pin-alert vip-pin-alert--success">
+                            <?= e($flashSucc) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="<?= url('/pass/' . e($ticketCode) . '/unlock') ?>" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>" />
+                        
+                        <input type="text" 
+                               name="pin" 
+                               class="vip-pin-input-field"
+                               maxlength="4" 
+                               pattern="[0-9]{4}" 
+                               required 
+                               inputmode="numeric" 
+                               autocomplete="one-time-code"
+                               placeholder="••••" 
+                               autofocus />
+
+                        <button type="submit" class="vip-pin-submit-btn">
+                            🔓 Unlock Admission Pass
+                        </button>
+                    </form>
+
+                    <div id="pin-resend-msg" style="display:none; width:100%; margin-top:0.75rem;" class="vip-pin-alert"></div>
+                    
+                    <button type="button" onclick="resendPin()" id="resend-pin-btn" class="vip-pin-resend-link">
+                        <span>✉️</span> Send PIN to my Email
+                    </button>
+                </div>
+
+                <script>
+                function resendPin() {
+                    const btn = document.getElementById('resend-pin-btn');
+                    const msg = document.getElementById('pin-resend-msg');
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Sending PIN...';
+                    fetch('<?= url('/pass/' . e($ticketCode) . '/resend-pin') ?>', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ csrf_token: '<?= e(csrf_token()) ?>' })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        msg.style.display = 'block';
+                        msg.className = 'vip-pin-alert ' + (data.success ? 'vip-pin-alert--success' : 'vip-pin-alert--error');
+                        msg.textContent = data.message;
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>✉️</span> Resend PIN to my Email';
+                    })
+                    .catch(() => {
+                        msg.style.display = 'block';
+                        msg.className = 'vip-pin-alert vip-pin-alert--error';
+                        msg.textContent = 'Failed to connect. Please try again.';
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>✉️</span> Send PIN to my Email';
+                    });
+                }
+                </script>
             <?php endif; ?>
 
-            <div class="vip-pass-code-pill" title="Official admission code">
-                <span><?= e($ticketCode) ?></span>
+            <!-- Admission Code Pill (Masked when Locked) -->
+            <div class="vip-pass-code-pill" title="<?= $isUnlocked ? 'Official admission code' : 'Protected admission code' ?>">
+                <span><?= $isUnlocked ? e($ticketCode) : 'EV-••••••••' ?></span>
             </div>
 
             <!-- Pass Holder & Tier Details Grid -->
@@ -383,7 +608,9 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 <div class="vip-pass-item">
                     <label>Gate Status</label>
                     <?php if ($isLayaway): ?>
-                        <strong style="color: #6366f1;">Payment Required</strong>
+                        <strong style="color: #818cf8;">Payment Required</strong>
+                    <?php elseif (!$isUnlocked): ?>
+                        <strong style="color: #fbbf24;">🔒 PIN Locked</strong>
                     <?php else: ?>
                         <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">
                             <?= $isCheckedIn ? 'Checked In' : 'Ready for Scan' ?>
@@ -431,41 +658,60 @@ Pass #<?= e($ticketCode) ?> — <?= e($ticket['event_name']) ?>
                 </div>
             <?php endif; ?>
 
-            <!-- One-Click WhatsApp & Wallet Actions -->
-            <div class="vip-pass-actions no-print">
-                <?php
-                    $tData = ($ticket instanceof \Ace\ViewData) ? $ticket->toArray() : (array)$ticket;
-                    $waMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
-                        ['name' => $tData['event_name'] ?? '', 'date' => $tData['event_date'] ?? null, 'location' => $tData['event_location'] ?? ''],
-                        $tData,
-                        $siteTitle
-                    );
-                    $waUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl('', $waMsg);
-                ?>
-                <a href="<?= e($waUrl) ?>" target="_blank" rel="noopener" class="vip-btn-whatsapp">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
-                    <span>Share Pass to WhatsApp</span>
-                </a>
+            <!-- Action Buttons: WhatsApp & Print (Only visible when Unlocked) -->
+            <?php if ($isUnlocked): ?>
+                <div class="vip-pass-actions no-print">
+                    <?php
+                        $tData = ($ticket instanceof \Ace\ViewData) ? $ticket->toArray() : (array)$ticket;
+                        $waMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
+                            ['name' => $tData['event_name'] ?? '', 'date' => $tData['event_date'] ?? null, 'location' => $tData['event_location'] ?? ''],
+                            $tData,
+                            $siteTitle
+                        );
+                        $waUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl('', $waMsg);
+                    ?>
+                    <a href="<?= e($waUrl) ?>" target="_blank" rel="noopener" class="vip-btn-whatsapp">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
+                        <span>Share Pass to WhatsApp</span>
+                    </a>
 
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-                    <button type="button" onclick="window.print()" class="vip-btn-secondary">
-                        <span>🖨️</span> Print / Save PDF
-                    </button>
-                    <button type="button" id="btn-trigger-story-pass" class="vip-btn-secondary" style="color:var(--primary,#108a55);"
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                        <button type="button" onclick="window.print()" class="vip-btn-secondary">
+                            <span>🖨️</span> Print / Save PDF
+                        </button>
+                        <button type="button" id="btn-trigger-story-pass" class="vip-btn-secondary" style="color:var(--primary,#108a55);"
+                                data-event-id="<?= e($ticket['event_id']) ?>"
+                                data-event-title="<?= e($ticket['event_name']) ?>"
+                                data-event-date="<?= e($ticket['event_date']) ?>"
+                                data-event-location="<?= e($ticket['event_location']) ?>"
+                                data-event-image="<?= e($evImg) ?>"
+                                data-site-title="<?= e($siteTitle) ?>">
+                            <span>📸</span> Story Card
+                        </button>
+                    </div>
+                </div>
+
+                <p class="vip-pass-footer-note">
+                    💡 <strong>Gate Instructions:</strong> Please present this QR pass at the entrance gate. Set your screen brightness to maximum for fast optical verification.
+                </p>
+            <?php else: ?>
+                <!-- Locked State Security Notice -->
+                <div style="background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 14px; padding: 1.1rem 1.25rem; font-size: 0.82rem; color: #94a3b8; line-height: 1.5; margin-bottom: 1.5rem; text-align: center;">
+                    🔒 <strong>Pass Secured:</strong> Your admission QR code and sharing options remain protected until unlocked. Check your email for your 4-digit Security PIN, or click <em>"Send PIN to my Email"</em> above.
+                </div>
+
+                <div style="display:flex; justify-content:center;">
+                    <button type="button" id="btn-trigger-story-pass" class="vip-btn-secondary" style="max-width:240px; color:var(--primary,#108a55);"
                             data-event-id="<?= e($ticket['event_id']) ?>"
                             data-event-title="<?= e($ticket['event_name']) ?>"
                             data-event-date="<?= e($ticket['event_date']) ?>"
                             data-event-location="<?= e($ticket['event_location']) ?>"
                             data-event-image="<?= e($evImg) ?>"
                             data-site-title="<?= e($siteTitle) ?>">
-                        <span>📸</span> Story Card
+                        <span>📸</span> Share Story Card
                     </button>
                 </div>
-            </div>
-
-            <p class="vip-pass-footer-note">
-                💡 <strong>Gate Instructions:</strong> Please present this QR pass at the entrance gate. Set your screen brightness to maximum for fast optical verification.
-            </p>
+            <?php endif; ?>
         </div>
     </div>
 </div>

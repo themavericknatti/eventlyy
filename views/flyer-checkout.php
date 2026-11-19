@@ -794,75 +794,124 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
         const valCredit = document.getElementById('val-credit');
         const useCreditInput = document.getElementById('flyer-use-credit-input');
 
+        let flyerOtpModal = null;
+        function getFlyerCreditEmail() {
+            const emailInput = document.querySelector('input[name="email"]') || document.getElementById('buyer-email');
+            return emailInput ? emailInput.value.trim() : '<?= !empty($currentUser->email) ? e($currentUser->email) : '' ?>';
+        }
+
+        function createFlyerOtpModal() {
+            if (flyerOtpModal) return;
+            const div = document.createElement('div');
+            div.id = 'flyer-credit-otp-modal';
+            div.innerHTML = `
+                <div style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem;">
+                    <div style="background:#fff; border-radius:16px; padding:2rem; max-width:400px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.2); text-align:center;">
+                        <div style="font-size:2rem; margin-bottom:0.5rem;">🔐</div>
+                        <h3 style="margin:0 0 0.5rem; font-size:1.1rem; color:#0f172a;">Email Verification Required</h3>
+                        <p id="flyer-otp-desc" style="font-size:0.85rem; color:#64748b; margin:0 0 1.25rem;">A 6-digit code has been sent to your email.</p>
+                        <div id="flyer-otp-msg" style="display:none; margin-bottom:0.75rem; padding:0.5rem; border-radius:8px; font-size:0.82rem; font-weight:600;"></div>
+                        <input type="text" id="flyer-otp-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="••••••"
+                               style="width:100%; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:0.3em; padding:0.75rem; border:2px solid #e2e8f0; border-radius:10px; outline:none; font-family:Consolas,monospace; box-sizing:border-box;" />
+                        <button type="button" id="flyer-otp-verify" style="width:100%; margin-top:0.75rem; padding:0.75rem; border:none; border-radius:10px; background:#10b981; color:#fff; font-weight:700; font-size:0.95rem; cursor:pointer;">Verify & Apply Credits</button>
+                        <button type="button" id="flyer-otp-resend" style="margin-top:0.5rem; background:none; border:none; color:#6366f1; font-size:0.82rem; font-weight:600; cursor:pointer; text-decoration:underline;">Resend Code</button>
+                        <button type="button" id="flyer-otp-cancel" style="margin-top:0.25rem; background:none; border:none; color:#94a3b8; font-size:0.82rem; cursor:pointer;">Cancel</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(div);
+            flyerOtpModal = div;
+
+            document.getElementById('flyer-otp-cancel').addEventListener('click', () => { flyerOtpModal.style.display = 'none'; creditBtn.disabled = false; creditBtn.textContent = 'Apply Available Credits'; });
+            document.getElementById('flyer-otp-verify').addEventListener('click', flyerVerifyOtp);
+            document.getElementById('flyer-otp-resend').addEventListener('click', () => { flyerSendOtp(getFlyerCreditEmail()); });
+            document.getElementById('flyer-otp-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') flyerVerifyOtp(); });
+        }
+
+        function flyerShowOtpMsg(msg, isError) {
+            const el = document.getElementById('flyer-otp-msg');
+            if (!el) return;
+            el.style.display = 'block';
+            el.style.background = isError ? '#fef2f2' : '#f0fdf4';
+            el.style.color = isError ? '#dc2626' : '#16a34a';
+            el.textContent = msg;
+        }
+
+        function flyerSendOtp(email) {
+            fetch('/checkout/credit/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ email: email, csrf_token: '<?= csrf_token() ?>' }) })
+            .then(r => r.json())
+            .then(data => { flyerShowOtpMsg(data.message, !data.success); })
+            .catch(() => { flyerShowOtpMsg('Failed to send code.', true); });
+        }
+
+        function flyerVerifyOtp() {
+            const code = document.getElementById('flyer-otp-input').value.trim();
+            if (code.length !== 6) { flyerShowOtpMsg('Please enter a 6-digit code.', true); return; }
+            const btn = document.getElementById('flyer-otp-verify');
+            btn.disabled = true; btn.textContent = 'Verifying...';
+            fetch('/checkout/credit/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ otp: code, csrf_token: '<?= csrf_token() ?>' }) })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    flyerShowOtpMsg('✓ ' + data.message, false);
+                    setTimeout(() => { flyerOtpModal.style.display = 'none'; flyerFetchCredits(getFlyerCreditEmail()); }, 800);
+                } else {
+                    flyerShowOtpMsg(data.message, true);
+                    btn.disabled = false; btn.textContent = 'Verify & Apply Credits';
+                }
+            })
+            .catch(() => { flyerShowOtpMsg('Verification failed.', true); btn.disabled = false; btn.textContent = 'Verify & Apply Credits'; });
+        }
+
+        function flyerFetchCredits(email) {
+            creditBtn.disabled = true;
+            creditBtn.textContent = 'Checking credits...';
+            fetch('/checkout/validate-credit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ email: email, current_total: '<?= $totalAmount ?>', csrf_token: '<?= csrf_token() ?>' })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.requires_otp) {
+                    createFlyerOtpModal();
+                    flyerOtpModal.style.display = 'block';
+                    flyerSendOtp(email);
+                    if (creditMsg) { creditMsg.style.display = 'block'; creditMsg.style.color = '#6366f1'; creditMsg.textContent = 'Email verification required — check your inbox.'; }
+                    return;
+                }
+                if (creditMsg) creditMsg.style.display = 'block';
+                if (data.success) {
+                    if (creditMsg) { creditMsg.style.color = '#10b981'; creditMsg.textContent = '✓ ' + data.message; }
+                    if (rowCredit && valCredit) { rowCredit.style.display = 'flex'; valCredit.textContent = '-' + data.formatted_discount; }
+                    if (useCreditInput) useCreditInput.value = '1';
+                    if (data.is_free) { appliedDiscount = baseTicketSubtotal + 999999; recalcFlyerAll(); }
+                    else { appliedDiscount = parseFloat(data.applied_credit || 0); recalcFlyerAll(); }
+                    creditBtn.textContent = '✓ Credit Applied (' + data.formatted_discount + ')';
+                } else {
+                    if (creditMsg) { creditMsg.style.color = '#ef4444'; creditMsg.textContent = '✕ ' + (data.message || 'No credits found.'); }
+                    if (rowCredit) rowCredit.style.display = 'none';
+                    if (useCreditInput) useCreditInput.value = '0';
+                    creditBtn.disabled = false;
+                    creditBtn.textContent = 'Apply Available Credits';
+                }
+            })
+            .catch(() => { creditBtn.disabled = false; creditBtn.textContent = 'Apply Available Credits';
+                if (creditMsg) { creditMsg.style.display = 'block'; creditMsg.style.color = '#ef4444'; creditMsg.textContent = 'Failed to check event credits. Please try again.'; }
+            });
+        }
+
         if (creditBtn) {
             creditBtn.addEventListener('click', function() {
-                const emailInput = document.querySelector('input[name="email"]') || document.getElementById('buyer-email');
-                const email = emailInput ? emailInput.value.trim() : '<?= !empty($currentUser->email) ? e($currentUser->email) : '' ?>';
-
+                const email = getFlyerCreditEmail();
                 if (!email) {
-                    if (creditMsg) {
-                        creditMsg.style.display = 'block';
-                        creditMsg.style.color = '#ef4444';
-                        creditMsg.textContent = 'Please enter your email in the attendee info above first.';
-                    }
+                    if (creditMsg) { creditMsg.style.display = 'block'; creditMsg.style.color = '#ef4444'; creditMsg.textContent = 'Please enter your email in the attendee info above first.'; }
+                    const emailInput = document.querySelector('input[name="email"]') || document.getElementById('buyer-email');
                     if (emailInput) emailInput.focus();
                     return;
                 }
-
-                creditBtn.disabled = true;
-                creditBtn.textContent = 'Checking credits...';
-
-                fetch('/checkout/validate-credit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        email: email,
-                        current_total: '<?= $totalAmount ?>',
-                        csrf_token: '<?= csrf_token() ?>'
-                    })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (creditMsg) creditMsg.style.display = 'block';
-                    if (data.success) {
-                        if (creditMsg) {
-                            creditMsg.style.color = '#10b981';
-                            creditMsg.textContent = '✓ ' + data.message;
-                        }
-                        if (rowCredit && valCredit) {
-                            rowCredit.style.display = 'flex';
-                            valCredit.textContent = '-' + data.formatted_discount;
-                        }
-                        if (useCreditInput) useCreditInput.value = '1';
-
-                        if (data.is_free) {
-                            appliedDiscount = baseTicketSubtotal + 999999;
-                            recalcFlyerAll();
-                        } else {
-                            appliedDiscount = parseFloat(data.applied_credit || 0);
-                            recalcFlyerAll();
-                        }
-                        creditBtn.textContent = '✓ Credit Applied (' + data.formatted_discount + ')';
-                    } else {
-                        if (creditMsg) {
-                            creditMsg.style.color = '#ef4444';
-                            creditMsg.textContent = '✕ ' + (data.message || 'No credits found.');
-                        }
-                        if (rowCredit) rowCredit.style.display = 'none';
-                        if (useCreditInput) useCreditInput.value = '0';
-                        creditBtn.disabled = false;
-                        creditBtn.textContent = 'Apply Available Credits';
-                    }
-                })
-                .catch(() => {
-                    creditBtn.disabled = false;
-                    creditBtn.textContent = 'Apply Available Credits';
-                    if (creditMsg) {
-                        creditMsg.style.display = 'block';
-                        creditMsg.style.color = '#ef4444';
-                        creditMsg.textContent = 'Failed to check event credits. Please try again.';
-                    }
-                });
+                flyerFetchCredits(email);
             });
         }
 

@@ -35,6 +35,8 @@ use App\Controllers\LayawayController;
 // Branded Ticket Admission QR Code Generator
 $router->get('/ticket/qr/{code}', [TicketController::class, 'qrCode']);
 $router->get('/pass/{code}', [TicketController::class, 'viewPass']);
+$router->post('/pass/{code}/unlock', [TicketController::class, 'unlockPass']);
+$router->post('/pass/{code}/resend-pin', [TicketController::class, 'resendPinAjax']);
 
 // Dynamic PWA Manifest Route
 $router->get('/manifest.json', function () {
@@ -83,6 +85,8 @@ $router->get('/event/{id}/calendar.ics', [EventController::class, 'calendarIcs']
 $router->get('/checkout/paystack/callback', [CheckoutController::class, 'paystackCallback']);
 $router->post('/checkout/validate-promo', [CheckoutController::class, 'validatePromo']);
 $router->post('/checkout/validate-credit', [CheckoutController::class, 'validateCreditAjax']);
+$router->post('/checkout/credit/send-otp', [CheckoutController::class, 'sendCreditOtpAjax']);
+$router->post('/checkout/credit/verify-otp', [CheckoutController::class, 'verifyCreditOtpAjax']);
 $router->get('/checkout/{event_id?}', [CheckoutController::class, 'checkout']);
 $router->post('/checkout/{event_id?}', [CheckoutController::class, 'processCheckout']);
 $router->get('/success', [CheckoutController::class, 'success']);

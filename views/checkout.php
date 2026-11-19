@@ -882,78 +882,193 @@ document.addEventListener('DOMContentLoaded', function() {
     const creditText = document.getElementById('credit-amount-text');
     const useCreditInput = document.getElementById('use-credit-input');
 
+    // OTP Modal (injected dynamically)
+    let otpModal = null;
+    function createOtpModal() {
+        if (otpModal) return;
+        const div = document.createElement('div');
+        div.id = 'credit-otp-modal';
+        div.innerHTML = `
+            <div style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem;">
+                <div style="background:#fff; border-radius:16px; padding:2rem; max-width:400px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.2); text-align:center;">
+                    <div style="font-size:2rem; margin-bottom:0.5rem;">🔐</div>
+                    <h3 style="margin:0 0 0.5rem; font-size:1.1rem; color:#0f172a;">Email Verification Required</h3>
+                    <p id="otp-modal-desc" style="font-size:0.85rem; color:#64748b; margin:0 0 1.25rem;">A 6-digit code has been sent to your email. Enter it below to authorize credit usage.</p>
+                    <div id="otp-modal-msg" style="display:none; margin-bottom:0.75rem; padding:0.5rem; border-radius:8px; font-size:0.82rem; font-weight:600;"></div>
+                    <input type="text" id="otp-code-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="••••••"
+                           style="width:100%; text-align:center; font-size:1.5rem; font-weight:700; letter-spacing:0.3em; padding:0.75rem; border:2px solid #e2e8f0; border-radius:10px; outline:none; font-family:Consolas,monospace; box-sizing:border-box;" />
+                    <button type="button" id="otp-verify-btn" style="width:100%; margin-top:0.75rem; padding:0.75rem; border:none; border-radius:10px; background:#10b981; color:#fff; font-weight:700; font-size:0.95rem; cursor:pointer;">
+                        Verify & Apply Credits
+                    </button>
+                    <button type="button" id="otp-resend-btn" style="margin-top:0.5rem; background:none; border:none; color:#6366f1; font-size:0.82rem; font-weight:600; cursor:pointer; text-decoration:underline;">
+                        Resend Code
+                    </button>
+                    <button type="button" id="otp-close-btn" style="margin-top:0.25rem; background:none; border:none; color:#94a3b8; font-size:0.82rem; cursor:pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(div);
+        otpModal = div;
+
+        document.getElementById('otp-close-btn').addEventListener('click', () => { otpModal.style.display = 'none'; applyCreditBtn.disabled = false; applyCreditBtn.textContent = 'Apply Available Credits'; });
+        document.getElementById('otp-verify-btn').addEventListener('click', verifyOtp);
+        document.getElementById('otp-resend-btn').addEventListener('click', () => { sendOtp(getCreditEmail()); });
+        document.getElementById('otp-code-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') verifyOtp(); });
+    }
+
+    function getCreditEmail() {
+        const emailInput = document.getElementById('billing-email') || document.querySelector('input[name="email"]');
+        return emailInput ? emailInput.value.trim() : '<?= $currentUser ? e($currentUser->email) : '' ?>';
+    }
+
+    function showOtpMsg(msg, isError) {
+        const el = document.getElementById('otp-modal-msg');
+        if (!el) return;
+        el.style.display = 'block';
+        el.style.background = isError ? '#fef2f2' : '#f0fdf4';
+        el.style.color = isError ? '#dc2626' : '#16a34a';
+        el.textContent = msg;
+    }
+
+    function sendOtp(email) {
+        const resendBtn = document.getElementById('otp-resend-btn');
+        if (resendBtn) { resendBtn.disabled = true; resendBtn.textContent = 'Sending...'; }
+        fetch('<?= \url('/checkout/credit/send-otp') ?>', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ email: email, csrf_token: '<?= csrf_token() ?>' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showOtpMsg(data.message, false);
+                if (document.getElementById('otp-modal-desc')) {
+                    document.getElementById('otp-modal-desc').textContent = 'A 6-digit code has been sent to ' + (data.masked_email || email) + '. Enter it below.';
+                }
+            } else {
+                showOtpMsg(data.message, true);
+            }
+            if (resendBtn) { resendBtn.disabled = false; resendBtn.textContent = 'Resend Code'; }
+        })
+        .catch(() => { showOtpMsg('Failed to send code. Try again.', true); if (resendBtn) { resendBtn.disabled = false; resendBtn.textContent = 'Resend Code'; } });
+    }
+
+    function verifyOtp() {
+        const code = document.getElementById('otp-code-input').value.trim();
+        if (code.length !== 6) { showOtpMsg('Please enter a 6-digit code.', true); return; }
+        const btn = document.getElementById('otp-verify-btn');
+        btn.disabled = true; btn.textContent = 'Verifying...';
+        fetch('<?= \url('/checkout/credit/verify-otp') ?>', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ otp: code, csrf_token: '<?= csrf_token() ?>' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showOtpMsg('✓ ' + data.message, false);
+                setTimeout(() => {
+                    otpModal.style.display = 'none';
+                    // Now re-trigger credit validation which will succeed
+                    applyCreditBtn.disabled = true;
+                    applyCreditBtn.textContent = 'Applying credits...';
+                    fetchCredits(getCreditEmail());
+                }, 800);
+            } else {
+                showOtpMsg(data.message, true);
+                btn.disabled = false; btn.textContent = 'Verify & Apply Credits';
+                if (data.locked || data.expired) {
+                    document.getElementById('otp-code-input').disabled = true;
+                    btn.disabled = true;
+                }
+            }
+        })
+        .catch(() => { showOtpMsg('Verification failed. Try again.', true); btn.disabled = false; btn.textContent = 'Verify & Apply Credits'; });
+    }
+
+    function fetchCredits(email) {
+        fetch('<?= \url('/checkout/validate-credit') ?>', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ email: email, current_total: '<?= $totalAmount ?>', csrf_token: '<?= csrf_token() ?>' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            creditMsg.style.display = 'block';
+            if (data.requires_otp) {
+                // Show OTP modal
+                createOtpModal();
+                otpModal.style.display = 'block';
+                sendOtp(email);
+                document.getElementById('otp-code-input').value = '';
+                document.getElementById('otp-code-input').disabled = false;
+                const vBtn = document.getElementById('otp-verify-btn');
+                if (vBtn) { vBtn.disabled = false; vBtn.textContent = 'Verify & Apply Credits'; }
+                creditMsg.style.color = '#6366f1';
+                creditMsg.textContent = 'Email verification required — check your inbox for a 6-digit code.';
+                return;
+            }
+            if (data.success) {
+                creditMsg.style.color = '#10b981';
+                creditMsg.textContent = data.message;
+                if (creditRow) creditRow.style.display = 'flex';
+                if (creditText) creditText.textContent = '-' + data.formatted_discount;
+                if (useCreditInput) useCreditInput.value = '1';
+
+                const finalTotalEl = document.getElementById('final-total-amount');
+                if (finalTotalEl && data.formatted_new_total) {
+                    finalTotalEl.textContent = data.is_free ? 'Free (Covered by Credits)' : data.formatted_new_total;
+                }
+
+                if (data.is_free) {
+                    isFreeOrder = true;
+                    if (providerSection) providerSection.style.display = 'none';
+                    if (freeBadge) freeBadge.style.display = 'flex';
+                    if (submitBtn) submitBtn.textContent = 'Get Tickets with Credits →';
+                    if (selectedPmInput) selectedPmInput.value = 'free';
+                    const feeEl = document.getElementById('summary-fee');
+                    const extraEl = document.getElementById('summary-extra-charge');
+                    if (feeEl) feeEl.textContent = '$0.00';
+                    if (extraEl) extraEl.textContent = '$0.00';
+                }
+
+                applyCreditBtn.textContent = '✓ Credit Applied (' + data.formatted_discount + ')';
+            } else {
+                creditMsg.style.color = '#ef4444';
+                creditMsg.textContent = data.message;
+                if (creditRow) creditRow.style.display = 'none';
+                if (useCreditInput) useCreditInput.value = '0';
+                applyCreditBtn.disabled = false;
+                applyCreditBtn.textContent = 'Apply Available Credits';
+            }
+        })
+        .catch(err => {
+            creditMsg.style.display = 'block';
+            creditMsg.style.color = '#ef4444';
+            creditMsg.textContent = 'Failed to check credits. Please try again.';
+            applyCreditBtn.disabled = false;
+            applyCreditBtn.textContent = 'Apply Available Credits';
+            console.error(err);
+        });
+    }
+
     if (applyCreditBtn) {
         applyCreditBtn.addEventListener('click', function() {
-            const emailInput = document.getElementById('billing-email') || document.querySelector('input[name="email"]');
-            const email = emailInput ? emailInput.value.trim() : '<?= $currentUser ? e($currentUser->email) : '' ?>';
+            const email = getCreditEmail();
 
             if (!email) {
                 creditMsg.style.display = 'block';
                 creditMsg.style.color = '#ef4444';
                 creditMsg.textContent = 'Please enter your email address in the contact details first.';
+                const emailInput = document.getElementById('billing-email') || document.querySelector('input[name="email"]');
                 if (emailInput) emailInput.focus();
                 return;
             }
 
             applyCreditBtn.disabled = true;
             applyCreditBtn.textContent = 'Checking credits...';
-
-            fetch('<?= \url('/checkout/validate-credit') ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    email: email,
-                    current_total: '<?= $totalAmount ?>',
-                    csrf_token: '<?= csrf_token() ?>'
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                creditMsg.style.display = 'block';
-                if (data.success) {
-                    creditMsg.style.color = '#10b981';
-                    creditMsg.textContent = data.message;
-                    if (creditRow) creditRow.style.display = 'flex';
-                    if (creditText) creditText.textContent = '-' + data.formatted_discount;
-                    if (useCreditInput) useCreditInput.value = '1';
-
-                    const finalTotalEl = document.getElementById('final-total-amount');
-                    if (finalTotalEl && data.formatted_new_total) {
-                        finalTotalEl.textContent = data.is_free ? 'Free (Covered by Credits)' : data.formatted_new_total;
-                    }
-
-                    if (data.is_free) {
-                        isFreeOrder = true;
-                        if (providerSection) providerSection.style.display = 'none';
-                        if (freeBadge) freeBadge.style.display = 'flex';
-                        if (submitBtn) submitBtn.textContent = 'Get Tickets with Credits →';
-                        if (selectedPmInput) selectedPmInput.value = 'free';
-                        const feeEl = document.getElementById('summary-fee');
-                        const extraEl = document.getElementById('summary-extra-charge');
-                        if (feeEl) feeEl.textContent = '$0.00';
-                        if (extraEl) extraEl.textContent = '$0.00';
-                    }
-
-                    applyCreditBtn.textContent = '✓ Credit Applied (' + data.formatted_discount + ')';
-                } else {
-                    creditMsg.style.color = '#ef4444';
-                    creditMsg.textContent = data.message;
-                    if (creditRow) creditRow.style.display = 'none';
-                    if (useCreditInput) useCreditInput.value = '0';
-                    applyCreditBtn.disabled = false;
-                    applyCreditBtn.textContent = 'Apply Available Credits';
-                }
-            })
-            .catch(err => {
-                creditMsg.style.display = 'block';
-                creditMsg.style.color = '#ef4444';
-                creditMsg.textContent = 'Failed to check credits. Please try again.';
-                applyCreditBtn.disabled = false;
-                applyCreditBtn.textContent = 'Apply Available Credits';
-                console.error(err);
-            });
+            fetchCredits(email);
         });
     }
 

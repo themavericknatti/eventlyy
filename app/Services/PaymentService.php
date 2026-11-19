@@ -261,9 +261,11 @@ class PaymentService
                         ? ('Layaway Reservation | Paystack Ref: ' . $reference) 
                         : ('Paystack Ref: ' . $reference);
 
+                    $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :status, :status_detail, NOW(), 0)
+                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, security_pin, purchase_date, checked_in)
+                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :status, :status_detail, :security_pin, NOW(), 0)
                     ");
                     $insertStmt->execute([
                         'id' => $ticketCode,
@@ -275,7 +277,8 @@ class PaymentService
                         'phone' => $attPhone ?: null,
                         'price' => $seatPrice,
                         'status' => $ticketStatus,
-                        'status_detail' => $ticketStatusDetail
+                        'status_detail' => $ticketStatusDetail,
+                        'security_pin' => $securityPin
                     ]);
 
                     $createdTickets[] = [
@@ -287,7 +290,8 @@ class PaymentService
                         'base_ticket_type' => $tt['name'],
                         'price' => $seatPrice,
                         'status' => $ticketStatus,
-                        'checked_in' => false
+                        'checked_in' => false,
+                        'security_pin' => $securityPin
                     ];
                     $calculatedSubtotal += $seatPrice;
                 }

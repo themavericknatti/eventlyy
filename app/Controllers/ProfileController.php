@@ -210,6 +210,7 @@ class ProfileController extends Controller
                 t.price,
                 t.status AS ticket_status,
                 t.purchase_date,
+                t.security_pin,
                 t.checked_in,
                 t.checked_in_at,
                 e.id AS event_id,

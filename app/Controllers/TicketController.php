@@ -32,6 +32,60 @@ class TicketController extends Controller
             exit;
         }
 
+        // ── Access Control: Only serve QR if authorized ──
+        $authorized = false;
+
+        // 1) Session-based unlock (from PIN entry on /pass page)
+        if (\Ace\Application::$app->session->get('pass_unlocked_' . $code)) {
+            $authorized = true;
+        }
+
+        // 2) Logged-in user owns the ticket, or is event host/admin
+        if (!$authorized) {
+            $currentUser = \Ace\Application::$app->user;
+            if ($currentUser) {
+                if (($currentUser->role ?? '') === 'admin') {
+                    $authorized = true;
+                } else {
+                    $db = \Ace\Application::$app->db->pdo;
+                    $stmt = $db->prepare("
+                        SELECT t.attendee_email, t.user_id, e.organizer_id 
+                        FROM tickets t 
+                        INNER JOIN events e ON t.event_id = e.id 
+                        WHERE t.id = :code 
+                        LIMIT 1
+                    ");
+                    $stmt->execute(['code' => $code]);
+                    $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    if ($ticket) {
+                        $isOwner = ((int)($ticket['user_id'] ?? 0) === (int)$currentUser->id)
+                            || (strtolower($currentUser->email) === strtolower($ticket['attendee_email'] ?? ''));
+                        $isHost = ((int)($ticket['organizer_id'] ?? 0) === (int)$currentUser->id);
+                        if ($isOwner || $isHost) {
+                            $authorized = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3) Signed token for email/WhatsApp inline images
+        $sig = $request->getString('sig') ?? '';
+        if (!$authorized && !empty($sig)) {
+            $appKey = $_ENV['APP_KEY'] ?? ($_ENV['APP_SECRET'] ?? 'eventlyy-default-key');
+            $expected = hash_hmac('sha256', $code, $appKey);
+            if (hash_equals($expected, $sig)) {
+                $authorized = true;
+            }
+        }
+
+        if (!$authorized) {
+            http_response_code(403);
+            header('Content-Type: text/plain');
+            echo 'Access denied. Please unlock your pass first.';
+            exit;
+        }
+
         // Optional size query parameter: ?s=260
         $size = (int)($request->getInt('s') ?: 240);
         $size = max(120, min(800, $size));
@@ -91,7 +145,7 @@ class TicketController extends Controller
             SELECT t.*, 
                    e.id as event_id, e.name as event_name, e.slug as event_slug, e.custom_url as event_custom_url,
                    e.date as event_date, e.location as event_location, e.image as event_image, e.category as event_category,
-                   e.status as event_status,
+                   e.status as event_status, e.organizer_id as event_organizer_id,
                    tt.name as ticket_tier, tt.admits as ticket_admits,
                    u.name as organizer_name
             FROM tickets t
@@ -145,10 +199,138 @@ class TicketController extends Controller
             $addons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
         }
 
+        // Determine if pass should be unlocked
+        $isUnlocked = false;
+        $currentUser = \Ace\Application::$app->user;
+        if ($currentUser) {
+            $isOwner = ((int)($ticket['user_id'] ?? 0) === (int)$currentUser->id)
+                || (strtolower($currentUser->email) === strtolower($ticket['attendee_email'] ?? ''));
+            $isStaff = (($currentUser->role ?? '') === 'admin')
+                || ((int)($ticket['event_organizer_id'] ?? 0) === (int)$currentUser->id);
+            if ($isOwner || $isStaff) {
+                $isUnlocked = true;
+            }
+        }
+        if (\Ace\Application::$app->session->get('pass_unlocked_' . $code)) {
+            $isUnlocked = true;
+        }
+
         return $this->render('ticket/pass', [
             'title' => 'Admission Pass — ' . $ticket['event_name'],
             'ticket' => $ticket,
-            'addons' => $addons
+            'addons' => $addons,
+            'isUnlocked' => $isUnlocked
+        ]);
+    }
+
+    /**
+     * POST: Unlock a pass by verifying the 4-digit security PIN.
+     */
+    public function unlockPass(Request $request, string $code): void
+    {
+        $code = trim($code);
+        if (empty($code)) {
+            \Ace\Application::$app->session->setFlash('error', 'Invalid ticket pass link.');
+            redirect('/');
+            return;
+        }
+
+        // Rate limit: max 5 PIN attempts per ticket per session
+        $attemptKey = 'pin_attempts_' . $code;
+        $attempts = (int)\Ace\Application::$app->session->get($attemptKey);
+        if ($attempts >= 5) {
+            \Ace\Application::$app->session->setFlash('error', 'Too many incorrect PIN attempts. Please request your PIN via email and try again.');
+            redirect('/pass/' . urlencode($code));
+            return;
+        }
+
+        $db = \Ace\Application::$app->db->pdo;
+        $stmt = $db->prepare("SELECT id, security_pin FROM tickets WHERE id = :code LIMIT 1");
+        $stmt->execute(['code' => $code]);
+        $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$ticket) {
+            \Ace\Application::$app->session->setFlash('error', 'Ticket not found.');
+            redirect('/');
+            return;
+        }
+
+        $data = $request->getBody();
+        $pin = trim((string)($data['pin'] ?? ''));
+
+        if (empty($ticket['security_pin']) || $pin !== $ticket['security_pin']) {
+            \Ace\Application::$app->session->set($attemptKey, $attempts + 1);
+            $remaining = 5 - ($attempts + 1);
+            \Ace\Application::$app->session->setFlash('error', "Incorrect PIN. {$remaining} attempt(s) remaining.");
+            redirect('/pass/' . urlencode($code));
+            return;
+        }
+
+        // PIN correct — unlock
+        \Ace\Application::$app->session->set('pass_unlocked_' . $code, true);
+        \Ace\Application::$app->session->set($attemptKey, 0); // reset attempts
+        \Ace\Application::$app->session->setFlash('success', 'Pass unlocked! Your QR code is now visible.');
+        redirect('/pass/' . urlencode($code));
+    }
+
+    /**
+     * POST AJAX: Resend security PIN to the ticket holder's email.
+     */
+    public function resendPinAjax(Request $request, string $code): string
+    {
+        header('Content-Type: application/json');
+        $code = trim($code);
+
+        if (empty($code)) {
+            return json_encode(['success' => false, 'message' => 'Invalid ticket code.']);
+        }
+
+        $db = \Ace\Application::$app->db->pdo;
+        $stmt = $db->prepare("
+            SELECT t.id, t.attendee_name, t.attendee_email, t.security_pin,
+                   e.name as event_name
+            FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            WHERE t.id = :code
+            LIMIT 1
+        ");
+        $stmt->execute(['code' => $code]);
+        $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$ticket || empty($ticket['attendee_email'])) {
+            return json_encode(['success' => false, 'message' => 'Ticket not found or no email associated.']);
+        }
+
+        if (empty($ticket['security_pin'])) {
+            // Generate a PIN if missing (legacy tickets)
+            $newPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+            $db->prepare("UPDATE tickets SET security_pin = :pin WHERE id = :id")
+               ->execute(['pin' => $newPin, 'id' => $ticket['id']]);
+            $ticket['security_pin'] = $newPin;
+        }
+
+        try {
+            $passUrl = url('/pass/' . $ticket['id']);
+            \Ace\Mail::send(
+                $ticket['attendee_email'],
+                'Your Pass Security PIN - ' . site_setting('site_title', 'Eventlyy'),
+                'emails/ticket_pin',
+                [
+                    'ticketCode' => $ticket['id'],
+                    'attendeeName' => $ticket['attendee_name'] ?? 'Valued Attendee',
+                    'eventName' => $ticket['event_name'] ?? 'Your Event',
+                    'securityPin' => $ticket['security_pin'],
+                    'passUrl' => $passUrl
+                ]
+            );
+        } catch (\Throwable $e) {
+            return json_encode(['success' => false, 'message' => 'Failed to send PIN email. Please try again.']);
+        }
+
+        $masked = preg_replace('/(?<=.{2}).(?=.*@)/', '*', $ticket['attendee_email']);
+        return json_encode([
+            'success' => true,
+            'message' => 'Security PIN sent to ' . $masked
         ]);
     }
 }

@@ -1355,6 +1355,35 @@ if (!function_exists('ticket_qr_url')) {
     }
 }
 
+if (!function_exists('ticket_qr_signed_url')) {
+    /**
+     * Generate a securely signed, publicly fetchable ticket QR Code image URL.
+     * Protected against brute-force harvesting with HMAC-SHA256.
+     *
+     * @param string|int $ticketCode Unique ticket admission code
+     * @param int $size Image dimension in pixels (default: 240)
+     * @return string Fully-qualified signed QR Code URL
+     */
+    function ticket_qr_signed_url(string|int $ticketCode, int $size = 240): string
+    {
+        $code = trim((string)$ticketCode);
+        if ($code === '') {
+            $code = 'UNKNOWN';
+        }
+        $size = max(120, min(800, $size));
+        $appKey = $_ENV['APP_KEY'] ?? ($_ENV['APP_SECRET'] ?? 'eventlyy-default-key');
+        $sig = hash_hmac('sha256', $code, $appKey);
+
+        $routePath = '/ticket/qr/' . rawurlencode($code) . '?s=' . $size . '&sig=' . $sig;
+        $baseUrl = function_exists('app_base_url') ? app_base_url() : '';
+        if (!empty($baseUrl)) {
+            return rtrim($baseUrl, '/') . '/' . ltrim($routePath, '/');
+        }
+
+        return $routePath;
+    }
+}
+
 if (!function_exists('ticket_qr_email_src')) {
     /**
      * Get the email-ready QR Code image source for admission tickets.

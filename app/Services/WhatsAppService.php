@@ -108,16 +108,20 @@ class WhatsAppService
         }
 
         $passUrl = self::getPassUrl($ticketCode);
+        $securityPin = $ticket['security_pin'] ?? '';
 
         $msg = "🎟️ *Your Admission Pass is Ready!* \n\n";
         $msg .= "Hey *{$attendeeName}*, your ticket for *{$eventName}* is confirmed on {$siteTitle}! 🎉\n\n";
         $msg .= "🗓️ *Date:* {$dateStr}\n";
         $msg .= "📍 *Venue:* {$location}\n";
         $msg .= "🎫 *Tier:* {$tierName}\n";
-        $msg .= "🔑 *Ticket Code:* `{$ticketCode}`\n\n";
-        $msg .= "📲 *Your Scannable QR Pass & Gate Access:*\n";
+        $msg .= "🔑 *Ticket Code:* `{$ticketCode}`\n";
+        if (!empty($securityPin)) {
+            $msg .= "🔐 *Pass Security PIN:* `{$securityPin}`\n";
+        }
+        $msg .= "\n📲 *Your Scannable QR Pass & Gate Access:*\n";
         $msg .= "👉 {$passUrl}\n\n";
-        $msg .= "💡 *Gate Instructions:* Keep this message handy or save your QR code. At the venue gate, display your QR pass with full screen brightness for instant scanning.\n\n";
+        $msg .= "💡 *Gate Instructions:* Your QR code has been sent to your email. To view it online, open the link above and enter your 4-digit Security PIN. At the venue gate, display your QR pass with full screen brightness for instant scanning.\n\n";
         $msg .= "See you there! ✨\n— *{$siteTitle} Team*";
 
         return $msg;

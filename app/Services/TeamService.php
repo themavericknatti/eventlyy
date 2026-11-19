@@ -666,9 +666,10 @@ class TeamService
         for ($i = 0; $i < $quantity; $i++) {
             $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
             
+            $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
             $insStmt = $db->prepare("
-                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, is_issued, checked_in, checked_in_at, checked_in_by, purchase_date)
-                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, :price, :status, :detail, 1, :checked_in, :checked_in_at, :checked_in_by, NOW())
+                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, security_pin, is_issued, checked_in, checked_in_at, checked_in_by, purchase_date)
+                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, :price, :status, :detail, :security_pin, 1, :checked_in, :checked_in_at, :checked_in_by, NOW())
             ");
             $insStmt->execute([
                 'id' => $ticketCode,
@@ -679,6 +680,7 @@ class TeamService
                 'price' => $unitPrice,
                 'status' => $status,
                 'detail' => 'Gate Sale (' . strtoupper($method) . ') by Staff #' . ($staffId ?: 'BoxOffice') . (!empty($notes) ? ' - ' . $notes : ''),
+                'security_pin' => $securityPin,
                 'checked_in' => $markCheckedIn ? 1 : 0,
                 'checked_in_at' => $markCheckedIn ? date('Y-m-d H:i:s') : null,
                 'checked_in_by' => $markCheckedIn ? $staffId : null,
@@ -690,7 +692,8 @@ class TeamService
                 'ticket_type' => $ticketType['name'],
                 'price' => $unitPrice,
                 'status' => $status,
-                'checked_in' => $markCheckedIn
+                'checked_in' => $markCheckedIn,
+                'security_pin' => $securityPin
             ];
         }
 

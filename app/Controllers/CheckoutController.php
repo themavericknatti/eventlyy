@@ -502,9 +502,15 @@ class CheckoutController extends Controller
         $appliedCreditsList = [];
 
         if ($useCredit && $totalPaid > 0) {
+            // Verify OTP was completed before allowing credit application
             $currentUser = Application::$app->user;
-            $creditUserId = ($currentUser && strtolower($currentUser->email) === strtolower($email)) ? (int)$currentUser->id : null;
-            $availableCredits = \App\Models\LayawayCredit::findAvailableByEmail($email, $creditUserId);
+            $isOwnEmail = $currentUser && strtolower($currentUser->email) === strtolower($email);
+            $otpVerified = Application::$app->session->get('credit_otp_verified') === true
+                && strtolower(Application::$app->session->get('credit_otp_email') ?? '') === strtolower($email);
+
+            if ($isOwnEmail || $otpVerified) {
+                $creditUserId = $isOwnEmail ? (int)$currentUser->id : null;
+                $availableCredits = \App\Models\LayawayCredit::findAvailableByEmail($email, $creditUserId);
 
             $neededCredit = $totalPaid;
             foreach ($availableCredits as $ac) {
@@ -523,6 +529,7 @@ class CheckoutController extends Controller
             if ($appliedCreditAmount > 0) {
                 $totalPaid = max(0.00, round($totalPaid - $appliedCreditAmount, 2));
             }
+            } // end OTP/own-email guard
         }
 
         // Track referral if passed in checkout submission
@@ -761,6 +768,20 @@ class CheckoutController extends Controller
         }
 
         $userId = ($currentUser && strtolower($currentUser->email) === strtolower($email)) ? (int)$currentUser->id : null;
+
+        // Require OTP verification before revealing credit balance (unless logged-in user checking own email)
+        $isOwnEmail = $currentUser && strtolower($currentUser->email) === strtolower($email);
+        $otpVerified = Application::$app->session->get('credit_otp_verified') === true
+            && strtolower(Application::$app->session->get('credit_otp_email') ?? '') === strtolower($email);
+
+        if (!$isOwnEmail && !$otpVerified) {
+            return json_encode([
+                'success' => false,
+                'requires_otp' => true,
+                'message' => 'Email verification required to access event credits.'
+            ]);
+        }
+
         $credits = \App\Models\LayawayCredit::findAvailableByEmail($email, $userId);
         $totalBalance = \App\Models\LayawayCredit::getTotalAvailable($email, $userId);
 
@@ -1351,9 +1372,10 @@ class CheckoutController extends Controller
                         $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
                         $typeNameDisplay = $tt['name'] . $seatLabel;
 
+                        $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
                         $insertStmt = $db->prepare("
-                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, purchase_date)
-                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, 'Paid', :status_detail, NOW())
+                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, security_pin, purchase_date)
+                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, 'Paid', :status_detail, :security_pin, NOW())
                         ");
                         // Note: $reference is set after the loop; we'll update status_detail after reference is generated
                         $insertStmt->execute([
@@ -1365,7 +1387,8 @@ class CheckoutController extends Controller
                             'email' => $attEmail,
                             'phone' => $attPhone ?: null,
                             'price' => $seatPrice,
-                            'status_detail' => '' // placeholder, updated below after reference is generated
+                            'status_detail' => '', // placeholder, updated below after reference is generated
+                            'security_pin' => $securityPin
                         ]);
 
                         $createdTickets[] = [
@@ -1375,7 +1398,8 @@ class CheckoutController extends Controller
                             'attendee_phone' => $attPhone,
                             'ticket_type' => $typeNameDisplay,
                             'base_ticket_type' => $tt['name'],
-                            'price' => $seatPrice
+                            'price' => $seatPrice,
+                            'security_pin' => $securityPin
                         ];
                     }
                 }
@@ -1783,5 +1807,94 @@ class CheckoutController extends Controller
         ");
         $stmt->execute(['slug' => $eventId, 'custom_url' => $eventId]);
         return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * AJAX: Send a 6-digit OTP to the email owner for credit verification.
+     */
+    public function sendCreditOtpAjax(Request $request): string
+    {
+        header('Content-Type: application/json');
+        $data = $request->getBody();
+        $email = trim((string)($data['email'] ?? ''));
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return json_encode(['success' => false, 'message' => 'Please provide a valid email address.']);
+        }
+
+        // Rate limit: max 5 OTP sends per session
+        $sendCount = (int)Application::$app->session->get('credit_otp_send_count');
+        if ($sendCount >= 5) {
+            return json_encode(['success' => false, 'message' => 'Too many OTP requests. Please try again later.']);
+        }
+
+        $otpCode = str_pad((string)random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+
+        Application::$app->session->set('credit_otp_code', $otpCode);
+        Application::$app->session->set('credit_otp_email', strtolower($email));
+        Application::$app->session->set('credit_otp_expires', time() + 600); // 10 min
+        Application::$app->session->set('credit_otp_verified', false);
+        Application::$app->session->set('credit_otp_attempts', 0);
+        Application::$app->session->set('credit_otp_send_count', $sendCount + 1);
+
+        // Send OTP email
+        try {
+            \Ace\Mail::send(
+                $email,
+                'Your Event Credit Verification Code - ' . site_setting('site_title', 'Eventlyy'),
+                'emails/credit_otp',
+                ['otpCode' => $otpCode]
+            );
+        } catch (\Throwable $e) {
+            return json_encode(['success' => false, 'message' => 'Failed to send verification email. Please try again.']);
+        }
+
+        $masked = preg_replace('/(?<=.{2}).(?=.*@)/', '*', $email);
+        return json_encode([
+            'success' => true,
+            'message' => 'Verification code sent to ' . $masked,
+            'masked_email' => $masked
+        ]);
+    }
+
+    /**
+     * AJAX: Verify the 6-digit OTP for credit authorization.
+     */
+    public function verifyCreditOtpAjax(Request $request): string
+    {
+        header('Content-Type: application/json');
+        $data = $request->getBody();
+        $otp = trim((string)($data['otp'] ?? ''));
+
+        $storedCode = Application::$app->session->get('credit_otp_code');
+        $storedEmail = Application::$app->session->get('credit_otp_email');
+        $expires = (int)Application::$app->session->get('credit_otp_expires');
+        $attempts = (int)Application::$app->session->get('credit_otp_attempts');
+
+        if ($attempts >= 5) {
+            return json_encode(['success' => false, 'message' => 'Too many failed attempts. Please request a new code.', 'locked' => true]);
+        }
+
+        if (empty($storedCode) || empty($storedEmail)) {
+            return json_encode(['success' => false, 'message' => 'No OTP session found. Please request a new code.']);
+        }
+
+        if (time() > $expires) {
+            return json_encode(['success' => false, 'message' => 'Verification code has expired. Please request a new code.', 'expired' => true]);
+        }
+
+        if ($otp !== $storedCode) {
+            Application::$app->session->set('credit_otp_attempts', $attempts + 1);
+            $remaining = 5 - ($attempts + 1);
+            return json_encode(['success' => false, 'message' => "Invalid code. {$remaining} attempt(s) remaining."]);
+        }
+
+        // OTP verified successfully
+        Application::$app->session->set('credit_otp_verified', true);
+        return json_encode([
+            'success' => true,
+            'message' => 'Email verified! Credits authorized.',
+            'email' => $storedEmail
+        ]);
     }
 }
