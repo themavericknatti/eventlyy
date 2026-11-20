@@ -118,12 +118,29 @@ class CheckoutController extends Controller
         // Track referral if ?ref= is present in checkout query string
         $refCode = trim($_GET['ref'] ?? ($data['ref'] ?? ''));
         if (!empty($refCode)) {
-            $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
+            $refStmt = $db->prepare("SELECT id, referral_code FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
             $refStmt->execute(['event_id' => $event['id'], 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
-                \App\Models\EventReferral::recordVisit((int)$referral['id']);
-                Application::$app->session->set('event_ref_' . $event['id'], (int)$referral['id']);
+                $refId = (int)$referral['id'];
+                $visitSessionKey = 'ref_visited_' . $event['id'] . '_' . $refId;
+                if (!Application::$app->session->get($visitSessionKey)) {
+                    \App\Models\EventReferral::recordVisit($refId, true);
+                    Application::$app->session->set($visitSessionKey, time());
+                }
+                Application::$app->session->set('event_ref_' . $event['id'], $refId);
+                if (!headers_sent()) {
+                    @setcookie('event_ref_' . $event['id'], (string)$refId, time() + (86400 * 30), '/');
+                    @setcookie('event_ref_code_' . $event['id'], (string)$referral['referral_code'], time() + (86400 * 30), '/');
+                }
+            }
+        } else {
+            // Restore from session or 30-day cookie if visitor previously clicked referral link
+            $savedRefId = Application::$app->session->get('event_ref_' . $event['id']) ?? ($_COOKIE['event_ref_' . $event['id']] ?? null);
+            if ($savedRefId) {
+                $refStmt = $db->prepare("SELECT referral_code FROM event_referrals WHERE id = :id AND status = 'active' LIMIT 1");
+                $refStmt->execute(['id' => (int)$savedRefId]);
+                $refCode = $refStmt->fetchColumn() ?: '';
             }
         }
 
@@ -270,12 +287,29 @@ class CheckoutController extends Controller
         // Track referral
         $refCode = trim($_GET['ref'] ?? ($data['ref'] ?? ''));
         if (!empty($refCode)) {
-            $refStmt = $db->prepare("SELECT id FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
+            $refStmt = $db->prepare("SELECT id, referral_code FROM event_referrals WHERE event_id = :event_id AND referral_code = :code AND status = 'active' LIMIT 1");
             $refStmt->execute(['event_id' => $event['id'], 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
-                \App\Models\EventReferral::recordVisit((int)$referral['id']);
-                Application::$app->session->set('event_ref_' . $event['id'], (int)$referral['id']);
+                $refId = (int)$referral['id'];
+                $visitSessionKey = 'ref_visited_' . $event['id'] . '_' . $refId;
+                if (!Application::$app->session->get($visitSessionKey)) {
+                    \App\Models\EventReferral::recordVisit($refId, true);
+                    Application::$app->session->set($visitSessionKey, time());
+                }
+                Application::$app->session->set('event_ref_' . $event['id'], $refId);
+                if (!headers_sent()) {
+                    @setcookie('event_ref_' . $event['id'], (string)$refId, time() + (86400 * 30), '/');
+                    @setcookie('event_ref_code_' . $event['id'], (string)$referral['referral_code'], time() + (86400 * 30), '/');
+                }
+            }
+        } else {
+            // Restore from session or 30-day cookie if visitor previously clicked referral link
+            $savedRefId = Application::$app->session->get('event_ref_' . $event['id']) ?? ($_COOKIE['event_ref_' . $event['id']] ?? null);
+            if ($savedRefId) {
+                $refStmt = $db->prepare("SELECT referral_code FROM event_referrals WHERE id = :id AND status = 'active' LIMIT 1");
+                $refStmt->execute(['id' => (int)$savedRefId]);
+                $refCode = $refStmt->fetchColumn() ?: '';
             }
         }
 

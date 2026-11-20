@@ -172,6 +172,10 @@ $router->get('/host/event/ticket-verification/{id?}', [HostTicketController::cla
 $router->post('/host/event/ticket-verification', [HostTicketController::class, 'checkIn']);
 $router->get('/host/event/referrals/{id}', [HostReferralController::class, 'index']);
 $router->post('/host/event/referrals/{id}/create', [HostReferralController::class, 'create']);
+$router->post('/host/event/referrals/{id}/update/{ref_id}', [HostReferralController::class, 'update']);
+$router->post('/host/event/referrals/{id}/payout/{ref_id}', [HostReferralController::class, 'recordPayout']);
+$router->get('/host/event/referrals/{id}/orders/{ref_id}', [HostReferralController::class, 'orders']);
+$router->get('/host/event/referrals/{id}/export', [HostReferralController::class, 'export']);
 $router->post('/host/event/referrals/{id}/toggle/{ref_id}', [HostReferralController::class, 'toggle']);
 $router->post('/host/event/referrals/{id}/delete/{ref_id}', [HostReferralController::class, 'delete']);
 $router->get('/host/settings', [HostSettingsController::class, 'settings']);

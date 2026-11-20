@@ -124,10 +124,28 @@ class EventController extends Controller
             $refStmt->execute(['event_id' => $internalId, 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
-                \App\Models\EventReferral::recordVisit((int)$referral['id']);
-                Application::$app->session->set('event_ref_' . $internalId, (int)$referral['id']);
+                $refId = (int)$referral['id'];
+                $visitSessionKey = 'ref_visited_' . $internalId . '_' . $refId;
+                $visitCookieKey = 'evt_ref_v_' . $internalId . '_' . $refId;
+                $alreadyVisitedInSession = Application::$app->session->get($visitSessionKey);
+                $alreadyVisitedInCookie = !empty($_COOKIE[$visitCookieKey]);
+
+                if (!$alreadyVisitedInSession && !$alreadyVisitedInCookie) {
+                    // New unique visitor
+                    \App\Models\EventReferral::recordVisit($refId, true);
+                    Application::$app->session->set($visitSessionKey, time());
+                    if (!headers_sent()) {
+                        @setcookie($visitCookieKey, (string)time(), time() + 86400, '/');
+                    }
+                } elseif (!$alreadyVisitedInSession) {
+                    // Returning session
+                    \App\Models\EventReferral::recordVisit($refId, false);
+                    Application::$app->session->set($visitSessionKey, time());
+                }
+
+                Application::$app->session->set('event_ref_' . $internalId, $refId);
                 if (!headers_sent()) {
-                    @setcookie('event_ref_' . $internalId, (string)$referral['id'], time() + (86400 * 30), '/');
+                    @setcookie('event_ref_' . $internalId, (string)$refId, time() + (86400 * 30), '/');
                     @setcookie('event_ref_code_' . $internalId, (string)$referral['referral_code'], time() + (86400 * 30), '/');
                 }
             }
@@ -331,10 +349,28 @@ class EventController extends Controller
             $refStmt->execute(['event_id' => $internalId, 'code' => strtolower($refCode)]);
             $referral = $refStmt->fetch();
             if ($referral) {
-                \App\Models\EventReferral::recordVisit((int)$referral['id']);
-                Application::$app->session->set('event_ref_' . $internalId, (int)$referral['id']);
+                $refId = (int)$referral['id'];
+                $visitSessionKey = 'ref_visited_' . $internalId . '_' . $refId;
+                $visitCookieKey = 'evt_ref_v_' . $internalId . '_' . $refId;
+                $alreadyVisitedInSession = Application::$app->session->get($visitSessionKey);
+                $alreadyVisitedInCookie = !empty($_COOKIE[$visitCookieKey]);
+
+                if (!$alreadyVisitedInSession && !$alreadyVisitedInCookie) {
+                    // New unique visitor
+                    \App\Models\EventReferral::recordVisit($refId, true);
+                    Application::$app->session->set($visitSessionKey, time());
+                    if (!headers_sent()) {
+                        @setcookie($visitCookieKey, (string)time(), time() + 86400, '/');
+                    }
+                } elseif (!$alreadyVisitedInSession) {
+                    // Returning session
+                    \App\Models\EventReferral::recordVisit($refId, false);
+                    Application::$app->session->set($visitSessionKey, time());
+                }
+
+                Application::$app->session->set('event_ref_' . $internalId, $refId);
                 if (!headers_sent()) {
-                    @setcookie('event_ref_' . $internalId, (string)$referral['id'], time() + (86400 * 30), '/');
+                    @setcookie('event_ref_' . $internalId, (string)$refId, time() + (86400 * 30), '/');
                     @setcookie('event_ref_code_' . $internalId, (string)$referral['referral_code'], time() + (86400 * 30), '/');
                 }
             }
