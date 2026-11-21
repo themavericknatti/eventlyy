@@ -14,6 +14,9 @@ class AutoPayoutService
      */
     public function processAutoPayouts(): array
     {
+        $db = Application::$app->db->pdo;
+        self::ensureTicketsPassFeeColumn($db);
+
         if (!auto_payout_enabled()) {
             return [
                 'enabled' => false,
@@ -23,7 +26,6 @@ class AutoPayoutService
             ];
         }
 
-        $db = Application::$app->db->pdo;
         $completionHours = event_completion_hours();
         $delayMinutes = auto_payout_delay_minutes();
 
@@ -171,5 +173,30 @@ class AutoPayoutService
             'created_payouts' => $createdPayouts,
             'total_amount' => $totalAmountCreated
         ];
+    }
+
+    /**
+     * Ensure tickets.pass_fee column exists in the database.
+     * Prevents fatal 1054 Unknown column 't.pass_fee' exceptions on production.
+     */
+    public static function ensureTicketsPassFeeColumn(\PDO $db): void
+    {
+        static $checked = false;
+        if ($checked) {
+            return;
+        }
+
+        try {
+            $cols = $db->query("SHOW COLUMNS FROM `tickets` LIKE 'pass_fee'")->fetchAll(\PDO::FETCH_COLUMN);
+            if (empty($cols)) {
+                $db->exec("ALTER TABLE `tickets` ADD COLUMN `pass_fee` TINYINT(1) NOT NULL DEFAULT 1 AFTER `price`");
+                try {
+                    $db->exec("UPDATE `tickets` t INNER JOIN `events` e ON t.event_id = e.id SET t.pass_fee = COALESCE(e.pass_fee, 1)");
+                } catch (\Throwable $e) {}
+            }
+            $checked = true;
+        } catch (\Throwable $e) {
+            // Fail silently if already exists or permission issues
+        }
     }
 }

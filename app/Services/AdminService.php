@@ -12,6 +12,7 @@ class AdminService
     public function getDashboardData(): array
     {
         $db = Application::$app->db->pdo;
+        AutoPayoutService::ensureTicketsPassFeeColumn($db);
 
         // 1. User & Host Counts
         $totalUsers = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
