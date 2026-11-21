@@ -157,6 +157,9 @@ $siteTitle = site_setting('site_title', 'Eventlyy');
         </div>
     </header>
 
+    <!-- ═══ Continuous Partners & Sponsorship Tape ═══ -->
+    @include('partials/sponsors-tape')
+
     <!-- ═══ 2. Category Seals Navigation ═══ -->
     <section class="vn-categories-section">
         <div class="vn-section-head">

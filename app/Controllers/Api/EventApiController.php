@@ -477,9 +477,10 @@ class EventApiController extends Controller
                     for ($i = 0; $i < $qty; $i++) {
                         $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
                         $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+                        $ticketPassFee = !empty($event['pass_fee']) ? 1 : 0;
                         $insertStmt = $db->prepare("
-                            INSERT INTO tickets (id, event_id, ticket_type_id, attendee_name, attendee_email, price, status, security_pin, purchase_date)
-                            VALUES (:id, :event_id, :ticket_type_id, :name, :email, :price, 'Paid', :security_pin, NOW())
+                            INSERT INTO tickets (id, event_id, ticket_type_id, attendee_name, attendee_email, price, pass_fee, status, security_pin, purchase_date)
+                            VALUES (:id, :event_id, :ticket_type_id, :name, :email, :price, :pass_fee, 'Paid', :security_pin, NOW())
                         ");
                         $insertStmt->execute([
                             'id' => $ticketCode,
@@ -488,6 +489,7 @@ class EventApiController extends Controller
                             'name' => $name,
                             'email' => $email,
                             'price' => $tier['price'],
+                            'pass_fee' => $ticketPassFee,
                             'security_pin' => $securityPin
                         ]);
 

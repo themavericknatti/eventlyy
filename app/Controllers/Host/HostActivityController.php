@@ -192,8 +192,11 @@ class HostActivityController extends Controller
         $title = trim($data['title'] ?? '');
         $description = trim($data['description'] ?? '');
         $passScore = max(1, (int)($data['pass_score'] ?? 3));
-        $rewardCode = trim($data['reward_promo_code'] ?? '') ?: null;
+        $rawCode = trim($data['reward_promo_code'] ?? '');
+        $rewardCode = !empty($rawCode) ? strtoupper(preg_replace('/[^A-Za-z0-9_-]/', '', $rawCode)) : null;
         $rewardDesc = trim($data['reward_description'] ?? 'Exclusive ticket discount!') ?: null;
+        $rewardType = in_array($data['reward_discount_type'] ?? '', ['percentage', 'fixed']) ? $data['reward_discount_type'] : 'percentage';
+        $rewardValue = max(0.01, (float)($data['reward_discount_value'] ?? 10.00));
         $questions = $data['questions'] ?? [];
 
         if (empty($title) || empty($questions) || !is_array($questions)) {
@@ -205,9 +208,13 @@ class HostActivityController extends Controller
         $db = Application::$app->db->pdo;
         $db->beginTransaction();
         try {
+            // Deactivate previous active trivia games for this event
+            $db->prepare("UPDATE event_trivia SET status = 'inactive' WHERE event_id = :event_id")
+               ->execute(['event_id' => $event['id']]);
+
             $stmt = $db->prepare("
-                INSERT INTO event_trivia (event_id, title, description, pass_score, reward_promo_code, reward_description, status, created_at)
-                VALUES (:event_id, :title, :desc, :score, :code, :rdesc, 'active', NOW())
+                INSERT INTO event_trivia (event_id, title, description, pass_score, reward_promo_code, reward_discount_type, reward_discount_value, reward_description, status, created_at)
+                VALUES (:event_id, :title, :desc, :score, :code, :dtype, :dval, :rdesc, 'active', NOW())
             ");
             $stmt->execute([
                 'event_id' => $event['id'],
@@ -215,6 +222,8 @@ class HostActivityController extends Controller
                 'desc' => $description,
                 'score' => $passScore,
                 'code' => $rewardCode,
+                'dtype' => $rewardType,
+                'dval' => $rewardValue,
                 'rdesc' => $rewardDesc
             ]);
             $triviaId = (int)$db->lastInsertId();
@@ -255,6 +264,25 @@ class HostActivityController extends Controller
             Application::$app->session->setFlash('error', 'Error creating trivia: ' . $e->getMessage());
         }
 
+        redirect('/host/event/' . $event['id'] . '/activities');
+    }
+
+    /**
+     * Delete a trivia game.
+     */
+    public function deleteTrivia(Request $request, int|string $id, int|string $triviaId): void
+    {
+        $event = $this->getAuthorizedEvent($id);
+        if (!$event) {
+            redirect('/host/dashboard');
+            return;
+        }
+
+        $db = Application::$app->db->pdo;
+        $db->prepare("DELETE FROM event_trivia WHERE id = :id AND event_id = :event_id")
+           ->execute(['id' => (int)$triviaId, 'event_id' => (int)$event['id']]);
+
+        Application::$app->session->setFlash('success', "Trivia challenge removed.");
         redirect('/host/event/' . $event['id'] . '/activities');
     }
 

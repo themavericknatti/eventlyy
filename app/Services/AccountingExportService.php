@@ -560,8 +560,18 @@ class AccountingExportService
         $r++;
 
         $onlineGross = 0;
+        $totalPlatformFee = 0.00;
+        $netHostEarnings = 0.00;
+        $platformFeePercent = (float)site_setting('platform_fee', 5);
+        $isPassFee = !empty($event->pass_fee);
+
         foreach ($onlineTickets as $t) {
-            $onlineGross += (float)($t['price'] ?? 0);
+            $p = (float)($t['price'] ?? 0);
+            $onlineGross += $p;
+            $tPassFee = isset($t['pass_fee']) ? (int)$t['pass_fee'] : ($isPassFee ? 1 : 0);
+            $tFee = ($tPassFee === 1) ? 0.00 : round($p * ($platformFeePercent / 100), 2);
+            $totalPlatformFee += $tFee;
+            $netHostEarnings += max(0.00, $p - $tFee);
         }
 
         $gateCashGross = 0;
@@ -574,11 +584,6 @@ class AccountingExportService
                 $compNominal += $p;
             }
         }
-
-        $platformFeePercent = (float)site_setting('platform_fee', 5);
-        $isPassFee = !empty($event->pass_fee);
-        $totalPlatformFee = $isPassFee ? 0.00 : round($onlineGross * ($platformFeePercent / 100), 2);
-        $netHostEarnings = $isPassFee ? $onlineGross : max(0.00, $onlineGross - $totalPlatformFee);
 
         // Payout status
         $payoutStatus = 'Pending Event Conformance / Settlement';

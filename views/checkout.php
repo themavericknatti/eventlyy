@@ -799,13 +799,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (applyPromoBtn && promoInput) {
         applyPromoBtn.addEventListener('click', function() {
-            const code = promoInput.value.trim();
+            const code = promoInput.value.trim().toUpperCase();
+            promoInput.value = code;
             if (!code) {
                 promoMsg.style.display = 'block';
                 promoMsg.style.color = '#ef4444';
                 promoMsg.textContent = 'Please enter a coupon code.';
                 return;
             }
+
+            const billingEmail = (document.getElementById('billing-email')?.value || '').trim();
 
             applyPromoBtn.disabled = true;
             applyPromoBtn.textContent = '...';
@@ -819,6 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     code: code,
                     event_id: '<?= $eventId ?>',
                     subtotal: '<?= $subtotal ?>',
+                    email: billingEmail,
                     csrf_token: '<?= csrf_token() ?>'
                 })
             })
@@ -862,6 +866,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     discountRow.style.display = 'none';
                     applyPromoBtn.disabled = false;
                     applyPromoBtn.textContent = 'Apply';
+
+                    if (data.needs_email) {
+                        const billingInput = document.getElementById('billing-email');
+                        if (billingInput) {
+                            billingInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            billingInput.focus();
+                            billingInput.style.borderColor = '#ef4444';
+                            setTimeout(() => { billingInput.style.borderColor = ''; }, 3000);
+                        }
+                    }
                 }
             })
             .catch(err => {
@@ -873,6 +887,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error(err);
             });
         });
+
+        // Auto-fill promo code from URL query parameter (e.g. from Trivia reward link)
+        const urlParams = new URLSearchParams(window.location.search);
+        const promoFromUrl = urlParams.get('promo');
+        if (promoFromUrl) {
+            promoInput.value = promoFromUrl.trim().toUpperCase();
+            const emailVal = (document.getElementById('billing-email')?.value || '').trim();
+            if (emailVal) {
+                applyPromoBtn.click();
+            }
+        }
     }
 
     // ── Event Credit Validation & Application ─────────────────────

@@ -444,32 +444,89 @@ class CheckoutController extends Controller
             }
         }
 
-        // Check and apply promo code
+        // Check and apply promo code (supports both standard promo codes and activity trivia winner rewards)
         $promoCode = strtoupper(trim($data['promo_code'] ?? ''));
         $discountAmount = 0.00;
 
         if (!empty($promoCode)) {
-            $promoStmt = $db->prepare("
-                SELECT p.* 
-                FROM promo_codes p
-                INNER JOIN events e ON e.id = :event_id
-                WHERE p.code = :code AND p.status = 'active'
-                AND (p.event_id = e.id OR (p.event_id IS NULL AND p.host_id = e.organizer_id))
-                AND (p.expires_at IS NULL OR p.expires_at > NOW())
-                AND p.used_count < p.max_uses
+            // 1. Check if this code belongs to an active Trivia challenge for this event
+            $triviaStmt = $db->prepare("
+                SELECT * FROM event_trivia 
+                WHERE event_id = :event_id 
+                AND UPPER(reward_promo_code) = :code 
+                AND status = 'active'
                 LIMIT 1
             ");
-            $promoStmt->execute(['code' => $promoCode, 'event_id' => $event['id']]);
-            $promo = $promoStmt->fetch();
+            $triviaStmt->execute(['event_id' => $event['id'], 'code' => $promoCode]);
+            $trivia = $triviaStmt->fetch();
 
-            if ($promo) {
-                if ($promo['discount_type'] === 'percentage') {
-                    $discountAmount = $subtotal * ((float)$promo['discount_value'] / 100);
+            if ($trivia) {
+                // Verify that this customer is an eligible, unredeemed trivia winner
+                $payerEmail = strtolower(trim($data['email'] ?? ''));
+                $currentUser = Application::$app->user ?? null;
+                $userId = $currentUser ? (int)$currentUser->id : null;
+                if (empty($payerEmail) && $currentUser && !empty($currentUser->email)) {
+                    $payerEmail = strtolower(trim($currentUser->email));
+                }
+
+                $winnerStmt = $db->prepare("
+                    SELECT * FROM event_trivia_submissions 
+                    WHERE trivia_id = :trivia_id 
+                    AND is_winner = 1 
+                    AND redeemed_at IS NULL
+                    AND (
+                        (:user_id IS NOT NULL AND user_id = :user_id2) 
+                        OR (:email_check != '' AND LOWER(player_email) = :email_match)
+                    )
+                    ORDER BY id DESC 
+                    LIMIT 1
+                ");
+                $winnerStmt->execute([
+                    'trivia_id' => $trivia['id'],
+                    'user_id' => $userId,
+                    'user_id2' => $userId,
+                    'email_check' => $payerEmail,
+                    'email_match' => $payerEmail
+                ]);
+                $winnerSubmission = $winnerStmt->fetch();
+
+                if ($winnerSubmission) {
+                    $discountType = $trivia['reward_discount_type'] ?? 'percentage';
+                    $discountVal = (float)($trivia['reward_discount_value'] ?? 10.00);
+
+                    if ($discountType === 'percentage') {
+                        $discountAmount = $subtotal * ($discountVal / 100);
+                    } else {
+                        $discountAmount = min($subtotal, $discountVal);
+                    }
                 } else {
-                    $discountAmount = min($subtotal, (float)$promo['discount_value']);
+                    $promoCode = null; // Deny non-winners
+                    Application::$app->session->setFlash('error', 'This promo code is exclusively reserved for winners of the Event Trivia challenge.');
                 }
             } else {
-                $promoCode = null; // Invalid or expired promo code reset
+                // 2. Standard promo codes lookup
+                $promoStmt = $db->prepare("
+                    SELECT p.* 
+                    FROM promo_codes p
+                    INNER JOIN events e ON e.id = :event_id
+                    WHERE p.code = :code AND p.status = 'active'
+                    AND (p.event_id = e.id OR (p.event_id IS NULL AND p.host_id = e.organizer_id))
+                    AND (p.expires_at IS NULL OR p.expires_at > NOW())
+                    AND p.used_count < p.max_uses
+                    LIMIT 1
+                ");
+                $promoStmt->execute(['code' => $promoCode, 'event_id' => $event['id']]);
+                $promo = $promoStmt->fetch();
+
+                if ($promo) {
+                    if ($promo['discount_type'] === 'percentage') {
+                        $discountAmount = $subtotal * ((float)$promo['discount_value'] / 100);
+                    } else {
+                        $discountAmount = min($subtotal, (float)$promo['discount_value']);
+                    }
+                } else {
+                    $promoCode = null; // Invalid or expired promo code reset
+                }
             }
         }
 
@@ -725,13 +782,113 @@ class CheckoutController extends Controller
         $eventId = (int)($data['event_id'] ?? 0);
         $subtotal = (float)($data['subtotal'] ?? 0);
 
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
 
         if (empty($code)) {
             return json_encode(['success' => false, 'message' => 'Please enter a coupon code.']);
         }
 
         $db = Application::$app->db->pdo;
+
+        // 1. Check if this is an Event Trivia Reward code
+        $triviaStmt = $db->prepare("
+            SELECT * FROM event_trivia 
+            WHERE event_id = :event_id 
+            AND UPPER(reward_promo_code) = :code 
+            AND status = 'active'
+            LIMIT 1
+        ");
+        $triviaStmt->execute(['event_id' => $eventId, 'code' => $code]);
+        $trivia = $triviaStmt->fetch();
+
+        if ($trivia) {
+            $payerEmail = strtolower(trim($data['email'] ?? ''));
+            $currentUser = Application::$app->user ?? null;
+            $userId = $currentUser ? (int)$currentUser->id : null;
+            if (empty($payerEmail) && $currentUser && !empty($currentUser->email)) {
+                $payerEmail = strtolower(trim($currentUser->email));
+            }
+
+            if (empty($payerEmail) && !$userId) {
+                return json_encode([
+                    'success' => false,
+                    'needs_email' => true,
+                    'message' => 'Please enter your email address in the contact details above so we can verify your trivia win.'
+                ]);
+            }
+
+            // Check if user or email is a qualified winner
+            $winnerStmt = $db->prepare("
+                SELECT * FROM event_trivia_submissions 
+                WHERE trivia_id = :trivia_id 
+                AND is_winner = 1 
+                AND (
+                    (:user_id IS NOT NULL AND user_id = :user_id2) 
+                    OR (:email_check != '' AND LOWER(player_email) = :email_match)
+                )
+                ORDER BY id DESC 
+                LIMIT 1
+            ");
+            $winnerStmt->execute([
+                'trivia_id' => $trivia['id'],
+                'user_id' => $userId,
+                'user_id2' => $userId,
+                'email_check' => $payerEmail,
+                'email_match' => $payerEmail
+            ]);
+            $winnerSubmission = $winnerStmt->fetch();
+
+            if (!$winnerSubmission) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'This promo code is exclusively reserved for winners of the Event Trivia challenge. Complete the game with a winning score to unlock it!'
+                ]);
+            }
+
+            if (!empty($winnerSubmission['redeemed_at'])) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'You have already redeemed your trivia winner reward for this event.'
+                ]);
+            }
+
+            // Calculate trivia discount
+            $discountType = $trivia['reward_discount_type'] ?? 'percentage';
+            $discountVal = (float)($trivia['reward_discount_value'] ?? 10.00);
+
+            if ($discountType === 'percentage') {
+                $discount = $subtotal * ($discountVal / 100);
+            } else {
+                $discount = min($subtotal, $discountVal);
+            }
+
+            // Fetch event pass fee if applicable
+            $eventStmt = $db->prepare("SELECT pass_fee FROM events WHERE id = :id");
+            $eventStmt->execute(['id' => $eventId]);
+            $eventData = $eventStmt->fetch();
+            $platformFeePercent = (float)get_setting('platform_fee', 5);
+            $netSubtotal = max(0, $subtotal - $discount);
+            $fee = (!empty($eventData['pass_fee']) && $netSubtotal > 0) ? ($netSubtotal * ($platformFeePercent / 100)) : 0.00;
+            $extraCharge = $netSubtotal > 0 ? (float)get_setting('extra_charge', 100.00) : 0.00;
+            $newTotal = $netSubtotal > 0 ? max(0, $netSubtotal + $fee + $extraCharge) : 0.00;
+
+            return json_encode([
+                'success' => true,
+                'code' => $trivia['reward_promo_code'],
+                'discount' => round($discount, 2),
+                'discount_amount' => round($discount, 2),
+                'formatted_discount' => format_price($discount),
+                'new_total' => round($newTotal, 2),
+                'formatted_new_total' => format_price($newTotal),
+                'is_free' => ($newTotal <= 0.00),
+                'is_trivia' => true,
+                'message' => '🏆 Trivia Winner Reward verified! ' . ($discountType === 'percentage' ? "{$discountVal}%" : format_price($discountVal)) . ' discount applied.'
+            ]);
+        }
+
+        // 2. Standard promo code lookup
         $stmt = $db->prepare("
             SELECT p.* 
             FROM promo_codes p
@@ -771,6 +928,7 @@ class CheckoutController extends Controller
             'success' => true,
             'code' => $promo['code'],
             'discount' => round($discount, 2),
+            'discount_amount' => round($discount, 2),
             'formatted_discount' => format_price($discount),
             'new_total' => round($newTotal, 2),
             'formatted_new_total' => format_price($newTotal),
@@ -784,7 +942,9 @@ class CheckoutController extends Controller
      */
     public function validateCreditAjax(Request $request): string
     {
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
         $data = $request->getBody();
         $email = trim((string)($data['email'] ?? ''));
         $currentTotal = (float)($data['current_total'] ?? 0.00);
@@ -1223,7 +1383,9 @@ class CheckoutController extends Controller
      */
     public function sendWhatsAppPass(Request $request)
     {
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
         $data = $request->getBody();
         $reference = trim((string)($data['reference'] ?? ''));
         $phone = trim((string)($data['phone'] ?? ''));
@@ -1327,7 +1489,9 @@ class CheckoutController extends Controller
         $paymentService = new \App\Services\PaymentService();
         $result = $paymentService->reconcilePendingTransactions(24);
 
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
         echo json_encode([
             'status' => true,
             'summary' => $result,
@@ -1344,7 +1508,9 @@ class CheckoutController extends Controller
         $limit = isset($_GET['limit']) ? max(1, min(100, (int)$_GET['limit'])) : 30;
         $result = \Ace\EmailQueue::processQueue($limit);
 
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
         echo json_encode([
             'status' => true,
             'result' => $result,
@@ -1407,9 +1573,10 @@ class CheckoutController extends Controller
                         $typeNameDisplay = $tt['name'] . $seatLabel;
 
                         $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+                        $ticketPassFee = !empty($event['pass_fee']) ? 1 : 0;
                         $insertStmt = $db->prepare("
-                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, security_pin, purchase_date)
-                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, 'Paid', :status_detail, :security_pin, NOW())
+                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, pass_fee, status, status_detail, security_pin, purchase_date)
+                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :pass_fee, 'Paid', :status_detail, :security_pin, NOW())
                         ");
                         // Note: $reference is set after the loop; we'll update status_detail after reference is generated
                         $insertStmt->execute([
@@ -1421,6 +1588,7 @@ class CheckoutController extends Controller
                             'email' => $attEmail,
                             'phone' => $attPhone ?: null,
                             'price' => $seatPrice,
+                            'pass_fee' => $ticketPassFee,
                             'status_detail' => '', // placeholder, updated below after reference is generated
                             'security_pin' => $securityPin
                         ]);
@@ -1537,10 +1705,39 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Increment used_count for promo code if applied
+            // Attribute promo code or trivia reward code usage
             if (!empty($promoCode)) {
-                $promoIncStmt = $db->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE code = :code");
-                $promoIncStmt->execute(['code' => $promoCode]);
+                $tSubStmt = $db->prepare("
+                    SELECT s.id 
+                    FROM event_trivia_submissions s
+                    INNER JOIN event_trivia t ON t.id = s.trivia_id
+                    WHERE t.event_id = :event_id 
+                    AND UPPER(t.reward_promo_code) = :code 
+                    AND s.is_winner = 1 
+                    AND s.redeemed_at IS NULL
+                    AND (
+                        (:uid IS NOT NULL AND s.user_id = :uid2)
+                        OR (:email_check != '' AND LOWER(s.player_email) = :email_match)
+                    )
+                    ORDER BY s.id DESC LIMIT 1
+                ");
+                $tSubStmt->execute([
+                    'event_id' => $eventId,
+                    'code' => $promoCode,
+                    'uid' => $userId,
+                    'uid2' => $userId,
+                    'email_check' => strtolower(trim($email)),
+                    'email_match' => strtolower(trim($email))
+                ]);
+                $tSubId = $tSubStmt->fetchColumn();
+
+                if ($tSubId) {
+                    $db->prepare("UPDATE event_trivia_submissions SET redeemed_at = NOW(), transaction_id = :tx_id WHERE id = :sub_id")
+                       ->execute(['tx_id' => $insertedTxId, 'sub_id' => $tSubId]);
+                } else {
+                    $promoIncStmt = $db->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE code = :code");
+                    $promoIncStmt->execute(['code' => $promoCode]);
+                }
             }
 
             // Attribute ticket sales to referral if present
@@ -1848,7 +2045,9 @@ class CheckoutController extends Controller
      */
     public function sendCreditOtpAjax(Request $request): string
     {
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
         $data = $request->getBody();
         $email = trim((string)($data['email'] ?? ''));
 
@@ -1896,7 +2095,9 @@ class CheckoutController extends Controller
      */
     public function verifyCreditOtpAjax(Request $request): string
     {
-        header('Content-Type: application/json');
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
         $data = $request->getBody();
         $otp = trim((string)($data['otp'] ?? ''));
 

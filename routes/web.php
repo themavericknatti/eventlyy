@@ -10,6 +10,7 @@ use App\Controllers\Admin\AdminController;
 use App\Controllers\Admin\AdminEventController;
 use App\Controllers\Admin\AdminPayoutController;
 use App\Controllers\Admin\AdminSettingsController;
+use App\Controllers\Admin\AdminSponsorController;
 use App\Controllers\Admin\AdminSupportController;
 use App\Controllers\Admin\AdminTeamController;
 use App\Controllers\Admin\AdminUserController;
@@ -208,6 +209,8 @@ $router->post('/host/event/{id}/activities/poll/{poll_id}/toggle', [HostActivity
 $router->post('/host/event/activities/{id}/poll/{poll_id}/toggle', [HostActivityController::class, 'togglePoll']);
 $router->post('/host/event/{id}/activities/trivia/create', [HostActivityController::class, 'createTrivia']);
 $router->post('/host/event/activities/{id}/trivia/create', [HostActivityController::class, 'createTrivia']);
+$router->post('/host/event/{id}/activities/trivia/{trivia_id}/delete', [HostActivityController::class, 'deleteTrivia']);
+$router->post('/host/event/activities/{id}/trivia/{trivia_id}/delete', [HostActivityController::class, 'deleteTrivia']);
 $router->post('/host/event/{id}/activities/request/{req_id}/moderate', [HostActivityController::class, 'moderateRequest']);
 $router->post('/host/event/activities/{id}/request/{req_id}/moderate', [HostActivityController::class, 'moderateRequest']);
 $router->post('/host/event/{id}/activities/community/{post_id}/delete', [HostActivityController::class, 'moderateCommunity']);
@@ -257,6 +260,15 @@ $router->post('/admin/cache/clear', [AdminSettingsController::class, 'clearCache
 $router->get('/admin/cache/clear', [AdminSettingsController::class, 'clearCache']);
 $router->get('/admin/support', [AdminSupportController::class, 'inquiries']);
 $router->post('/admin/support', [AdminSupportController::class, 'postAction']);
+
+// Admin Sponsors & Partners Tape Routes
+$router->get('/admin/sponsors', [AdminSponsorController::class, 'index']);
+$router->post('/admin/sponsors', [AdminSponsorController::class, 'store']);
+$router->post('/admin/sponsors/settings', [AdminSponsorController::class, 'saveSettings']);
+$router->post('/admin/sponsors/reorder', [AdminSponsorController::class, 'reorder']);
+$router->post('/admin/sponsors/{id}/update', [AdminSponsorController::class, 'update']);
+$router->post('/admin/sponsors/{id}/delete', [AdminSponsorController::class, 'delete']);
+$router->post('/admin/sponsors/{id}/toggle', [AdminSponsorController::class, 'toggle']);
 
 // Team Workstation Routes
 $router->get('/teams', [TeamController::class, 'loginView']);

@@ -167,19 +167,15 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                             <strong id="val-subtotal"><?= (!empty($selectedItems) && $subtotal <= 0) ? 'Free' : format_price($subtotal) ?></strong>
                         </div>
 
-                        <?php if ($fee > 0): ?>
-                            <div class="charge-row">
-                                <span>Platform Fee (<?= $platformFeePercent ?>%)</span>
-                                <strong><?= format_price($fee) ?></strong>
-                            </div>
-                        <?php endif; ?>
+                        <div class="charge-row" id="row-fee" style="<?= $fee > 0 ? '' : 'display:none;' ?>">
+                            <span>Platform Fee (<?= $platformFeePercent ?>%)</span>
+                            <strong id="val-fee"><?= format_price($fee) ?></strong>
+                        </div>
 
-                        <?php if ($extraCharge > 0): ?>
-                            <div class="charge-row">
-                                <span>Processing</span>
-                                <strong><?= format_price($extraCharge) ?></strong>
-                            </div>
-                        <?php endif; ?>
+                        <div class="charge-row" id="row-extra" style="<?= $extraCharge > 0 ? '' : 'display:none;' ?>">
+                            <span>Processing</span>
+                            <strong id="val-extra"><?= format_price($extraCharge) ?></strong>
+                        </div>
 
                         <!-- Dynamic Add-ons Row -->
                         <div class="charge-row charge-row--addons" id="row-addons" style="display:none;">
@@ -237,8 +233,11 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                     <form method="POST" action="<?= e(url('f/' . (!empty($event->custom_url) ? $event->custom_url : ($event->slug ?? $event->id)) . '/checkout')) ?>" id="flyer-checkout-form" style="margin-top:1.25rem;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="event_id" value="<?= e($event->id) ?>">
-                        <?php if (!empty($refCode)): ?>
-                            <input type="hidden" name="ref" value="<?= e($refCode) ?>">
+                        <?php 
+                            $effectiveRef = !empty($refCode) ? $refCode : trim($_GET['ref'] ?? ($_POST['ref'] ?? ''));
+                            if (!empty($effectiveRef)): 
+                        ?>
+                            <input type="hidden" name="ref" value="<?= e($effectiveRef) ?>">
                         <?php endif; ?>
 
                         <!-- Ticket Quantities Hidden Payload -->
@@ -544,6 +543,10 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
         const pmBadge = document.getElementById('pm-badge');
         const pmIcon = document.getElementById('pm-icon');
         const pmInput = document.getElementById('input-payment-method');
+        const rowFee = document.getElementById('row-fee');
+        const valFee = document.getElementById('val-fee');
+        const rowExtra = document.getElementById('row-extra');
+        const valExtra = document.getElementById('val-extra');
         const form = document.getElementById('flyer-checkout-form');
 
         const eventId = '<?= $event->id ?>';
@@ -590,12 +593,17 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                 valSubtotal.textContent = combinedSubtotal > 0 ? formatMoney(combinedSubtotal) : 'Free';
             }
 
-            const calcFee = (passFee && combinedSubtotal > 0) ? Math.round(combinedSubtotal * (platformFeePercent / 100) * 100) / 100 : 0.00;
             const netSubtotal = Math.max(0, combinedSubtotal - appliedDiscount);
+            const calcFee = (passFee && netSubtotal > 0) ? Math.round(netSubtotal * (platformFeePercent / 100) * 100) / 100 : 0.00;
             const calcExtraCharge = netSubtotal > 0 ? baseExtraCharge : 0.00;
             const finalTotal = netSubtotal > 0 ? Math.max(0, Math.round((netSubtotal + calcFee + calcExtraCharge) * 100) / 100) : 0.00;
 
-            const isFree = (finalTotal <= 0 && combinedSubtotal <= 0);
+            if (valFee) valFee.textContent = formatMoney(calcFee);
+            if (rowFee) rowFee.style.display = calcFee > 0 ? 'flex' : 'none';
+            if (valExtra) valExtra.textContent = formatMoney(calcExtraCharge);
+            if (rowExtra) rowExtra.style.display = calcExtraCharge > 0 ? 'flex' : 'none';
+
+            const isFree = (finalTotal <= 0);
 
             // Layaway recalculated values
             const newDepositTicket = Math.round(netSubtotal * (minPercent / 100) * 100) / 100;
@@ -730,6 +738,13 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
         };
 
         if (promoBtn && promoInput) {
+            promoInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    promoBtn.click();
+                }
+            });
+
             promoBtn.addEventListener('click', function() {
                 const code = promoInput.value.trim();
                 if (!code) {
@@ -737,6 +752,9 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                     promoMsg.style.color = '#ef4444';
                     return;
                 }
+
+                const emailInput = document.getElementById('att-email');
+                const emailVal = emailInput ? emailInput.value.trim() : '';
 
                 promoBtn.disabled = true;
                 promoBtn.textContent = 'Verifying...';
@@ -747,7 +765,13 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: JSON.stringify({ code: code, event_id: eventId, subtotal: subtotal })
+                    body: JSON.stringify({ 
+                        code: code, 
+                        event_id: eventId, 
+                        subtotal: baseTicketSubtotal,
+                        email: emailVal,
+                        csrf_token: '<?= e(csrf_token()) ?>'
+                    })
                 })
                 .then(r => r.json())
                 .then(data => {
@@ -765,13 +789,13 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                             valDiscount.textContent = '-' + data.formatted_discount;
                         }
 
-                        if (data.is_free) {
+                        const discAmount = parseFloat(data.discount !== undefined ? data.discount : (data.discount_amount || 0));
+                        if (data.is_free || discAmount >= baseTicketSubtotal) {
                             appliedDiscount = baseTicketSubtotal + 999999;
-                            recalcFlyerAll();
                         } else {
-                            appliedDiscount = parseFloat(data.discount_amount || 0);
-                            recalcFlyerAll();
+                            appliedDiscount = discAmount;
                         }
+                        recalcFlyerAll();
                     } else {
                         promoMsg.textContent = '✕ ' + (data.message || 'Invalid promo code.');
                         promoMsg.style.color = '#ef4444';

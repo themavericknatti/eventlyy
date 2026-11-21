@@ -192,7 +192,7 @@ class AdminPayoutService
                 $tStmt = $db->prepare("
                     SELECT COUNT(t.id) as ticket_count,
                            COALESCE(SUM(t.price), 0) as gross_sales,
-                           COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales
+                           COALESCE(SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales
                     FROM events e
                     LEFT JOIN tickets t ON e.id = t.event_id 
                         AND t.status = 'Paid'

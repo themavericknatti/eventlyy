@@ -222,6 +222,9 @@ About <?= e($siteTitle) ?> — Real Moments. Unforgettable Drops.
         </div>
     </section>
 
+    <!-- ═══ Partners & Sponsors Marquee Tape ═══ -->
+    @include('partials/sponsors-tape')
+
     <!-- ═══ Grand Invitation (Call to Action) ═══ -->
     <section class="vn-ab-cta">
         <div class="vn-ab-cta-inner">

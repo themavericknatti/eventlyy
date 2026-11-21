@@ -799,7 +799,7 @@ class HostEventController extends Controller
         $db = Application::$app->db->pdo;
         $stmt = $db->prepare("
             SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
-                   tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                   tt.name as ticket_tier, t.price, t.pass_fee, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date
             FROM tickets t
             INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
@@ -867,7 +867,7 @@ class HostEventController extends Controller
         $db = Application::$app->db->pdo;
         $stmt = $db->prepare("
             SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
-                   tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                   tt.name as ticket_tier, t.price, t.pass_fee, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date
             FROM tickets t
             INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
@@ -902,7 +902,7 @@ class HostEventController extends Controller
         // 1. Fetch tickets with tier name
         $stmt = $db->prepare("
             SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
-                   tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                   tt.name as ticket_tier, t.price, t.pass_fee, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date, t.is_issued
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
@@ -986,6 +986,9 @@ class HostEventController extends Controller
         $compNominal = 0;
         $onlineCheckedIn = 0;
         $issuedCheckedIn = 0;
+        $totalPlatformFee = 0.00;
+        $netTicketEarnings = 0.00;
+        $platformFeePercent = (float)site_setting('platform_fee', 5);
 
         foreach ($allTickets as &$t) {
             $isComp = ($t['status'] === 'Comped') || !empty($t['is_issued']);
@@ -1026,6 +1029,13 @@ class HostEventController extends Controller
             } else {
                 $onlineGross += $price;
                 if ($checkedIn) $onlineCheckedIn++;
+                $ticketPassFee = isset($t['pass_fee']) ? (int)$t['pass_fee'] : (!empty($event->pass_fee) ? 1 : 0);
+                $tFee = ($ticketPassFee === 1) ? 0.00 : round($price * ($platformFeePercent / 100), 2);
+                $tNet = max(0.00, $price - $tFee);
+                $t['platform_fee'] = $tFee;
+                $t['host_net'] = $tNet;
+                $totalPlatformFee += $tFee;
+                $netTicketEarnings += $tNet;
                 $onlineTickets[] = $t;
             }
         }
@@ -1050,11 +1060,8 @@ class HostEventController extends Controller
         $activityNet = max(0.00, $activityGross - $activityFee);
         $activityOrdersCount = (int)($actRow['count_activity'] ?? 0);
 
-        $platformFeePercent = (float)site_setting('platform_fee', 5);
         $isPassFee = !empty($event->pass_fee);
-        $totalPlatformFee = $isPassFee ? 0.00 : round($onlineGross * ($platformFeePercent / 100), 2);
-        $netTicketEarnings = $isPassFee ? $onlineGross : max(0.00, $onlineGross - $totalPlatformFee);
-        $netHostEarnings = $netTicketEarnings + $activityNet;
+        $netHostEarnings = round($netTicketEarnings + $activityNet, 2);
         $totalGrossRevenue = $onlineGross + $activityGross;
         $remainingHostBalance = max(0.00, round($netHostEarnings - ($totalDisbursedPayouts + $pendingPayoutAmount), 2));
 
@@ -1133,7 +1140,7 @@ class HostEventController extends Controller
 
         $stmt = $db->prepare("
             SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
-                   tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                   tt.name as ticket_tier, t.price, t.pass_fee, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date, t.is_issued
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
@@ -1287,7 +1294,7 @@ class HostEventController extends Controller
         // Fetch all tickets with ticket type tier name
         $stmt = $db->prepare("
             SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
-                   tt.name as ticket_tier, t.price, t.status, t.status_detail, t.checked_in, 
+                   tt.name as ticket_tier, t.price, t.pass_fee, t.status, t.status_detail, t.checked_in, 
                    t.checked_in_at, t.purchase_date, t.is_issued
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id

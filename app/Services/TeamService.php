@@ -668,8 +668,8 @@ class TeamService
             
             $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
             $insStmt = $db->prepare("
-                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, security_pin, is_issued, checked_in, checked_in_at, checked_in_by, purchase_date)
-                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, :price, :status, :detail, :security_pin, 1, :checked_in, :checked_in_at, :checked_in_by, NOW())
+                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, pass_fee, status, status_detail, security_pin, is_issued, checked_in, checked_in_at, checked_in_by, purchase_date)
+                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, :price, 0, :status, :detail, :security_pin, 1, :checked_in, :checked_in_at, :checked_in_by, NOW())
             ");
             $insStmt->execute([
                 'id' => $ticketCode,

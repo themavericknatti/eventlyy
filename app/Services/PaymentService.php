@@ -263,9 +263,10 @@ class PaymentService
 
                     $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
 
+                    $ticketPassFee = isset($orderData['pass_fee']) ? ($orderData['pass_fee'] ? 1 : 0) : (!empty($event['pass_fee']) ? 1 : 0);
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, status, status_detail, security_pin, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :status, :status_detail, :security_pin, NOW(), 0)
+                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, pass_fee, status, status_detail, security_pin, purchase_date, checked_in)
+                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :pass_fee, :status, :status_detail, :security_pin, NOW(), 0)
                     ");
                     $insertStmt->execute([
                         'id' => $ticketCode,
@@ -276,6 +277,7 @@ class PaymentService
                         'email' => $attEmail,
                         'phone' => $attPhone ?: null,
                         'price' => $seatPrice,
+                        'pass_fee' => $ticketPassFee,
                         'status' => $ticketStatus,
                         'status_detail' => $ticketStatusDetail,
                         'security_pin' => $securityPin
@@ -416,6 +418,49 @@ class PaymentService
                     'total_amount' => $totalAmount,
                     'gateway_response' => $finalGatewayResponse
                 ]);
+            }
+
+            // Attribute promo code or trivia reward code usage
+            if (!empty($promoCode)) {
+                try {
+                    $tSubStmt = $db->prepare("
+                        SELECT s.id 
+                        FROM event_trivia_submissions s
+                        INNER JOIN event_trivia t ON t.id = s.trivia_id
+                        WHERE t.event_id = :event_id 
+                        AND UPPER(t.reward_promo_code) = :code 
+                        AND s.is_winner = 1 
+                        AND s.redeemed_at IS NULL
+                        AND (
+                            (:uid IS NOT NULL AND s.user_id = :uid2)
+                            OR (:email_check != '' AND LOWER(s.player_email) = :email_match)
+                        )
+                        ORDER BY s.id DESC LIMIT 1
+                    ");
+                    $tSubStmt->execute([
+                        'event_id' => $eventId,
+                        'code' => $promoCode,
+                        'uid' => $userId,
+                        'uid2' => $userId,
+                        'email_check' => strtolower(trim($email)),
+                        'email_match' => strtolower(trim($email))
+                    ]);
+                    $tSubId = $tSubStmt->fetchColumn();
+
+                    $txIdStmt = $db->prepare("SELECT id FROM transactions WHERE reference = :ref LIMIT 1");
+                    $txIdStmt->execute(['ref' => $reference]);
+                    $finalDbTxId = $txIdStmt->fetchColumn() ?: null;
+
+                    if ($tSubId) {
+                        $db->prepare("UPDATE event_trivia_submissions SET redeemed_at = NOW(), transaction_id = :tx_id WHERE id = :sub_id")
+                           ->execute(['tx_id' => $finalDbTxId, 'sub_id' => $tSubId]);
+                    } else {
+                        $promoIncStmt = $db->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE code = :code");
+                        $promoIncStmt->execute(['code' => $promoCode]);
+                    }
+                } catch (\Throwable $pe) {
+                    error_log("Failed to record promo/trivia usage for {$promoCode}: " . $pe->getMessage());
+                }
             }
 
             // Promoter referral attribution — update event_referrals tickets_sold & revenue_generated

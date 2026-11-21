@@ -38,6 +38,7 @@ $roleLabel = $isSuperAdmin ? '👑 Super Admin' : '🛡️ Administrator';
                 <?php endif; ?>
             </a>
             <a href="{{ route('admin/support') }}" class="nav-link{{ app()->request->is('admin/support*') ? ' active' : '' }}">Support</a>
+            <a href="{{ route('admin/sponsors') }}" class="nav-link{{ app()->request->is('admin/sponsors*') ? ' active' : '' }}">Sponsors</a>
             <a href="{{ route('admin/settings') }}" class="nav-link{{ app()->request->is('admin/settings*') ? ' active' : '' }}">Settings</a>
         </nav>
     </div>
@@ -81,6 +82,13 @@ $roleLabel = $isSuperAdmin ? '👑 Super Admin' : '🛡️ Administrator';
                         <div>
                             <strong>Gate Scanner</strong>
                             <small>Attendance &amp; ticket check-in</small>
+                        </div>
+                    </a>
+                    <a href="{{ route('admin/sponsors') }}" class="admin-dropdown-item" role="menuitem">
+                        <span class="admin-dropdown-icon">✨</span>
+                        <div>
+                            <strong>Partners &amp; Sponsors</strong>
+                            <small>Marquee tape &amp; brand styling</small>
                         </div>
                     </a>
                 </div>

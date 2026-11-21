@@ -57,7 +57,7 @@ class EventActivityController extends Controller
         $trivia = $this->service->getEventTrivia($eventId);
         $songRequests = $this->service->getEventRequests($eventId, 'song', $userId, $ip);
         $qaRequests = $this->service->getEventRequests($eventId, 'qa', $userId, $ip);
-        $communityPosts = $this->service->getCommunityPosts($eventId, 'all');
+        $communityPosts = $this->service->getCommunityPosts($eventId, 'all', 40, $userId, $ip);
 
         return $this->render('event-activity-hub', [
             'title' => 'Community & Live Activities — ' . $event['name'],
@@ -231,13 +231,17 @@ class EventActivityController extends Controller
     }
 
     /**
-     * Like a Hype Wall Post (AJAX JSON).
+     * Like or Unlike a Hype Wall Post (AJAX JSON Toggle).
      */
     public function likeCommunity(Request $request, int|string $id, int|string $postId): void
     {
         header('Content-Type: application/json');
-        $newCount = $this->service->likeCommunityPost((int)$postId);
-        echo json_encode(['success' => true, 'likes' => $newCount]);
+        $user = Application::$app->user;
+        $userId = $user ? (int)$user->id : null;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+        $result = $this->service->toggleCommunityPostLike((int)$postId, $userId, $ip);
+        echo json_encode($result);
         exit;
     }
 

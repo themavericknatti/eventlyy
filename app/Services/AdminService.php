@@ -89,7 +89,7 @@ class AdminService
         if ($platformProfit == 0 && $totalTicketSales > 0) {
             $platformProfit = (float)$db->query("
                 SELECT COALESCE(SUM(
-                    CASE WHEN e.pass_fee = 1 THEN t.price * 0.05 + 100 ELSE t.price * 0.05 END
+                    CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price * 0.05 + 100 ELSE t.price * 0.05 END
                 ), 0.00)
                 FROM tickets t
                 INNER JOIN events e ON t.event_id = e.id
@@ -112,7 +112,7 @@ class AdminService
         // Total Host Share (Net Entitlement across all events based strictly on ticket sold price)
         $totalHostShare = (float)$db->query("
             SELECT COALESCE(SUM(
-                CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END
+                CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END
             ), 0.00)
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
@@ -163,6 +163,10 @@ class AdminService
                        WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
                    ), 0.00) as ticket_sales,
                    COALESCE((
+                       SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t 
+                       WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                   ), 0.00) as net_ticket_sales,
+                   COALESCE((
                        SELECT SUM(tx.total_amount - tx.fee_amount) FROM transactions tx
                        WHERE tx.event_id = e.id AND tx.payment_method = 'paystack_powervote' AND tx.status = 'completed'
                    ), 0.00) as activity_net
@@ -177,7 +181,7 @@ class AdminService
         foreach ($allEvents as $evRow) {
             $tSales = (float)$evRow['ticket_sales'];
             $actNet = (float)($evRow['activity_net'] ?? 0.00);
-            $evNet = (!empty($evRow['pass_fee']) ? $tSales : round($tSales * 0.95, 2)) + $actNet;
+            $evNet = round((float)($evRow['net_ticket_sales'] ?? (!empty($evRow['pass_fee']) ? $tSales : round($tSales * 0.95, 2))), 2) + $actNet;
             $evTime = strtotime($evRow['date']);
             $isPassed = ($evTime + ($completionHours * 3600)) < $now || in_array($evRow['status'], ['completed', 'past']);
 

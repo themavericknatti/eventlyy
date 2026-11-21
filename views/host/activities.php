@@ -297,15 +297,26 @@ Activities &amp; Engagement Studio — <?= e($event->name) ?>
                         <div class="act-config-item">
                             <span class="act-config-label">Reward Promo Code</span>
                             <strong class="act-config-val act-code-chip"><?= e($trivia['reward_promo_code'] ?? 'None Configured') ?></strong>
+                            <span style="font-size:0.75rem; color:#10b981; font-weight:700; display:block; margin-top:3px;">
+                                <?= ($trivia['reward_discount_type'] ?? 'percentage') === 'percentage' 
+                                    ? (float)($trivia['reward_discount_value'] ?? 10) . '% Off (Winner Exclusive)' 
+                                    : 'Fixed ' . format_price((float)($trivia['reward_discount_value'] ?? 10)) . ' Off (Winner Exclusive)' ?>
+                            </span>
                         </div>
                         <div class="act-config-item">
                             <span class="act-config-label">Question Bank</span>
                             <strong class="act-config-val">📝 <?= count($trivia['questions'] ?? []) ?> Questions Active</strong>
                         </div>
-                        <div class="act-config-item" style="margin-left:auto;">
+                        <div class="act-config-item" style="margin-left:auto; display:flex; gap:0.5rem; align-items:center;">
                             <a href="<?= e($publicHubUrl) ?>?tab=trivia" target="_blank" class="act-btn act-btn--xs act-btn--outline">
                                 Test Play in Arena ↗
                             </a>
+                            <form method="POST" action="/host/event/<?= $event->id ?>/activities/trivia/<?= $trivia['id'] ?>/delete" onsubmit="return confirm('Delete this trivia challenge? Past winner records will remain safe.');" style="display:inline-block; margin:0;">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="act-btn act-btn--xs act-btn--danger">
+                                    Delete
+                                </button>
+                            </form>
                         </div>
                     </div>
 
@@ -567,9 +578,29 @@ Activities &amp; Engagement Studio — <?= e($event->name) ?>
                     <input type="number" name="pass_score" value="2" min="1" max="10" required class="act-input" />
                 </div>
                 <div class="act-form-group" style="flex:1;">
-                    <label class="act-label">Reward Promo Code</label>
-                    <input type="text" name="reward_promo_code" placeholder="e.g. TRIVIA15" class="act-input" />
+                    <label class="act-label">Reward Promo Code <span class="act-req">*</span></label>
+                    <input type="text" name="reward_promo_code" required placeholder="e.g. TRIVIA15" class="act-input" style="text-transform:uppercase; font-weight:700; letter-spacing:0.5px;" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')" />
+                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Auto-capitalized. Only qualifying winners can redeem this at checkout.</span>
                 </div>
+            </div>
+
+            <div class="act-form-row" style="margin-top:0.4rem; margin-bottom:0.8rem;">
+                <div class="act-form-group" style="flex:1;">
+                    <label class="act-label">Discount Type <span class="act-req">*</span></label>
+                    <select name="reward_discount_type" class="act-input" style="height:42px;">
+                        <option value="percentage">Percentage Discount (%)</option>
+                        <option value="fixed">Fixed Cash Amount Off (Flat)</option>
+                    </select>
+                </div>
+                <div class="act-form-group" style="flex:1;">
+                    <label class="act-label">Discount Value <span class="act-req">*</span></label>
+                    <input type="number" step="0.01" min="0.01" name="reward_discount_value" value="15.00" required placeholder="e.g. 15 or 500" class="act-input" />
+                </div>
+            </div>
+
+            <div class="act-form-group" style="margin-bottom:1.25rem;">
+                <label class="act-label">Reward Description (Shown to Winners in Voucher)</label>
+                <input type="text" name="reward_description" placeholder="e.g. 15% Off Any Event Ticket" value="15% Off Any Event Ticket" class="act-input" />
             </div>
 
             <div class="act-form-group act-q-builder-box">

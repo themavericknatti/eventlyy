@@ -214,8 +214,8 @@ if (!in_array($activeTab, ['wall', 'polls', 'trivia', 'requests'])) {
                                             <span><?= date('M j, g:i A', strtotime($post['created_at'])) ?></span>
                                         </div>
                                     </div>
-                                    <button type="button" class="hub-like-btn" data-id="<?= $post['id'] ?>" data-slug="<?= $eventSlug ?>" title="Like this post">
-                                        <span class="hub-heart-icon">❤️</span>
+                                    <button type="button" class="hub-like-btn <?= !empty($post['user_liked']) ? 'liked' : '' ?>" data-id="<?= $post['id'] ?>" data-slug="<?= $eventSlug ?>" title="<?= !empty($post['user_liked']) ? 'Unlike this post' : 'Love this post' ?>">
+                                        <span class="hub-heart-icon"><?= !empty($post['user_liked']) ? '❤️' : '🤍' ?></span>
                                         <span class="like-count"><?= (int)$post['likes_count'] ?></span>
                                     </button>
                                 </div>
@@ -578,10 +578,11 @@ if (!in_array($activeTab, ['wall', 'polls', 'trivia', 'requests'])) {
                             <span id="unlocked-promo-code" class="hub-voucher-code"></span>
                             <button type="button" id="copy-promo-btn" class="hub-copy-btn">📋 Copy Code</button>
                         </div>
-                        <p class="hub-voucher-note">Apply this discount code during ticket reservation to claim your savings!</p>
+                        <p id="trivia-reward-desc" style="font-weight:700; color:#10b981; font-size:1.05rem; margin:0.6rem 0 0.2rem;"></p>
+                        <p class="hub-voucher-note">Apply this discount code during ticket reservation to claim your savings! Reserved exclusively for your email.</p>
                         
-                        <a href="<?= e($eventUrl) ?>" class="hub-submit-btn" style="margin-top:1.25rem; max-width:320px; margin-left:auto; margin-right:auto;">
-                            <span>Claim Discount on Tickets 🎟️</span>
+                        <a id="trivia-claim-btn" href="<?= \url('/checkout/' . $event['id']) ?>" class="hub-submit-btn" style="margin-top:1.25rem; max-width:320px; margin-left:auto; margin-right:auto; text-decoration:none; display:flex; align-items:center; justify-content:center;">
+                            <span>Claim Discount at Checkout 🎟️</span>
                         </a>
                     </div>
                 </div>
@@ -1241,6 +1242,21 @@ if (!in_array($activeTab, ['wall', 'polls', 'trivia', 'requests'])) {
     border-color: #ef4444;
     color: #ef4444;
     background: rgba(239, 68, 68, 0.08);
+}
+.hub-like-btn.liked {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+}
+.hub-like-btn.liked .hub-heart-icon {
+    display: inline-block;
+    transform: scale(1.15);
+    animation: heartPulse 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes heartPulse {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.35); }
+    100% { transform: scale(1.15); }
 }
 .hub-heart-icon {
     font-size: 0.88rem;
@@ -2232,12 +2248,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ── 4. Hype Wall Post Like (AJAX) ──
+    // ── 4. Hype Wall Post Like / Unlike (AJAX Toggle) ──
     document.querySelectorAll('.hub-like-btn').forEach(btn => {
         btn.addEventListener('click', function() {
+            if (this.dataset.busy === '1') return;
+            this.dataset.busy = '1';
+
             const id = this.getAttribute('data-id');
             const slug = this.getAttribute('data-slug');
             const countEl = this.querySelector('.like-count');
+            const heartEl = this.querySelector('.hub-heart-icon');
             const token = getCsrfToken();
 
             fetch(`/event/${slug}/community/${id}/like`, {
@@ -2251,11 +2271,22 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(r => r.json())
             .then(data => {
-                if (data.success && countEl) {
-                    countEl.textContent = data.likes;
-                    this.style.color = '#ef4444';
-                    this.style.borderColor = '#ef4444';
+                this.dataset.busy = '0';
+                if (data.success) {
+                    if (countEl) countEl.textContent = data.likes;
+                    if (data.liked) {
+                        this.classList.add('liked');
+                        if (heartEl) heartEl.textContent = '❤️';
+                        this.title = 'Unlike this post';
+                    } else {
+                        this.classList.remove('liked');
+                        if (heartEl) heartEl.textContent = '🤍';
+                        this.title = 'Love this post';
+                    }
                 }
+            })
+            .catch(() => {
+                this.dataset.busy = '0';
             });
         });
     });
@@ -2387,6 +2418,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     nameInp.focus();
                     return;
                 }
+                if (emailInp && !emailInp.value.trim()) {
+                    alert('Please enter your email address so your winner promo discount can be verified at checkout.');
+                    emailInp.focus();
+                    return;
+                }
 
                 startScreen.style.display = 'none';
                 gameScreen.style.display = 'block';
@@ -2493,6 +2529,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const scoreEl = document.getElementById('trivia-results-score');
                 const rewardBox = document.getElementById('trivia-reward-box');
                 const promoEl = document.getElementById('unlocked-promo-code');
+                const rewardDescEl = document.getElementById('trivia-reward-desc');
+                const claimBtn = document.getElementById('trivia-claim-btn');
 
                 if (data.is_winner) {
                     badgeEl.innerHTML = '<span style="font-size:3.5rem;">🏆</span>';
@@ -2503,6 +2541,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.reward_promo_code) {
                         rewardBox.style.display = 'block';
                         promoEl.textContent = data.reward_promo_code;
+
+                        if (rewardDescEl) {
+                            const valText = data.reward_discount_type === 'percentage'
+                                ? `${data.reward_discount_value}% Discount Unlocked!`
+                                : `Discount Unlocked!`;
+                            rewardDescEl.textContent = data.reward_description || valText;
+                        }
+
+                        if (claimBtn) {
+                            claimBtn.href = `/checkout/<?= $event['id'] ?>?promo=${encodeURIComponent(data.reward_promo_code)}`;
+                        }
                     }
                 } else {
                     badgeEl.innerHTML = '<span style="font-size:3.5rem;">👏</span>';
@@ -2513,16 +2562,60 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Copy promo code
+        // Robust Copy promo code with clipboard API & execCommand fallback
         const copyPromoBtn = document.getElementById('copy-promo-btn');
         if (copyPromoBtn) {
-            copyPromoBtn.addEventListener('click', function() {
-                const code = document.getElementById('unlocked-promo-code').textContent;
-                navigator.clipboard.writeText(code).then(() => {
-                    this.textContent = '✓ Copied!';
-                    setTimeout(() => this.textContent = '📋 Copy Code', 2000);
-                });
+            copyPromoBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const codeEl = document.getElementById('unlocked-promo-code');
+                const code = codeEl ? codeEl.textContent.trim() : '';
+                if (!code) return;
+
+                const notifySuccess = () => {
+                    const origHtml = copyPromoBtn.innerHTML;
+                    copyPromoBtn.innerHTML = '✓ Copied!';
+                    copyPromoBtn.style.background = '#10b981';
+                    copyPromoBtn.style.borderColor = '#10b981';
+                    copyPromoBtn.style.color = '#ffffff';
+                    setTimeout(() => {
+                        copyPromoBtn.innerHTML = origHtml;
+                        copyPromoBtn.style.background = '';
+                        copyPromoBtn.style.borderColor = '';
+                        copyPromoBtn.style.color = '';
+                    }, 2500);
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(code).then(notifySuccess).catch(() => {
+                        fallbackCopy(code, notifySuccess);
+                    });
+                } else {
+                    fallbackCopy(code, notifySuccess);
+                }
             });
+        }
+
+        function fallbackCopy(text, onSuccess) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                ta.style.top = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (successful && onSuccess) {
+                    onSuccess();
+                    return;
+                }
+            } catch (err) {
+                console.warn('Fallback copy failed', err);
+            }
+            prompt('Copy your winning promo code:', text);
         }
     }
 

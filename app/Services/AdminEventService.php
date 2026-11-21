@@ -133,9 +133,9 @@ class AdminEventService
                    END) as ticket_sales_subtotal,
                    (CASE 
                        WHEN e.recurrence_group_id IS NOT NULL AND e.recurrence_group_id != '' THEN
-                           (SELECT COALESCE(SUM(CASE WHEN ev.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) FROM tickets t INNER JOIN events ev ON t.event_id = ev.id WHERE ev.recurrence_group_id = e.recurrence_group_id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL))
+                           (SELECT COALESCE(SUM(CASE WHEN COALESCE(t.pass_fee, ev.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END), 0) FROM tickets t INNER JOIN events ev ON t.event_id = ev.id WHERE ev.recurrence_group_id = e.recurrence_group_id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL))
                        ELSE
-                           (SELECT COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL))
+                           (SELECT COALESCE(SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END), 0) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('Paid', 'Comped') AND (t.is_issued = 0 OR t.is_issued IS NULL))
                    END) as host_earnings,
                    (CASE 
                        WHEN e.recurrence_group_id IS NOT NULL AND e.recurrence_group_id != '' THEN
@@ -259,7 +259,15 @@ class AdminEventService
         // If pass_fee = 0 (host absorbs platform fee): 5% is retained by platform from ticket sold price
         // Platform charges and the 5% fee are NEVER added to host payout
         $isPassFee = !empty($event['pass_fee']);
-        $hostEarnings = $isPassFee ? $ticketSalesSubtotal : round($ticketSalesSubtotal * 0.95, 2);
+        $netEarningsStmt = $db->prepare("
+            SELECT COALESCE(SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END), 0)
+            FROM tickets t
+            JOIN events e ON t.event_id = e.id
+            WHERE t.event_id = :event_id AND t.status = 'Paid'
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
+        ");
+        $netEarningsStmt->execute(['event_id' => $id]);
+        $hostEarnings = round((float)$netEarningsStmt->fetchColumn(), 2);
 
         // Platform profit directly calculated from completed payment transactions for this event
         $profitStmt = $db->prepare("

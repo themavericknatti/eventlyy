@@ -14,6 +14,7 @@ $isLayaway = (($ticket['status'] ?? '') === 'Layaway');
 $ticketCode = $ticket['id'];
 $admits = (int)($ticket['ticket_admits'] ?? 1);
 $isUnlocked = !empty($isUnlocked);
+$maskedEmail = !empty($ticket['attendee_email']) ? preg_replace('/(?<=.{2}).(?=.*@)/', '*', $ticket['attendee_email']) : 'your email';
 
 $rawImg = $ticket['event_image'] ?? '';
 $evImg = '';
@@ -508,6 +509,55 @@ if (!empty($rawImg)) {
                         Complete Layaway Plan →
                     </a>
                 </div>
+            <?php elseif (!$isUnlocked): ?>
+                <!-- Dedicated High-Contrast PIN Lock Container -->
+                <div class="vip-pin-lock-container">
+                    <div class="vip-pin-lock-icon">
+                        <span>🔒</span>
+                    </div>
+                    <h2 class="vip-pin-heading">Admission Pass Protected</h2>
+                    <p class="vip-pin-subheading">
+                        Enter your 4-digit security PIN sent to <strong><?= e($maskedEmail) ?></strong> to reveal your gate QR code and admission details.
+                    </p>
+
+                    <?php if ($flashErr = \Ace\Application::$app->session->getFlash('error')): ?>
+                        <div class="vip-pin-alert vip-pin-alert--error">
+                            <?= e($flashErr) ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($flashSucc = \Ace\Application::$app->session->getFlash('success')): ?>
+                        <div class="vip-pin-alert vip-pin-alert--success">
+                            <?= e($flashSucc) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="<?= \url('/pass/' . urlencode($ticketCode) . '/unlock') ?>" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>" />
+                        <input type="password" 
+                               name="pin" 
+                               maxlength="4" 
+                               pattern="\d{4}" 
+                               inputmode="numeric" 
+                               autocomplete="one-time-code" 
+                               placeholder="••••" 
+                               required 
+                               class="vip-pin-input-field" 
+                               autofocus />
+
+                        <button type="submit" class="vip-pin-submit-btn">
+                            🔓 Unlock Admission Pass
+                        </button>
+                    </form>
+
+                    <button type="button" class="vip-pin-resend-link" id="btn-pass-resend-pin" data-code="<?= e($ticketCode) ?>">
+                        <span>✉️</span> Resend PIN to my email
+                    </button>
+                    <div id="pass-pin-resend-msg" style="margin-top:8px; font-size:0.8rem; font-weight:600; display:none;"></div>
+                </div>
+
+                <div class="vip-pass-code-pill" title="Protected admission code">
+                    <span>EV-••••••••</span>
+                </div>
             <?php else: ?>
                 <div class="vip-qr-box" title="Gate Admission QR Code — Scan at entrance">
                     <img src="<?= url('/ticket/qr/' . urlencode($ticketCode) . '?s=300') ?>" alt="Ticket QR Code #<?= e($ticketCode) ?>" />
@@ -515,11 +565,6 @@ if (!empty($rawImg)) {
                 <div class="vip-pass-code-pill" title="Official admission code">
                     <span><?= e($ticketCode) ?></span>
                 </div>
-                <?php if (!empty($ticket['security_pin'])): ?>
-                    <div style="margin: 0 auto 0.75rem; font-size: 0.78rem; color: rgba(255,255,255,0.7); display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.06); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);">
-                        <span>🔐 Security PIN:</span> <strong style="font-family: monospace; letter-spacing: 0.12em; color: #34d399; font-size: 0.88rem;"><?= e($ticket['security_pin']) ?></strong>
-                    </div>
-                <?php endif; ?>
             <?php endif; ?>
 
             <!-- Pass Holder & Tier Details Grid -->
@@ -642,4 +687,57 @@ if (!empty($rawImg)) {
 </div>
 
 <?php echo $this->include('partials/story-card-modal', []); ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const resendBtn = document.getElementById('btn-pass-resend-pin');
+    const resendMsg = document.getElementById('pass-pin-resend-msg');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', function () {
+            const code = this.getAttribute('data-code');
+            this.disabled = true;
+            this.style.opacity = '0.6';
+            if (resendMsg) {
+                resendMsg.style.display = 'block';
+                resendMsg.style.color = '#94a3b8';
+                resendMsg.textContent = 'Sending PIN to your email...';
+            }
+
+            fetch('<?= \url('/pass/') ?>' + encodeURIComponent(code) + '/resend-pin', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'csrf_token=<?= e(csrf_token()) ?>'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (resendMsg) {
+                        resendMsg.style.color = '#34d399';
+                        resendMsg.textContent = '✓ ' + (data.message || 'Security PIN resent successfully.');
+                    }
+                } else {
+                    if (resendMsg) {
+                        resendMsg.style.color = '#f87171';
+                        resendMsg.textContent = '✕ ' + (data.message || 'Could not resend PIN.');
+                    }
+                    resendBtn.disabled = false;
+                    resendBtn.style.opacity = '1';
+                }
+            })
+            .catch(() => {
+                if (resendMsg) {
+                    resendMsg.style.color = '#f87171';
+                    resendMsg.textContent = '✕ Error connecting to server.';
+                }
+                resendBtn.disabled = false;
+                resendBtn.style.opacity = '1';
+            });
+        });
+    }
+});
+</script>
 @endsection

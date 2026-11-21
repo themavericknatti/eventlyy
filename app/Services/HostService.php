@@ -39,7 +39,11 @@ class HostService
                    COALESCE((
                        SELECT SUM(t.price) FROM tickets t 
                        WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
-                   ), 0.00) as ticket_sales
+                   ), 0.00) as ticket_sales,
+                   COALESCE((
+                       SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t 
+                       WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                   ), 0.00) as host_net_sales
             FROM events e
             WHERE e.organizer_id = :organizer_id
         ");
@@ -53,11 +57,11 @@ class HostService
 
         foreach ($hostEvents as $hEvt) {
             $ticketSales = (float)$hEvt['ticket_sales'];
-            $isPassFee = !empty($hEvt['pass_fee']);
-            // Host entitlement: if buyer paid platform fee (pass_fee=1), host receives 100% of ticket sold price.
-            // If fee absorbed by host (pass_fee=0), 5% platform fee is deducted.
+            // Host entitlement: per-ticket fee resolution.
+            // If buyer paid platform fee on that ticket (t.pass_fee=1), host receives 100% of ticket sold price.
+            // If fee absorbed by host (t.pass_fee=0), 5% platform fee was deducted.
             // Platform charges and the 5% fee are NEVER added to host payout/escrow.
-            $hostNet = $isPassFee ? $ticketSales : round($ticketSales * 0.95, 2);
+            $hostNet = round((float)$hEvt['host_net_sales'], 2);
 
             $eventTime = strtotime($hEvt['date']);
             $isPassed = ($eventTime + ($completionHours * 3600)) < time() || in_array($hEvt['status'], ['completed', 'past']);
@@ -260,6 +264,10 @@ class HostService
                        WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
                    ), 0.00) as ticket_sales,
                    COALESCE((
+                       SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t
+                       WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                   ), 0.00) as net_ticket_sales,
+                   COALESCE((
                        SELECT SUM(oa.total_price) FROM order_addons oa
                        WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'
                    ), 0.00) as addon_sales,
@@ -323,11 +331,11 @@ class HostService
             $pStmt->execute(['event_id' => $eid]);
             $pData = $pStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
 
-            // Strict formula: based solely on online ticket sold price
+            // Strict formula: based solely on online ticket sold price, resolved per ticket
             // Direct host-issued tickets (is_issued=1) and platform charges (+5% & extra charge) are excluded
             $ticketSales = (float)($evt['ticket_sales'] ?? 0.00);
             $isPassFee = !empty($evt['pass_fee']);
-            $netSales = $isPassFee ? $ticketSales : round($ticketSales * 0.95, 2);
+            $netSales = isset($evt['net_ticket_sales']) ? round((float)$evt['net_ticket_sales'], 2) : ($isPassFee ? $ticketSales : round($ticketSales * 0.95, 2));
 
             // Power Vote Activity Sales for this event
             $actStmt = $db->prepare("
@@ -431,7 +439,7 @@ class HostService
             SELECT DATE_FORMAT(COALESCE(t.purchase_date, NOW()), '%Y-%m') as month_key,
                    COUNT(t.id) as ticket_count,
                    COALESCE(SUM(t.price), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales
+                   COALESCE(SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END), 0) as net_sales
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.organizer_id = :host_id
@@ -519,7 +527,7 @@ class HostService
                    COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as sold_count,
                    COUNT(CASE WHEN t.is_issued = 1 THEN t.id END) as issued_count,
                    COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
                    COALESCE(SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END), 0) as checked_in_count,
                    (SELECT COALESCE(SUM(capacity), 0) FROM ticket_types WHERE event_id = e.id) as total_capacity
             FROM events e
@@ -567,7 +575,7 @@ class HostService
                    COUNT(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.id END) as sold_count,
                    COUNT(CASE WHEN t.is_issued = 1 THEN t.id END) as issued_count,
                    COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN t.price ELSE 0 END), 0) as gross_sales,
-                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
+                   COALESCE(SUM(CASE WHEN (t.is_issued = 0 OR t.is_issued IS NULL) THEN (CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) ELSE 0 END), 0) as net_sales,
                    COALESCE(SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END), 0) as checked_in_count,
                    (SELECT COALESCE(SUM(capacity), 0) FROM ticket_types WHERE event_id = e.id) as total_capacity
             FROM events e

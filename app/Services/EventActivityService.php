@@ -523,6 +523,8 @@ class EventActivityService
             'is_winner' => $isWinner,
             'pass_score' => $passScore,
             'reward_promo_code' => $isWinner ? ($trivia['reward_promo_code'] ?? null) : null,
+            'reward_discount_type' => $trivia['reward_discount_type'] ?? 'percentage',
+            'reward_discount_value' => (float)($trivia['reward_discount_value'] ?? 10.00),
             'reward_description' => $trivia['reward_description'] ?? 'Exclusive Ticket Discount',
             'review' => $review
         ];
@@ -715,18 +717,30 @@ class EventActivityService
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Get community posts for an event with category filter.
+     * Get community posts for an event with category filter and viewer like status.
      */
-    public function getCommunityPosts(int $eventId, string $category = 'all', int $limit = 40): array
+    public function getCommunityPosts(int $eventId, string $category = 'all', int $limit = 40, ?int $userId = null, ?string $ip = null): array
     {
+        $joinCondition = $userId 
+            ? "l.post_id = p.id AND l.user_id = :viewer_user_id"
+            : "l.post_id = p.id AND l.user_id IS NULL AND l.ip_address = :viewer_ip";
+
         $query = "
             SELECT p.*,
-                   u.name as registered_name
+                   u.name as registered_name,
+                   (CASE WHEN l.id IS NOT NULL THEN 1 ELSE 0 END) as user_liked
             FROM event_community_posts p
             LEFT JOIN users u ON p.user_id = u.id
+            LEFT JOIN event_community_post_likes l ON {$joinCondition}
             WHERE p.event_id = :event_id AND p.status = 'visible'
         ";
         $params = ['event_id' => $eventId];
+
+        if ($userId) {
+            $params['viewer_user_id'] = $userId;
+        } else {
+            $params['viewer_ip'] = $ip ?: '127.0.0.1';
+        }
 
         if ($category !== 'all' && in_array($category, ['hype', 'squad', 'carpool', 'general'])) {
             $query .= " AND p.category = :category";
@@ -799,13 +813,87 @@ class EventActivityService
     }
 
     /**
-     * Like a community post.
+     * Toggle like / love emoji on a Hype Wall community post.
+     * Allows 1 like per user / IP address:
+     * - First click: likes the post (+1).
+     * - Second click: unlikes the post (-1).
+     */
+    public function toggleCommunityPostLike(int $postId, ?int $userId = null, string $ip = '127.0.0.1'): array
+    {
+        // 1. Verify post exists
+        $postStmt = $this->db->prepare("SELECT id, likes_count FROM event_community_posts WHERE id = :id LIMIT 1");
+        $postStmt->execute(['id' => $postId]);
+        $post = $postStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$post) {
+            return ['success' => false, 'message' => 'Post not found.'];
+        }
+
+        // 2. Check if already liked by this user or IP
+        if ($userId) {
+            $chkStmt = $this->db->prepare("
+                SELECT id FROM event_community_post_likes 
+                WHERE post_id = :pid AND user_id = :uid 
+                LIMIT 1
+            ");
+            $chkStmt->execute(['pid' => $postId, 'uid' => $userId]);
+        } else {
+            $chkStmt = $this->db->prepare("
+                SELECT id FROM event_community_post_likes 
+                WHERE post_id = :pid AND user_id IS NULL AND ip_address = :ip 
+                LIMIT 1
+            ");
+            $chkStmt->execute(['pid' => $postId, 'ip' => $ip]);
+        }
+        $existingLike = $chkStmt->fetch(PDO::FETCH_ASSOC);
+
+        // Case A: UNLIKE (toggle off)
+        if ($existingLike) {
+            $this->db->prepare("DELETE FROM event_community_post_likes WHERE id = :id")
+                     ->execute(['id' => $existingLike['id']]);
+            $this->db->prepare("UPDATE event_community_posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = :id")
+                     ->execute(['id' => $postId]);
+            $newCount = (int)$this->db->query("SELECT likes_count FROM event_community_posts WHERE id = {$postId}")->fetchColumn();
+
+            return [
+                'success' => true,
+                'action' => 'unliked',
+                'liked' => false,
+                'likes' => $newCount,
+                'message' => 'Unliked.'
+            ];
+        }
+
+        // Case B: LIKE (toggle on)
+        $insStmt = $this->db->prepare("
+            INSERT INTO event_community_post_likes (post_id, user_id, ip_address, created_at)
+            VALUES (:pid, :uid, :ip, NOW())
+        ");
+        $insStmt->execute([
+            'pid' => $postId,
+            'uid' => $userId,
+            'ip' => $ip
+        ]);
+
+        $this->db->prepare("UPDATE event_community_posts SET likes_count = likes_count + 1 WHERE id = :id")
+                 ->execute(['id' => $postId]);
+        $newCount = (int)$this->db->query("SELECT likes_count FROM event_community_posts WHERE id = {$postId}")->fetchColumn();
+
+        return [
+            'success' => true,
+            'action' => 'liked',
+            'liked' => true,
+            'likes' => $newCount,
+            'message' => 'Loved! ❤️'
+        ];
+    }
+
+    /**
+     * Backward-compatible alias for like.
      */
     public function likeCommunityPost(int $postId): int
     {
-        $this->db->prepare("UPDATE event_community_posts SET likes_count = likes_count + 1 WHERE id = :id")
-                 ->execute(['id' => $postId]);
-        return (int)$this->db->query("SELECT likes_count FROM event_community_posts WHERE id = {$postId}")->fetchColumn();
+        $res = $this->toggleCommunityPostLike($postId);
+        return (int)($res['likes'] ?? 0);
     }
 
     // ═══════════════════════════════════════════════════════════════════

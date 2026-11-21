@@ -166,7 +166,8 @@ class HostController extends Controller
             $completionHoursPreCheck = event_completion_hours();
             $singleStmt = $db->prepare("
                 SELECT e.id, e.pass_fee,
-                       COALESCE((SELECT SUM(t.price) FROM tickets t WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)), 0.00) as ticket_sales
+                       COALESCE((SELECT SUM(t.price) FROM tickets t WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)), 0.00) as ticket_sales,
+                       COALESCE((SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)), 0.00) as net_sales
                 FROM events e
                 WHERE e.id = :event_id AND e.organizer_id = :org_id
                 LIMIT 1
@@ -178,7 +179,7 @@ class HostController extends Controller
                 $sTicketSales = (float)$singleEvt['ticket_sales'];
                 // Payout and escrow withdraw is strictly for the online ticket sold price
                 // Platform charges and the 5% fee are NEVER added
-                $sHostNet = !empty($singleEvt['pass_fee']) ? $sTicketSales : round($sTicketSales * 0.95, 2);
+                $sHostNet = isset($singleEvt['net_sales']) ? round((float)$singleEvt['net_sales'], 2) : (!empty($singleEvt['pass_fee']) ? $sTicketSales : round($sTicketSales * 0.95, 2));
                 $sPriorStmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE event_id = :eid AND status IN ('pending', 'processed', 'completed')");
                 $sPriorStmt->execute(['eid' => $selectedEventId]);
                 $sPrior = (float)$sPriorStmt->fetchColumn();
@@ -207,7 +208,11 @@ class HostController extends Controller
                        COALESCE((
                            SELECT SUM(t.price) FROM tickets t 
                            WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
-                       ), 0.00) as ticket_sales
+                       ), 0.00) as ticket_sales,
+                       COALESCE((
+                           SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t 
+                           WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                       ), 0.00) as net_sales
                 FROM events e
                 WHERE e.organizer_id = :org_id
                   AND e.status = 'published'
@@ -221,7 +226,11 @@ class HostController extends Controller
                        COALESCE((
                            SELECT SUM(t.price) FROM tickets t 
                            WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
-                       ), 0.00) as ticket_sales
+                       ), 0.00) as ticket_sales,
+                       COALESCE((
+                           SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t 
+                           WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                       ), 0.00) as net_sales
                 FROM events e
                 WHERE e.organizer_id = :org_id
                   AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . (int)$completionHours . " HOUR))
@@ -243,7 +252,7 @@ class HostController extends Controller
 
             // Payout entitlement is strictly for online ticket sold price (excluding host-issued/comp passes and platform charges)
             $ticketSales = (float)$evt['ticket_sales'];
-            $evtNet = !empty($evt['pass_fee']) ? $ticketSales : round($ticketSales * 0.95, 2);
+            $evtNet = isset($evt['net_sales']) ? round((float)$evt['net_sales'], 2) : (!empty($evt['pass_fee']) ? $ticketSales : round($ticketSales * 0.95, 2));
 
             $payoutsStmt = $db->prepare("
                 SELECT COALESCE(SUM(amount), 0)

@@ -97,7 +97,11 @@ class AutoPayoutService
                        COALESCE((
                            SELECT SUM(t.price) FROM tickets t 
                            WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
-                       ), 0.00) as ticket_sales
+                       ), 0.00) as ticket_sales,
+                       COALESCE((
+                           SELECT SUM(CASE WHEN COALESCE(t.pass_fee, e.pass_fee) = 1 THEN t.price ELSE t.price * 0.95 END) FROM tickets t 
+                           WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                       ), 0.00) as net_sales
                 FROM events e
                 WHERE e.id = :event_id
             ");
@@ -105,7 +109,7 @@ class AutoPayoutService
             $salesData = $salesStmt->fetch(\PDO::FETCH_ASSOC);
 
             $ticketSales = (float)($salesData['ticket_sales'] ?? 0);
-            $eventNetRevenue = !empty($salesData['pass_fee']) ? $ticketSales : round($ticketSales * 0.95, 2);
+            $eventNetRevenue = isset($salesData['net_sales']) ? round((float)$salesData['net_sales'], 2) : (!empty($salesData['pass_fee']) ? $ticketSales : round($ticketSales * 0.95, 2));
 
             if ($eventNetRevenue <= 0.00) {
                 // Free event or no online ticket sales

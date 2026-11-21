@@ -335,6 +335,9 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
             $holderName = !empty($t['attendee_name']) && $t['attendee_name'] !== 'Attendee' 
                 ? $t['attendee_name'] 
                 : (!empty($order['attendee_name']) && $order['attendee_name'] !== 'Attendee' ? $order['attendee_name'] : 'Attendee');
+            $holderEmail = !empty($t['attendee_email']) ? $t['attendee_email'] : ($order['attendee_email'] ?? '');
+            $maskedEmail = !empty($holderEmail) ? preg_replace('/(?<=.{2}).(?=.*@)/', '*', $holderEmail) : 'your email';
+            $isTUnlocked = !empty(\Ace\Application::$app->session->get('pass_unlocked_' . $tCode));
         ?>
             <div class="suc-pass-card">
                 
@@ -392,30 +395,102 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                         </div>
 
                         <!-- Admission Code Box -->
-                        <div class="suc-pass-code-box">
+                        <div class="suc-pass-code-box" id="code-box-<?= e($tCode) ?>">
                             <div>
                                 <span class="suc-pass-code-label">Unique Admission Code</span>
                                 <div class="suc-pass-code-val" style="letter-spacing: 0.12em; font-family: Consolas, Monaco, monospace; color: #108a55; font-weight: 800;">
-                                    <?= e($tCode) ?>
+                                    <?php if ($isTUnlocked): ?>
+                                        <span class="suc-code-revealed" id="code-revealed-<?= e($tCode) ?>"><?= e($tCode) ?></span>
+                                    <?php else: ?>
+                                        <span class="suc-code-masked" id="code-masked-<?= e($tCode) ?>" style="color:#64748b; letter-spacing:0.18em;">EV-••••••••</span>
+                                        <span class="suc-code-revealed" id="code-revealed-<?= e($tCode) ?>" style="display:none;"><?= e($tCode) ?></span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="suc-pass-code-actions">
-                                <button type="button" class="suc-copy-code-btn" data-code="<?= e($tCode) ?>" title="Copy Admission Code">
+                                <button type="button" 
+                                        class="suc-copy-code-btn" 
+                                        id="copy-btn-<?= e($tCode) ?>" 
+                                        data-code="<?= $isTUnlocked ? e($tCode) : '' ?>" 
+                                        title="Copy Admission Code"
+                                        style="<?= $isTUnlocked ? '' : 'display:none;' ?>">
                                     📋 Copy Code
                                 </button>
-                                <?php if (!empty($t['security_pin'])): ?>
-                                    <span style="font-size:0.75rem; color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:3px 8px; border-radius:6px; font-weight:700; font-family:monospace;">
-                                        PIN: <?= e($t['security_pin']) ?>
+                                <?php if ($isTUnlocked): ?>
+                                    <span class="suc-status-badge-unlocked" id="badge-unlocked-<?= e($tCode) ?>" style="font-size:0.75rem; color:#065f46; background:#d1fae5; border:1px solid #a7f3d0; padding:3px 8px; border-radius:6px; font-weight:700;">
+                                        ✓ Unlocked
+                                    </span>
+                                <?php else: ?>
+                                    <span class="suc-status-badge-locked" id="badge-locked-<?= e($tCode) ?>" style="font-size:0.75rem; color:#b45309; background:#fef3c7; border:1px solid #fde68a; padding:3px 8px; border-radius:6px; font-weight:700;">
+                                        🔒 PIN Protected
+                                    </span>
+                                    <span class="suc-status-badge-unlocked" id="badge-unlocked-<?= e($tCode) ?>" style="display:none; font-size:0.75rem; color:#065f46; background:#d1fae5; border:1px solid #a7f3d0; padding:3px 8px; border-radius:6px; font-weight:700;">
+                                        ✓ Unlocked
                                     </span>
                                 <?php endif; ?>
                             </div>
                         </div>
+
+                        <!-- Inline PIN Reveal Box (Shown when locked) -->
+                        <div class="suc-pin-reveal-box" id="pin-box-<?= e($tCode) ?>" style="<?= $isTUnlocked ? 'display:none;' : '' ?> margin-top:0.75rem; padding:0.9rem 1.1rem; background:rgba(245, 158, 11, 0.06); border:1px dashed rgba(245, 158, 11, 0.4); border-radius:12px;">
+                            <div style="display:flex; align-items:flex-start; gap:0.65rem; margin-bottom:0.75rem;">
+                                <span style="font-size:1.25rem; line-height:1;">🔐</span>
+                                <div style="font-size:0.82rem; color:#475569; line-height:1.45;">
+                                    <strong style="color:#0f172a; display:block; margin-bottom:2px; font-weight:800;">Pass Protected by Security PIN</strong>
+                                    We sent a 4-digit PIN to <strong><?= e($maskedEmail) ?></strong>. Enter it below to reveal your admission code and gate QR pass.
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+                                <input type="password" 
+                                       id="pin-input-<?= e($tCode) ?>" 
+                                       class="suc-pin-input-field"
+                                       maxlength="4" 
+                                       pattern="\d{4}" 
+                                       inputmode="numeric" 
+                                       autocomplete="one-time-code" 
+                                       placeholder="••••" 
+                                       style="width:90px; text-align:center; font-size:1.15rem; font-weight:800; letter-spacing:0.25em; padding:6px 10px; border:1.5px solid #cbd5e1; border-radius:8px; font-family:monospace; background:#ffffff; color:#0f172a; outline:none;" />
+                                <button type="button" 
+                                        class="suc-btn-reveal-code" 
+                                        data-code="<?= e($tCode) ?>" 
+                                        style="background:linear-gradient(135deg, #108a55 0%, #059669 100%); color:#ffffff; font-weight:800; font-size:0.82rem; padding:8px 16px; border:none; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(16, 138, 85, 0.25);">
+                                    <span>🔓</span> Reveal Ticket Code
+                                </button>
+                                <button type="button" 
+                                        class="suc-btn-resend-pin" 
+                                        data-code="<?= e($tCode) ?>" 
+                                        style="background:none; border:none; color:#0284c7; font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline; padding:4px 6px;">
+                                    ✉️ Resend PIN
+                                </button>
+                            </div>
+                            <div id="pin-feedback-<?= e($tCode) ?>" style="margin-top:6px; font-size:0.78rem; font-weight:700; display:none;"></div>
+                        </div>
                     </div>
 
                     <!-- Right: Official Scannable QR Code -->
-                    <div class="suc-pass-qr-stub" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; text-align:center; padding:1rem;">
+                    <!-- Locked QR Stub -->
+                    <div class="suc-pass-qr-stub" id="qr-locked-stub-<?= e($tCode) ?>" style="<?= $isTUnlocked ? 'display:none;' : 'display:flex;' ?> flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; text-align:center; padding:1rem; min-width:130px;">
+                        <div style="width:110px; height:110px; background:#f8fafc; border:1.5px dashed rgba(var(--muted),0.3); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.8rem;">🔒</span>
+                            <span style="font-size:0.68rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">QR Locked</span>
+                        </div>
+                        <span style="margin-top:4px; font-size:0.72rem; font-weight:600; color:#64748b;">
+                            Enter PIN to reveal
+                        </span>
+                        <a href="<?= url('/pass/' . urlencode($tCode)) ?>" target="_blank" style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#108a55; text-decoration:none;">
+                            📱 Open Pass →
+                        </a>
+                    </div>
+
+                    <!-- Unlocked QR Stub -->
+                    <div class="suc-pass-qr-stub" id="qr-unlocked-stub-<?= e($tCode) ?>" style="<?= $isTUnlocked ? 'display:flex;' : 'display:none;' ?> flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; text-align:center; padding:1rem; min-width:130px;">
                         <div style="background:#ffffff; padding:6px; border-radius:10px; border:1px solid rgba(var(--muted),0.2); box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                            <img src="<?= url('/ticket/qr/' . urlencode($tCode) . '?s=220') ?>" alt="QR Code #<?= e($tCode) ?>" width="110" height="110" style="display:block; border-radius:4px;" />
+                            <img src="<?= $isTUnlocked ? url('/ticket/qr/' . urlencode($tCode) . '?s=220') : '' ?>" 
+                                 id="qr-img-<?= e($tCode) ?>"
+                                 alt="QR Code #<?= e($tCode) ?>" 
+                                 width="110" 
+                                 height="110" 
+                                 style="display:block; border-radius:4px;" />
                         </div>
                         <a href="<?= url('/pass/' . urlencode($tCode)) ?>" target="_blank" style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#108a55; text-decoration:none;">
                             📱 Open Mobile Pass →
@@ -459,15 +534,210 @@ document.addEventListener('DOMContentLoaded', function () {
     copyBtns.forEach(btn => {
         btn.addEventListener('click', function () {
             const code = this.getAttribute('data-code');
+            if (!code) return;
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(code).then(() => {
                     showToast('📋 Admission code copied: ' + code);
                     this.textContent = '✓ Copied';
-                    setTimeout(() => this.textContent = '📋 Copy', 1800);
+                    setTimeout(() => this.textContent = '📋 Copy Code', 1800);
                 }).catch(() => fallback(code, this));
             } else {
                 fallback(code, this);
             }
+        });
+    });
+
+    // ═══ Security PIN Reveal Handlers ═══
+    document.querySelectorAll('.suc-btn-reveal-code').forEach(btn => {
+        btn.addEventListener('click', function () {
+            handlePinReveal(this.getAttribute('data-code'));
+        });
+    });
+
+    document.querySelectorAll('.suc-pin-input-field').forEach(input => {
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const code = this.id.replace('pin-input-', '');
+                handlePinReveal(code);
+            }
+        });
+        input.addEventListener('input', function () {
+            this.style.borderColor = '#cbd5e1';
+            const code = this.id.replace('pin-input-', '');
+            const feedback = document.getElementById('pin-feedback-' + code);
+            if (feedback) feedback.style.display = 'none';
+        });
+    });
+
+    function handlePinReveal(code) {
+        if (!code) return;
+        const pinInput = document.getElementById('pin-input-' + code);
+        const pin = pinInput ? pinInput.value.trim() : '';
+        const feedback = document.getElementById('pin-feedback-' + code);
+        const revealBtn = document.querySelector('.suc-btn-reveal-code[data-code="' + CSS.escape(code) + '"]');
+
+        if (!pin || pin.length !== 4) {
+            if (feedback) {
+                feedback.style.display = 'block';
+                feedback.style.color = '#dc2626';
+                feedback.textContent = 'Please enter your 4-digit security PIN.';
+            }
+            if (pinInput) {
+                pinInput.focus();
+                pinInput.style.borderColor = '#dc2626';
+            }
+            return;
+        }
+
+        if (revealBtn) {
+            revealBtn.disabled = true;
+            revealBtn.style.opacity = '0.7';
+            revealBtn.innerHTML = '<span>⏳</span> Verifying...';
+        }
+        if (feedback) {
+            feedback.style.display = 'block';
+            feedback.style.color = '#475569';
+            feedback.textContent = 'Verifying PIN...';
+        }
+
+        const formData = new FormData();
+        formData.append('pin', pin);
+        formData.append('csrf_token', '<?= e(csrf_token()) ?>');
+
+        fetch('<?= \url('/pass/') ?>' + encodeURIComponent(code) + '/unlock', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Reveal admission code
+                const maskedEl = document.getElementById('code-masked-' + code);
+                const revealedEl = document.getElementById('code-revealed-' + code);
+                if (maskedEl) maskedEl.style.display = 'none';
+                if (revealedEl) {
+                    revealedEl.textContent = data.ticket_code || code;
+                    revealedEl.style.display = 'inline-block';
+                    revealedEl.style.color = '#108a55';
+                }
+
+                // Show and update copy button
+                const copyBtn = document.getElementById('copy-btn-' + code);
+                if (copyBtn) {
+                    copyBtn.setAttribute('data-code', data.ticket_code || code);
+                    copyBtn.style.display = 'inline-flex';
+                }
+
+                // Update lock badges
+                const badgeLocked = document.getElementById('badge-locked-' + code);
+                const badgeUnlocked = document.getElementById('badge-unlocked-' + code);
+                if (badgeLocked) badgeLocked.style.display = 'none';
+                if (badgeUnlocked) badgeUnlocked.style.display = 'inline-block';
+
+                // Update PIN box
+                const pinBox = document.getElementById('pin-box-' + code);
+                if (pinBox) {
+                    pinBox.style.background = 'rgba(16, 185, 129, 0.08)';
+                    pinBox.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    pinBox.innerHTML = '<span style="color:#047857; font-weight:700; font-size:0.82rem; display:inline-flex; align-items:center; gap:5px;"><span>✓</span> Pass Unlocked with PIN — Ready for Gate Scan</span>';
+                }
+
+                // Reveal QR code
+                const qrLocked = document.getElementById('qr-locked-stub-' + code);
+                const qrUnlocked = document.getElementById('qr-unlocked-stub-' + code);
+                const qrImg = document.getElementById('qr-img-' + code);
+                if (qrImg && data.qr_url) {
+                    qrImg.src = data.qr_url;
+                }
+                if (qrLocked) qrLocked.style.display = 'none';
+                if (qrUnlocked) qrUnlocked.style.display = 'flex';
+
+                showToast('✓ Admission code and QR pass revealed!');
+            } else {
+                if (revealBtn) {
+                    revealBtn.disabled = false;
+                    revealBtn.style.opacity = '1';
+                    revealBtn.innerHTML = '<span>🔓</span> Reveal Ticket Code';
+                }
+                if (feedback) {
+                    feedback.style.display = 'block';
+                    feedback.style.color = '#dc2626';
+                    feedback.textContent = '✕ ' + (data.message || 'Incorrect PIN.');
+                }
+                if (pinInput) {
+                    pinInput.style.borderColor = '#dc2626';
+                    pinInput.select();
+                }
+            }
+        })
+        .catch(() => {
+            if (revealBtn) {
+                revealBtn.disabled = false;
+                revealBtn.style.opacity = '1';
+                revealBtn.innerHTML = '<span>🔓</span> Reveal Ticket Code';
+            }
+            if (feedback) {
+                feedback.style.display = 'block';
+                feedback.style.color = '#dc2626';
+                feedback.textContent = '✕ Error verifying PIN. Please try again.';
+            }
+        });
+    }
+
+    // ═══ Resend PIN Handler ═══
+    document.querySelectorAll('.suc-btn-resend-pin').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const code = this.getAttribute('data-code');
+            const feedback = document.getElementById('pin-feedback-' + code);
+            this.disabled = true;
+            this.style.opacity = '0.6';
+            if (feedback) {
+                feedback.style.display = 'block';
+                feedback.style.color = '#0284c7';
+                feedback.textContent = 'Sending PIN to your email...';
+            }
+
+            const formData = new FormData();
+            formData.append('csrf_token', '<?= e(csrf_token()) ?>');
+
+            fetch('<?= \url('/pass/') ?>' + encodeURIComponent(code) + '/resend-pin', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (feedback) {
+                        feedback.style.color = '#047857';
+                        feedback.textContent = '✓ ' + (data.message || 'Security PIN sent to your email.');
+                    }
+                    showToast('✉️ Security PIN resent to email!');
+                } else {
+                    if (feedback) {
+                        feedback.style.color = '#dc2626';
+                        feedback.textContent = '✕ ' + (data.message || 'Could not resend PIN.');
+                    }
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+            })
+            .catch(() => {
+                if (feedback) {
+                    feedback.style.color = '#dc2626';
+                    feedback.textContent = '✕ Error connecting to server.';
+                }
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            });
         });
     });
 

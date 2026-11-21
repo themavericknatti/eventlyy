@@ -191,11 +191,19 @@ class TicketController extends Controller
 
     /**
      * POST: Unlock a pass by verifying the 4-digit security PIN.
+     * Supports both JSON/AJAX calls (for inline success page reveal) and standard POST form submits.
      */
-    public function unlockPass(Request $request, string $code): void
+    public function unlockPass(Request $request, string $code)
     {
         $code = trim($code);
+        $isAjax = $request->isAjax();
+
         if (empty($code)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Invalid ticket pass link.']);
+                exit;
+            }
             \Ace\Application::$app->session->setFlash('error', 'Invalid ticket pass link.');
             redirect('/');
             return;
@@ -205,17 +213,28 @@ class TicketController extends Controller
         $attemptKey = 'pin_attempts_' . $code;
         $attempts = (int)\Ace\Application::$app->session->get($attemptKey);
         if ($attempts >= 5) {
-            \Ace\Application::$app->session->setFlash('error', 'Too many incorrect PIN attempts. Please request your PIN via email and try again.');
+            $msg = 'Too many incorrect PIN attempts. Please request your PIN via email and try again.';
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $msg, 'locked_out' => true]);
+                exit;
+            }
+            \Ace\Application::$app->session->setFlash('error', $msg);
             redirect('/pass/' . urlencode($code));
             return;
         }
 
         $db = \Ace\Application::$app->db->pdo;
-        $stmt = $db->prepare("SELECT id, security_pin FROM tickets WHERE id = :code LIMIT 1");
+        $stmt = $db->prepare("SELECT id, security_pin, attendee_name, attendee_email FROM tickets WHERE id = :code LIMIT 1");
         $stmt->execute(['code' => $code]);
         $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$ticket) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Ticket not found.']);
+                exit;
+            }
             \Ace\Application::$app->session->setFlash('error', 'Ticket not found.');
             redirect('/');
             return;
@@ -227,7 +246,13 @@ class TicketController extends Controller
         if (empty($ticket['security_pin']) || $pin !== $ticket['security_pin']) {
             \Ace\Application::$app->session->set($attemptKey, $attempts + 1);
             $remaining = 5 - ($attempts + 1);
-            \Ace\Application::$app->session->setFlash('error', "Incorrect PIN. {$remaining} attempt(s) remaining.");
+            $msg = $remaining > 0 ? "Incorrect PIN. {$remaining} attempt(s) remaining." : "Too many incorrect PIN attempts. Please check your email.";
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $msg, 'remaining' => $remaining]);
+                exit;
+            }
+            \Ace\Application::$app->session->setFlash('error', $msg);
             redirect('/pass/' . urlencode($code));
             return;
         }
@@ -235,6 +260,20 @@ class TicketController extends Controller
         // PIN correct — unlock
         \Ace\Application::$app->session->set('pass_unlocked_' . $code, true);
         \Ace\Application::$app->session->set($attemptKey, 0); // reset attempts
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Pass unlocked! Your admission code and QR pass are now revealed.',
+                'ticket_code' => $ticket['id'],
+                'qr_url' => url('/ticket/qr/' . urlencode($ticket['id']) . '?s=220'),
+                'qr_url_large' => url('/ticket/qr/' . urlencode($ticket['id']) . '?s=300'),
+                'pass_url' => url('/pass/' . urlencode($ticket['id']))
+            ]);
+            exit;
+        }
+
         \Ace\Application::$app->session->setFlash('success', 'Pass unlocked! Your QR code is now visible.');
         redirect('/pass/' . urlencode($code));
     }

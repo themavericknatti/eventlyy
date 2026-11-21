@@ -104,9 +104,10 @@ class LayawayService
                     if (empty($attEmail)) $attEmail = $email;
 
                     $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+                    $ticketPassFee = $passFee ? 1 : 0;
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, status, status_detail, security_pin, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, 'Layaway', :status_detail, :security_pin, NOW(), 0)
+                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, pass_fee, status, status_detail, security_pin, purchase_date, checked_in)
+                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, :pass_fee, 'Layaway', :status_detail, :security_pin, NOW(), 0)
                     ");
                     $statusDetail = "Layaway Reservation - Plan Total: " . format_price($seatPrice) . " | Ref: " . $reference;
                     $insertStmt->execute([
@@ -117,6 +118,7 @@ class LayawayService
                         'name' => $attName,
                         'email' => $attEmail,
                         'price' => $seatPrice,
+                        'pass_fee' => $ticketPassFee,
                         'status_detail' => $statusDetail,
                         'security_pin' => $securityPin
                     ]);

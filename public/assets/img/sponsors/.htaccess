@@ -1,0 +1,21 @@
+# Prevent any script execution in uploads
+Options -ExecCGI -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pht .phps .shtml .cgi .pl .py .sh
+AddType text/plain .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pht .phps .shtml .cgi .pl .py .sh
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "(?i)\.(php|phtml|php3|php4|php5|php7|php8|phar|pht|phps|shtml|cgi|pl|py|sh|bash|exe|bat|cmd|ps1|vbs)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
