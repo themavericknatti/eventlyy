@@ -340,6 +340,18 @@ $encodedFlyerUrl = urlencode($flyerUrl);
                         </div>
                     <?php endif; ?>
 
+                    <!-- Activity & Community Hub Link -->
+                    <?php if (!$isCompleted): ?>
+                        <a href="<?= route('event/' . $eventSlug . '/activities') ?>" class="flyer-desc-card" style="display:flex; align-items:center; gap:0.75rem; text-decoration:none; color:inherit; border:1px solid rgba(99,102,241,0.3); background:rgba(99,102,241,0.08); transition:border-color 0.2s, transform 0.15s;" onmouseover="this.style.borderColor='rgba(99,102,241,0.5)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='rgba(99,102,241,0.3)';this.style.transform='translateY(0)'">
+                            <span style="font-size:1.5rem;">🎉</span>
+                            <div>
+                                <strong style="font-size:0.9rem; display:block;">Live Activity Hub</strong>
+                                <span style="font-size:0.78rem; opacity:0.75;">Polls · Trivia · Song Requests · Community</span>
+                            </div>
+                            <span style="margin-left:auto; font-size:1.1rem;">→</span>
+                        </a>
+                    <?php endif; ?>
+
                     <!-- Ticket Selection Desk -->
                     <form method="GET" action="<?= e($checkoutUrl) ?>" id="flyer-tickets-form">
                         <input type="hidden" name="occ_id" value="<?= (int)($event->id ?? 0) ?>">

@@ -837,8 +837,14 @@ Admin Settings - Manage Site &amp; System Configurations
                         </div>
 
                         <div class="as-field">
-                            <label class="as-field-label">Platform Commission Fee (%)</label>
+                            <label class="as-field-label">Ticket Platform Fee (%)</label>
                             <input type="number" name="platform_fee" value="<?= e($settings['platform_fee'] ?? '5') ?>" min="0" max="100" step="0.1" class="as-input" required>
+                        </div>
+
+                        <div class="as-field">
+                            <label class="as-field-label">Activity Commission Fee (%)</label>
+                            <input type="number" name="activity_fee_percent" value="<?= e($settings['activity_fee_percent'] ?? '10.0') ?>" min="0" max="100" step="0.1" class="as-input" required>
+                            <span class="as-field-help as-text-xs as-text-muted" style="display:block;margin-top:4px;">Platform share retained from Power Vote purchases.</span>
                         </div>
 
                         <div class="as-field">

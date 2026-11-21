@@ -27,6 +27,9 @@ use App\Controllers\Host\PromoCodeController;
 use App\Controllers\ProfileController;
 use App\Controllers\TicketController;
 use App\Controllers\LayawayController;
+use App\Controllers\EventActivityController;
+use App\Controllers\Host\HostActivityController;
+use App\Controllers\UserPassportController;
 
 // ==================================================
 // APPLICATION WEB ROUTES
@@ -81,6 +84,23 @@ $router->post('/flyer/{id}/checkout', [CheckoutController::class, 'processChecko
 $router->get('/event/{id}/feedback', [EventController::class, 'feedbackForm']);
 $router->post('/event/{id}/feedback', [EventController::class, 'submitFeedback']);
 $router->get('/event/{id}/calendar.ics', [EventController::class, 'calendarIcs']);
+
+// Event Activities, Contests & Community Hub
+$router->get('/event/{id}/activities', [EventActivityController::class, 'hub']);
+$router->post('/event/{id}/vote/{poll_id}', [EventActivityController::class, 'vote']);
+$router->post('/event/{id}/trivia/submit', [EventActivityController::class, 'submitTrivia']);
+$router->post('/event/{id}/request', [EventActivityController::class, 'submitRequest']);
+$router->post('/event/{id}/request/{req_id}/upvote', [EventActivityController::class, 'upvoteRequest']);
+$router->post('/event/{id}/community', [EventActivityController::class, 'postCommunity']);
+$router->post('/event/{id}/community/{post_id}/like', [EventActivityController::class, 'likeCommunity']);
+
+// ⚡ Power Vote (Paid Voting Packs via Paystack)
+$router->post('/event/{id}/vote/{poll_id}/power/init', [EventActivityController::class, 'initPowerVote']);
+$router->get('/event/{id}/vote/paystack/callback', [EventActivityController::class, 'powerVoteCallback']);
+$router->post('/event/{id}/vote/power/verify', [EventActivityController::class, 'verifyPowerVote']);
+
+// Gamified User Passport & Badges
+$router->get('/user/passport', [UserPassportController::class, 'index']);
 
 $router->get('/checkout/paystack/callback', [CheckoutController::class, 'paystackCallback']);
 $router->post('/checkout/validate-promo', [CheckoutController::class, 'validatePromo']);
@@ -178,6 +198,20 @@ $router->get('/host/event/referrals/{id}/orders/{ref_id}', [HostReferralControll
 $router->get('/host/event/referrals/{id}/export', [HostReferralController::class, 'export']);
 $router->post('/host/event/referrals/{id}/toggle/{ref_id}', [HostReferralController::class, 'toggle']);
 $router->post('/host/event/referrals/{id}/delete/{ref_id}', [HostReferralController::class, 'delete']);
+
+// Host Activities Management (supports both /host/event/{id}/activities and /host/event/activities/{id})
+$router->get('/host/event/{id}/activities', [HostActivityController::class, 'index']);
+$router->get('/host/event/activities/{id}', [HostActivityController::class, 'index']);
+$router->post('/host/event/{id}/activities/poll/create', [HostActivityController::class, 'createPoll']);
+$router->post('/host/event/activities/{id}/poll/create', [HostActivityController::class, 'createPoll']);
+$router->post('/host/event/{id}/activities/poll/{poll_id}/toggle', [HostActivityController::class, 'togglePoll']);
+$router->post('/host/event/activities/{id}/poll/{poll_id}/toggle', [HostActivityController::class, 'togglePoll']);
+$router->post('/host/event/{id}/activities/trivia/create', [HostActivityController::class, 'createTrivia']);
+$router->post('/host/event/activities/{id}/trivia/create', [HostActivityController::class, 'createTrivia']);
+$router->post('/host/event/{id}/activities/request/{req_id}/moderate', [HostActivityController::class, 'moderateRequest']);
+$router->post('/host/event/activities/{id}/request/{req_id}/moderate', [HostActivityController::class, 'moderateRequest']);
+$router->post('/host/event/{id}/activities/community/{post_id}/delete', [HostActivityController::class, 'moderateCommunity']);
+$router->post('/host/event/activities/{id}/community/{post_id}/delete', [HostActivityController::class, 'moderateCommunity']);
 $router->get('/host/settings', [HostSettingsController::class, 'settings']);
 $router->post('/host/settings', [HostSettingsController::class, 'saveSettings']);
 $router->get('/host/promo-codes', [PromoCodeController::class, 'index']);

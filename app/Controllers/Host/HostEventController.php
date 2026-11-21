@@ -933,10 +933,50 @@ class HostEventController extends Controller
         $ttStmt->execute(['event_id' => $event->id]);
         $ticketTypes = $ttStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
-        // 4. Payout record if any
-        $payoutStmt = $db->prepare("SELECT * FROM payouts WHERE event_id = :event_id ORDER BY id DESC LIMIT 1");
-        $payoutStmt->execute(['event_id' => $event->id]);
-        $payout = $payoutStmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        // 4. Payout records for this event
+        $payoutsStmt = $db->prepare("SELECT * FROM payouts WHERE event_id = :event_id ORDER BY created_at DESC, id DESC");
+        $payoutsStmt->execute(['event_id' => $event->id]);
+        $allEventPayouts = $payoutsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        $payout = $allEventPayouts[0] ?? null;
+
+        $totalDisbursedPayouts = 0.00;
+        $pendingPayoutAmount = 0.00;
+        foreach ($allEventPayouts as $p) {
+            if (in_array($p['status'] ?? '', ['processed', 'completed'])) {
+                $totalDisbursedPayouts += (float)($p['amount'] ?? 0.00);
+            } elseif (($p['status'] ?? '') === 'pending') {
+                $pendingPayoutAmount += (float)($p['amount'] ?? 0.00);
+            }
+        }
+
+        // 5. Fetch merchandise & add-ons orders for this event
+        $merchStmt = $db->prepare("
+            SELECT oa.*, ea.name as addon_name, ea.image as addon_image, ea.price as catalog_price
+            FROM order_addons oa
+            LEFT JOIN event_addons ea ON oa.addon_id = ea.id
+            WHERE oa.event_id = :event_id
+            ORDER BY oa.created_at DESC, oa.id DESC
+        ");
+        $merchStmt->execute(['event_id' => $event->id]);
+        $merchOrders = $merchStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $merchTotalSales = 0.00;
+        $merchTotalQty = 0;
+        $merchFulfilledQty = 0;
+        $merchPendingQty = 0;
+
+        foreach ($merchOrders as $mo) {
+            if (($mo['redemption_status'] ?? '') !== 'cancelled') {
+                $merchTotalSales += (float)($mo['total_price'] ?? 0.00);
+                $qty = (int)($mo['quantity'] ?? 1);
+                $merchTotalQty += $qty;
+                if (($mo['redemption_status'] ?? '') === 'fulfilled') {
+                    $merchFulfilledQty += $qty;
+                } else {
+                    $merchPendingQty += $qty;
+                }
+            }
+        }
 
         // Split tickets into Online vs Issued/Comp
         $onlineTickets = [];
@@ -992,13 +1032,31 @@ class HostEventController extends Controller
         unset($t);
 
         // Totals & balances:
-        // Host Net Earnings (Organizer Payout Share) is funded strictly by online ticket purchases on the platform.
+        // Host Net Earnings (Organizer Payout Share) is funded by online ticket purchases and activity power votes on the platform.
         // Gate cash and direct issued tickets are retained/handled offline by the host and excluded from platform payout transfers.
+        $actStmt = $db->prepare("
+            SELECT COALESCE(SUM(total_amount), 0.00) as gross_activity,
+                   COALESCE(SUM(fee_amount), 0.00) as fee_activity,
+                   COUNT(*) as count_activity
+            FROM transactions
+            WHERE event_id = :event_id 
+              AND payment_method = 'paystack_powervote' 
+              AND status = 'completed'
+        ");
+        $actStmt->execute(['event_id' => $event->id]);
+        $actRow = $actStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $activityGross = (float)($actRow['gross_activity'] ?? 0.00);
+        $activityFee = (float)($actRow['fee_activity'] ?? 0.00);
+        $activityNet = max(0.00, $activityGross - $activityFee);
+        $activityOrdersCount = (int)($actRow['count_activity'] ?? 0);
+
         $platformFeePercent = (float)site_setting('platform_fee', 5);
         $isPassFee = !empty($event->pass_fee);
         $totalPlatformFee = $isPassFee ? 0.00 : round($onlineGross * ($platformFeePercent / 100), 2);
-        $netHostEarnings = $isPassFee ? $onlineGross : max(0.00, $onlineGross - $totalPlatformFee);
-        $totalGrossRevenue = $onlineGross;
+        $netTicketEarnings = $isPassFee ? $onlineGross : max(0.00, $onlineGross - $totalPlatformFee);
+        $netHostEarnings = $netTicketEarnings + $activityNet;
+        $totalGrossRevenue = $onlineGross + $activityGross;
+        $remainingHostBalance = max(0.00, round($netHostEarnings - ($totalDisbursedPayouts + $pendingPayoutAmount), 2));
 
         $totalCapacity = 0;
         foreach ($ticketTypes as $tt) {
@@ -1030,9 +1088,23 @@ class HostEventController extends Controller
             'ticketTypes' => $ticketTypes,
             'transactions' => $transactions,
             'payout' => $payout,
+            'allEventPayouts' => $allEventPayouts,
+            'totalDisbursedPayouts' => $totalDisbursedPayouts,
+            'pendingPayoutAmount' => $pendingPayoutAmount,
+            'remainingHostBalance' => $remainingHostBalance,
+            'merchOrders' => $merchOrders,
+            'merchTotalSales' => $merchTotalSales,
+            'merchTotalQty' => $merchTotalQty,
+            'merchFulfilledQty' => $merchFulfilledQty,
+            'merchPendingQty' => $merchPendingQty,
             'onlineGross' => $onlineGross,
             'gateCashGross' => $gateCashGross,
             'compNominal' => $compNominal,
+            'netTicketEarnings' => $netTicketEarnings,
+            'activityGross' => $activityGross,
+            'activityFee' => $activityFee,
+            'activityNet' => $activityNet,
+            'activityOrdersCount' => $activityOrdersCount,
             'totalGrossRevenue' => $totalGrossRevenue,
             'platformFeePercent' => $platformFeePercent,
             'totalPlatformFee' => $totalPlatformFee,
@@ -1118,7 +1190,84 @@ class HostEventController extends Controller
         }
 
         fputcsv($out, []);
-        fputcsv($out, ['TOTAL TICKETS', count($tickets), '', '', '', 'TOTAL GROSS VALUE', number_format($totalRev, 2)]);
+        fputcsv($out, ['TOTAL TICKETS', count($tickets), '', '', '', 'TOTAL TICKET GROSS', number_format($totalRev, 2)]);
+        fputcsv($out, []);
+
+        // Section 3: Online Merchandise & Add-Ons Sales Data
+        $merchStmt = $db->prepare("
+            SELECT oa.*, ea.name as addon_name 
+            FROM order_addons oa 
+            LEFT JOIN event_addons ea ON oa.addon_id = ea.id 
+            WHERE oa.event_id = :event_id 
+            ORDER BY oa.created_at DESC
+        ");
+        $merchStmt->execute(['event_id' => $event->id]);
+        $merchRows = $merchStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        fputcsv($out, ['=== ONLINE MERCHANDISE & ADD-ONS SALES ===']);
+        fputcsv($out, ['Order ID', 'Item Name', 'Buyer Name', 'Buyer Email', 'Unit Price', 'Quantity', 'Total Amount', 'Redemption Status', 'Date']);
+        $totalMerchSales = 0;
+        $totalMerchQty = 0;
+        foreach ($merchRows as $m) {
+            $totalPrice = (float)($m['total_price'] ?? 0);
+            $qty = (int)($m['quantity'] ?? 1);
+            if (($m['redemption_status'] ?? '') !== 'cancelled') {
+                $totalMerchSales += $totalPrice;
+                $totalMerchQty += $qty;
+            }
+            fputcsv($out, [
+                $m['id'],
+                $m['addon_name'] ?: 'Merchandise Item',
+                $m['buyer_name'] ?: 'Guest',
+                $m['buyer_email'] ?: 'N/A',
+                number_format((float)($m['unit_price'] ?? 0), 2),
+                $qty,
+                number_format($totalPrice, 2),
+                ucfirst($m['redemption_status'] ?? 'pending'),
+                $m['created_at'] ?? 'N/A'
+            ]);
+        }
+        fputcsv($out, []);
+        fputcsv($out, ['TOTAL MERCH ORDERS', count($merchRows), 'TOTAL ITEMS SOLD', $totalMerchQty, '', '', number_format($totalMerchSales, 2)]);
+        fputcsv($out, []);
+
+        // Section 4: Power Voting Activity Revenue
+        $actStmt = $db->prepare("
+            SELECT reference, payer_name, payer_email, subtotal_amount, fee_amount, total_amount, status, created_at 
+            FROM transactions 
+            WHERE event_id = :event_id AND payment_method = 'paystack_powervote' 
+            ORDER BY created_at DESC
+        ");
+        $actStmt->execute(['event_id' => $event->id]);
+        $actTxRows = $actStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        fputcsv($out, ['=== EVENT ACTIVITIES & POWER VOTING SALES ===']);
+        fputcsv($out, ['Audit Reference', 'Voter Name', 'Voter Email', 'Gross Raised', 'Platform Fee', 'Host Net Share', 'Status', 'Date']);
+        $totalActGross = 0;
+        $totalActFee = 0;
+        $totalActNet = 0;
+        foreach ($actTxRows as $atx) {
+            $gross = (float)($atx['total_amount'] ?? 0);
+            $fee = (float)($atx['fee_amount'] ?? 0);
+            $net = max(0, $gross - $fee);
+            if (($atx['status'] ?? '') === 'completed') {
+                $totalActGross += $gross;
+                $totalActFee += $fee;
+                $totalActNet += $net;
+            }
+            fputcsv($out, [
+                $atx['reference'],
+                $atx['payer_name'] ?: 'Guest Voter',
+                $atx['payer_email'] ?: 'N/A',
+                number_format($gross, 2),
+                number_format($fee, 2),
+                number_format($net, 2),
+                ucfirst($atx['status'] ?? 'pending'),
+                $atx['created_at'] ?? 'N/A'
+            ]);
+        }
+        fputcsv($out, []);
+        fputcsv($out, ['TOTAL ACTIVITY TRANSACTIONS', count($actTxRows), '', number_format($totalActGross, 2), number_format($totalActFee, 2), number_format($totalActNet, 2)]);
 
         fclose($out);
         exit;

@@ -23,6 +23,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>@yield('title')</title>
+    <meta name="csrf-token" content="<?= csrf_token() ?>" />
     <?= site_favicon_tags() ?>
     <?php if ($metaDesc = site_setting('meta_description')): ?>
     <meta name="description" content="<?= e($metaDesc) ?>">
@@ -126,6 +127,7 @@
     </button>
 
     <!-- JS Files -->
+    <script src="https://js.paystack.co/v2/inline.js" defer></script>
     <?php
     $jsVer = asset_version('assets/js/app.js');
     ?>

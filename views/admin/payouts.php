@@ -1023,30 +1023,33 @@ Admin Payouts - Manage Your <?= e($siteName) ?> Payouts
             <strong style="color:#1d4ed8; font-size:0.85rem; display:block; margin-bottom:0.5rem;">📊 Event Revenue &amp; Settlement Breakdown</strong>
             <table style="width:100%; font-size:0.82rem; border-collapse:collapse; color:rgb(var(--text));">
                 <tr>
-                    <td style="padding:3px 0; color:rgb(var(--muted));">Tickets Sold</td>
+                    <td style="padding:3px 0; color:rgb(var(--muted));">Online Tickets Sold</td>
                     <td style="padding:3px 0; text-align:right; font-weight:700;" id="process-tickets-sold">—</td>
                 </tr>
                 <tr>
-                    <td style="padding:3px 0; color:rgb(var(--muted));">Gross Event Sales</td>
+                    <td style="padding:3px 0; color:rgb(var(--muted));">Ticket Sold Price (Face Value)</td>
                     <td style="padding:3px 0; text-align:right; font-weight:700;" id="process-gross-sales">—</td>
                 </tr>
                 <tr style="border-bottom:1px solid rgba(59, 130, 246, 0.15);">
-                    <td style="padding:3px 0; color:rgb(var(--muted));">Net Event Sales (Host Earnings)</td>
+                    <td style="padding:3px 0; color:rgb(var(--muted));">Host Net Entitlement (Ticket Share)</td>
                     <td style="padding:3px 0; text-align:right; font-weight:800; color:#1d4ed8;" id="process-net-sales">—</td>
                 </tr>
                 <tr>
-                    <td style="padding:3px 0; color:rgb(var(--muted));">Prior Disbursed</td>
+                    <td style="padding:3px 0; color:rgb(var(--muted));">Prior Disbursed to Bank</td>
                     <td style="padding:3px 0; text-align:right; font-weight:700;" id="process-prior-disbursed">—</td>
                 </tr>
                 <tr style="border-bottom:1px solid rgba(59, 130, 246, 0.15);">
-                    <td style="padding:3px 0; font-weight:700;">This Payout</td>
+                    <td style="padding:3px 0; font-weight:700;">This Payout Amount</td>
                     <td style="padding:3px 0; text-align:right; font-weight:800; color:rgb(var(--brand));" id="process-this-amount">—</td>
                 </tr>
                 <tr>
-                    <td style="padding:3px 0; font-weight:700;">Remaining Balance</td>
+                    <td style="padding:3px 0; font-weight:700;">Remaining Balance After Payout</td>
                     <td style="padding:3px 0; text-align:right; font-weight:800;" id="process-remaining">—</td>
                 </tr>
             </table>
+            <div style="margin-top:0.4rem; font-size:0.75rem; color:rgb(var(--muted));">
+                ℹ️ Payouts are strictly funded by online ticket sales. Direct host-issued passes and platform charges (+5% &amp; convenience fees) are never added.
+            </div>
             <div id="process-partial-badge" style="display:none; margin-top:0.5rem;">
                 <span style="background:rgba(217, 119, 6, 0.15); color:#d97706; border:1px solid rgba(217, 119, 6, 0.3); font-size:0.72rem; font-weight:800; padding:2px 7px; border-radius:6px;">⚠ Partial Settlement — prior payouts already disbursed for this event</span>
             </div>

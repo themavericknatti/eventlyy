@@ -194,6 +194,228 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
     font-size: 0.78rem;
     color: var(--ve-ink-muted);
 }
+
+/* ── Activity Showcase Section ── */
+.ve-activity-showcase {
+    margin: 2rem 0;
+    padding: 1.75rem;
+    background: var(--ve-parchment-card, #fbf8f2);
+    border: 1px solid var(--ve-border-dark, rgba(30, 27, 22, 0.18));
+    border-radius: var(--ve-radius-md, 16px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.ve-act-header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 1.75rem;
+}
+
+.ve-act-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.28rem 0.85rem;
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+.ve-act-title {
+    font-family: var(--ve-font-serif, 'Instrument Serif', Georgia, serif);
+    font-size: 2rem;
+    line-height: 1.2;
+    color: var(--ve-ink, #1e1b16);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.01em;
+}
+
+.ve-act-subtitle {
+    font-size: 0.92rem;
+    color: var(--ve-ink-muted, #645e54);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.ve-act-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.ve-act-card {
+    background: var(--ve-parchment, #fdfbf7);
+    border: 1px solid rgba(30, 27, 22, 0.12);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.ve-act-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.1);
+}
+
+.ve-act-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.ve-act-card-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.ve-act-card-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.ve-act-card-name {
+    font-family: var(--ve-font-serif, 'Instrument Serif', Georgia, serif);
+    font-size: 1.25rem;
+    color: var(--ve-ink, #1e1b16);
+    margin: 0 0 0.4rem;
+    line-height: 1.25;
+}
+
+.ve-act-card-desc {
+    font-size: 0.8rem;
+    color: var(--ve-ink-muted, #645e54);
+    line-height: 1.45;
+    margin: 0;
+    flex: 1;
+}
+
+.ve-act-card-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #4f46e5;
+    margin-top: 0.75rem;
+    transition: transform 0.15s ease;
+}
+.ve-act-card:hover .ve-act-card-arrow {
+    transform: translateX(3px);
+}
+
+.ve-act-cta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(30, 27, 22, 0.1);
+}
+
+.ve-act-cta-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.ve-act-pulse {
+    width: 9px;
+    height: 9px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: vePulse 2s infinite;
+}
+
+@keyframes vePulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.ve-act-cta-text {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--ve-ink, #1e1b16);
+}
+
+.ve-act-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 0.88rem;
+    border-radius: 10px;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+    transition: all 0.2s ease;
+    min-height: 44px;
+}
+
+.ve-act-cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.45);
+    filter: brightness(1.06);
+}
+
+@media (max-width: 992px) {
+    .ve-act-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .ve-activity-showcase {
+        padding: 1.25rem 1rem;
+        margin: 1.5rem 0;
+    }
+    .ve-act-title {
+        font-size: 1.5rem;
+    }
+    .ve-act-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    .ve-act-cta-bar {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    .ve-act-cta-left {
+        justify-content: center;
+    }
+    .ve-act-cta-btn {
+        width: 100%;
+    }
+}
 </style>
 <div class="ve-wrapper">
 
@@ -325,6 +547,78 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
             </div>
         </aside>
     </div>
+
+    <!-- ═══ Activity & Community Hub Showcase ═══ -->
+    <?php if (!$isCompleted): ?>
+        <section class="ve-activity-showcase">
+            <div class="ve-act-header">
+                <span class="ve-act-badge">
+                    <span class="ve-act-pulse"></span>
+                    ★ Pre-Event Lounge &amp; Arena ★
+                </span>
+                <h2 class="ve-act-title">Join The Live Activities &amp; Crowd Arena</h2>
+                <p class="ve-act-subtitle">
+                    Cast your daily votes, play trivia to unlock mystery ticket discounts, suggest tracks for the DJ, and connect with other verified attendees.
+                </p>
+            </div>
+
+            <div class="ve-act-grid">
+                <!-- 1. Live Polls -->
+                <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>?tab=polls" class="ve-act-card">
+                    <div class="ve-act-card-top">
+                        <span class="ve-act-card-icon">🗳️</span>
+                        <span class="ve-act-card-tag" style="color:#6366f1; background:rgba(99,102,241,0.1); border-color:rgba(99,102,241,0.25);">Free Daily Vote</span>
+                    </div>
+                    <h3 class="ve-act-card-name">Live Award Polls</h3>
+                    <p class="ve-act-card-desc">Crown best dressed, pick DJ of the night, or decide stage choices with 1 free vote every 24 hours.</p>
+                    <span class="ve-act-card-arrow">Cast Vote →</span>
+                </a>
+
+                <!-- 2. Trivia -->
+                <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>?tab=trivia" class="ve-act-card">
+                    <div class="ve-act-card-top">
+                        <span class="ve-act-card-icon">🧠</span>
+                        <span class="ve-act-card-tag" style="color:#a855f7; background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.25);">Win Promo Code</span>
+                    </div>
+                    <h3 class="ve-act-card-name">Trivia Challenge</h3>
+                    <p class="ve-act-card-desc">Answer quick questions against the clock to instantly unlock secret ticket discount promo codes.</p>
+                    <span class="ve-act-card-arrow">Play Quiz →</span>
+                </a>
+
+                <!-- 3. DJ Requests -->
+                <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>?tab=requests" class="ve-act-card">
+                    <div class="ve-act-card-top">
+                        <span class="ve-act-card-icon">🎵</span>
+                        <span class="ve-act-card-tag" style="color:#3b82f6; background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.25);">Crowd Ranked</span>
+                    </div>
+                    <h3 class="ve-act-card-name">DJ Requests &amp; Q&amp;A</h3>
+                    <p class="ve-act-card-desc">Tell the DJ what anthem to spin or submit questions for panel speakers. Top upvoted tracks get played!</p>
+                    <span class="ve-act-card-arrow">Suggest Song →</span>
+                </a>
+
+                <!-- 4. Hype Wall -->
+                <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>?tab=wall" class="ve-act-card">
+                    <div class="ve-act-card-top">
+                        <span class="ve-act-card-icon">📣</span>
+                        <span class="ve-act-card-tag" style="color:#10b981; background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.25);">Find Your Squad</span>
+                    </div>
+                    <h3 class="ve-act-card-name">Community Hype Wall</h3>
+                    <p class="ve-act-card-desc">See who is attending, arrange rides and carpools, share outfit vibes, and build your festival squad.</p>
+                    <span class="ve-act-card-arrow">Join Wall →</span>
+                </a>
+            </div>
+
+            <div class="ve-act-cta-bar">
+                <div class="ve-act-cta-left">
+                    <span class="ve-act-pulse"></span>
+                    <span class="ve-act-cta-text">Interactive Lounge is open • Free for all attendees &amp; guests</span>
+                </div>
+                <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>" class="ve-act-cta-btn">
+                    <span>🚀</span> Enter The Activity Arena
+                </a>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <!-- ═══ 3. Recurring Series Switcher (if applicable) ═══ -->
     <?php if (!empty($recurringOccurrences) && count($recurringOccurrences) > 1): ?>

@@ -454,6 +454,15 @@ Your Account Hub — Eventlyy
                     </a>
                 <?php endif; ?>
 
+                <a href="/user/passport" class="pf-btn pf-btn--primary" style="background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.1)); color:#818cf8; border:1px solid rgba(99,102,241,0.3);" title="View your Event Passport &amp; Badges">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="8" r="5"></circle>
+                        <path d="M3 21v-1a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v1"></path>
+                        <path d="M15.5 3.5l1.5 2 2.5-1"></path>
+                    </svg>
+                    <span>My Passport</span>
+                </a>
+
                 <a href="/logout" class="pf-btn pf-btn--danger-ghost" title="Sign out of your account">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

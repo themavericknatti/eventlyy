@@ -369,7 +369,7 @@ if (!in_array($activeTab, $validTabs)) {
                         <?php endif; ?>
                     </div>
                     <span class="au-stat-lbl">Gross Platform Volume (GPV)</span>
-                    <span class="stat-sub-info">All-time customer transactions</span>
+                    <span class="stat-sub-info">All-time volume<?= ($total_activity_sales ?? 0) > 0 ? ' · ⚡ Activities: ' . format_price($total_activity_sales) : '' ?></span>
                 </div>
             </div>
 
@@ -389,7 +389,7 @@ if (!in_array($activeTab, $validTabs)) {
                         </span>
                     </div>
                     <span class="au-stat-lbl">Platform Net Profit</span>
-                    <span class="stat-sub-info">Retained convenience &amp; service fees</span>
+                    <span class="stat-sub-info">Retained convenience &amp; service fees<?= ($total_activity_fees ?? 0) > 0 ? ' · ⚡ Activities: ' . format_price($total_activity_fees) : '' ?></span>
                 </div>
             </div>
 
@@ -408,7 +408,7 @@ if (!in_array($activeTab, $validTabs)) {
                 </div>
             </div>
 
-            <!-- Stat 4: Escrow & Host Payable -->
+            <!-- Stat 4: Host Custody & Payables -->
             <div class="au-stat-card stat-card-highlighted" style="border-left: 4px solid #f59e0b;">
                 <span class="au-stat-icon au-stat-icon--warning">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -417,10 +417,10 @@ if (!in_array($activeTab, $validTabs)) {
                     </svg>
                 </span>
                 <div class="au-stat-body">
-                    <span class="au-stat-num"><?= format_price($pending_payouts ?? 0) ?></span>
-                    <span class="au-stat-lbl">Escrow &amp; Host Payable</span>
+                    <span class="au-stat-num"><?= format_price($total_undisbursed_host_funds ?? 0) ?></span>
+                    <span class="au-stat-lbl">Host Funds in Custody</span>
                     <span class="stat-sub-info">
-                        <?= format_price($escrow_revenue ?? 0) ?> live escrow · <?= format_price($pending_requests_amount ?? 0) ?> queued
+                        Queued: <?= format_price($pending_payouts ?? 0) ?> (<?= (int)($pending_payouts_count ?? 0) ?> req) · Escrow: <?= format_price($escrow_revenue ?? 0) ?>
                     </span>
                 </div>
             </div>

@@ -61,26 +61,36 @@ class AdminService
         $totalTickets = (int)$db->query("SELECT COUNT(*) FROM tickets WHERE status IN ('Paid', 'Comped')")->fetchColumn();
 
         // 4. Financial Analytics
-        $grossRevenue = (float)$db->query("
-            SELECT COALESCE(SUM(total_amount), 0) FROM transactions WHERE type = 'payment' AND status = 'completed'
+        $completionHours = event_completion_hours();
+
+        // Total online tickets sold price across all events (pure sold ticket prices, excluding comped/issued)
+        $totalTicketSales = (float)$db->query("
+            SELECT COALESCE(SUM(t.price), 0.00)
+            FROM tickets t
+            WHERE t.status = 'Paid'
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ")->fetchColumn();
 
-        if ($grossRevenue == 0) {
-            $grossRevenue = (float)$db->query("
-                SELECT COALESCE(SUM(price), 0) 
-                FROM tickets 
-                WHERE status = 'Paid'
-                  AND (is_issued = 0 OR is_issued IS NULL)
-            ")->fetchColumn();
-        }
+        // Total nominal valuation of host-issued / complimentary passes (handled offline by hosts)
+        $totalIssuedNominal = (float)$db->query("
+            SELECT COALESCE(SUM(t.price), 0.00)
+            FROM tickets t
+            WHERE t.status IN ('Paid', 'Comped')
+              AND t.is_issued = 1
+        ")->fetchColumn();
 
+        // Platform Profit (retained convenience fees & absorbed 5% fees)
         $platformProfit = (float)$db->query("
-            SELECT COALESCE(SUM(fee_amount + extra_charge_amount), 0) FROM transactions WHERE type = 'payment' AND status = 'completed'
+            SELECT COALESCE(SUM(fee_amount + extra_charge_amount), 0.00)
+            FROM transactions
+            WHERE type = 'payment' AND status = 'completed'
         ")->fetchColumn();
 
-        if ($platformProfit == 0 && $grossRevenue > 0) {
+        if ($platformProfit == 0 && $totalTicketSales > 0) {
             $platformProfit = (float)$db->query("
-                SELECT COALESCE(SUM(t.price * 0.05), 0)
+                SELECT COALESCE(SUM(
+                    CASE WHEN e.pass_fee = 1 THEN t.price * 0.05 + 100 ELSE t.price * 0.05 END
+                ), 0.00)
                 FROM tickets t
                 INNER JOIN events e ON t.event_id = e.id
                 WHERE t.status = 'Paid'
@@ -88,39 +98,121 @@ class AdminService
             ")->fetchColumn();
         }
 
+        // Gross Platform Volume (Gross inflow through platform = Ticket Sales + Platform Charges)
+        $grossRevenue = (float)$db->query("
+            SELECT COALESCE(SUM(total_amount), 0.00)
+            FROM transactions
+            WHERE type = 'payment' AND status = 'completed'
+        ")->fetchColumn();
+
+        if ($grossRevenue == 0) {
+            $grossRevenue = $totalTicketSales + $platformProfit;
+        }
+
+        // Total Host Share (Net Entitlement across all events based strictly on ticket sold price)
         $totalHostShare = (float)$db->query("
             SELECT COALESCE(SUM(
                 CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END
-            ), 0)
+            ), 0.00)
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE t.status = 'Paid'
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
         ")->fetchColumn();
 
+        // Activity & Power Voting Metrics
+        $actStats = $db->query("
+            SELECT 
+                COALESCE(SUM(total_amount), 0.00) as total_activity_sales,
+                COALESCE(SUM(fee_amount), 0.00) as total_activity_fees,
+                COUNT(*) as total_activity_orders
+            FROM transactions
+            WHERE payment_method = 'paystack_powervote' AND status = 'completed'
+        ")->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $totalActivitySales = (float)($actStats['total_activity_sales'] ?? 0.00);
+        $totalActivityFees = (float)($actStats['total_activity_fees'] ?? 0.00);
+        $totalActivityOrders = (int)($actStats['total_activity_orders'] ?? 0);
+        $activityHostShare = max(0.00, $totalActivitySales - $totalActivityFees);
+        $totalHostShare += $activityHostShare;
+
+        // Disbursed Host Payouts (Processed / Completed payouts)
         $disbursedPayouts = (float)$db->query("
-            SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE status IN ('processed', 'completed')
+            SELECT COALESCE(SUM(amount), 0.00)
+            FROM payouts
+            WHERE status IN ('processed', 'completed')
         ")->fetchColumn();
 
+        // Pending Payout Requests (Submitted by hosts, queued for admin approval)
         $pendingPayoutRequests = (float)$db->query("
-            SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE status = 'pending'
+            SELECT COALESCE(SUM(amount), 0.00)
+            FROM payouts
+            WHERE status = 'pending'
         ")->fetchColumn();
 
-        $escrowRevenue = (float)$db->query("
-            SELECT COALESCE(SUM(
-                CASE WHEN e.pass_fee = 1 THEN t.price ELSE t.price * 0.95 END
-            ), 0)
-            FROM tickets t
-            INNER JOIN events e ON t.event_id = e.id
-            WHERE t.status = 'Paid'
-              AND (t.is_issued = 0 OR t.is_issued IS NULL)
-              AND e.status = 'published'
-              AND e.date >= NOW() - INTERVAL " . event_completion_hours() . " HOUR
+        $pendingPayoutsCount = (int)$db->query("
+            SELECT COUNT(*)
+            FROM payouts
+            WHERE status = 'pending'
         ")->fetchColumn();
 
-        $totalUndisbursedHostFunds = max(0.00, $totalHostShare - $disbursedPayouts);
-        $withdrawableHostBalance = max(0.00, $totalUndisbursedHostFunds - $escrowRevenue);
-        $totalEscrowBalance = max(0.00, min($totalUndisbursedHostFunds, $escrowRevenue));
+        // Per-event calculations to determine exact Escrow Custody vs Withdrawable Completed balances
+        $stmtEvents = $db->query("
+            SELECT e.id, e.pass_fee, e.date, e.status,
+                   COALESCE((
+                       SELECT SUM(t.price) FROM tickets t 
+                       WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
+                   ), 0.00) as ticket_sales,
+                   COALESCE((
+                       SELECT SUM(tx.total_amount - tx.fee_amount) FROM transactions tx
+                       WHERE tx.event_id = e.id AND tx.payment_method = 'paystack_powervote' AND tx.status = 'completed'
+                   ), 0.00) as activity_net
+            FROM events e
+        ");
+        $allEvents = $stmtEvents->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $totalCompletedNetRevenue = 0.00;
+        $totalUpcomingNetRevenue = 0.00;
+        $now = time();
+
+        foreach ($allEvents as $evRow) {
+            $tSales = (float)$evRow['ticket_sales'];
+            $actNet = (float)($evRow['activity_net'] ?? 0.00);
+            $evNet = (!empty($evRow['pass_fee']) ? $tSales : round($tSales * 0.95, 2)) + $actNet;
+            $evTime = strtotime($evRow['date']);
+            $isPassed = ($evTime + ($completionHours * 3600)) < $now || in_array($evRow['status'], ['completed', 'past']);
+
+            if ($isPassed) {
+                $totalCompletedNetRevenue += $evNet;
+            } else {
+                $totalUpcomingNetRevenue += $evNet;
+            }
+        }
+
+        // Payout deductions for completed vs upcoming events
+        $completedPayoutsDeduction = (float)$db->query("
+            SELECT COALESCE(SUM(p.amount), 0.00)
+            FROM payouts p
+            INNER JOIN events e ON p.event_id = e.id
+            WHERE p.status IN ('processed', 'completed', 'pending')
+              AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL {$completionHours} HOUR))
+        ")->fetchColumn();
+
+        $escrowPayoutsDeduction = (float)$db->query("
+            SELECT COALESCE(SUM(p.amount), 0.00)
+            FROM payouts p
+            INNER JOIN events e ON p.event_id = e.id
+            WHERE p.status IN ('processed', 'completed', 'pending')
+              AND e.status = 'published' AND e.date >= NOW() - INTERVAL {$completionHours} HOUR
+        ")->fetchColumn();
+
+        // Available Withdrawable Balance for completed events
+        $withdrawableHostBalance = max(0.00, round($totalCompletedNetRevenue - $completedPayoutsDeduction, 2));
+
+        // Available Escrow Balance for upcoming events (active escrow custody)
+        $totalEscrowBalance = max(0.00, round($totalUpcomingNetRevenue - $escrowPayoutsDeduction, 2));
+
+        // Total undisbursed host funds in platform custody
+        $totalUndisbursedHostFunds = max(0.00, round($totalHostShare - $disbursedPayouts, 2));
 
         // 5. Monthly Analytics (Past 12 Months Timeline for Charts)
         $monthlyLabels = [];
@@ -357,12 +449,19 @@ class AdminService
             'checked_in_tickets' => $checkedInTickets,
             'check_in_rate' => $checkInRate,
             'gross_revenue' => $grossRevenue,
+            'total_ticket_sales' => $totalTicketSales,
+            'total_activity_sales' => $totalActivitySales,
+            'total_activity_fees' => $totalActivityFees,
+            'total_activity_orders' => $totalActivityOrders,
+            'total_issued_nominal' => $totalIssuedNominal,
             'platform_profit' => $platformProfit,
             'platform_profit_rate' => $platformProfitRate,
+            'total_host_share' => $totalHostShare,
             'disbursed_payouts' => $disbursedPayouts,
-            'pending_payouts' => $totalEscrowBalance,
-            'escrow_revenue' => $escrowRevenue,
+            'pending_payouts' => $pendingPayoutRequests,
             'pending_requests_amount' => $pendingPayoutRequests,
+            'escrow_revenue' => $totalEscrowBalance,
+            'gross_escrow_revenue' => $totalUpcomingNetRevenue,
             'withdrawable_host_balance' => $withdrawableHostBalance,
             'total_undisbursed_host_funds' => $totalUndisbursedHostFunds,
             'unresolved_support' => $unresolvedSupport,

@@ -202,6 +202,10 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         <span>🔗</span> Promoters &amp; Ref
                     </a>
 
+                    <a href="{{ route('host/event/activities/' . $event->id) }}" class="admin-action-btn" style="text-decoration:none; background:rgba(236,72,153,0.1); color:#ec4899; border-color:rgba(236,72,153,0.25);">
+                        <span>🎉</span> Activities Studio
+                    </a>
+
                     <a href="{{ route('host/event/accounting/' . $event->id) }}" class="admin-action-btn" style="text-decoration:none; background:rgba(11,115,102,0.1); color:#0B7366; border-color:rgba(11,115,102,0.25); font-weight:700;" title="View official financial accounting & settlement report">
                         <span>📊</span> Accounting Report
                     </a>
@@ -1295,6 +1299,16 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                         </div>
                         <a href="{{ route('host/event/referrals/' . $event->id) }}" class="admin-action-btn" style="text-decoration:none;">
                             🔗 Promoters
+                        </a>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem; background:rgba(var(--text), 0.02); border-radius:12px; border:1px solid rgba(var(--muted), 0.1);">
+                        <div>
+                            <strong style="font-size:0.88rem; display:block;">Activities &amp; Contests Studio</strong>
+                            <span style="font-size:0.75rem; color:rgb(var(--muted));">Create polls, trivia games, and manage attendee engagement</span>
+                        </div>
+                        <a href="{{ route('host/event/activities/' . $event->id) }}" class="admin-action-btn" style="text-decoration:none; background:rgba(236,72,153,0.1); color:#ec4899; border-color:rgba(236,72,153,0.25);">
+                            🎉 Activities
                         </a>
                     </div>
 

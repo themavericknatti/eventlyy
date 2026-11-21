@@ -203,9 +203,24 @@ class AdminPayoutService
                 $tStmt->execute(['eid' => $eid]);
                 $tData = $tStmt->fetch(\PDO::FETCH_ASSOC);
 
+                // Fetch Power Vote activity revenue and platform fees
+                $actStmt = $db->prepare("
+                    SELECT COALESCE(SUM(total_amount), 0.00) as gross_activity,
+                           COALESCE(SUM(fee_amount), 0.00) as fee_activity
+                    FROM transactions
+                    WHERE event_id = :eid 
+                      AND payment_method = 'paystack_powervote' 
+                      AND status = 'completed'
+                ");
+                $actStmt->execute(['eid' => $eid]);
+                $actRow = $actStmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+                $actGross = (float)($actRow['gross_activity'] ?? 0.00);
+                $actFee = (float)($actRow['fee_activity'] ?? 0.00);
+                $actNet = max(0.00, $actGross - $actFee);
+
                 $item['event_tickets_count'] = (int)($tData['ticket_count'] ?? 0);
-                $item['event_gross_sales'] = (float)($tData['gross_sales'] ?? 0.00);
-                $item['event_net_sales'] = (float)($tData['net_sales'] ?? 0.00);
+                $item['event_gross_sales'] = (float)($tData['gross_sales'] ?? 0.00) + $actGross;
+                $item['event_net_sales'] = (float)($tData['net_sales'] ?? 0.00) + $actNet;
 
                 // Prior disbursements for this event excluding current payout
                 $pStmt = $db->prepare("
@@ -225,8 +240,10 @@ class AdminPayoutService
                 $totStmt->execute(['eid' => $eid]);
                 $item['event_total_disbursed'] = (float)($totStmt->fetchColumn() ?: 0.00);
 
+                $isItemCompleted = in_array($item['status'], ['processed', 'completed']);
+                $totalDisbursedWithThis = $isItemCompleted ? $item['event_total_disbursed'] : ($item['event_prior_disbursed'] + (float)$item['amount']);
                 $item['is_partial'] = ($item['event_prior_disbursed'] > 0 || (round($item['amount'], 2) < round($item['event_net_sales'] - 0.01, 2)));
-                $item['event_remaining_balance'] = max(0.00, round($item['event_net_sales'] - $item['event_total_disbursed'], 2));
+                $item['event_remaining_balance'] = max(0.00, round($item['event_net_sales'] - $totalDisbursedWithThis, 2));
             } else {
                 $item['event_tickets_count'] = 0;
                 $item['event_gross_sales'] = (float)$item['amount'];

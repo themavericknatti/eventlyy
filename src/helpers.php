@@ -1221,6 +1221,7 @@ if (!function_exists('site_setting')) {
                 'enabled_gateways' => ['paystack'],
                 'default_gateway' => 'paystack',
                 'platform_fee' => '5',
+                'activity_fee_percent' => '10.0',
                 'extra_charge' => '100.00',
                 'currency' => 'NGN',
                 'exchange_rate' => '1500.00',

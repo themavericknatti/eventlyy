@@ -203,6 +203,9 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
                 <a href="{{ route('host/event/referrals/{id}', ['id' => $event['id']]) }}" class="ed-btn ed-btn-secondary" title="Referrals & Affiliates Hub">
                     <span>🔗</span> Referrals
                 </a>
+                <a href="{{ route('host/event/activities/' . $event['id']) }}" class="ed-btn ed-btn-secondary" title="Activities, Contests & Community Studio">
+                    <span>🎉</span> Activities
+                </a>
                 <a href="/event/<?= e($publicSlug) ?>" target="_blank" rel="noopener noreferrer" class="ed-btn ed-btn-outline" title="View Public Landing Page">
                     <span>🌐</span> Public Page ↗
                 </a>
@@ -298,19 +301,21 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
             </div>
         </div>
 
-        <!-- KPI 2: Gross Sales -->
+        <!-- KPI 2: Online Ticket Sold Price -->
         <div class="ed-kpi-card ed-kpi--blue">
             <div class="ed-kpi-header">
-                <span class="ed-kpi-icon">💳</span>
-                <span class="ed-kpi-badge">Gross Inflow</span>
+                <span class="ed-kpi-icon">🎟️</span>
+                <span class="ed-kpi-badge">Online Sold Price</span>
             </div>
             <div class="ed-kpi-body">
-                <div class="ed-kpi-val"><?= format_price($gross_revenue) ?></div>
-                <div class="ed-kpi-label">Total Inflow Paid by Buyers</div>
+                <div class="ed-kpi-val"><?= format_price($ticket_sales_subtotal ?? $net_online_sales ?? 0) ?></div>
+                <div class="ed-kpi-label">Total Online Ticket Sold Price</div>
             </div>
             <div class="ed-kpi-footer">
-                <span>Net Sales: <strong><?= format_price($net_online_sales ?? $host_earnings) ?></strong></span>
-                <span>Orders: <strong><?= number_format($tickets_sold) ?></strong></span>
+                <span>Sold: <strong><?= number_format($tickets_sold) ?> tickets</strong></span>
+                <?php if ($tickets_issued > 0): ?>
+                    <span>Issued: <strong>+<?= number_format($tickets_issued) ?> passes</strong></span>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -336,14 +341,14 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
         <div class="ed-kpi-card ed-kpi--purple">
             <div class="ed-kpi-header">
                 <span class="ed-kpi-icon">📈</span>
-                <span class="ed-kpi-badge">Fee Margin</span>
+                <span class="ed-kpi-badge">Platform Charges</span>
             </div>
             <div class="ed-kpi-body">
                 <div class="ed-kpi-val ed-text-purple"><?= format_price($platform_profit) ?></div>
-                <div class="ed-kpi-label">Platform Retained Profit</div>
+                <div class="ed-kpi-label">Platform Charges &amp; Fees</div>
             </div>
             <div class="ed-kpi-footer">
-                <span><?= !empty($event['pass_fee']) ? 'Buyer paid fees (+5% fee)' : 'Host absorbed platform fees' ?></span>
+                <span><?= !empty($event['pass_fee']) ? 'Buyer covered fee (100% ticket price to host)' : '5% fee absorbed by host' ?></span>
             </div>
         </div>
     </div>
@@ -660,21 +665,21 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
                 <!-- 5-Metric Financial Strip -->
                 <div class="ed-fin-strip">
                     <div class="ed-fin-tile">
-                        <span class="ed-fin-lbl">Gross Inflow (Buyers)</span>
-                        <div class="ed-fin-val"><?= format_price($gross_revenue) ?></div>
-                        <span class="ed-fin-sub">Net Sales: <?= format_price($net_online_sales ?? $host_earnings) ?></span>
+                        <span class="ed-fin-lbl">Online Ticket Sold Price</span>
+                        <div class="ed-fin-val"><?= format_price($ticket_sales_subtotal ?? $net_online_sales ?? 0) ?></div>
+                        <span class="ed-fin-sub"><?= number_format($tickets_sold) ?> tickets sold online</span>
                     </div>
 
                     <div class="ed-fin-tile">
-                        <span class="ed-fin-lbl ed-text-purple">Platform Retained Fees</span>
+                        <span class="ed-fin-lbl ed-text-purple">Platform Charges &amp; Fees</span>
                         <div class="ed-fin-val ed-text-purple"><?= format_price($platform_profit) ?></div>
-                        <span class="ed-fin-sub"><?= !empty($event['pass_fee']) ? 'Buyer covered fee' : 'Host absorbed 5%' ?></span>
+                        <span class="ed-fin-sub"><?= !empty($event['pass_fee']) ? 'Buyer covered (not added to payout)' : '5% absorbed by host' ?></span>
                     </div>
 
                     <div class="ed-fin-tile">
                         <span class="ed-fin-lbl ed-text-success">Host Total Entitlement</span>
                         <div class="ed-fin-val ed-text-success"><?= format_price($host_earnings) ?></div>
-                        <span class="ed-fin-sub">Net payout earned</span>
+                        <span class="ed-fin-sub">Net ticket payout earned</span>
                     </div>
 
                     <div class="ed-fin-tile">
@@ -1087,6 +1092,13 @@ $isLive = (!$isCompleted && !$isDraft && !$isCancelled);
                             <div>
                                 <strong>Referrals &amp; Affiliates Hub</strong>
                                 <span>Track promoter commissions and campaign links</span>
+                            </div>
+                        </a>
+                        <a href="{{ route('host/event/activities/' . $event['id']) }}" class="ed-shortcut-item">
+                            <span class="ed-shortcut-icon">🎉</span>
+                            <div>
+                                <strong>Activities &amp; Engagement Studio</strong>
+                                <span>Manage polls, voting, trivia games, and community posts</span>
                             </div>
                         </a>
                         <a href="{{ route('admin/payouts') }}" class="ed-shortcut-item">

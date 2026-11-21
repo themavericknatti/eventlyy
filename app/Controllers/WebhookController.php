@@ -74,6 +74,11 @@ class WebhookController extends Controller
                         $db->prepare("UPDATE event_domain_requests SET payment_status = 'paid' WHERE payment_reference = :ref")->execute(['ref' => $reference]);
                         $db->prepare("UPDATE transactions SET status = 'completed', updated_at = NOW() WHERE reference = :ref")->execute(['ref' => $reference]);
                         error_log("Paystack Webhook: Custom domain fee marked as paid for ref [{$reference}]");
+                    } elseif (str_starts_with($reference, 'PV-') || ($eventData['metadata']['type'] ?? '') === 'power_vote') {
+                        // Event Activity Power Vote payment
+                        $activityService = new \App\Services\EventActivityService();
+                        $result = $activityService->fulfillPowerVote($reference);
+                        error_log("Paystack Webhook Power Vote for ref [{$reference}]: " . ($result['message'] ?? 'Processed'));
                     } elseif (str_starts_with($reference, 'INST-') || str_starts_with($reference, 'LAY-INST-') || ($eventData['metadata']['type'] ?? '') === 'layaway_installment') {
                         // Layaway installment payment: finalize and dispatch receipt/completion emails
                         $layawayService = new \App\Services\LayawayService();

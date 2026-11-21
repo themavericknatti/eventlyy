@@ -101,6 +101,15 @@ class HostController extends Controller
         // Fetch full payout history
         $payoutHistory = $this->hostService->getHostPayoutTransactions($user->id, 100);
 
+        // Fetch all online tickets purchased across host's events
+        $allPurchasedTickets = $this->hostService->getHostOnlineTickets($user->id, 300);
+
+        // Fetch all online merchandise & add-ons orders across host's events
+        $allMerchOrders = $this->hostService->getHostMerchandiseOrders($user->id, 300);
+
+        // Calculate merchandise aggregate stats
+        $merchStats = $this->hostService->getHostMerchandiseStats($user->id);
+
         // Fetch host bank profile
         $stmt = $db->prepare("SELECT * FROM host_profiles WHERE user_id = :user_id LIMIT 1");
         $stmt->execute(['user_id' => $user->id]);
@@ -109,6 +118,9 @@ class HostController extends Controller
         return $this->render('host/financials', array_merge($stats, [
             'eventFinancials' => $eventFinancials,
             'payoutHistory' => $payoutHistory,
+            'allPurchasedTickets' => $allPurchasedTickets,
+            'allMerchOrders' => $allMerchOrders,
+            'merchStats' => $merchStats,
             'profile' => $profile,
             'currentUserId' => $user->id
         ]));
@@ -154,9 +166,7 @@ class HostController extends Controller
             $completionHoursPreCheck = event_completion_hours();
             $singleStmt = $db->prepare("
                 SELECT e.id, e.pass_fee,
-                       COALESCE((SELECT SUM(t.price) FROM tickets t WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)), 0.00) as ticket_sales,
-                       COALESCE((SELECT SUM(oa.total_price) FROM order_addons oa WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'), 0.00) as addon_sales,
-                       COALESCE((SELECT SUM(tx.discount_amount) FROM transactions tx WHERE tx.event_id = e.id AND tx.status = 'completed' AND tx.type = 'payment'), 0.00) as discounts
+                       COALESCE((SELECT SUM(t.price) FROM tickets t WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)), 0.00) as ticket_sales
                 FROM events e
                 WHERE e.id = :event_id AND e.organizer_id = :org_id
                 LIMIT 1
@@ -165,8 +175,10 @@ class HostController extends Controller
             $singleEvt = $singleStmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($singleEvt) {
-                $sNet = max(0.00, (float)$singleEvt['ticket_sales'] + (float)$singleEvt['addon_sales'] - (float)$singleEvt['discounts']);
-                $sHostNet = !empty($singleEvt['pass_fee']) ? $sNet : round($sNet * 0.95, 2);
+                $sTicketSales = (float)$singleEvt['ticket_sales'];
+                // Payout and escrow withdraw is strictly for the online ticket sold price
+                // Platform charges and the 5% fee are NEVER added
+                $sHostNet = !empty($singleEvt['pass_fee']) ? $sTicketSales : round($sTicketSales * 0.95, 2);
                 $sPriorStmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE event_id = :eid AND status IN ('pending', 'processed', 'completed')");
                 $sPriorStmt->execute(['eid' => $selectedEventId]);
                 $sPrior = (float)$sPriorStmt->fetchColumn();
@@ -195,15 +207,7 @@ class HostController extends Controller
                        COALESCE((
                            SELECT SUM(t.price) FROM tickets t 
                            WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
-                       ), 0.00) as ticket_sales,
-                       COALESCE((
-                           SELECT SUM(oa.total_price) FROM order_addons oa 
-                           WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'
-                       ), 0.00) as addon_sales,
-                       COALESCE((
-                           SELECT SUM(tx.discount_amount) FROM transactions tx 
-                           WHERE tx.event_id = e.id AND tx.status = 'completed' AND tx.type = 'payment'
-                       ), 0.00) as discounts
+                       ), 0.00) as ticket_sales
                 FROM events e
                 WHERE e.organizer_id = :org_id
                   AND e.status = 'published'
@@ -217,15 +221,7 @@ class HostController extends Controller
                        COALESCE((
                            SELECT SUM(t.price) FROM tickets t 
                            WHERE t.event_id = e.id AND t.status = 'Paid' AND (t.is_issued = 0 OR t.is_issued IS NULL)
-                       ), 0.00) as ticket_sales,
-                       COALESCE((
-                           SELECT SUM(oa.total_price) FROM order_addons oa 
-                           WHERE oa.event_id = e.id AND oa.redemption_status != 'cancelled'
-                       ), 0.00) as addon_sales,
-                       COALESCE((
-                           SELECT SUM(tx.discount_amount) FROM transactions tx 
-                           WHERE tx.event_id = e.id AND tx.status = 'completed' AND tx.type = 'payment'
-                       ), 0.00) as discounts
+                       ), 0.00) as ticket_sales
                 FROM events e
                 WHERE e.organizer_id = :org_id
                   AND (e.status IN ('completed', 'past') OR (e.status = 'published' AND e.date < NOW() - INTERVAL " . (int)$completionHours . " HOUR))
@@ -245,8 +241,9 @@ class HostController extends Controller
                 break;
             }
 
-            $netSales = max(0.00, (float)$evt['ticket_sales'] + (float)$evt['addon_sales'] - (float)$evt['discounts']);
-            $evtNet = !empty($evt['pass_fee']) ? $netSales : round($netSales * 0.95, 2);
+            // Payout entitlement is strictly for online ticket sold price (excluding host-issued/comp passes and platform charges)
+            $ticketSales = (float)$evt['ticket_sales'];
+            $evtNet = !empty($evt['pass_fee']) ? $ticketSales : round($ticketSales * 0.95, 2);
 
             $payoutsStmt = $db->prepare("
                 SELECT COALESCE(SUM(amount), 0)

@@ -151,9 +151,9 @@
       // Fee description display
       if (processFeeDesc) {
         if (passFee === '0') {
-          processFeeDesc.innerHTML = '🏷️ <strong>Host Absorbed Fee:</strong> The <strong>5% platform fee was already deducted</strong> on ticket sales. This amount (' + amountVal + ') is the <strong>exact 95% net share</strong> to disburse.';
+          processFeeDesc.innerHTML = '🏷️ <strong>Host Absorbed Fee:</strong> The <strong>5% platform fee was deducted</strong> from the ticket sold price. This amount (' + amountVal + ') is the <strong>exact 95% net ticket share</strong> to disburse. Platform charges are NOT added.';
         } else {
-          processFeeDesc.innerHTML = '🎟️ <strong>Buyer Paid Fee:</strong> Attendee paid ticketing fees at checkout. This amount (' + amountVal + ') is the <strong>100% full ticket face-value earnings</strong> to disburse.';
+          processFeeDesc.innerHTML = '🎟️ <strong>Buyer Paid Fee:</strong> Attendee paid ticketing platform fees at checkout. This amount (' + amountVal + ') is strictly the <strong>100% ticket sold price</strong>. Platform charges and the 5% fee are NOT added to the host payout.';
         }
       }
 

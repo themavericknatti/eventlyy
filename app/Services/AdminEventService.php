@@ -232,7 +232,7 @@ class AdminEventService
             $ticketTypes[] = $tt;
         }
 
-        // 1. Exact online ticket sales face value (organic checkouts only, excluding comped/issued)
+        // 1. Exact online ticket sold price (organic checkouts only, excluding comped/issued)
         $ticketSubtotalStmt = $db->prepare("
             SELECT COALESCE(SUM(price), 0)
             FROM tickets
@@ -242,26 +242,8 @@ class AdminEventService
         $ticketSubtotalStmt->execute(['event_id' => $id]);
         $ticketSalesSubtotal = (float)$ticketSubtotalStmt->fetchColumn();
 
-        // 2. Exact online merchandise / add-on sales
-        $addonsSubtotalStmt = $db->prepare("
-            SELECT COALESCE(SUM(total_price), 0)
-            FROM order_addons
-            WHERE event_id = :event_id AND redemption_status != 'cancelled'
-        ");
-        $addonsSubtotalStmt->execute(['event_id' => $id]);
-        $addonsSalesSubtotal = (float)$addonsSubtotalStmt->fetchColumn();
-
-        // 3. Total discounts applied (promo codes, credits) on completed payment transactions
-        $discountsStmt = $db->prepare("
-            SELECT COALESCE(SUM(discount_amount), 0)
-            FROM transactions
-            WHERE event_id = :event_id AND type = 'payment' AND status = 'completed'
-        ");
-        $discountsStmt->execute(['event_id' => $id]);
-        $totalDiscounts = (float)$discountsStmt->fetchColumn();
-
-        // Net online sales realized from buyers after discount absorption
-        $netOnlineSales = max(0.00, $ticketSalesSubtotal + $addonsSalesSubtotal - $totalDiscounts);
+        // Net online ticket sales realized from buyers
+        $netOnlineSales = $ticketSalesSubtotal;
 
         // Nominal value of issued / complimentary tickets (handled offline by host)
         $issuedNominalStmt = $db->prepare("
@@ -273,10 +255,11 @@ class AdminEventService
         $issuedNominalSubtotal = (float)$issuedNominalStmt->fetchColumn();
 
         // Host net earnings for this event (platform payout entitlement)
-        // If pass_fee = 1 (buyer covered platform fee on top): host entitled to 100% of realized net sales
-        // If pass_fee = 0 (host absorbs platform fee): 5% is retained by platform from net sales
+        // If pass_fee = 1 (buyer covered platform fee on top): host entitled to 100% of ticket sold price
+        // If pass_fee = 0 (host absorbs platform fee): 5% is retained by platform from ticket sold price
+        // Platform charges and the 5% fee are NEVER added to host payout
         $isPassFee = !empty($event['pass_fee']);
-        $hostEarnings = $isPassFee ? $netOnlineSales : round($netOnlineSales * 0.95, 2);
+        $hostEarnings = $isPassFee ? $ticketSalesSubtotal : round($ticketSalesSubtotal * 0.95, 2);
 
         // Platform profit directly calculated from completed payment transactions for this event
         $profitStmt = $db->prepare("
@@ -287,8 +270,8 @@ class AdminEventService
         $profitStmt->execute(['event_id' => $id]);
         $platformProfit = (float)$profitStmt->fetchColumn();
 
-        if ($platformProfit == 0 && $netOnlineSales > 0) {
-            $platformProfit = $isPassFee ? round($netOnlineSales * 0.05, 2) : max(0.00, round($netOnlineSales * 0.05, 2));
+        if ($platformProfit == 0 && $ticketSalesSubtotal > 0) {
+            $platformProfit = round($ticketSalesSubtotal * 0.05, 2);
         }
 
         // Total gross transactions volume paid by buyers on platform
@@ -300,7 +283,7 @@ class AdminEventService
         $grossStmt->execute(['event_id' => $id]);
         $grossRevenue = (float)$grossStmt->fetchColumn();
         if ($grossRevenue == 0) {
-            $grossRevenue = $hostEarnings + $platformProfit;
+            $grossRevenue = $isPassFee ? ($ticketSalesSubtotal + $platformProfit) : $ticketSalesSubtotal;
         }
 
         // Event payout tracking
@@ -422,6 +405,25 @@ class AdminEventService
                 $hostPayoutReady = 'Not Set';
             }
         }
+
+        // Add-ons / merchandise sales for this event
+        $addonsStmt = $db->prepare("
+            SELECT COALESCE(SUM(total_price), 0)
+            FROM order_addons
+            WHERE event_id = :event_id
+        ");
+        $addonsStmt->execute(['event_id' => $id]);
+        $addonsSalesSubtotal = (float)$addonsStmt->fetchColumn();
+
+        // Discount redemptions for this event (from transactions table)
+        $discountStmt = $db->prepare("
+            SELECT COALESCE(SUM(discount_amount), 0)
+            FROM transactions
+            WHERE event_id = :event_id AND type = 'payment' AND status = 'completed'
+              AND discount_amount > 0
+        ");
+        $discountStmt->execute(['event_id' => $id]);
+        $totalDiscounts = (float)$discountStmt->fetchColumn();
 
         return [
             'event' => $event,
