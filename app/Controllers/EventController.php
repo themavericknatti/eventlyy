@@ -205,12 +205,17 @@ class EventController extends Controller
             $recurringOccurrences = $recStmt->fetchAll() ?: [];
         }
 
+        // Fetch live community activity engagement metrics for activity cards
+        $activityService = new \App\Services\EventActivityService();
+        $activityMetrics = $activityService->getEventEngagementMetrics((int)$internalId);
+
         return $this->render('event', [
             'title' => $event['name'] . ' - Evently',
             'event' => (object)$event,
             'ticketTypes' => $ticketTypes,
             'eventGuests' => $eventGuests,
             'recurringOccurrences' => $recurringOccurrences,
+            'activityMetrics' => $activityMetrics,
             'refCode' => $refCode
         ]);
     }

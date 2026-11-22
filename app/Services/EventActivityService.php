@@ -1016,4 +1016,145 @@ class EventActivityService
 
         return true;
     }
+
+    /**
+     * Get aggregate engagement summary metrics across all 4 activity pillars for an event.
+     * Used for dynamic live badge indicators on the public event page.
+     */
+    public function getEventEngagementMetrics(int $eventId): array
+    {
+        $metrics = [
+            'polls' => [
+                'total_polls' => 0,
+                'total_votes' => 0,
+                'has_active' => false,
+                'badge' => null
+            ],
+            'trivia' => [
+                'has_trivia' => false,
+                'plays_count' => 0,
+                'badge' => null
+            ],
+            'requests' => [
+                'total_requests' => 0,
+                'total_upvotes' => 0,
+                'badge' => null
+            ],
+            'wall' => [
+                'total_posts' => 0,
+                'total_likes' => 0,
+                'badge' => null
+            ],
+            'total_interactions' => 0
+        ];
+
+        try {
+            // 1. Polls engagement
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as poll_count,
+                       COALESCE(SUM(total_votes), 0) as vote_sum,
+                       COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as active_count
+                FROM event_polls
+                WHERE event_id = :event_id
+            ");
+            $stmt->execute(['event_id' => $eventId]);
+            $pollData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($pollData && (int)$pollData['poll_count'] > 0) {
+                $votes = (int)$pollData['vote_sum'];
+                $pollCount = (int)$pollData['poll_count'];
+                $metrics['polls']['total_polls'] = $pollCount;
+                $metrics['polls']['total_votes'] = $votes;
+                $metrics['polls']['has_active'] = (int)$pollData['active_count'] > 0;
+
+                if ($votes > 0) {
+                    $metrics['polls']['badge'] = $votes . ($votes === 1 ? ' vote cast' : ' votes cast');
+                } else {
+                    $metrics['polls']['badge'] = $pollCount . ($pollCount === 1 ? ' active poll' : ' active polls');
+                }
+            }
+
+            // 2. Trivia engagement
+            $stmt = $this->db->prepare("
+                SELECT id, plays_count, status
+                FROM event_trivia
+                WHERE event_id = :event_id
+                LIMIT 1
+            ");
+            $stmt->execute(['event_id' => $eventId]);
+            $triviaData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($triviaData) {
+                $plays = (int)$triviaData['plays_count'];
+                $metrics['trivia']['has_trivia'] = true;
+                $metrics['trivia']['plays_count'] = $plays;
+
+                if ($plays > 0) {
+                    $metrics['trivia']['badge'] = $plays . ($plays === 1 ? ' player competed' : ' players competed');
+                } else {
+                    $metrics['trivia']['badge'] = 'Quiz challenge live';
+                }
+            }
+
+            // 3. Requests & Q&A engagement
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as req_count,
+                       COALESCE(SUM(upvotes_count), 0) as upvote_sum
+                FROM event_requests
+                WHERE event_id = :event_id AND status != 'hidden'
+            ");
+            $stmt->execute(['event_id' => $eventId]);
+            $reqData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($reqData && (int)$reqData['req_count'] > 0) {
+                $reqCount = (int)$reqData['req_count'];
+                $upvotes = (int)$reqData['upvote_sum'];
+                $metrics['requests']['total_requests'] = $reqCount;
+                $metrics['requests']['total_upvotes'] = $upvotes;
+
+                if ($upvotes > $reqCount) {
+                    $metrics['requests']['badge'] = $upvotes . ' upvotes • ' . $reqCount . ($reqCount === 1 ? ' suggestion' : ' suggestions');
+                } else {
+                    $metrics['requests']['badge'] = $reqCount . ($reqCount === 1 ? ' song suggested' : ' songs suggested');
+                }
+            }
+
+            // 4. Community Hype Wall & Discussions engagement
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as post_count,
+                       COALESCE(SUM(likes_count), 0) as like_sum
+                FROM event_community_posts
+                WHERE event_id = :event_id AND status = 'visible'
+            ");
+            $stmt->execute(['event_id' => $eventId]);
+            $wallData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($wallData && (int)$wallData['post_count'] > 0) {
+                $postCount = (int)$wallData['post_count'];
+                $likes = (int)$wallData['like_sum'];
+                $metrics['wall']['total_posts'] = $postCount;
+                $metrics['wall']['total_likes'] = $likes;
+
+                if ($likes > 0) {
+                    $metrics['wall']['badge'] = $postCount . ($postCount === 1 ? ' post' : ' posts') . ' • ' . $likes . ($likes === 1 ? ' hype reaction' : ' hype reactions');
+                } else {
+                    $metrics['wall']['badge'] = $postCount . ($postCount === 1 ? ' discussion topic' : ' discussion topics');
+                }
+            }
+
+            // Total community interactions combined
+            $metrics['total_interactions'] =
+                $metrics['polls']['total_votes'] +
+                $metrics['trivia']['plays_count'] +
+                $metrics['requests']['total_requests'] +
+                $metrics['requests']['total_upvotes'] +
+                $metrics['wall']['total_posts'] +
+                $metrics['wall']['total_likes'];
+
+        } catch (\Throwable $e) {
+            // Failsafe gracefully returns default array
+        }
+
+        return $metrics;
+    }
 }

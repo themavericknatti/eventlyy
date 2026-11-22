@@ -311,6 +311,49 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
     flex: 1;
 }
 
+/* Dynamic Live Activity Engagement / Discussion Badges */
+.ve-act-engagement-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    margin: 0.75rem 0 0.25rem;
+    background: rgba(15, 23, 42, 0.05);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--ve-ink, #1e1b16);
+    transition: all 0.2s ease;
+}
+
+.ve-act-engagement-badge.is-active {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.25);
+    color: #4338ca;
+}
+
+.ve-act-engagement-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6366f1;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(99, 102, 241, 0.5);
+}
+
+.ve-act-engagement-dot.is-hot {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+    animation: vePulse 1.8s infinite;
+}
+
+.ve-act-card:hover .ve-act-engagement-badge {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
 .ve-act-card-arrow {
     display: inline-flex;
     align-items: center;
@@ -563,6 +606,18 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
             </div>
 
             <div class="ve-act-grid">
+                <?php
+                    $actMetrics = $activityMetrics ?? [];
+                    $pollBadge = $actMetrics['polls']['badge'] ?? null;
+                    $pollVotes = (int)($actMetrics['polls']['total_votes'] ?? 0);
+                    $triviaBadge = $actMetrics['trivia']['badge'] ?? null;
+                    $triviaPlays = (int)($actMetrics['trivia']['plays_count'] ?? 0);
+                    $reqBadge = $actMetrics['requests']['badge'] ?? null;
+                    $reqCount = (int)($actMetrics['requests']['total_requests'] ?? 0);
+                    $wallBadge = $actMetrics['wall']['badge'] ?? null;
+                    $wallPosts = (int)($actMetrics['wall']['total_posts'] ?? 0);
+                ?>
+
                 <!-- 1. Live Polls -->
                 <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>?tab=polls" class="ve-act-card">
                     <div class="ve-act-card-top">
@@ -571,6 +626,12 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
                     </div>
                     <h3 class="ve-act-card-name">Live Award Polls</h3>
                     <p class="ve-act-card-desc">Crown best dressed, pick DJ of the night, or decide stage choices with 1 free vote every 24 hours.</p>
+                    
+                    <div class="ve-act-engagement-badge <?= $pollVotes > 0 ? 'is-active' : '' ?>">
+                        <span class="ve-act-engagement-dot <?= $pollVotes > 0 ? 'is-hot' : '' ?>"></span>
+                        <span><?= e($pollBadge ?? 'Open for voting') ?></span>
+                    </div>
+
                     <span class="ve-act-card-arrow">Cast Vote →</span>
                 </a>
 
@@ -582,6 +643,12 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
                     </div>
                     <h3 class="ve-act-card-name">Trivia Challenge</h3>
                     <p class="ve-act-card-desc">Answer quick questions against the clock to instantly unlock secret ticket discount promo codes.</p>
+                    
+                    <div class="ve-act-engagement-badge <?= $triviaPlays > 0 ? 'is-active' : '' ?>">
+                        <span class="ve-act-engagement-dot <?= $triviaPlays > 0 ? 'is-hot' : '' ?>"></span>
+                        <span><?= e($triviaBadge ?? 'Win ticket discount') ?></span>
+                    </div>
+
                     <span class="ve-act-card-arrow">Play Quiz →</span>
                 </a>
 
@@ -593,6 +660,12 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
                     </div>
                     <h3 class="ve-act-card-name">DJ Requests &amp; Q&amp;A</h3>
                     <p class="ve-act-card-desc">Tell the DJ what anthem to spin or submit questions for panel speakers. Top upvoted tracks get played!</p>
+                    
+                    <div class="ve-act-engagement-badge <?= $reqCount > 0 ? 'is-active' : '' ?>">
+                        <span class="ve-act-engagement-dot <?= $reqCount > 0 ? 'is-hot' : '' ?>"></span>
+                        <span><?= e($reqBadge ?? 'Suggest a song') ?></span>
+                    </div>
+
                     <span class="ve-act-card-arrow">Suggest Song →</span>
                 </a>
 
@@ -600,10 +673,16 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
                 <a href="<?= route('event/' . $eventIdentifier . '/activities') ?>?tab=wall" class="ve-act-card">
                     <div class="ve-act-card-top">
                         <span class="ve-act-card-icon">📣</span>
-                        <span class="ve-act-card-tag" style="color:#10b981; background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.25);">Find Your Squad</span>
+                        <span class="ve-act-card-tag" style="color:#10b981; background:rgba(168,85,247,0.1); border-color:rgba(16,185,129,0.25);">Find Your Squad</span>
                     </div>
                     <h3 class="ve-act-card-name">Community Hype Wall</h3>
                     <p class="ve-act-card-desc">See who is attending, arrange rides and carpools, share outfit vibes, and build your festival squad.</p>
+                    
+                    <div class="ve-act-engagement-badge <?= $wallPosts > 0 ? 'is-active' : '' ?>">
+                        <span class="ve-act-engagement-dot <?= $wallPosts > 0 ? 'is-hot' : '' ?>"></span>
+                        <span><?= e($wallBadge ?? 'Start a discussion') ?></span>
+                    </div>
+
                     <span class="ve-act-card-arrow">Join Wall →</span>
                 </a>
             </div>
