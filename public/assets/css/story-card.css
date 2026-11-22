@@ -663,9 +663,21 @@
 .suc-story-banner__text {
     margin: 0;
     font-size: 0.88rem;
-    color: #94a3b8;
+    color: #e2e8f0;
     line-height: 1.45;
     max-width: 620px;
+}
+
+.suc-story-banner__text strong {
+    color: #ffffff;
+}
+
+.suc-story-safe-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: #34d399 !important;
+    font-weight: 600;
 }
 
 .suc-story-banner__action {

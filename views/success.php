@@ -61,8 +61,8 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
         Your order is complete. Digital admission passes have been delivered to <strong><?= e($order['attendee_email']) ?></strong>.
         <?php if (!empty($orderRef)): ?>
             <br/>
-            <span style="display: inline-block; margin-top: 6px; font-size: 0.88rem; color: var(--muted, #64748b);">
-                Didn't see the email? Check your spam folder or <a href="<?= \url('/order/resend-email/' . urlencode($orderRef)) ?>" style="color: var(--primary, #108a55); font-weight: 700; text-decoration: underline;">click here to resend passes</a>.
+            <span class="suc-resend-link-note" style="display: inline-block; margin-top: 6px; font-size: 0.88rem;">
+                Didn't see the email? Check your spam folder or <a href="<?= \url('/order/resend-email/' . urlencode($orderRef)) ?>" style="color: #059669; font-weight: 700; text-decoration: underline;">click here to resend passes</a>.
             </span>
         <?php endif; ?>
     </p>
@@ -134,31 +134,30 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
     ?>
 
     <!-- ═══ WhatsApp Instant Delivery & Gate Alerts Banner ═══ -->
-    <div class="suc-whatsapp-banner no-print" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.08) 100%); border: 1px solid rgba(37, 211, 102, 0.35); border-radius: 18px; padding: 1.35rem 1.6rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 280px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.35rem;">
-                <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #25D366; color: #fff; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);">
+    <div class="suc-whatsapp-banner no-print">
+        <div class="suc-whatsapp-banner__content">
+            <div class="suc-whatsapp-banner__header">
+                <span class="suc-whatsapp-banner__icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
                 </span>
-                <strong style="font-size: 1.05rem; color: #f1f5f9; font-weight: 800;">WhatsApp Ticket Delivery &amp; Gate Alerts</strong>
-                <span style="background: rgba(37, 211, 102, 0.2); color: #25D366; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;">95%+ OPEN RATE</span>
+                <strong class="suc-whatsapp-banner__title">WhatsApp Ticket Delivery &amp; Gate Alerts</strong>
+                <span class="suc-whatsapp-banner__pill">95%+ OPEN RATE</span>
             </div>
-            <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.45;">
+            <p class="suc-whatsapp-banner__desc">
                 Get your digital pass with scannable QR code and event-day gate alerts delivered directly to WhatsApp so you never misplace your ticket at the entrance.
             </p>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 2px 10px;">
-                <span style="font-size: 0.85rem; color: #94a3b8; margin-right: 4px;">📱</span>
-                <input type="tel" id="suc-wa-phone" placeholder="e.g. +234..." value="<?= e($buyerPhone) ?>"
-                       style="background: transparent; border: none; color: #fff; font-size: 0.88rem; padding: 0.55rem 0.25rem; outline: none; width: 155px; font-weight: 600;"
+        <div class="suc-whatsapp-banner__controls">
+            <div class="suc-whatsapp-banner__input-wrap">
+                <span style="font-size: 0.85rem; margin-right: 4px;">📱</span>
+                <input type="tel" id="suc-wa-phone" class="suc-whatsapp-banner__input" placeholder="e.g. +234..." value="<?= e($buyerPhone) ?>"
                        title="Enter your WhatsApp phone number" />
             </div>
 
             <button type="button" id="btn-suc-send-whatsapp"
                     data-ref="<?= e($orderRef) ?>"
-                    style="display: inline-flex; align-items: center; gap: 7px; background: #25D366; color: #fff; padding: 0.65rem 1.25rem; border-radius: 12px; font-weight: 800; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.35);">
+                    class="suc-whatsapp-banner__btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
                 <span>Send to WhatsApp</span>
             </button>
@@ -170,7 +169,7 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
             <h2 class="suc-story-banner__title">Share Your Story Pass</h2>
             <p class="suc-story-banner__text">
                 Generate a 9:16 vertical card for your <strong>Instagram Story &amp; WhatsApp Status</strong>. Feature the official artwork or upload your own selfie.
-                <span style="display:block; margin-top:6px; font-size:0.82rem; color:var(--primary, #108a55); font-weight:500;">
+                <span class="suc-story-safe-note" style="display:block; margin-top:6px; font-size:0.82rem; color:#34d399; font-weight:600;">
                     🔒 Safe to share online &bull; Your entry QR code is kept private in your tickets below.
                 </span>
             </p>
@@ -432,11 +431,11 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                         </div>
 
                         <!-- Inline PIN Reveal Box (Shown when locked) -->
-                        <div class="suc-pin-reveal-box" id="pin-box-<?= e($tCode) ?>" style="<?= $isTUnlocked ? 'display:none;' : '' ?> margin-top:0.75rem; padding:0.9rem 1.1rem; background:rgba(245, 158, 11, 0.06); border:1px dashed rgba(245, 158, 11, 0.4); border-radius:12px;">
+                        <div class="suc-pin-reveal-box" id="pin-box-<?= e($tCode) ?>" style="<?= $isTUnlocked ? 'display:none;' : '' ?>">
                             <div style="display:flex; align-items:flex-start; gap:0.65rem; margin-bottom:0.75rem;">
                                 <span style="font-size:1.25rem; line-height:1;">🔐</span>
-                                <div style="font-size:0.82rem; color:#475569; line-height:1.45;">
-                                    <strong style="color:#0f172a; display:block; margin-bottom:2px; font-weight:800;">Pass Protected by Security PIN</strong>
+                                <div class="suc-pin-reveal-box__text" style="font-size:0.84rem; line-height:1.45;">
+                                    <strong class="suc-pin-reveal-box__title" style="display:block; margin-bottom:2px; font-weight:800;">Pass Protected by Security PIN</strong>
                                     We sent a 4-digit PIN to <strong><?= e($maskedEmail) ?></strong>. Enter it below to reveal your admission code and gate QR pass.
                                 </div>
                             </div>
@@ -449,7 +448,7 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                                        inputmode="numeric" 
                                        autocomplete="one-time-code" 
                                        placeholder="••••" 
-                                       style="width:90px; text-align:center; font-size:1.15rem; font-weight:800; letter-spacing:0.25em; padding:6px 10px; border:1.5px solid #cbd5e1; border-radius:8px; font-family:monospace; background:#ffffff; color:#0f172a; outline:none;" />
+                                       style="width:90px; text-align:center; font-size:1.15rem; font-weight:800; letter-spacing:0.25em; padding:6px 10px; border-radius:8px; font-family:monospace; outline:none;" />
                                 <button type="button" 
                                         class="suc-btn-reveal-code" 
                                         data-code="<?= e($tCode) ?>" 
@@ -470,14 +469,14 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                     <!-- Right: Official Scannable QR Code -->
                     <!-- Locked QR Stub -->
                     <div class="suc-pass-qr-stub" id="qr-locked-stub-<?= e($tCode) ?>" style="<?= $isTUnlocked ? 'display:none;' : 'display:flex;' ?> flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; text-align:center; padding:1rem; min-width:130px;">
-                        <div style="width:110px; height:110px; background:#f8fafc; border:1.5px dashed rgba(var(--muted),0.3); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.04);">
+                        <div style="width:110px; height:110px; background:rgba(var(--muted), 0.08); border:1.5px dashed rgba(var(--muted),0.35); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.04);">
                             <span style="font-size:1.8rem;">🔒</span>
-                            <span style="font-size:0.68rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">QR Locked</span>
+                            <span style="font-size:0.68rem; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.04em;">QR Locked</span>
                         </div>
-                        <span style="margin-top:4px; font-size:0.72rem; font-weight:600; color:#64748b;">
+                        <span style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#334155;">
                             Enter PIN to reveal
                         </span>
-                        <a href="<?= url('/pass/' . urlencode($tCode)) ?>" target="_blank" style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#108a55; text-decoration:none;">
+                        <a href="<?= url('/pass/' . urlencode($tCode)) ?>" target="_blank" style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#059669; text-decoration:none;">
                             📱 Open Pass →
                         </a>
                     </div>

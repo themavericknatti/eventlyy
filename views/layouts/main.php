@@ -127,7 +127,9 @@
     </button>
 
     <!-- JS Files -->
+    <?php if (app()->request->is('*activity*', '*checkout*')): ?>
     <script src="https://js.paystack.co/v2/inline.js" defer></script>
+    <?php endif; ?>
     <?php
     $jsVer = asset_version('assets/js/app.js');
     ?>

@@ -53,6 +53,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip service worker caching for admin, host, checkout, and API routes
+  if (
+    url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/host') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.includes('/checkout')
+  ) {
+    return;
+  }
+
   // 1. HTML Navigation Requests (Pages)
   if (req.mode === 'navigate') {
     event.respondWith(

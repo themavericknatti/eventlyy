@@ -104,8 +104,23 @@ list($darkPrimaryHex, $darkPrimaryRgb) = $toDarkVariant($primaryHex);
 list($darkSecondaryHex, $darkSecondaryRgb) = $toDarkVariant($secondaryHex);
 $onDarkPrimaryColor = $getContrastYIQ($darkPrimaryHex);
 $onDarkSecondaryColor = $getContrastYIQ($darkSecondaryHex);
+
+$cssFile = public_dir('assets/css/dynamic-theme.css');
+$settingsFile = (class_exists('\Ace\Application', false) && isset(\Ace\Application::$ROOT_DIR) ? \Ace\Application::$ROOT_DIR : dirname(__DIR__, 2)) . '/config/settings.json';
+$thisFile = __FILE__;
+
+$isUpToDate = file_exists($cssFile) 
+    && @filemtime($cssFile) >= @filemtime($settingsFile) 
+    && @filemtime($cssFile) >= @filemtime($thisFile);
+
+if ($isUpToDate) {
+    $ver = (string)@filemtime($cssFile);
+    echo '<link rel="stylesheet" href="' . route('assets/css/dynamic-theme.css') . '?v=' . $ver . '">' . "\n";
+    return;
+}
+
+ob_start();
 ?>
-<style id="eventlyy-theme-styles">
 /* ══════════════════════════════════════════════════════════════════════════════
    DYNAMIC THEME VARIABLES (ADMIN CONFIGURABLE DUO-TONE SYSTEM)
    Primary: <?= $primaryHex ?> | Secondary: <?= $secondaryHex ?>
@@ -2490,5 +2505,16 @@ textarea:focus,
   color: rgb(var(--muted));
   line-height: 1.4;
 }
+<?php
+$generatedCss = ob_get_clean();
 
-</style>
+// Attempt to write compiled dynamic CSS for static browser caching
+$written = @file_put_contents($cssFile, $generatedCss, LOCK_EX);
+if ($written !== false) {
+    $ver = (string)@filemtime($cssFile);
+    echo '<link rel="stylesheet" href="' . route('assets/css/dynamic-theme.css') . '?v=' . $ver . '">' . "\n";
+} else {
+    // Graceful fallback to inline style tag if file system is read-only
+    echo '<style id="eventlyy-theme-styles">' . "\n" . $generatedCss . "\n" . '</style>' . "\n";
+}
+

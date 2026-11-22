@@ -22196,7 +22196,238 @@ button[type="submit"]:disabled,
     to { transform: translateY(0); opacity: 1; }
 }
 
+/* ── WhatsApp Instant Delivery & Alerts Banner (.suc-whatsapp-banner) ── */
+.suc-whatsapp-banner {
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
+    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    border-radius: 18px;
+    padding: 1.35rem 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.06);
+}
+
+.suc-whatsapp-banner__content {
+    flex: 1;
+    min-width: 280px;
+}
+
+.suc-whatsapp-banner__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.35rem;
+}
+
+.suc-whatsapp-banner__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #25D366;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+    flex-shrink: 0;
+}
+
+.suc-whatsapp-banner__title {
+    font-size: 1.05rem;
+    color: #064e3b;
+    font-weight: 800;
+}
+
+.suc-whatsapp-banner__pill {
+    background: rgba(37, 211, 102, 0.2);
+    color: #059669;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.suc-whatsapp-banner__desc {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #334155;
+    line-height: 1.45;
+    font-weight: 500;
+}
+
+.suc-whatsapp-banner__controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.suc-whatsapp-banner__input-wrap {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1.5px solid #a7f3d0;
+    border-radius: 12px;
+    padding: 2px 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.suc-whatsapp-banner__input {
+    background: transparent;
+    border: none;
+    color: #0f172a;
+    font-size: 0.88rem;
+    padding: 0.55rem 0.25rem;
+    outline: none;
+    width: 155px;
+    font-weight: 600;
+}
+
+.suc-whatsapp-banner__input::placeholder {
+    color: #94a3b8;
+}
+
+.suc-whatsapp-banner__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #25D366;
+    color: #fff;
+    padding: 0.65rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.35);
+}
+
+.suc-whatsapp-banner__btn:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+}
+
+/* ── Inline Security PIN Box ── */
+.suc-pin-reveal-box {
+    margin-top: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    background: #fffbeb;
+    border: 1.5px dashed #f59e0b;
+    border-radius: 12px;
+}
+
+.suc-pin-reveal-box__text {
+    color: #334155;
+}
+
+.suc-pin-reveal-box__title {
+    color: #0f172a;
+}
+
+.suc-pin-input-field {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1.5px solid #cbd5e1;
+}
+
+.suc-resend-link-note {
+    color: #475569;
+}
+
+/* ── Light Mode Enhanced Contrast for Meta Text ── */
+.suc-subtitle {
+    color: #334155;
+    font-weight: 500;
+}
+
+.suc-receipt__label,
+.suc-pass-meta-label,
+.suc-pass-code-label {
+    color: #475569;
+    font-weight: 700;
+}
+
+.suc-receipt__sub,
+.suc-receipt__method,
+.suc-calendar__info span,
+.suc-pass-footer {
+    color: #475569;
+}
+
 /* ── Dark Mode Overrides for Success (.suc-*) ── */
+:root[data-theme='dark'] .suc-actions,
+:root[data-theme='dark'] .suc-receipt,
+:root[data-theme='dark'] .suc-pass-card {
+    background: rgb(var(--card));
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme='dark'] .suc-subtitle,
+:root[data-theme='dark'] .suc-receipt__label,
+:root[data-theme='dark'] .suc-pass-meta-label,
+:root[data-theme='dark'] .suc-pass-code-label,
+:root[data-theme='dark'] .suc-receipt__sub,
+:root[data-theme='dark'] .suc-receipt__method,
+:root[data-theme='dark'] .suc-calendar__info span,
+:root[data-theme='dark'] .suc-pass-footer,
+:root[data-theme='dark'] .suc-resend-link-note {
+    color: rgb(var(--muted));
+}
+
+:root[data-theme='dark'] .suc-whatsapp-banner {
+    background: linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.08) 100%);
+    border-color: rgba(37, 211, 102, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme='dark'] .suc-whatsapp-banner__title {
+    color: #f1f5f9;
+}
+
+:root[data-theme='dark'] .suc-whatsapp-banner__pill {
+    color: #25D366;
+}
+
+:root[data-theme='dark'] .suc-whatsapp-banner__desc {
+    color: #cbd5e1;
+}
+
+:root[data-theme='dark'] .suc-whatsapp-banner__input-wrap {
+    background: rgba(0, 0, 0, 0.45);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: none;
+}
+
+:root[data-theme='dark'] .suc-whatsapp-banner__input {
+    color: #ffffff;
+}
+
+:root[data-theme='dark'] .suc-pin-reveal-box {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+:root[data-theme='dark'] .suc-pin-reveal-box__text {
+    color: #cbd5e1;
+}
+
+:root[data-theme='dark'] .suc-pin-reveal-box__title {
+    color: #f8fafc;
+}
+
+:root[data-theme='dark'] .suc-pin-input-field {
+    background: rgba(15, 23, 42, 0.8) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
 :root[data-theme='dark'] .suc-actions,
 :root[data-theme='dark'] .suc-receipt,
 :root[data-theme='dark'] .suc-pass-card {

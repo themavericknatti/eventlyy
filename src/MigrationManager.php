@@ -18,11 +18,11 @@ class MigrationManager
     }
 
     /**
-     * Log messages only if running in CLI mode
+     * Log messages only if running in CLI mode (and not during web requests)
      */
     private function log(string $message): void
     {
-        if (php_sapi_name() === 'cli') {
+        if (php_sapi_name() === 'cli' && !defined('ACE_PUBLIC_DIR')) {
             echo $message;
         }
     }
@@ -73,6 +73,18 @@ class MigrationManager
      */
     public function applyMigrations(): void
     {
+        $cacheDir = dirname($this->migrationsDir) . '/storage/cache';
+        $cacheFile = $cacheDir . '/migrations.hash';
+        $currentDirMtime = @filemtime($this->migrationsDir);
+
+        // Fast-path: in web requests, if migrations folder is unchanged, skip DDL & query checks
+        if (defined('ACE_PUBLIC_DIR') && file_exists($cacheFile)) {
+            $cachedMtime = (int)@file_get_contents($cacheFile);
+            if ($cachedMtime === $currentDirMtime && $currentDirMtime > 0) {
+                return;
+            }
+        }
+
         $appliedMigrations = $this->getAppliedMigrations();
         $files = $this->getMigrationFiles();
         
@@ -86,6 +98,10 @@ class MigrationManager
 
         if (empty($pending)) {
             $this->log("✅ Nothing to migrate. Database is up to date.\n");
+            if (!is_dir($cacheDir)) {
+                @mkdir($cacheDir, 0755, true);
+            }
+            @file_put_contents($cacheFile, (string)$currentDirMtime);
             return;
         }
 
@@ -118,6 +134,10 @@ class MigrationManager
         }
         
         $this->log("\n🎉 All migrations completed successfully.\n");
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+        @file_put_contents($cacheFile, (string)$currentDirMtime);
     }
 
     /**
