@@ -1,6 +1,9 @@
 <?php
 /**
- * Mobile-First VIP Admission Pass View (Optimized for WhatsApp delivery)
+ * Modern Full-Height Flyer Admission Pass View
+ * The event image covers the full height of the pass (poster-first flyer style).
+ * Scannable QR code & details are elegantly layered over the image with glassmorphism.
+ * Supports instant image download (PNG picture), WhatsApp sharing, and printing.
  *
  * @package Eventlyy
  * @subpackage Views/Ticket
@@ -27,6 +30,10 @@ if (!empty($rawImg)) {
         $evImg = url($rawImg);
     }
 }
+
+// Fallback high-contrast flyer poster backdrop if no image exists
+$defaultPosterGrad = 'linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)';
+$qrUrl = url('/ticket/qr/' . urlencode($ticketCode) . '?s=360');
 ?>
 
 @extends('layouts/main')
@@ -37,655 +44,886 @@ if (!empty($rawImg)) {
 
 @section('style')
 <style>
-.vip-pass-wrapper {
-    min-height: calc(100vh - 80px);
-    padding: 2.5rem 1rem 4rem;
+/* ═══════════════════════════════════════════════════════
+   FULL-HEIGHT FLYER ADMISSION PASS STYLES
+   ═══════════════════════════════════════════════════════ */
+:root {
+    --flyer-radius: 26px;
+    --flyer-accent: var(--primary, #108a55);
+    --flyer-accent-rgb: var(--primary-rgb, 16 138 85);
+}
+
+.flyer-pass-page {
+    min-height: calc(100vh - 75px);
     display: flex;
+    flex-direction: column;
     justify-content: center;
-    align-items: flex-start;
-    background: radial-gradient(circle at 50% 10%, rgba(var(--primary-rgb, 16, 138, 85), 0.12), transparent 70%),
-                var(--bg-body, #0a0e17);
+    align-items: center;
+    padding: 2rem 1rem 3.5rem;
+    background: radial-gradient(circle at 50% 15%, rgba(var(--flyer-accent-rgb), 0.16), transparent 75%),
+                #070a10;
+    box-sizing: border-box;
 }
 
-.vip-pass-card {
+/* Outer layout container (Flyer + Quick Action Toolbar) */
+.flyer-pass-container {
     width: 100%;
-    max-width: 480px;
-    background: var(--bg-surface, #111827);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 40px rgba(var(--primary-rgb, 16, 138, 85), 0.15);
-    overflow: hidden;
-    position: relative;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
-.vip-pass-banner {
+/* ── The Flyer Pass Element (Target for Download & Print) ── */
+.flyer-card {
     position: relative;
-    height: 180px;
-    background: linear-gradient(135deg, rgba(var(--primary-rgb, 16, 138, 85), 0.4), #111827);
+    width: 100%;
+    min-height: 640px;
+    border-radius: var(--flyer-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 35px 85px -15px rgba(0, 0, 0, 0.75),
+                0 0 45px rgba(var(--flyer-accent-rgb), 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.12);
+    background: #0f172a;
+    box-sizing: border-box;
+}
+
+/* ── Full-Height Background Event Image Cover ── */
+.flyer-bg-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
     overflow: hidden;
 }
 
-.vip-pass-banner img {
+.flyer-bg-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.75;
+    object-position: center;
+    display: block;
+    transform: scale(1.02);
+    filter: brightness(0.92);
 }
 
-.vip-pass-banner-overlay {
+/* Full-height cinematic gradient overlays to guarantee pristine contrast */
+.flyer-bg-vignette {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(17,24,39,0.95) 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(7, 10, 16, 0.55) 0%,
+        rgba(7, 10, 16, 0.20) 25%,
+        rgba(7, 10, 16, 0.50) 55%,
+        rgba(7, 10, 16, 0.88) 82%,
+        rgba(7, 10, 16, 0.98) 100%
+    );
+    pointer-events: none;
 }
 
-.vip-pass-badge-pill {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0.35rem 0.85rem;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.vip-pass-status-pill {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    padding: 0.35rem 0.85rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    backdrop-filter: blur(8px);
-}
-
-.vip-pass-status--valid {
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid #10b981;
-    color: #34d399;
-}
-
-.vip-pass-status--checked {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid #3b82f6;
-    color: #60a5fa;
-}
-
-.vip-pass-status--cancelled {
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid #ef4444;
-    color: #f87171;
-}
-
-.vip-pass-status--locked {
-    background: rgba(245, 158, 11, 0.2);
-    border: 1px solid #f59e0b;
-    color: #fbbf24;
-}
-
-.vip-pass-body {
-    padding: 1.5rem 1.75rem 2rem;
-    text-align: center;
-}
-
-.vip-pass-title {
-    font-size: 1.45rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 0.5rem;
-    line-height: 1.3;
-}
-
-.vip-pass-meta-strip {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    font-size: 0.85rem;
-    color: #94a3b8;
-    margin-bottom: 1.5rem;
-}
-
-.vip-pass-meta-strip span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-/* Scannable QR Container (Visible ONLY when Unlocked) */
-.vip-qr-box {
-    margin: 1.25rem auto 1.5rem;
-    width: 250px;
-    height: 250px;
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Top Header Bar inside the flyer */
+.flyer-header {
     position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(var(--primary-rgb, 16, 138, 85), 0.3);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.25rem 0.5rem;
 }
 
-.vip-qr-box img {
+.flyer-brand-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.38rem 0.85rem;
+    background: rgba(10, 14, 23, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.flyer-brand-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--flyer-accent);
+    box-shadow: 0 0 10px var(--flyer-accent);
+}
+
+.flyer-status-badge {
+    padding: 0.38rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+.flyer-status--valid { background: rgba(16, 185, 129, 0.25); border: 1px solid #10b981; color: #34d399; }
+.flyer-status--checked { background: rgba(59, 130, 246, 0.25); border: 1px solid #3b82f6; color: #60a5fa; }
+.flyer-status--cancelled { background: rgba(239, 68, 68, 0.25); border: 1px solid #ef4444; color: #f87171; }
+.flyer-status--locked { background: rgba(245, 158, 11, 0.25); border: 1px solid #f59e0b; color: #fbbf24; }
+.flyer-status--layaway { background: rgba(99, 102, 241, 0.30); border: 1px solid #6366f1; color: #a5b4fc; }
+
+/* Event Hero Typography (Floats over the image) */
+.flyer-center-info {
+    position: relative;
+    z-index: 2;
+    padding: 1.5rem 1.4rem 0.75rem;
+    margin-top: auto;
+}
+
+.flyer-title {
+    font-size: 1.65rem;
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0 0 0.5rem;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
+    word-break: break-word;
+}
+
+.flyer-meta-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.86rem;
+    color: rgba(241, 245, 249, 0.95);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    font-weight: 600;
+}
+
+.flyer-meta-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* ── Middle/Bottom Overlay Deck: Scannable QR & Attendee Details ── */
+.flyer-glass-deck {
+    position: relative;
+    z-index: 2;
+    margin: 0.5rem 1rem 1rem;
+    padding: 1.15rem 1.25rem;
+    background: rgba(10, 14, 23, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Unlocked QR Hero Card */
+.flyer-qr-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.1rem;
+    padding-bottom: 0.95rem;
+    margin-bottom: 0.95rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.14);
+}
+
+.flyer-qr-holder {
+    position: relative;
+    width: 125px;
+    height: 125px;
+    min-width: 125px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 25px rgba(var(--flyer-accent-rgb), 0.28);
+    box-sizing: border-box;
+}
+
+.flyer-qr-holder img {
     width: 100%;
     height: 100%;
-    display: block;
     object-fit: contain;
+    display: block;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
 
-/* Scanner Corners Effect */
-.vip-qr-box::before, .vip-qr-box::after {
+/* Corner bracket targets around QR */
+.flyer-qr-holder::before, .flyer-qr-holder::after {
     content: '';
     position: absolute;
-    width: 24px;
-    height: 24px;
-    border-color: var(--primary, #108a55);
+    width: 16px;
+    height: 16px;
+    border-color: var(--flyer-accent);
     border-style: solid;
     pointer-events: none;
 }
-.vip-qr-box::before {
-    top: -4px;
-    left: -4px;
-    border-width: 4px 0 0 4px;
-    border-top-left-radius: 12px;
-}
-.vip-qr-box::after {
-    bottom: -4px;
-    right: -4px;
-    border-width: 0 4px 4px 0;
-    border-bottom-right-radius: 12px;
-}
+.flyer-qr-holder::before { top: -3px; left: -3px; border-width: 3px 0 0 3px; border-top-left-radius: 10px; }
+.flyer-qr-holder::after { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; border-bottom-right-radius: 10px; }
 
-/* Dedicated High-Contrast PIN Lock Container */
-.vip-pin-lock-container {
-    margin: 1.25rem auto 1.5rem;
-    width: 100%;
-    max-width: 380px;
-    background: #1e293b;
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 1.75rem 1.4rem;
+.flyer-qr-caption {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 35px rgba(99, 102, 241, 0.15);
-    box-sizing: border-box;
+    justify-content: center;
 }
 
-.vip-pin-lock-icon {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    background: rgba(99, 102, 241, 0.15);
-    border: 1.5px solid rgba(99, 102, 241, 0.4);
+.flyer-code-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    margin-bottom: 3px;
+}
+
+.flyer-code-display {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #34d399;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+}
+
+.flyer-code-hint {
+    font-size: 0.74rem;
+    color: #cbd5e1;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Pass Details Grid */
+.flyer-specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.flyer-spec-item label {
+    display: block;
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+.flyer-spec-item strong {
+    font-size: 0.9rem;
+    color: #f8fafc;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+/* Addons / Merch section inside flyer */
+.flyer-addons-strip {
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.flyer-addons-title {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #2dd4bf;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.flyer-addon-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #f1f5f9;
+    padding: 2px 0;
+}
+
+/* Watermark platform footer inside card */
+.flyer-watermark {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.85rem;
-    margin-bottom: 0.75rem;
+    gap: 7px;
+    padding-top: 0.85rem;
+    margin-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
-.vip-pin-heading {
-    font-size: 1.25rem;
+/* ── PIN Locked Card State ── */
+.flyer-locked-card {
+    text-align: center;
+    padding: 1.25rem 0.5rem;
+}
+
+.flyer-locked-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1.5px solid rgba(245, 158, 11, 0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.flyer-locked-title {
+    font-size: 1.15rem;
     font-weight: 800;
     color: #ffffff;
     margin: 0 0 0.35rem;
 }
 
-.vip-pin-subheading {
-    font-size: 0.85rem;
+.flyer-locked-desc {
+    font-size: 0.8rem;
     color: #94a3b8;
-    margin: 0 0 1.25rem;
+    margin: 0 0 1rem;
     line-height: 1.45;
-    max-width: 290px;
 }
 
-.vip-pin-input-field {
-    width: 160px;
+.flyer-pin-input {
+    width: 145px;
     text-align: center;
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 1.85rem;
+    font-weight: 900;
     letter-spacing: 0.35em;
-    padding: 0.65rem 0.75rem;
+    padding: 0.55rem 0.65rem;
     border: 2px solid #334155;
     border-radius: 12px;
-    background: #0f172a;
+    background: #090d16;
     color: #34d399;
     outline: none;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    transition: all 0.2s ease;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
 }
-
-.vip-pin-input-field:focus {
+.flyer-pin-input:focus {
     border-color: #10b981;
-    background: #090d16;
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25), inset 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25), inset 0 2px 4px rgba(0,0,0,0.4);
 }
 
-.vip-pin-input-field::placeholder {
-    color: #475569;
-    letter-spacing: 0.35em;
-}
-
-.vip-pin-submit-btn {
+.flyer-pin-submit {
     width: 100%;
-    max-width: 260px;
-    margin-top: 1rem;
-    padding: 0.85rem 1.5rem;
+    max-width: 250px;
+    margin-top: 0.85rem;
+    padding: 0.75rem 1.25rem;
     border: none;
     border-radius: 12px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff;
     font-weight: 800;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-    transition: all 0.15s ease;
+    transition: all 0.15s;
 }
-
-.vip-pin-submit-btn:hover {
+.flyer-pin-submit:hover {
     background: linear-gradient(135deg, #059669 0%, #047857 100%);
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
 }
 
-.vip-pin-resend-link {
-    margin-top: 1rem;
+.flyer-pin-resend {
+    margin-top: 0.75rem;
     background: none;
     border: none;
     color: #38bdf8;
-    font-size: 0.84rem;
+    font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
     text-decoration: underline;
-    transition: color 0.15s ease;
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
-.vip-pin-resend-link:hover {
-    color: #7dd3fc;
-}
-
-.vip-pin-alert {
+.flyer-pin-alert {
     width: 100%;
-    border-radius: 10px;
-    padding: 0.6rem 0.85rem;
-    font-size: 0.82rem;
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    margin-bottom: 0.85rem;
-    box-sizing: border-box;
+    margin-bottom: 0.75rem;
     text-align: center;
 }
+.flyer-pin-alert--error { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; }
+.flyer-pin-alert--success { background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
 
-.vip-pin-alert--error {
-    background: rgba(239, 68, 68, 0.18);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    color: #fca5a5;
+/* ── Layaway State inside flyer ── */
+.flyer-layaway-card {
+    text-align: center;
+    padding: 1.25rem 0.5rem;
 }
-
-.vip-pin-alert--success {
-    background: rgba(16, 185, 129, 0.18);
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    color: #6ee7b7;
-}
-
-.vip-pass-code-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px dashed rgba(255, 255, 255, 0.2);
-    padding: 0.45rem 1.25rem;
+.flyer-layaway-btn {
+    text-decoration: none;
+    display: inline-block;
+    padding: 0.75rem 1.6rem;
     border-radius: 12px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 1.15rem;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #ffffff;
     font-weight: 800;
-    color: var(--primary, #108a55);
-    letter-spacing: 0.1em;
-    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
 }
 
-.vip-pass-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    text-align: left;
-}
-
-.vip-pass-item label {
-    display: block;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: #64748b;
-    margin-bottom: 2px;
-}
-
-.vip-pass-item strong {
-    font-size: 0.92rem;
-    color: #f1f5f9;
-}
-
-.vip-pass-actions {
+/* ═══════════════════════════════════════════════════════
+   ACTION TOOLBAR (Underneath Flyer — Download, Share, Print)
+   ═══════════════════════════════════════════════════════ */
+.flyer-actions-panel {
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
 }
 
-.vip-btn-whatsapp {
+/* Primary "Download Pass Picture" Button */
+.btn-flyer-download {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 9px;
     width: 100%;
-    padding: 0.85rem 1rem;
-    background: #25D366;
+    padding: 0.9rem 1.25rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff;
     font-weight: 800;
     font-size: 0.95rem;
-    border-radius: 12px;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-flyer-download:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.45);
+    color: #ffffff;
+}
+
+/* WhatsApp Share Button */
+.btn-flyer-whatsapp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    background: #25D366;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.93rem;
+    border-radius: 14px;
     border: none;
     cursor: pointer;
     text-decoration: none;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.vip-btn-whatsapp:hover {
+.btn-flyer-whatsapp:hover {
     background: #20bd5a;
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(37, 211, 102, 0.35);
-    color: #fff;
+    color: #ffffff;
 }
 
-.vip-btn-secondary {
+/* Secondary Button Row (Print & Story Card) */
+.flyer-secondary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+.btn-flyer-sub {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    width: 100%;
+    gap: 7px;
     padding: 0.75rem 1rem;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
     color: #e2e8f0;
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     border-radius: 12px;
     cursor: pointer;
     text-decoration: none;
     transition: all 0.15s ease;
 }
-.vip-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+.btn-flyer-sub:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
 }
 
-.vip-pass-footer-note {
-    margin-top: 1.5rem;
-    font-size: 0.78rem;
-    color: #64748b;
-    line-height: 1.5;
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVENESS (Mobile, Tablet, Desktop)
+   ═══════════════════════════════════════════════════════ */
+
+/* Mobile Phones (Compact) */
+@media (max-width: 480px) {
+    .flyer-pass-page {
+        padding: 1rem 0.65rem 2.5rem;
+    }
+    .flyer-card {
+        min-height: 580px;
+        border-radius: 20px;
+    }
+    .flyer-title {
+        font-size: 1.45rem;
+    }
+    .flyer-qr-holder {
+        width: 105px;
+        height: 105px;
+        min-width: 105px;
+        border-radius: 12px;
+    }
+    .flyer-code-display {
+        font-size: 1.05rem;
+    }
+    .flyer-glass-deck {
+        margin: 0.35rem 0.65rem 0.75rem;
+        padding: 1rem 1rem;
+    }
 }
 
+/* Tablet (Portrait & Landscape: 600px - 899px) */
+@media (min-width: 600px) and (max-width: 899px) {
+    .flyer-pass-container {
+        max-width: 480px;
+    }
+    .flyer-card {
+        min-height: 700px;
+        border-radius: 28px;
+    }
+    .flyer-title {
+        font-size: 1.85rem;
+    }
+    .flyer-qr-holder {
+        width: 135px;
+        height: 135px;
+        min-width: 135px;
+    }
+}
+
+/* Desktop Monitors (900px+) */
+@media (min-width: 900px) {
+    .flyer-pass-page {
+        padding: 3rem 1.5rem 4rem;
+    }
+    .flyer-pass-container {
+        max-width: 460px;
+    }
+    .flyer-card {
+        min-height: 680px;
+        border-radius: 28px;
+    }
+    .flyer-title {
+        font-size: 1.8rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRINT STYLES — Crisp Physical Flyer Output
+   ═══════════════════════════════════════════════════════ */
 @media print {
-    body { background: #fff !important; color: #000 !important; }
-    .vip-pass-wrapper { padding: 0 !important; background: none !important; }
-    .vip-pass-card { max-width: 100% !important; border: 1px solid #ccc !important; box-shadow: none !important; background: #fff !important; }
-    .vip-pass-title, .vip-pass-item strong { color: #000 !important; }
-    .vip-pass-meta-strip { color: #333 !important; }
-    .vip-pass-actions, .vip-pass-badge-pill, .no-print { display: none !important; }
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    /* Hide navigation, footers, and download buttons */
+    header, footer, nav, .site-header, .site-footer, .flyer-actions-panel, .no-print, #storyCardModal {
+        display: none !important;
+    }
+    .flyer-pass-page {
+        min-height: auto !important;
+        padding: 0 !important;
+        background: none !important;
+        display: block !important;
+    }
+    .flyer-pass-container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .flyer-card {
+        width: 100% !important;
+        max-width: 520px !important;
+        margin: 0 auto !important;
+        border: 2px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    .flyer-bg-layer {
+        position: absolute !important;
+    }
+    .flyer-bg-img {
+        opacity: 0.95 !important;
+    }
+    .flyer-glass-deck {
+        background: rgba(10, 14, 23, 0.92) !important;
+        border: 1px solid #475569 !important;
+    }
+    .flyer-title, .flyer-spec-item strong {
+        color: #ffffff !important;
+    }
 }
 </style>
+
+<!-- Local html2canvas with CDN fallback -->
+<script src="<?= asset('assets/js/html2canvas.min.js') ?>?v=1.4.1"></script>
 @endsection
 
 @section('content')
-<div class="vip-pass-wrapper">
-    <div class="vip-pass-card">
-        
-        <!-- Top Event Poster Banner -->
-        <div class="vip-pass-banner">
-            <?php if (!empty($evImg)): ?>
-                <img src="<?= e($evImg) ?>" alt="<?= e($ticket['event_name']) ?>" />
-            <?php endif; ?>
-            <div class="vip-pass-banner-overlay"></div>
+<div class="flyer-pass-page">
+    <div class="flyer-pass-container">
 
-            <div class="vip-pass-badge-pill">
-                <span>🎟️</span>
-                <span><?= e($siteTitle) ?> VIP PASS</span>
+        <!-- ══════════════════════════════════════════════════
+             THE FLYER PASS (Full Height Image Cover)
+             ══════════════════════════════════════════════════ -->
+        <div class="flyer-card" id="flyerTicketPass" data-ticket-code="<?= e($ticketCode) ?>">
+
+            <!-- Full-Height Background Image Layer -->
+            <div class="flyer-bg-layer" style="<?= empty($evImg) ? "background: {$defaultPosterGrad};" : '' ?>">
+                <?php if (!empty($evImg)): ?>
+                    <img class="flyer-bg-img" 
+                         src="<?= e($evImg) ?>" 
+                         alt="<?= e($ticket['event_name']) ?>" 
+                         crossorigin="anonymous" />
+                <?php endif; ?>
+                <div class="flyer-bg-vignette"></div>
             </div>
 
-            <?php if ($isCheckedIn): ?>
-                <div class="vip-pass-status-pill vip-pass-status--checked">✓ CHECKED IN</div>
-            <?php elseif ($isCancelled): ?>
-                <div class="vip-pass-status-pill vip-pass-status--cancelled">CANCELLED</div>
-            <?php elseif ($isLayaway): ?>
-                <div class="vip-pass-status-pill" style="background:#6366f1; color:#ffffff;">⏳ INCOMPLETE LAYAWAY</div>
-            <?php elseif (!$isUnlocked): ?>
-                <div class="vip-pass-status-pill vip-pass-status--locked">🔒 PIN LOCKED</div>
-            <?php else: ?>
-                <div class="vip-pass-status-pill vip-pass-status--valid">● READY FOR SCAN</div>
-            <?php endif; ?>
+            <!-- Top Header: Platform Identity & Gate Status -->
+            <div class="flyer-header">
+                <div class="flyer-brand-tag">
+                    <span class="flyer-brand-dot"></span>
+                    <span><?= e($siteTitle) ?> Pass</span>
+                </div>
+
+                <?php if ($isCheckedIn): ?>
+                    <div class="flyer-status-badge flyer-status--checked">✓ Checked In</div>
+                <?php elseif ($isCancelled): ?>
+                    <div class="flyer-status-badge flyer-status--cancelled">Cancelled</div>
+                <?php elseif ($isLayaway): ?>
+                    <div class="flyer-status-badge flyer-status--layaway">⏳ Layaway</div>
+                <?php elseif (!$isUnlocked): ?>
+                    <div class="flyer-status-badge flyer-status--locked">🔒 PIN Locked</div>
+                <?php else: ?>
+                    <div class="flyer-status-badge flyer-status--valid">● Ready For Scan</div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Center/Hero Event Typography -->
+            <div class="flyer-center-info">
+                <h1 class="flyer-title"><?= e($ticket['event_name']) ?></h1>
+                <div class="flyer-meta-row">
+                    <span>🗓️ <?= $eventDate ? date('D, M d, Y • g:i A', $eventDate) : 'Date TBA' ?></span>
+                    <span>📍 <?= e($ticket['event_location'] ?? 'Venue TBA') ?></span>
+                </div>
+            </div>
+
+            <!-- Glassmorphism Admission Deck (QR + Specs) -->
+            <div class="flyer-glass-deck">
+                <?php if ($isLayaway): ?>
+                    <!-- Incomplete Layaway Warning -->
+                    <div class="flyer-layaway-card">
+                        <div style="font-size:2rem; margin-bottom:6px;">⏳</div>
+                        <h2 style="font-size:1.1rem; color:#a5b4fc; margin:0 0 6px;">Layaway Plan Active</h2>
+                        <p style="font-size:0.8rem; color:#94a3b8; margin:0 0 12px; line-height:1.4;">
+                            Your ticket is reserved! The entrance QR pass unlocks automatically upon completion of your layaway payments.
+                        </p>
+                        <a href="<?= \url('/layaway') ?>" class="flyer-layaway-btn">Complete Layaway Plan &rarr;</a>
+                    </div>
+                <?php elseif (!$isUnlocked): ?>
+                    <!-- Dedicated High-Contrast PIN Lock State -->
+                    <div class="flyer-locked-card">
+                        <div class="flyer-locked-icon"><span>🔒</span></div>
+                        <h2 class="flyer-locked-title">Protected Admission Pass</h2>
+                        <p class="flyer-locked-desc">
+                            Enter the 4-digit PIN sent to <strong><?= e($maskedEmail) ?></strong> to reveal your entrance QR pass.
+                        </p>
+
+                        <?php if ($flashErr = \Ace\Application::$app->session->getFlash('error')): ?>
+                            <div class="flyer-pin-alert flyer-pin-alert--error"><?= e($flashErr) ?></div>
+                        <?php endif; ?>
+                        <?php if ($flashSucc = \Ace\Application::$app->session->getFlash('success')): ?>
+                            <div class="flyer-pin-alert flyer-pin-alert--success"><?= e($flashSucc) ?></div>
+                        <?php endif; ?>
+
+                        <form method="POST" action="<?= \url('/pass/' . urlencode($ticketCode) . '/unlock') ?>" style="display:flex; flex-direction:column; align-items:center;">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>" />
+                            <input type="password"
+                                   name="pin"
+                                   maxlength="4"
+                                   pattern="\d{4}"
+                                   inputmode="numeric"
+                                   autocomplete="one-time-code"
+                                   placeholder="••••"
+                                   required
+                                   class="flyer-pin-input"
+                                   autofocus />
+                            <button type="submit" class="flyer-pin-submit">🔓 Reveal QR Pass</button>
+                        </form>
+
+                        <button type="button" class="flyer-pin-resend" id="btn-pass-resend-pin" data-code="<?= e($ticketCode) ?>">
+                            <span>✉️</span> Resend PIN to my email
+                        </button>
+                        <div id="pass-pin-resend-msg" style="margin-top:6px; font-size:0.76rem; font-weight:600; display:none;"></div>
+                    </div>
+                <?php else: ?>
+                    <!-- Scannable High-Speed Gate QR Code -->
+                    <div class="flyer-qr-section">
+                        <div class="flyer-qr-holder" title="Present this QR at the venue entrance gate">
+                            <img src="<?= $qrUrl ?>" 
+                                 id="flyerQrCodeImg"
+                                 alt="QR Pass #<?= e($ticketCode) ?>" 
+                                 crossorigin="anonymous" />
+                        </div>
+                        <div class="flyer-qr-caption">
+                            <span class="flyer-code-label">Admission Code</span>
+                            <div class="flyer-code-display"><?= e($ticketCode) ?></div>
+                            <p class="flyer-code-hint">
+                                Scan at gate for instant verification. Please set screen brightness to 100%.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Pass Holder & Admission Details Grid -->
+                    <div class="flyer-specs-grid">
+                        <div class="flyer-spec-item">
+                            <label>Pass Holder</label>
+                            <strong><?= e($ticket['attendee_name']) ?></strong>
+                        </div>
+                        <div class="flyer-spec-item">
+                            <label>Ticket Tier</label>
+                            <strong><?= e($ticket['ticket_tier'] ?? 'General Admission') ?><?= $admits > 1 ? " ({$admits} Admits)" : "" ?></strong>
+                        </div>
+                        <div class="flyer-spec-item">
+                            <label>Gate Status</label>
+                            <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">
+                                <?= $isCheckedIn ? 'Checked In' : 'Active Pass' ?>
+                            </strong>
+                        </div>
+                        <div class="flyer-spec-item">
+                            <label>Verification</label>
+                            <strong style="color: #f8fafc;"><?= e($siteTitle) ?> Verified</strong>
+                        </div>
+                    </div>
+
+                    <!-- Add-Ons / Merch Section (If applicable) -->
+                    <?php if (!empty($addons)): ?>
+                        <div class="flyer-addons-strip">
+                            <div class="flyer-addons-title">
+                                <span>🛍️</span> <span>Add-ons &amp; Merch Voucher</span>
+                            </div>
+                            <?php foreach ($addons as $addon): ?>
+                                <div class="flyer-addon-item">
+                                    <span><?= (int)$addon['quantity'] ?>&times; <?= e($addon['addon_name'] ?? 'Merchandise') ?></span>
+                                    <span style="color:#2dd4bf; font-weight:700;"><?= ucfirst($addon['redemption_status'] ?? 'Pending') ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+
+                <!-- Platform Branding Watermark (Non-intrusive) -->
+                <div class="flyer-watermark">
+                    <span><?= e($siteTitle) ?> Official Admission Flyer</span>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Pass Body -->
-        <div class="vip-pass-body">
-            <h1 class="vip-pass-title"><?= e($ticket['event_name']) ?></h1>
-            
-            <div class="vip-pass-meta-strip">
-                <span>🗓️ <?= $eventDate ? date('D, M d, Y • g:i A', $eventDate) : 'Date TBA' ?></span>
-                <span>📍 <?= e($ticket['event_location'] ?? 'Venue TBA') ?></span>
-            </div>
+        <!-- ══════════════════════════════════════════════════
+             ACTION TOOLBAR (Download Image, WhatsApp, Print)
+             ══════════════════════════════════════════════════ -->
+        <?php if ($isUnlocked): ?>
+            <div class="flyer-actions-panel no-print">
 
-            <!-- Scannable High-Res QR Code -->
-            <?php if ($isLayaway): ?>
-                <div class="vip-pin-lock-container">
-                    <div class="vip-pin-lock-icon" style="background:rgba(99,102,241,0.15); border-color:rgba(99,102,241,0.35);">
-                        <span>⏳</span>
-                    </div>
-                    <h2 class="vip-pin-heading" style="color:#818cf8;">Layaway Plan Inactive</h2>
-                    <p class="vip-pin-subheading">
-                        This admission ticket is reserved under an active layaway installment plan. Your gate QR code is automatically released upon final payment.
-                    </p>
-                    <a href="<?= \url('/layaway') ?>" class="vip-pin-submit-btn" style="text-decoration:none; display:inline-block; background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
-                        Complete Layaway Plan →
-                    </a>
-                </div>
-            <?php elseif (!$isUnlocked): ?>
-                <!-- Dedicated High-Contrast PIN Lock Container -->
-                <div class="vip-pin-lock-container">
-                    <div class="vip-pin-lock-icon">
-                        <span>🔒</span>
-                    </div>
-                    <h2 class="vip-pin-heading">Admission Pass Protected</h2>
-                    <p class="vip-pin-subheading">
-                        Enter your 4-digit security PIN sent to <strong><?= e($maskedEmail) ?></strong> to reveal your gate QR code and admission details.
-                    </p>
+                <!-- 1-Click Download Picture Button -->
+                <button type="button" class="btn-flyer-download" id="btn-download-pass-picture">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    <span id="btn-download-text">Download Pass as Picture</span>
+                </button>
 
-                    <?php if ($flashErr = \Ace\Application::$app->session->getFlash('error')): ?>
-                        <div class="vip-pin-alert vip-pin-alert--error">
-                            <?= e($flashErr) ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($flashSucc = \Ace\Application::$app->session->getFlash('success')): ?>
-                        <div class="vip-pin-alert vip-pin-alert--success">
-                            <?= e($flashSucc) ?>
-                        </div>
-                    <?php endif; ?>
+                <!-- WhatsApp Share Direct -->
+                <?php
+                    $tData = ($ticket instanceof \Ace\ViewData) ? $ticket->toArray() : (array)$ticket;
+                    $waMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
+                        ['name' => $tData['event_name'] ?? '', 'date' => $tData['event_date'] ?? null, 'location' => $tData['event_location'] ?? ''],
+                        $tData,
+                        $siteTitle
+                    );
+                    $waUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl('', $waMsg);
+                ?>
+                <a href="<?= e($waUrl) ?>" target="_blank" rel="noopener" class="btn-flyer-whatsapp">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
+                    <span>Share Pass to WhatsApp</span>
+                </a>
 
-                    <form method="POST" action="<?= \url('/pass/' . urlencode($ticketCode) . '/unlock') ?>" style="width:100%; display:flex; flex-direction:column; align-items:center;">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>" />
-                        <input type="password" 
-                               name="pin" 
-                               maxlength="4" 
-                               pattern="\d{4}" 
-                               inputmode="numeric" 
-                               autocomplete="one-time-code" 
-                               placeholder="••••" 
-                               required 
-                               class="vip-pin-input-field" 
-                               autofocus />
-
-                        <button type="submit" class="vip-pin-submit-btn">
-                            🔓 Unlock Admission Pass
-                        </button>
-                    </form>
-
-                    <button type="button" class="vip-pin-resend-link" id="btn-pass-resend-pin" data-code="<?= e($ticketCode) ?>">
-                        <span>✉️</span> Resend PIN to my email
+                <!-- Print & Story Card -->
+                <div class="flyer-secondary-grid">
+                    <button type="button" onclick="window.print()" class="btn-flyer-sub">
+                        <span>🖨️</span> Print Pass
                     </button>
-                    <div id="pass-pin-resend-msg" style="margin-top:8px; font-size:0.8rem; font-weight:600; display:none;"></div>
-                </div>
-
-                <div class="vip-pass-code-pill" title="Protected admission code">
-                    <span>EV-••••••••</span>
-                </div>
-            <?php else: ?>
-                <div class="vip-qr-box" title="Gate Admission QR Code — Scan at entrance">
-                    <img src="<?= url('/ticket/qr/' . urlencode($ticketCode) . '?s=300') ?>" alt="Ticket QR Code #<?= e($ticketCode) ?>" />
-                </div>
-                <div class="vip-pass-code-pill" title="Official admission code">
-                    <span><?= e($ticketCode) ?></span>
-                </div>
-            <?php endif; ?>
-
-            <!-- Pass Holder & Tier Details Grid -->
-            <div class="vip-pass-grid">
-                <div class="vip-pass-item">
-                    <label>Attendee Name</label>
-                    <strong><?= e($ticket['attendee_name']) ?></strong>
-                </div>
-                <div class="vip-pass-item">
-                    <label>Ticket Tier</label>
-                    <strong><?= e($ticket['ticket_tier'] ?? 'Admission') ?><?= $admits > 1 ? " ({$admits} Admits)" : "" ?></strong>
-                </div>
-                <div class="vip-pass-item">
-                    <label>Gate Status</label>
-                    <?php if ($isLayaway): ?>
-                        <strong style="color: #818cf8;">Payment Required</strong>
-                    <?php else: ?>
-                        <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">
-                            <?= $isCheckedIn ? 'Checked In' : 'Ready for Scan' ?>
-                        </strong>
-                    <?php endif; ?>
-                </div>
-                <div class="vip-pass-item">
-                    <label>Issued Via</label>
-                    <strong><?= e($siteTitle) ?> Verified</strong>
-                </div>
-            </div>
-
-            <!-- Merchandise & Add-Ons Package -->
-            <?php if (!empty($addons)): ?>
-                <div style="background: rgba(13, 148, 136, 0.08); border: 1px solid rgba(13, 148, 136, 0.25); border-radius: 14px; padding: 0.95rem 1rem; margin-bottom: 1.5rem; text-align: left;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem; border-bottom: 1px solid rgba(13, 148, 136, 0.15); padding-bottom: 0.4rem;">
-                        <span style="font-size:0.75rem; font-weight:800; color:#0d9488; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:5px;">
-                            <span>🛍️</span> Merchandise &amp; Add-Ons
-                        </span>
-                        <span style="font-size:0.7rem; font-weight:700; color:#0d9488; background:rgba(13, 148, 136, 0.15); padding:2px 7px; border-radius:99px;">
-                            Official Voucher
-                        </span>
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                        <?php foreach ($addons as $addon): 
-                            $adImg = $addon['addon_image'] ?? ($addon['image'] ?? null);
-                        ?>
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; font-size:0.85rem; padding:4px 0;">
-                                <div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
-                                    <?php if (!empty($adImg)): ?>
-                                        <img src="<?= e($adImg) ?>" alt="<?= e($addon['addon_name'] ?? 'Merch') ?>" style="width:36px; height:36px; border-radius:7px; object-fit:cover; border:1px solid rgba(13,148,136,0.3); flex-shrink:0;" />
-                                    <?php else: ?>
-                                        <div style="width:36px; height:36px; border-radius:7px; background:rgba(13,148,136,0.12); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🛍️</div>
-                                    <?php endif; ?>
-                                    <strong style="color:#f1f5f9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                        <span style="color:#0d9488;"><?= (int)$addon['quantity'] ?>×</span> <?= e($addon['addon_name'] ?? 'Merchandise') ?>
-                                    </strong>
-                                </div>
-                                <span style="font-size:0.72rem; font-weight:700; color:#0d9488; background:rgba(13,148,136,0.15); padding:2px 6px; border-radius:6px; flex-shrink:0;">
-                                    <?= ucfirst($addon['redemption_status'] ?? 'Pending') ?>
-                                </span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <!-- Action Buttons: WhatsApp & Print (Only visible when Unlocked) -->
-            <?php if ($isUnlocked): ?>
-                <div class="vip-pass-actions no-print">
-                    <?php
-                        $tData = ($ticket instanceof \Ace\ViewData) ? $ticket->toArray() : (array)$ticket;
-                        $waMsg = \App\Services\WhatsAppService::buildTicketPassMessage(
-                            ['name' => $tData['event_name'] ?? '', 'date' => $tData['event_date'] ?? null, 'location' => $tData['event_location'] ?? ''],
-                            $tData,
-                            $siteTitle
-                        );
-                        $waUrl = \App\Services\WhatsAppService::generateDirectWhatsAppUrl('', $waMsg);
-                    ?>
-                    <a href="<?= e($waUrl) ?>" target="_blank" rel="noopener" class="vip-btn-whatsapp">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.586 1.861.947 3.018.947 3.174 0 5.79-2.586 5.79-5.767.001-3.18-2.617-5.767-5.789-5.767m7.859 5.766c0 4.331-3.523 7.854-7.859 7.854-1.328 0-2.56-.344-3.644-.949l-4.048 1.061 1.08-3.945c-.714-1.156-1.127-2.518-1.127-3.971 0-4.331 3.523-7.854 7.859-7.854 4.336 0 7.859 3.523 7.859 7.854"/></svg>
-                        <span>Share Pass to WhatsApp</span>
-                    </a>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-                        <button type="button" onclick="window.print()" class="vip-btn-secondary">
-                            <span>🖨️</span> Print / Save PDF
-                        </button>
-                        <button type="button" id="btn-trigger-story-pass" class="vip-btn-secondary" style="color:var(--primary,#108a55);"
-                                data-event-id="<?= e($ticket['event_id']) ?>"
-                                data-event-title="<?= e($ticket['event_name']) ?>"
-                                data-event-date="<?= e($ticket['event_date']) ?>"
-                                data-event-location="<?= e($ticket['event_location']) ?>"
-                                data-event-image="<?= e($evImg) ?>"
-                                data-site-title="<?= e($siteTitle) ?>">
-                            <span>📸</span> Story Card
-                        </button>
-                    </div>
-                </div>
-
-                <p class="vip-pass-footer-note">
-                    💡 <strong>Gate Instructions:</strong> Please present this QR pass at the entrance gate. Set your screen brightness to maximum for fast optical verification.
-                </p>
-            <?php else: ?>
-                <!-- Locked State Security Notice -->
-                <div style="background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 14px; padding: 1.1rem 1.25rem; font-size: 0.82rem; color: #94a3b8; line-height: 1.5; margin-bottom: 1.5rem; text-align: center;">
-                    🔒 <strong>Pass Secured:</strong> Your admission QR code and sharing options remain protected until unlocked. Check your email for your 4-digit Security PIN, or click <em>"Send PIN to my Email"</em> above.
-                </div>
-
-                <div style="display:flex; justify-content:center;">
-                    <button type="button" id="btn-trigger-story-pass" class="vip-btn-secondary" style="max-width:240px; color:var(--primary,#108a55);"
+                    <button type="button" id="btn-trigger-story-pass" class="btn-flyer-sub" style="color:var(--flyer-accent);"
                             data-event-id="<?= e($ticket['event_id']) ?>"
                             data-event-title="<?= e($ticket['event_name']) ?>"
                             data-event-date="<?= e($ticket['event_date']) ?>"
                             data-event-location="<?= e($ticket['event_location']) ?>"
                             data-event-image="<?= e($evImg) ?>"
                             data-site-title="<?= e($siteTitle) ?>">
-                        <span>📸</span> Share Story Card
+                        <span>📸</span> Story Card
                     </button>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php else: ?>
+            <div style="display:flex; justify-content:center; margin-top:0.5rem;" class="no-print">
+                <button type="button" id="btn-trigger-story-pass" class="btn-flyer-sub" style="max-width:240px; color:var(--flyer-accent);"
+                        data-event-id="<?= e($ticket['event_id']) ?>"
+                        data-event-title="<?= e($ticket['event_name']) ?>"
+                        data-event-date="<?= e($ticket['event_date']) ?>"
+                        data-event-location="<?= e($ticket['event_location']) ?>"
+                        data-event-image="<?= e($evImg) ?>"
+                        data-site-title="<?= e($siteTitle) ?>">
+                    <span>📸</span> Share Story Card
+                </button>
+            </div>
+        <?php endif; ?>
+
     </div>
 </div>
 
@@ -693,11 +931,120 @@ if (!empty($rawImg)) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const resendBtn = document.getElementById('btn-pass-resend-pin');
-    const resendMsg = document.getElementById('pass-pin-resend-msg');
+    // ── 1. Download Pass as Picture (html2canvas with Dynamic Loader) ──────
+    var downloadBtn = document.getElementById('btn-download-pass-picture');
+    var downloadText = document.getElementById('btn-download-text');
+    var flyerCard = document.getElementById('flyerTicketPass');
+
+    // Helper: Ensure html2canvas is available (from local asset or cdn fallback)
+    function ensureHtml2Canvas(callback) {
+        if (typeof window.html2canvas !== 'undefined') {
+            return callback(null, window.html2canvas);
+        }
+
+        // Dynamically inject script tag if not yet loaded
+        var script = document.createElement('script');
+        script.src = '<?= asset('assets/js/html2canvas.min.js') ?>?v=1.4.1';
+        script.onload = function () {
+            if (typeof window.html2canvas !== 'undefined') {
+                callback(null, window.html2canvas);
+            } else {
+                fallbackCdn();
+            }
+        };
+        script.onerror = function () {
+            fallbackCdn();
+        };
+
+        function fallbackCdn() {
+            var cdnScript = document.createElement('script');
+            cdnScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            cdnScript.onload = function () {
+                if (typeof window.html2canvas !== 'undefined') {
+                    callback(null, window.html2canvas);
+                } else {
+                    callback(new Error('html2canvas unavailable'));
+                }
+            };
+            cdnScript.onerror = function (e) {
+                callback(new Error('html2canvas failed to load'));
+            };
+            document.head.appendChild(cdnScript);
+        }
+
+        document.head.appendChild(script);
+    }
+
+    if (downloadBtn && flyerCard) {
+        downloadBtn.addEventListener('click', function () {
+            var originalText = downloadText ? downloadText.textContent : 'Download Pass as Picture';
+            if (downloadText) downloadText.textContent = 'Preparing Picture...';
+            downloadBtn.disabled = true;
+            downloadBtn.style.opacity = '0.75';
+
+            ensureHtml2Canvas(function (err, h2c) {
+                if (err || !h2c) {
+                    alert('Could not initialize the image generator. You can use "Print Pass" to save as a PDF or picture.');
+                    if (downloadText) downloadText.textContent = originalText;
+                    downloadBtn.disabled = false;
+                    downloadBtn.style.opacity = '1';
+                    return;
+                }
+
+                if (downloadText) downloadText.textContent = 'Generating HD Picture...';
+
+                var ticketCode = flyerCard.getAttribute('data-ticket-code') || 'Pass';
+                var safeFilename = 'Eventlyy_Pass_' + ticketCode.replace(/[^a-zA-Z0-9_-]/g, '_') + '.png';
+
+                // High-resolution capture at 2x scale for sharp output on mobile & desktop
+                h2c(flyerCard, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#070a10',
+                    logging: false,
+                    imageTimeout: 10000
+                }).then(function (canvas) {
+                    try {
+                        var dataUrl = canvas.toDataURL('image/png');
+                        var a = document.createElement('a');
+                        a.href = dataUrl;
+                        a.download = safeFilename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+
+                        if (downloadText) downloadText.textContent = '✓ Saved to Pictures!';
+                        setTimeout(function () {
+                            if (downloadText) downloadText.textContent = originalText;
+                            downloadBtn.disabled = false;
+                            downloadBtn.style.opacity = '1';
+                        }, 2500);
+                    } catch (e) {
+                        console.warn('Canvas export failed, falling back to print:', e);
+                        window.print();
+                        if (downloadText) downloadText.textContent = originalText;
+                        downloadBtn.disabled = false;
+                        downloadBtn.style.opacity = '1';
+                    }
+                }).catch(function (error) {
+                    console.error('html2canvas rendering error:', error);
+                    alert('Could not render image directly. Opening print dialog to save as PDF or image.');
+                    window.print();
+                    if (downloadText) downloadText.textContent = originalText;
+                    downloadBtn.disabled = false;
+                    downloadBtn.style.opacity = '1';
+                });
+            });
+        });
+    }
+
+    // ── 2. Resend PIN Ajax ──────────────────────────────────────────
+    var resendBtn = document.getElementById('btn-pass-resend-pin');
+    var resendMsg = document.getElementById('pass-pin-resend-msg');
     if (resendBtn) {
         resendBtn.addEventListener('click', function () {
-            const code = this.getAttribute('data-code');
+            var code = this.getAttribute('data-code');
             this.disabled = true;
             this.style.opacity = '0.6';
             if (resendMsg) {
@@ -715,8 +1062,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: 'csrf_token=<?= e(csrf_token()) ?>'
             })
-            .then(r => r.json())
-            .then(data => {
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
                 if (data.success) {
                     if (resendMsg) {
                         resendMsg.style.color = '#34d399';
@@ -731,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     resendBtn.style.opacity = '1';
                 }
             })
-            .catch(() => {
+            .catch(function () {
                 if (resendMsg) {
                     resendMsg.style.color = '#f87171';
                     resendMsg.textContent = '✕ Error connecting to server.';
