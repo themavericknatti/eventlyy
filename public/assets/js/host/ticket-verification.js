@@ -37,6 +37,156 @@
     var lastScanTime = 0;
     var resumeTimer = null;
     var audioCtx = null;
+    var activeCameraTrack = null;
+    var isTorchOn = false;
+
+    // ─── Camera Hardware Optimizations & Continuous Autofocus ─
+
+    function selectOptimalBackCamera(cameras) {
+        if (!cameras || cameras.length === 0) return null;
+        if (cameras.length === 1) return cameras[0];
+
+        var scored = cameras.map(function (cam) {
+            var lbl = (cam.label || '').toLowerCase();
+            var score = 0;
+            // Back / rear / environment camera
+            if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
+                score += 100;
+            }
+            // Penalize ultra-wide / 0.5x fixed-focus lenses (causes blurry closeups on iPhone Pro / multi-lens Android)
+            if (lbl.indexOf('ultra') !== -1 || lbl.indexOf('0.5') !== -1 || lbl.indexOf('wide angle') !== -1) {
+                score -= 80;
+            }
+            // Penalize telephoto (2x, 3x, zoom)
+            if (lbl.indexOf('telephoto') !== -1 || lbl.indexOf('zoom') !== -1 || lbl.indexOf('2x') !== -1 || lbl.indexOf('3x') !== -1) {
+                score -= 60;
+            }
+            // Favor primary / main / camera 0 / 1x autofocus camera
+            if (lbl.indexOf('main') !== -1 || lbl.indexOf('primary') !== -1 || lbl.indexOf('camera 0') !== -1 || lbl.indexOf('1x') !== -1) {
+                score += 50;
+            }
+            return { cam: cam, score: score };
+        });
+
+        scored.sort(function (a, b) { return b.score - a.score; });
+        return scored[0].cam;
+    }
+
+    function applyCameraTrackEnhancements(containerId) {
+        try {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            var video = container.querySelector('video');
+            if (!video || !video.srcObject) return;
+            var stream = video.srcObject;
+            var tracks = stream.getVideoTracks ? stream.getVideoTracks() : [];
+            if (!tracks || tracks.length === 0) return;
+
+            activeCameraTrack = tracks[0];
+            var caps = (typeof activeCameraTrack.getCapabilities === 'function') ? activeCameraTrack.getCapabilities() : null;
+
+            if (caps && activeCameraTrack.applyConstraints) {
+                var adv = {};
+                // Continuous hardware autofocus
+                if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.indexOf('continuous') !== -1) {
+                    adv.focusMode = 'continuous';
+                }
+                // Continuous exposure
+                if (caps.exposureMode && Array.isArray(caps.exposureMode) && caps.exposureMode.indexOf('continuous') !== -1) {
+                    adv.exposureMode = 'continuous';
+                }
+                // Continuous white balance
+                if (caps.whiteBalanceMode && Array.isArray(caps.whiteBalanceMode) && caps.whiteBalanceMode.indexOf('continuous') !== -1) {
+                    adv.whiteBalanceMode = 'continuous';
+                }
+
+                if (Object.keys(adv).length > 0) {
+                    activeCameraTrack.applyConstraints({ advanced: [adv] }).catch(function () {});
+                }
+
+                // Show torch button if flashlight hardware is supported
+                updateTorchButtonVisibility(!!caps.torch);
+            }
+        } catch (e) {
+            console.warn('Track enhancement error:', e);
+        }
+    }
+
+    function updateTorchButtonVisibility(hasTorch) {
+        var torchBtn = document.getElementById('tv-torch-toggle-btn');
+        if (!torchBtn) return;
+        if (hasTorch) {
+            torchBtn.style.display = 'inline-flex';
+        } else {
+            torchBtn.style.display = 'none';
+        }
+    }
+
+    window.toggleScannerTorch = function () {
+        if (!activeCameraTrack || typeof activeCameraTrack.applyConstraints !== 'function') return;
+        isTorchOn = !isTorchOn;
+        activeCameraTrack.applyConstraints({
+            advanced: [{ torch: isTorchOn }]
+        }).then(function () {
+            var torchBtn = document.getElementById('tv-torch-toggle-btn');
+            if (torchBtn) {
+                torchBtn.innerHTML = isTorchOn ? '🔦 Torch ON' : '⚡ Torch';
+                torchBtn.style.background = isTorchOn ? '#f59e0b' : '';
+                torchBtn.style.color = isTorchOn ? '#000000' : '';
+            }
+        }).catch(function (e) {
+            console.warn('Torch toggle failed:', e);
+            isTorchOn = false;
+        });
+    };
+
+    function setupTapToFocus(wrapperId) {
+        var wrapper = document.getElementById(wrapperId);
+        if (!wrapper || wrapper.dataset.focusBound) return;
+        wrapper.dataset.focusBound = 'true';
+
+        wrapper.addEventListener('click', function (e) {
+            if (!activeCameraTrack || typeof activeCameraTrack.applyConstraints !== 'function') return;
+
+            var rect = wrapper.getBoundingClientRect();
+            var x = (e.clientX - rect.left) / rect.width;
+            var y = (e.clientY - rect.top) / rect.height;
+
+            showFocusRing(wrapper, e.clientX - rect.left, e.clientY - rect.top);
+
+            var caps = (typeof activeCameraTrack.getCapabilities === 'function') ? activeCameraTrack.getCapabilities() : null;
+            var adv = {};
+            if (caps && caps.pointsOfInterest) {
+                adv.pointsOfInterest = [{ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) }];
+            }
+            if (caps && caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.indexOf('continuous') !== -1) {
+                adv.focusMode = 'continuous';
+            }
+            if (Object.keys(adv).length > 0) {
+                activeCameraTrack.applyConstraints({ advanced: [adv] }).catch(function () {});
+            }
+        });
+    }
+
+    function showFocusRing(container, x, y) {
+        var ring = document.createElement('div');
+        ring.className = 'scanner-focus-ring';
+        ring.style.position = 'absolute';
+        ring.style.left = (x - 25) + 'px';
+        ring.style.top = (y - 25) + 'px';
+        ring.style.width = '50px';
+        ring.style.height = '50px';
+        ring.style.border = '2px solid #10b981';
+        ring.style.borderRadius = '8px';
+        ring.style.pointerEvents = 'none';
+        ring.style.zIndex = '100';
+        ring.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.6)';
+        ring.style.animation = 'tvFocusPulse 0.45s ease-out forwards';
+        container.appendChild(ring);
+        setTimeout(function () {
+            if (ring.parentNode) ring.parentNode.removeChild(ring);
+        }, 500);
+    }
 
     // ─── Web Audio API Synthesizer & Mobile Unlock ─────────
 
@@ -218,6 +368,19 @@
             videoObserver.disconnect();
             videoObserver = null;
         }
+
+        // Reset camera track enhancements & torch
+        if (activeCameraTrack) {
+            try {
+                if (isTorchOn && typeof activeCameraTrack.applyConstraints === 'function') {
+                    activeCameraTrack.applyConstraints({ advanced: [{ torch: false }] }).catch(function () {});
+                }
+            } catch (e) {}
+            activeCameraTrack = null;
+            isTorchOn = false;
+        }
+        updateTorchButtonVisibility(false);
+
         if (!html5QrcodeScanner) return;
         var instance = html5QrcodeScanner;
         html5QrcodeScanner = null;
@@ -269,7 +432,16 @@
         }
 
         try {
-            html5QrcodeScanner = new Html5Qrcode('qr-scanner');
+            var formats = (typeof Html5QrcodeSupportedFormats !== 'undefined') ?
+                [Html5QrcodeSupportedFormats.QR_CODE] : undefined;
+
+            html5QrcodeScanner = new Html5Qrcode('qr-scanner', {
+                formatsToSupport: formats,
+                verbose: false,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
+            });
         } catch (e) {
             updateScannerStatus('❌ Failed to initialize scanner: ' + e.message, 'error');
             html5QrcodeScanner = null;
@@ -281,11 +453,12 @@
             var code = extractTicketCode(decodedText);
             if (!code) return;
 
-            // Isolate group passes: prevent scanning next pass until previous scan is concluded
+            // Isolate group passes: prevent multi-scan race conditions
             if (isScanLocked || isProcessing) return;
-            if (code === lastScannedCode && (now - lastScanTime) < 4000) return;
+            if (code === lastScannedCode && (now - lastScanTime) < 5000) return;
 
             isScanLocked = true;
+            isProcessing = true;
             lastScannedCode = code;
             lastScanTime = now;
             unlockAudio();
@@ -310,71 +483,81 @@
             // Suppress frame scan failures
         };
 
-        // Notice: do NOT specify aspectRatio: 1.0! Safari WebKit on iOS throws OverconstrainedError on non-native stream ratios
         var config = {
-            fps: 15,
+            fps: 20,
             qrbox: function (viewfinderWidth, viewfinderHeight) {
                 var w = viewfinderWidth || 300;
                 var h = viewfinderHeight || 300;
                 var minDim = Math.min(w, h);
-                var boxSize = Math.max(160, Math.min(260, Math.floor(minDim * 0.72)));
+                var boxSize = Math.max(200, Math.min(360, Math.floor(minDim * 0.78)));
                 return {
                     width: boxSize,
                     height: boxSize
                 };
+            },
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true
             }
         };
 
         updateScannerStatus('📷 Starting camera...', 'info');
         setupVideoObserver('qr-scanner');
+        setupTapToFocus('scanner-preview-wrapper');
 
-        // Prefer native rear environment camera directly (ideal for iPhone Safari & Android Chrome)
-        html5QrcodeScanner.start(
-            { facingMode: 'environment' },
-            config,
-            onScanSuccess,
-            onScanError
-        ).then(function () {
+        function onCameraReady() {
             updateScannerStatus('Point camera at attendee QR code', 'info');
             enforcePlaysInline('qr-scanner');
-        }).catch(function (err1) {
-            console.warn('Direct facingMode environment failed, trying camera enumeration fallback:', err1);
-            if (typeof Html5Qrcode.getCameras === 'function') {
-                return Html5Qrcode.getCameras().then(function (cameras) {
-                    var targetCamera = null;
-                    if (cameras && cameras.length > 0) {
-                        for (var i = 0; i < cameras.length; i++) {
-                            var lbl = (cameras[i].label || '').toLowerCase();
-                            if (lbl.indexOf('back') !== -1 || lbl.indexOf('rear') !== -1 || lbl.indexOf('environment') !== -1) {
-                                targetCamera = cameras[i];
-                                break;
-                            }
-                        }
-                        if (!targetCamera) {
-                            targetCamera = cameras[0];
-                        }
-                    }
-                    if (targetCamera && targetCamera.id) {
-                        return html5QrcodeScanner.start(targetCamera.id, config, onScanSuccess, onScanError);
-                    }
-                    return html5QrcodeScanner.start({ facingMode: 'user' }, config, onScanSuccess, onScanError);
-                }).then(function () {
-                    updateScannerStatus('Point camera at attendee QR code', 'info');
-                    enforcePlaysInline('qr-scanner');
-                }).catch(function (finalErr) {
-                    handleCameraError(finalErr);
-                });
-            } else {
-                return html5QrcodeScanner.start({ facingMode: 'user' }, config, onScanSuccess, onScanError)
-                    .then(function () {
-                        updateScannerStatus('Point camera at attendee QR code', 'info');
-                        enforcePlaysInline('qr-scanner');
-                    })
-                    .catch(function (finalErr) {
+            applyCameraTrackEnhancements('qr-scanner');
+        }
+
+        // Camera startup: Prefer enumerated optimal autofocus back camera, with robust fallbacks
+        if (typeof Html5Qrcode.getCameras === 'function') {
+            Html5Qrcode.getCameras().then(function (cameras) {
+                var bestCam = selectOptimalBackCamera(cameras);
+                var cameraParam = (bestCam && bestCam.id) ? bestCam.id : { facingMode: 'environment' };
+
+                return html5QrcodeScanner.start(
+                    cameraParam,
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+            }).then(onCameraReady).catch(function (err1) {
+                console.warn('Optimal camera startup failed, trying direct facingMode environment:', err1);
+                return html5QrcodeScanner.start(
+                    { facingMode: 'environment' },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                ).then(onCameraReady).catch(function (err2) {
+                    console.warn('Direct environment failed, falling back to front camera:', err2);
+                    return html5QrcodeScanner.start(
+                        { facingMode: 'user' },
+                        config,
+                        onScanSuccess,
+                        onScanError
+                    ).then(onCameraReady).catch(function (finalErr) {
                         handleCameraError(finalErr);
                     });
-            }
-        });
+                });
+            });
+        } else {
+            html5QrcodeScanner.start(
+                { facingMode: 'environment' },
+                config,
+                onScanSuccess,
+                onScanError
+            ).then(onCameraReady).catch(function (err) {
+                html5QrcodeScanner.start(
+                    { facingMode: 'user' },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                ).then(onCameraReady).catch(function (finalErr) {
+                    handleCameraError(finalErr);
+                });
+            });
+        }
     }
 
     function handleCameraError(err) {
@@ -391,34 +574,161 @@
         stopScanner();
     }
 
+    // ─── High-Speed Multi-Tier Photo QR Decoding Engine ──────────
+    // Uses hardware BarcodeDetector + off-thread ImageBitmap (15-30ms) with
+    // automatic canvas downscaling fallback to prevent mobile browser freezing on 12-48MP photos.
+    function decodeQrFromImageFile(file, containerId) {
+        return new Promise(function (resolve, reject) {
+            if (!file) {
+                return reject(new Error('No file provided'));
+            }
+
+            // Fast-Path 1: Native Hardware BarcodeDetector with off-thread createImageBitmap
+            if (typeof window.BarcodeDetector !== 'undefined' && typeof window.createImageBitmap === 'function') {
+                try {
+                    var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                    createImageBitmap(file).then(function (bitmap) {
+                        return detector.detect(bitmap).then(function (barcodes) {
+                            if (bitmap.close) bitmap.close();
+                            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                                return resolve(barcodes[0].rawValue);
+                            }
+                            fallbackCanvasScan();
+                        });
+                    }).catch(function (err) {
+                        console.warn('Native BarcodeDetector photo scan error, falling back:', err);
+                        fallbackCanvasScan();
+                    });
+                    return;
+                } catch (e) {
+                    console.warn('BarcodeDetector instantiation error:', e);
+                }
+            }
+
+            fallbackCanvasScan();
+
+            function fallbackCanvasScan() {
+                // Fast-Path 2: Downscale 12-48MP smartphone photos to max 1280px on in-memory canvas
+                // Reduces pixel processing by 90%, preventing mobile out-of-memory crashes
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var img = new Image();
+                    img.onload = function () {
+                        var maxDim = 1280;
+                        var w = img.width;
+                        var h = img.height;
+                        var scale = Math.min(1, maxDim / Math.max(w, h));
+
+                        var targetW = Math.round(w * scale);
+                        var targetH = Math.round(h * scale);
+
+                        var canvas = document.createElement('canvas');
+                        canvas.width = targetW;
+                        canvas.height = targetH;
+                        var ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                        if (typeof window.BarcodeDetector !== 'undefined') {
+                            try {
+                                var det = new window.BarcodeDetector({ formats: ['qr_code'] });
+                                det.detect(canvas).then(function (bcs) {
+                                    if (bcs && bcs.length > 0 && bcs[0].rawValue) {
+                                        return resolve(bcs[0].rawValue);
+                                    }
+                                    runHtml5Qrcode(canvas);
+                                }).catch(function () {
+                                    runHtml5Qrcode(canvas);
+                                });
+                                return;
+                            } catch (err) {}
+                        }
+
+                        runHtml5Qrcode(canvas);
+                    };
+                    img.onerror = function () {
+                        runHtml5QrcodeRawFile();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function () {
+                    runHtml5QrcodeRawFile();
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function runHtml5Qrcode(canvas) {
+                canvas.toBlob(function (blob) {
+                    var fileToScan = blob || file;
+                    runScannerInstance(fileToScan);
+                }, 'image/jpeg', 0.92);
+            }
+
+            function runHtml5QrcodeRawFile() {
+                runScannerInstance(file);
+            }
+
+            function runScannerInstance(targetFile) {
+                if (typeof Html5Qrcode === 'undefined') {
+                    return reject(new Error('QR library not loaded'));
+                }
+
+                var formats = (typeof Html5QrcodeSupportedFormats !== 'undefined') ?
+                    [Html5QrcodeSupportedFormats.QR_CODE] : undefined;
+
+                var tempScanner = new Html5Qrcode(containerId, {
+                    formatsToSupport: formats,
+                    verbose: false,
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
+                    }
+                });
+
+                tempScanner.scanFile(targetFile, false)
+                    .then(function (decodedText) {
+                        try { tempScanner.clear(); } catch (e) {}
+                        resolve(decodedText);
+                    })
+                    .catch(function (err) {
+                        if (targetFile !== file) {
+                            tempScanner.scanFile(file, false)
+                                .then(function (text2) {
+                                    try { tempScanner.clear(); } catch (e) {}
+                                    resolve(text2);
+                                })
+                                .catch(function (err2) {
+                                    try { tempScanner.clear(); } catch (e) {}
+                                    reject(err2);
+                                });
+                        } else {
+                            try { tempScanner.clear(); } catch (e) {}
+                            reject(err);
+                        }
+                    });
+            }
+        });
+    }
+
     // ─── Scan QR Code from Photo / File Capture (100% Infallible Mobile Fallback) ───
     window.scanQrFromPhoto = function (input) {
         if (!input.files || input.files.length === 0) return;
         var file = input.files[0];
 
-        if (typeof Html5Qrcode === 'undefined') {
-            updateScannerStatus('❌ QR Code scanner library not loaded. Please refresh.', 'error');
-            return;
-        }
-
-        updateScannerStatus('🔍 Scanning photo for QR code...', 'info');
+        updateScannerStatus('⚡ Processing photo...', 'info');
         stopScanner();
 
-        var tempScanner = new Html5Qrcode('qr-scanner');
-        tempScanner.scanFile(file, true)
+        decodeQrFromImageFile(file, 'qr-scanner')
             .then(function (decodedText) {
                 var code = extractTicketCode(decodedText);
-                updateScannerStatus('Found code: ' + code + '. Verifying...', 'info');
+                updateScannerStatus('Found pass: ' + code + '. Verifying...', 'info');
                 if (ticketCodeInput) ticketCodeInput.value = code;
                 verifyTicketAjax(code);
                 input.value = '';
-                try { tempScanner.clear(); } catch (e) {}
             })
             .catch(function (err) {
-                console.warn('scanFile error:', err);
+                console.warn('scanQrFromPhoto error:', err);
                 updateScannerStatus('⚠️ Could not find a valid QR code in that photo. Please ensure it is well lit, close-up, and try again.', 'error');
                 input.value = '';
-                try { tempScanner.clear(); } catch (e) {}
             });
     };
 

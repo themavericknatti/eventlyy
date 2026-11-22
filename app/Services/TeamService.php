@@ -154,6 +154,27 @@ class TeamService
         $db = Application::$app->db->pdo;
         $code = trim($ticketCode);
 
+        // 1. If scanned code is a URL (e.g. https://domain.com/ticket/EV-12345, /pass/EV-12345, or /ticket/qr/12345)
+        if (filter_var($code, FILTER_VALIDATE_URL) || str_contains($code, '://') || str_contains($code, '/ticket/') || str_contains($code, '/pass/')) {
+            if (preg_match('/(?:ticket\/|qr\/|pass\/|code=)([A-Za-z0-9\-_]+)/i', $code, $m)) {
+                $code = trim($m[1]);
+            } else {
+                $path = parse_url($code, PHP_URL_PATH) ?? '';
+                $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+                if (!empty($segments)) {
+                    $code = trim(end($segments));
+                }
+            }
+        }
+
+        // 2. If scanned code is JSON payload (e.g. {"id":"EV-12345"} or {"code":"EV-12345"})
+        if (str_starts_with($code, '{') && str_ends_with($code, '}')) {
+            $json = json_decode($code, true);
+            if (is_array($json)) {
+                $code = trim($json['ticket_code'] ?? $json['code'] ?? $json['id'] ?? $code);
+            }
+        }
+
         // Strip prefix if user enters e.g. EV-1234
         $cleanCode = preg_replace('/^EV-/i', '', $code);
         $evCode = str_starts_with(strtoupper($code), 'EV-') ? $code : ('EV-' . $code);
@@ -209,6 +230,20 @@ class TeamService
         }
 
         if ($ticket['checked_in'] == 1) {
+            $checkedInTs = !empty($ticket['checked_in_at']) ? strtotime($ticket['checked_in_at']) : 0;
+            $secondsAgo = ($checkedInTs > 0) ? (time() - $checkedInTs) : 999999;
+
+            // Grace window: duplicate frame or concurrent request within 6 seconds is treated as successful check-in
+            if ($secondsAgo <= 6) {
+                return [
+                    'success' => true,
+                    'status' => 'success',
+                    'message' => "VALID TICKET: Welcome {$ticket['attendee_name']}! (Just checked in)",
+                    'ticket' => $ticket,
+                    'addons' => []
+                ];
+            }
+
             $time = !empty($ticket['checked_in_at']) ? date('h:i A', strtotime($ticket['checked_in_at'])) : 'earlier';
             return [
                 'success' => false,

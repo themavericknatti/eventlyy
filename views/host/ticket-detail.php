@@ -809,6 +809,9 @@ body[data-theme='dark'] .htd-shell {
 .htd-qr-box img {
     display: block;
     border-radius: 4px;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
 }
 .htd-qr-note {
     font-size: 0.72rem;

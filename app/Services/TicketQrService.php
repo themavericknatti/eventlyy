@@ -39,7 +39,7 @@ class TicketQrService
             @mkdir($cacheDir, 0775, true);
         }
 
-        $cacheKey = md5("qr_v2_{$code}_{$size}");
+        $cacheKey = md5("qr_v3_{$code}_{$size}");
         $cacheFile = $cacheDir . '/' . $cacheKey . '.png';
 
         // Serve from disk cache if already generated
@@ -112,18 +112,16 @@ class TicketQrService
             return $rawPng;
         }
 
-        imagealphablending($qrImg, true);
-        imagesavealpha($qrImg, true);
-
         $w = imagesx($qrImg);
         $h = imagesy($qrImg);
 
-        // Resample smoothly to the exact requested target dimension
+        // Resize with nearest-neighbor (imagecopyresized) to maintain 100% binary contrast
+        // without bilinear anti-aliasing blur that degrades mobile camera decoding
         if ($w !== $targetSize || $h !== $targetSize) {
             $resized = imagecreatetruecolor($targetSize, $targetSize);
-            imagealphablending($resized, false);
-            imagesavealpha($resized, true);
-            imagecopyresampled($resized, $qrImg, 0, 0, 0, 0, $targetSize, $targetSize, $w, $h);
+            $white = imagecolorallocate($resized, 255, 255, 255);
+            imagefilledrectangle($resized, 0, 0, $targetSize, $targetSize, $white);
+            imagecopyresized($resized, $qrImg, 0, 0, 0, 0, $targetSize, $targetSize, $w, $h);
             imagedestroy($qrImg);
             $qrImg = $resized;
         }

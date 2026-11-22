@@ -183,6 +183,9 @@ if (!empty($rawImg)) {
     height: 100%;
     display: block;
     object-fit: contain;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
 }
 
 /* Scanner Corners Effect */

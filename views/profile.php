@@ -1013,7 +1013,8 @@ Your Account Hub — Eventlyy
                                     <div class="pf-qr-box">
                                         <img src="<?= ticket_qr_url($tk['ticket_id'], 200) ?>" 
                                              alt="Admission QR code for <?= htmlspecialchars($tk['ticket_id']) ?>" 
-                                             class="pf-qr-img" />
+                                             class="pf-qr-img" 
+                                             style="image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; image-rendering: pixelated;" />
                                     </div>
                                     <div class="pf-qr-code-text"><?= htmlspecialchars($tk['ticket_id']) ?></div>
                                     <div class="pf-qr-hint">Scan for entry at gate</div>

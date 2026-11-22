@@ -489,7 +489,7 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                                  alt="QR Code #<?= e($tCode) ?>" 
                                  width="110" 
                                  height="110" 
-                                 style="display:block; border-radius:4px;" />
+                                 style="display:block; border-radius:4px; image-rendering:-webkit-optimize-contrast; image-rendering:crisp-edges; image-rendering:pixelated;" />
                         </div>
                         <a href="<?= url('/pass/' . urlencode($tCode)) ?>" target="_blank" style="margin-top:4px; font-size:0.75rem; font-weight:700; color:#108a55; text-decoration:none;">
                             📱 Open Mobile Pass →

@@ -270,6 +270,24 @@ $checkedInCount = count($verified_tickets ?? []);
     transform: translateZ(0);
 }
 
+.scanner-focus-ring {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border: 2px solid #10b981;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+    animation: tvFocusPulse 0.45s ease-out forwards;
+}
+
+@keyframes tvFocusPulse {
+    0% { transform: scale(1.4); opacity: 0.8; }
+    50% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+}
+
 /* Result Ticket Cards (Fluid & High-Contrast) */
 .ticket-display-card {
     border-radius: 16px;
@@ -556,12 +574,17 @@ $checkedInCount = count($verified_tickets ?? []);
 
             <!-- Camera Scanner View -->
             <div id="scanner-view" class="scanner-container hidden">
-                <div class="scanner-preview-wrapper">
+                <div class="scanner-preview-wrapper" id="scanner-preview-wrapper" title="Tap camera to focus">
                     <div id="qr-scanner" class="qr-scanner"></div>
                 </div>
-                <div class="scanner-info" style="padding: 0.65rem; text-align: center;">
-                    <p style="margin: 0; font-weight: 700; font-size: 0.88rem;">Point camera at attendee QR code</p>
-                    <small style="color: rgb(var(--muted));">Center code within the frame to verify automatically</small>
+                <div class="scanner-info" style="padding: 0.65rem 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <div style="flex: 1; text-align: left; min-width: 140px;">
+                        <p style="margin: 0; font-weight: 700; font-size: 0.88rem;">Point camera at attendee QR code</p>
+                        <small style="color: rgb(var(--muted));">Center code in frame &bull; Tap viewfinder to focus</small>
+                    </div>
+                    <button type="button" id="tv-torch-toggle-btn" onclick="toggleScannerTorch()" class="btn-secondary" style="display:none; padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 700; border-radius: 8px;" title="Toggle Flashlight">
+                        ⚡ Torch
+                    </button>
                 </div>
                 <div id="scanner-status" class="scanner-status"></div>
                 <div class="scanner-photo-fallback" style="padding: 0.65rem 0.85rem 0.95rem; text-align: center; border-top: 1px dashed rgba(var(--muted), 0.2); background: rgba(var(--card), 0.5);">

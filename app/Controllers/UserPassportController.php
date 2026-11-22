@@ -5,7 +5,7 @@ namespace App\Controllers;
 use Ace\Application;
 use Ace\Controller;
 use Ace\Request;
-use App\Middlewares\AuthMiddleware;
+use Ace\Middlewares\AuthMiddleware;
 use App\Services\EventActivityService;
 use App\Models\LayawayCredit;
 

@@ -145,6 +145,26 @@ class CheckInTicketAction
 
         // 5. Check if already checked in
         if ($ticket['checked_in']) {
+            $checkedInTs = !empty($ticket['checked_in_at']) ? strtotime($ticket['checked_in_at']) : 0;
+            $secondsAgo = ($checkedInTs > 0) ? (time() - $checkedInTs) : 999999;
+
+            // Grace window: duplicate frame or concurrent request within 6 seconds is treated as successful check-in
+            if ($secondsAgo <= 6) {
+                return [
+                    'status' => 'success',
+                    'flash_type' => 'success',
+                    'flash_message' => 'Ticket ' . $ticket['id'] . ' (' . ($ticket['attendee_name'] ?? 'Attendee') . ') checked in successfully!',
+                    'result' => [
+                        'status' => 'success',
+                        'type' => 'success',
+                        'message' => 'Verified successfully: Welcome ' . ($ticket['attendee_name'] ?? 'Guest') . '!',
+                        'code' => $ticket['id'],
+                        'ticket' => $ticket,
+                        'idempotent' => true
+                    ]
+                ];
+            }
+
             $checkTime = !empty($ticket['checked_in_at']) ? date('h:i A', strtotime($ticket['checked_in_at'])) : 'earlier';
             return [
                 'status' => 'error',
