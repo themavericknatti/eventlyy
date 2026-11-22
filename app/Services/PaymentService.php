@@ -225,6 +225,24 @@ class PaymentService
             }
         }
 
+        $discountAmount = (float)($orderData['discount_amount'] ?? ($tx['discount_amount'] ?? 0.00));
+
+        // Calculate raw ticket subtotal across all purchased tickets
+        $rawTicketSubtotal = 0.00;
+        foreach ($qtyMap as $ttId => $qty) {
+            $qty = (int)$qty;
+            if ($qty > 0 && isset($ticketTypesById[$ttId])) {
+                $priceMap = $orderData['price_map'] ?? [];
+                $tierUnitPrice = isset($priceMap[$ttId]) ? (float)$priceMap[$ttId] : (float)$ticketTypesById[$ttId]['price'];
+                $rawTicketSubtotal += ($tierUnitPrice * $qty);
+            }
+        }
+
+        // Calculate proportional discount ratio to deduct promo code discount from ticket seat prices
+        $discountRatio = ($rawTicketSubtotal > 0 && $discountAmount > 0)
+            ? min(1.0, $discountAmount / $rawTicketSubtotal)
+            : 0.0;
+
         $db->beginTransaction();
         try {
             // Generate individual ticket rows
@@ -240,9 +258,18 @@ class PaymentService
                 $tierTotalPrice = $tierUnitPrice * $qty;
                 $admits = max(1, (int)($tt['admits'] ?? 1));
                 $totalPassesForTier = $qty * $admits;
-                $seatPrice = round($tierTotalPrice / $totalPassesForTier, 2);
+
+                // Net tier total after promo code discount deduction
+                $discountedTierTotal = max(0.00, round($tierTotalPrice * (1.0 - $discountRatio), 2));
+                $remainingTierTotal = $discountedTierTotal;
 
                 for ($i = 0; $i < $totalPassesForTier; $i++) {
+                    if ($i === $totalPassesForTier - 1) {
+                        $seatPrice = max(0.00, round($remainingTierTotal, 2));
+                    } else {
+                        $seatPrice = max(0.00, round($discountedTierTotal / $totalPassesForTier, 2));
+                        $remainingTierTotal -= $seatPrice;
+                    }
                     $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
                     $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);

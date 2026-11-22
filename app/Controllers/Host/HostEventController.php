@@ -1137,6 +1137,7 @@ class HostEventController extends Controller
         }
 
         $db = Application::$app->db->pdo;
+        \App\Services\AutoPayoutService::reconcileDiscountedTickets($db);
 
         $stmt = $db->prepare("
             SELECT t.id, t.attendee_name, t.attendee_email, t.attendee_phone,
@@ -1290,6 +1291,7 @@ class HostEventController extends Controller
         }
 
         $db = Application::$app->db->pdo;
+        \App\Services\AutoPayoutService::reconcileDiscountedTickets($db);
 
         // Fetch all tickets with ticket type tier name
         $stmt = $db->prepare("

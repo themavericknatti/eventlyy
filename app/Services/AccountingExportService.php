@@ -269,7 +269,9 @@ class AccountingExportService
             $gatewayStatus = 'Verified (Paid)';
             if (isset($txMap[$ref])) {
                 $tx = $txMap[$ref];
-                $gatewayStatus = ucfirst($tx['status'] ?? 'completed') . ' (' . strtoupper($tx['payment_method'] ?? 'paystack') . ')';
+                $pm = strtoupper($tx['payment_method'] ?? 'paystack');
+                $promoTag = !empty($tx['promo_code']) ? ' • Promo: ' . $tx['promo_code'] : '';
+                $gatewayStatus = ucfirst($tx['status'] ?? 'completed') . ' (' . $pm . $promoTag . ')';
             } elseif (in_array($t['status'] ?? '', ['Cancelled', 'Refunded'])) {
                 $gatewayStatus = 'Refunded / Cancelled';
             }

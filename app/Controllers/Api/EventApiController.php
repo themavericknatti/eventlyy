@@ -472,8 +472,14 @@ class EventApiController extends Controller
             try {
                 $createdTickets = [];
 
+                $discountRatio = ($subtotal > 0 && $discountAmount > 0) ? min(1.0, $discountAmount / $subtotal) : 0.0;
+
                 foreach ($cleanQtyMap as $ttId => $qty) {
                     $tier = $tiersById[$ttId];
+                    $tierTotalPrice = (float)$tier['price'] * $qty;
+                    $discountedTierTotal = max(0.00, round($tierTotalPrice * (1.0 - $discountRatio), 2));
+                    $seatPrice = $qty > 0 ? max(0.00, round($discountedTierTotal / $qty, 2)) : 0.00;
+
                     for ($i = 0; $i < $qty; $i++) {
                         $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
                         $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
@@ -488,7 +494,7 @@ class EventApiController extends Controller
                             'ticket_type_id' => $ttId,
                             'name' => $name,
                             'email' => $email,
-                            'price' => $tier['price'],
+                            'price' => $seatPrice,
                             'pass_fee' => $ticketPassFee,
                             'security_pin' => $securityPin
                         ]);
@@ -496,7 +502,7 @@ class EventApiController extends Controller
                         $createdTickets[] = [
                             'ticket_code' => $ticketCode,
                             'ticket_type' => $tier['name'],
-                            'price' => (float)$tier['price'],
+                            'price' => (float)$seatPrice,
                             'security_pin' => $securityPin
                         ];
                     }

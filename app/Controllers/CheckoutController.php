@@ -1546,6 +1546,20 @@ class CheckoutController extends Controller
         $createdTickets = [];
         $subtotal = 0.00;
 
+        // Calculate raw ticket subtotal
+        foreach ($ticketTypes as $tt) {
+            $ttId = $tt['id'];
+            $qty = isset($qtyMap[$ttId]) ? (int)$qtyMap[$ttId] : 0;
+            if ($qty > 0) {
+                $subtotal += ((float)$tt['price'] * $qty);
+            }
+        }
+
+        // Calculate proportional discount ratio to deduct promo code discount from ticket seat prices
+        $discountRatio = ($subtotal > 0 && $discountAmount > 0)
+            ? min(1.0, $discountAmount / $subtotal)
+            : 0.0;
+
         $db->beginTransaction();
         try {
             foreach ($ticketTypes as $tt) {
@@ -1554,12 +1568,18 @@ class CheckoutController extends Controller
 
                 if ($qty > 0) {
                     $itemSubtotal = (float)$tt['price'] * $qty;
-                    $subtotal += $itemSubtotal;
+                    $discountedTierTotal = max(0.00, round($itemSubtotal * (1.0 - $discountRatio), 2));
                     $admits = max(1, (int)($tt['admits'] ?? 1));
                     $totalPassesForTier = $qty * $admits;
-                    $seatPrice = round($itemSubtotal / $totalPassesForTier, 2);
+                    $remainingTierTotal = $discountedTierTotal;
 
                     for ($i = 0; $i < $totalPassesForTier; $i++) {
+                        if ($i === $totalPassesForTier - 1) {
+                            $seatPrice = max(0.00, round($remainingTierTotal, 2));
+                        } else {
+                            $seatPrice = max(0.00, round($discountedTierTotal / $totalPassesForTier, 2));
+                            $remainingTierTotal -= $seatPrice;
+                        }
                         $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
                         $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);

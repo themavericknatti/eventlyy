@@ -12,6 +12,8 @@ class HostService
     public function getDashboardStats(int|string $hostId): array
     {
         $db = Application::$app->db->pdo;
+        AutoPayoutService::ensureTicketsPassFeeColumn($db);
+        AutoPayoutService::reconcileDiscountedTickets($db);
 
         // 1. Total Events count (count recurring series as one unique event)
         $stmt = $db->prepare("

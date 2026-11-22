@@ -60,7 +60,12 @@ class LayawayService
             return ['success' => false, 'message' => 'No valid paid tickets selected for layaway plan.'];
         }
 
-        $minRequiredDeposit = round($totalTicketPrice * ($minPercent / 100), 2);
+        $netTicketPrice = max(0.00, $totalTicketPrice - $discountAmount);
+        $discountRatio = ($totalTicketPrice > 0 && $discountAmount > 0)
+            ? min(1.0, $discountAmount / $totalTicketPrice)
+            : 0.0;
+
+        $minRequiredDeposit = round($netTicketPrice * ($minPercent / 100), 2);
         if ($depositAmount < $minRequiredDeposit) {
             return [
                 'success' => false, 
@@ -72,9 +77,9 @@ class LayawayService
         $platformFeePercent = (float)site_setting('platform_fee', 5);
         $passFee = !empty($event['pass_fee']);
         if ($fee <= 0 && $passFee) {
-            $fee = round($totalTicketPrice * ($platformFeePercent / 100), 2);
+            $fee = round($netTicketPrice * ($platformFeePercent / 100), 2);
         }
-        if ($extraCharge <= 0 && $totalTicketPrice > 0) {
+        if ($extraCharge <= 0 && $netTicketPrice > 0) {
             $extraCharge = (float)site_setting('extra_charge', 100.00);
         }
         $totalDepositCharged = $depositAmount + $fee + $extraCharge;
@@ -93,9 +98,18 @@ class LayawayService
                 $tierTotalPrice = $tierUnitPrice * $qty;
                 $admits = max(1, (int)($tt['admits'] ?? 1));
                 $totalPassesForTier = $qty * $admits;
-                $seatPrice = round($tierTotalPrice / $totalPassesForTier, 2);
+
+                // Deduct promo code discount proportionally from this tier
+                $discountedTierTotal = max(0.00, round($tierTotalPrice * (1.0 - $discountRatio), 2));
+                $remainingTierTotal = $discountedTierTotal;
 
                 for ($i = 0; $i < $totalPassesForTier; $i++) {
+                    if ($i === $totalPassesForTier - 1) {
+                        $seatPrice = max(0.00, round($remainingTierTotal, 2));
+                    } else {
+                        $seatPrice = max(0.00, round($discountedTierTotal / $totalPassesForTier, 2));
+                        $remainingTierTotal -= $seatPrice;
+                    }
                     $ticketCode = 'LAY-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
                     $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
@@ -183,7 +197,7 @@ class LayawayService
             return ['success' => false, 'message' => 'Failed to initialize layaway plan: ' . $e->getMessage()];
         }
 
-        $remainingBalance = max(0, $totalTicketPrice - $depositAmount);
+        $remainingBalance = max(0, $netTicketPrice - $depositAmount);
 
         // Queue Layaway Confirmation Email for background delivery
         $formattedDate = !empty($event['date']) ? date('D, M d, Y • g:i A', strtotime($event['date'])) : 'TBA';
@@ -198,7 +212,7 @@ class LayawayService
                 'event_date' => $formattedDate,
                 'event_location' => $event['location'] ?? 'Venue TBA',
                 'ticket_type' => count($createdTickets) . ' Ticket(s) Reserved',
-                'total_price' => $totalTicketPrice,
+                'total_price' => $netTicketPrice,
                 'deposit_paid' => $depositAmount,
                 'remaining_balance' => $remainingBalance,
                 'min_percent' => $minPercent,
