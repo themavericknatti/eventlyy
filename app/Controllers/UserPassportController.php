@@ -43,14 +43,17 @@ class UserPassportController extends Controller
         $tStmt->execute(['uid' => $userId, 'email' => $user->email]);
         $ticketCount = (int)$tStmt->fetchColumn();
 
-        // Retroactively award First Drop Pioneer or Nightlife Explorer badges if tickets exist and badge is missing
-        if ($ticketCount >= 1) {
+        // Retroactively award ticket badges based on harder thresholds:
+        // First Drop Pioneer requires attending/claiming at least 2 tickets
+        // Nightlife Explorer requires attending at least 5 events
+        // Festival Veteran requires attending at least 10 events
+        if ($ticketCount >= 2) {
             $this->service->checkAndAwardBadge($userId, 'first_drop');
         }
-        if ($ticketCount >= 3) {
+        if ($ticketCount >= 5) {
             $this->service->checkAndAwardBadge($userId, 'nightlife_explorer');
         }
-        if ($ticketCount >= 5) {
+        if ($ticketCount >= 10) {
             $this->service->checkAndAwardBadge($userId, 'festival_legend');
         }
 

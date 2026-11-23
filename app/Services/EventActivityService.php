@@ -1083,105 +1083,105 @@ class EventActivityService
             'first_drop' => [
                 'title' => 'First Drop Pioneer',
                 'icon' => '🎟️',
-                'desc' => 'Secured your first live ticket on Eventlyy.',
-                'credits' => 500.00,
-                'xp' => 300,
+                'desc' => 'Claimed and verified at least 2 live event tickets.',
+                'credits' => 150.00,
+                'xp' => 150,
                 'category' => 'ticketing'
             ],
             'nightlife_explorer' => [
                 'title' => 'Nightlife Explorer',
                 'icon' => '🌙',
-                'desc' => 'Attended 3 or more live events.',
-                'credits' => 1000.00,
-                'xp' => 600,
+                'desc' => 'Attended and experienced 5 or more live events.',
+                'credits' => 300.00,
+                'xp' => 350,
                 'category' => 'ticketing'
             ],
             'festival_legend' => [
                 'title' => 'Festival Veteran',
                 'icon' => '👑',
-                'desc' => 'Attended 5 or more live events on Eventlyy.',
-                'credits' => 1500.00,
-                'xp' => 1000,
+                'desc' => 'True live event regular: attended 10 or more live events.',
+                'credits' => 500.00,
+                'xp' => 600,
                 'category' => 'ticketing'
             ],
             'first_vote' => [
                 'title' => 'Culture Voter',
                 'icon' => '🗳️',
-                'desc' => 'Voted in an event contest or award poll.',
-                'credits' => 200.00,
-                'xp' => 150,
+                'desc' => 'Cast votes across 3 or more event polls or award contests.',
+                'credits' => 100.00,
+                'xp' => 120,
                 'category' => 'community'
             ],
             'poll_regular' => [
                 'title' => 'Ballot Champion',
                 'icon' => '🏆',
-                'desc' => 'Cast 5 or more votes in community award polls.',
-                'credits' => 400.00,
-                'xp' => 350,
+                'desc' => 'Cast 8 or more votes in community award polls.',
+                'credits' => 200.00,
+                'xp' => 250,
                 'category' => 'community'
             ],
             'trivia_master' => [
                 'title' => 'Trivia Mastermind',
                 'icon' => '🧠',
                 'desc' => 'Scored a winning round on an event trivia game.',
-                'credits' => 300.00,
-                'xp' => 250,
+                'credits' => 150.00,
+                'xp' => 200,
                 'category' => 'knowledge'
             ],
             'trivia_genius' => [
                 'title' => 'Speed Genius',
                 'icon' => '⚡',
-                'desc' => 'Played 3 or more trivia challenges across events.',
-                'credits' => 500.00,
-                'xp' => 450,
+                'desc' => 'Achieved winning streaks in 5 or more trivia challenges.',
+                'credits' => 250.00,
+                'xp' => 350,
                 'category' => 'knowledge'
             ],
             'song_suggester' => [
                 'title' => 'Setlist Curator',
                 'icon' => '🎵',
-                'desc' => 'Suggested a top song or panel question.',
-                'credits' => 150.00,
-                'xp' => 150,
+                'desc' => 'Suggested songs or speaker Q&A topics that received crowd upvotes.',
+                'credits' => 100.00,
+                'xp' => 120,
                 'category' => 'stage'
             ],
             'community_voice' => [
                 'title' => 'Hype Starter',
                 'icon' => '📣',
-                'desc' => 'Posted on an event Hype Wall or Squad Finder.',
-                'credits' => 200.00,
-                'xp' => 150,
+                'desc' => 'Started verified discussion threads on event hype walls.',
+                'credits' => 100.00,
+                'xp' => 120,
                 'category' => 'social'
             ],
             'social_butterfly' => [
                 'title' => 'Hype Conductor',
                 'icon' => '🔥',
-                'desc' => 'Shared 3 or more posts or squad finder threads on community walls.',
-                'credits' => 450.00,
-                'xp' => 400,
+                'desc' => 'Active community leader: posted 5 or more discussion or carpool threads.',
+                'credits' => 250.00,
+                'xp' => 300,
                 'category' => 'social'
             ],
             'power_voter' => [
                 'title' => 'Power Voter',
                 'icon' => '⚡',
                 'desc' => 'Purchased a Power Vote pack to boost your nominee.',
-                'credits' => 500.00,
-                'xp' => 500,
+                'credits' => 200.00,
+                'xp' => 250,
                 'category' => 'supporter'
             ],
             'vip_enthusiast' => [
                 'title' => 'VIP Connoisseur',
                 'icon' => '💎',
                 'desc' => 'Acquired a VIP or Table tier admission pass.',
-                'credits' => 800.00,
-                'xp' => 700,
+                'credits' => 300.00,
+                'xp' => 400,
                 'category' => 'ticketing'
             ],
             'prestige_ascendant' => [
                 'title' => 'Ascendant Star',
                 'icon' => '✨',
-                'desc' => 'Completed all master ranks and achieved Prestige Rebirth.',
-                'credits' => 2500.00,
-                'xp' => 1500,
+                'desc' => 'Conquered Level 6 Living Legend and completed Prestige Rebirth.',
+                'credits' => 1000.00,
+                'xp' => 800,
                 'category' => 'prestige'
             ]
         ];
