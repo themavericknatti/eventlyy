@@ -1015,7 +1015,7 @@ class EventActivityService
         }
 
         $newPrestige = $prog['prestige'] + 1;
-        $rewardCredits = 2500.00 * $newPrestige; // e.g. ₦2,500 for Prestige I, ₦5,000 for Prestige II
+        $rewardCredits = 500.00 * $newPrestige; // e.g. ₦500 for Prestige I, ₦1,000 for Prestige II
 
         // Reset XP back to baseline, increment prestige
         $stmt = $this->db->prepare("
@@ -1059,6 +1059,102 @@ class EventActivityService
     }
 
     /**
+     * Evaluate and award attendance badges based on verified, physically attended purchased tickets.
+     * Strict rules:
+     * - Only tickets with status = 'Paid' (genuine purchases, not comped or free issued passes).
+     * - (is_issued = 0 OR is_issued IS NULL)
+     * - checked_in = 1 (scanned at venue gate).
+     * - Event has commenced/happened (date <= NOW()).
+     * - Excludes virtual/online live streams.
+     * - Distinct event thresholds:
+     *   - first_drop: >= 3 distinct attended purchased events
+     *   - nightlife_explorer: >= 6 distinct attended purchased events
+     *   - festival_legend: >= 12 distinct attended purchased events
+     *   - vip_enthusiast: >= 1 attended purchased VIP/Table tier ticket
+     */
+    public function evaluateAttendanceBadges(int $userId): array
+    {
+        $uStmt = $this->db->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
+        $uStmt->execute(['id' => $userId]);
+        $userEmail = $uStmt->fetchColumn() ?: '';
+
+        // Count distinct physically attended purchased events (not virtual, gate check-in confirmed)
+        $stmt = $this->db->prepare("
+            SELECT COUNT(DISTINCT t.event_id)
+            FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            WHERE (t.user_id = :uid OR (t.attendee_email IS NOT NULL AND LOWER(t.attendee_email) = :email))
+              AND t.status = 'Paid'
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
+              AND t.checked_in = 1
+              AND e.date <= NOW()
+              AND (e.location IS NULL OR (
+                  LOWER(e.location) NOT LIKE '%virtual%' 
+                  AND LOWER(e.location) NOT LIKE '%online%' 
+                  AND LOWER(e.location) NOT LIKE '%stream%' 
+                  AND LOWER(e.location) NOT LIKE '%webinar%'
+                  AND LOWER(e.location) NOT LIKE '%zoom%'
+              ))
+        ");
+        $stmt->execute([
+            'uid' => $userId,
+            'email' => strtolower(trim($userEmail))
+        ]);
+        $attendedCount = (int)$stmt->fetchColumn();
+
+        // Count VIP/Table tier attended tickets
+        $vipStmt = $this->db->prepare("
+            SELECT COUNT(*)
+            FROM tickets t
+            INNER JOIN events e ON t.event_id = e.id
+            INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE (t.user_id = :uid OR (t.attendee_email IS NOT NULL AND LOWER(t.attendee_email) = :email))
+              AND t.status = 'Paid'
+              AND (t.is_issued = 0 OR t.is_issued IS NULL)
+              AND t.checked_in = 1
+              AND (
+                  LOWER(tt.name) LIKE '%vip%' 
+                  OR LOWER(tt.name) LIKE '%table%' 
+                  OR LOWER(tt.name) LIKE '%vvip%'
+                  OR LOWER(tt.name) LIKE '%backstage%'
+              )
+        ");
+        $vipStmt->execute([
+            'uid' => $userId,
+            'email' => strtolower(trim($userEmail))
+        ]);
+        $vipAttendedCount = (int)$vipStmt->fetchColumn();
+
+        $awarded = [];
+        if ($attendedCount >= 3) {
+            if ($this->checkAndAwardBadge($userId, 'first_drop')) {
+                $awarded[] = 'first_drop';
+            }
+        }
+        if ($attendedCount >= 6) {
+            if ($this->checkAndAwardBadge($userId, 'nightlife_explorer')) {
+                $awarded[] = 'nightlife_explorer';
+            }
+        }
+        if ($attendedCount >= 12) {
+            if ($this->checkAndAwardBadge($userId, 'festival_legend')) {
+                $awarded[] = 'festival_legend';
+            }
+        }
+        if ($vipAttendedCount >= 1) {
+            if ($this->checkAndAwardBadge($userId, 'vip_enthusiast')) {
+                $awarded[] = 'vip_enthusiast';
+            }
+        }
+
+        return [
+            'attended_count' => $attendedCount,
+            'vip_attended_count' => $vipAttendedCount,
+            'newly_awarded' => $awarded
+        ];
+    }
+
+    /**
      * Get all unlocked badges for a user.
      */
     public function getUserBadges(int $userId): array
@@ -1083,24 +1179,24 @@ class EventActivityService
             'first_drop' => [
                 'title' => 'First Drop Pioneer',
                 'icon' => '🎟️',
-                'desc' => 'Claimed and verified at least 2 live event tickets.',
-                'credits' => 150.00,
+                'desc' => 'Purchased ticket & attended at least 3 physical events (scanned at gate).',
+                'credits' => 50.00,
                 'xp' => 150,
                 'category' => 'ticketing'
             ],
             'nightlife_explorer' => [
                 'title' => 'Nightlife Explorer',
                 'icon' => '🌙',
-                'desc' => 'Attended and experienced 5 or more live events.',
-                'credits' => 300.00,
+                'desc' => 'Purchased tickets & attended 6 or more physical events at the venue.',
+                'credits' => 100.00,
                 'xp' => 350,
                 'category' => 'ticketing'
             ],
             'festival_legend' => [
                 'title' => 'Festival Veteran',
                 'icon' => '👑',
-                'desc' => 'True live event regular: attended 10 or more live events.',
-                'credits' => 500.00,
+                'desc' => 'Purchased tickets & attended 12 or more physical events at the venue.',
+                'credits' => 150.00,
                 'xp' => 600,
                 'category' => 'ticketing'
             ],
@@ -1108,7 +1204,7 @@ class EventActivityService
                 'title' => 'Culture Voter',
                 'icon' => '🗳️',
                 'desc' => 'Cast votes across 3 or more event polls or award contests.',
-                'credits' => 100.00,
+                'credits' => 25.00,
                 'xp' => 120,
                 'category' => 'community'
             ],
@@ -1116,7 +1212,7 @@ class EventActivityService
                 'title' => 'Ballot Champion',
                 'icon' => '🏆',
                 'desc' => 'Cast 8 or more votes in community award polls.',
-                'credits' => 200.00,
+                'credits' => 50.00,
                 'xp' => 250,
                 'category' => 'community'
             ],
@@ -1124,7 +1220,7 @@ class EventActivityService
                 'title' => 'Trivia Mastermind',
                 'icon' => '🧠',
                 'desc' => 'Scored a winning round on an event trivia game.',
-                'credits' => 150.00,
+                'credits' => 50.00,
                 'xp' => 200,
                 'category' => 'knowledge'
             ],
@@ -1132,7 +1228,7 @@ class EventActivityService
                 'title' => 'Speed Genius',
                 'icon' => '⚡',
                 'desc' => 'Achieved winning streaks in 5 or more trivia challenges.',
-                'credits' => 250.00,
+                'credits' => 75.00,
                 'xp' => 350,
                 'category' => 'knowledge'
             ],
@@ -1140,7 +1236,7 @@ class EventActivityService
                 'title' => 'Setlist Curator',
                 'icon' => '🎵',
                 'desc' => 'Suggested songs or speaker Q&A topics that received crowd upvotes.',
-                'credits' => 100.00,
+                'credits' => 25.00,
                 'xp' => 120,
                 'category' => 'stage'
             ],
@@ -1148,7 +1244,7 @@ class EventActivityService
                 'title' => 'Hype Starter',
                 'icon' => '📣',
                 'desc' => 'Started verified discussion threads on event hype walls.',
-                'credits' => 100.00,
+                'credits' => 25.00,
                 'xp' => 120,
                 'category' => 'social'
             ],
@@ -1156,7 +1252,7 @@ class EventActivityService
                 'title' => 'Hype Conductor',
                 'icon' => '🔥',
                 'desc' => 'Active community leader: posted 5 or more discussion or carpool threads.',
-                'credits' => 250.00,
+                'credits' => 50.00,
                 'xp' => 300,
                 'category' => 'social'
             ],
@@ -1164,15 +1260,15 @@ class EventActivityService
                 'title' => 'Power Voter',
                 'icon' => '⚡',
                 'desc' => 'Purchased a Power Vote pack to boost your nominee.',
-                'credits' => 200.00,
+                'credits' => 50.00,
                 'xp' => 250,
                 'category' => 'supporter'
             ],
             'vip_enthusiast' => [
                 'title' => 'VIP Connoisseur',
                 'icon' => '💎',
-                'desc' => 'Acquired a VIP or Table tier admission pass.',
-                'credits' => 300.00,
+                'desc' => 'Purchased and attended an event with a VIP or Table tier pass.',
+                'credits' => 75.00,
                 'xp' => 400,
                 'category' => 'ticketing'
             ],
@@ -1180,7 +1276,7 @@ class EventActivityService
                 'title' => 'Ascendant Star',
                 'icon' => '✨',
                 'desc' => 'Conquered Level 6 Living Legend and completed Prestige Rebirth.',
-                'credits' => 1000.00,
+                'credits' => 250.00,
                 'xp' => 800,
                 'category' => 'prestige'
             ]

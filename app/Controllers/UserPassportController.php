@@ -34,28 +34,22 @@ class UserPassportController extends Controller
         $credits = LayawayCredit::findAvailableByEmail($user->email, $userId);
         $totalCredits = LayawayCredit::getTotalAvailable($user->email, $userId);
 
-        // Fetch user ticket count for stats
+        // 1. Fetch user genuine purchased ticket count (excluding comped/issued)
         $db = Application::$app->db->pdo;
         $tStmt = $db->prepare("
             SELECT COUNT(*) FROM tickets 
-            WHERE (user_id = :uid OR attendee_email = :email) AND status IN ('Paid', 'Comped')
+            WHERE (user_id = :uid OR LOWER(attendee_email) = :email) 
+              AND status = 'Paid' 
+              AND (is_issued = 0 OR is_issued IS NULL)
         ");
-        $tStmt->execute(['uid' => $userId, 'email' => $user->email]);
+        $tStmt->execute(['uid' => $userId, 'email' => strtolower(trim($user->email))]);
         $ticketCount = (int)$tStmt->fetchColumn();
 
-        // Retroactively award ticket badges based on harder thresholds:
-        // First Drop Pioneer requires attending/claiming at least 2 tickets
-        // Nightlife Explorer requires attending at least 5 events
-        // Festival Veteran requires attending at least 10 events
-        if ($ticketCount >= 2) {
-            $this->service->checkAndAwardBadge($userId, 'first_drop');
-        }
-        if ($ticketCount >= 5) {
-            $this->service->checkAndAwardBadge($userId, 'nightlife_explorer');
-        }
-        if ($ticketCount >= 10) {
-            $this->service->checkAndAwardBadge($userId, 'festival_legend');
-        }
+        // 2. Strict Attendance Badge Evaluation:
+        // Requires genuinely purchased tickets, physical gate check-in (checked_in = 1),
+        // excludes virtual/online live streams, and requires distinct events attended (>=3, >=6, >=12).
+        $attendanceStats = $this->service->evaluateAttendanceBadges($userId);
+        $attendedCount = $attendanceStats['attended_count'] ?? 0;
 
         // Re-fetch badges if newly unlocked
         $badges = $this->service->getUserBadges($userId);
@@ -70,6 +64,7 @@ class UserPassportController extends Controller
             'credits' => $credits,
             'totalCredits' => $totalCredits,
             'ticketCount' => $ticketCount,
+            'attendedCount' => $attendedCount,
             'progression' => $progression
         ]);
     }

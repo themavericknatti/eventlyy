@@ -191,6 +191,22 @@ class CheckInTicketAction
         $ticket['checked_in'] = 1;
         $ticket['checked_in_at'] = $now;
 
+        // Trigger dynamic Passport Attendance Badge evaluation for attendee
+        try {
+            $attendeeUserId = !empty($ticket['user_id']) ? (int)$ticket['user_id'] : null;
+            if (!$attendeeUserId && !empty($ticket['attendee_email'])) {
+                $uStmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1");
+                $uStmt->execute(['email' => strtolower(trim($ticket['attendee_email']))]);
+                $attendeeUserId = (int)$uStmt->fetchColumn() ?: null;
+            }
+            if ($attendeeUserId) {
+                $activityService = new \App\Services\EventActivityService();
+                $activityService->evaluateAttendanceBadges($attendeeUserId);
+            }
+        } catch (\Throwable $e) {
+            // Non-blocking for check-in performance
+        }
+
         return [
             'status' => 'success',
             'flash_type' => 'success',

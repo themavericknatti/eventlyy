@@ -260,6 +260,20 @@ class TeamService
         $ticket['checked_in'] = 1;
         $ticket['checked_in_at'] = date('Y-m-d H:i:s');
 
+        // Dynamically evaluate Passport Attendance Badges for attendee
+        try {
+            $attendeeUserId = !empty($ticket['user_id']) ? (int)$ticket['user_id'] : null;
+            if (!$attendeeUserId && !empty($ticket['attendee_email'])) {
+                $uStmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1");
+                $uStmt->execute(['email' => strtolower(trim($ticket['attendee_email']))]);
+                $attendeeUserId = (int)$uStmt->fetchColumn() ?: null;
+            }
+            if ($attendeeUserId) {
+                $activityService = new \App\Services\EventActivityService();
+                $activityService->evaluateAttendanceBadges($attendeeUserId);
+            }
+        } catch (\Throwable $e) {}
+
         // Fetch any add-on merchandise for this attendee
         $addons = [];
         if (!empty($ticket['attendee_email'])) {
@@ -371,6 +385,19 @@ class TeamService
             $update = $db->prepare("UPDATE tickets SET checked_in = 1, checked_in_at = CURRENT_TIMESTAMP, checked_in_by = :staff_id WHERE id = :id");
             $update->execute(['id' => $ticketId, 'staff_id' => $staffId]);
             $msg = "Ticket check-in overridden to CHECKED IN for {$ticket['attendee_name']}.";
+
+            try {
+                $attendeeUserId = !empty($ticket['user_id']) ? (int)$ticket['user_id'] : null;
+                if (!$attendeeUserId && !empty($ticket['attendee_email'])) {
+                    $uStmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1");
+                    $uStmt->execute(['email' => strtolower(trim($ticket['attendee_email']))]);
+                    $attendeeUserId = (int)$uStmt->fetchColumn() ?: null;
+                }
+                if ($attendeeUserId) {
+                    $activityService = new \App\Services\EventActivityService();
+                    $activityService->evaluateAttendanceBadges($attendeeUserId);
+                }
+            } catch (\Throwable $e) {}
         } else {
             $update = $db->prepare("UPDATE tickets SET checked_in = 0, checked_in_at = NULL, checked_in_by = NULL WHERE id = :id");
             $update->execute(['id' => $ticketId]);
