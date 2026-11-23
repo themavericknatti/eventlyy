@@ -1180,22 +1180,186 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
     border-color: #374151;
 }
 
-/* ── Mobile Responsive ── */
+/* ── Mobile Full-Width Responsive Overhaul (Matching Home, Event & Profile Pages) ── */
 @media (max-width: 768px) {
+    /* 1. Main layout container full-width matching .home-page and .event-detail-page */
+    .container.passport-page,
+    .container:has(.passport-page-container) {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 2. Passport Page Container reset margins and side padding */
+    .passport-page-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0.35rem 0 3.5rem !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 3. Top navigation */
+    .p-nav-bar {
+        padding: 0.25rem 0.25rem 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 4. Hero Card full-width edge-to-edge on mobile */
     .p-hero-card {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 1.5rem 1.25rem;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 1.35rem 0.95rem 1.5rem !important;
+        border-radius: 14px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 0 1rem 0 !important;
     }
+
+    .p-hero-content {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
     .p-emblem-wrap {
-        align-self: center;
-        margin-top: 0.5rem;
+        align-self: center !important;
+        margin-top: 1rem !important;
     }
-    .p-badges-grid {
-        grid-template-columns: 1fr;
+
+    .p-hero-name {
+        font-size: 1.65rem !important;
     }
+
     .p-stats-row {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .p-stat-item {
+        padding: 0.55rem 0.65rem !important;
+    }
+
+    .p-xp-card {
+        padding: 0.85rem 0.75rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .p-xp-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+
+    .p-xp-stat-right {
+        text-align: left !important;
+        width: 100% !important;
+    }
+
+    .p-xp-needed-wrap {
+        align-items: flex-start !important;
+    }
+
+    /* 5. Prestige & Credit Banners full width */
+    .p-prestige-card,
+    .p-credits-banner {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 1rem 0.85rem !important;
+        border-radius: 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    .p-credits-text-wrap {
+        width: 100% !important;
+    }
+
+    .p-credits-action-btn {
+        width: 100% !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 6. Badges Section */
+    .p-badges-section {
+        margin-top: 1.75rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .p-section-top {
+        margin-bottom: 1rem !important;
+    }
+
+    .p-section-title {
+        font-size: 1.45rem !important;
+    }
+
+    .p-badges-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .p-badge-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 1rem 0.85rem !important;
+        border-radius: 14px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .container.passport-page,
+    .container:has(.passport-page-container) {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    .passport-page-container {
+        padding: 0.2rem 0 3rem !important;
+    }
+
+    .p-hero-card {
+        padding: 1.15rem 0.75rem 1.25rem !important;
+        border-radius: 12px !important;
+    }
+
+    .p-hero-name {
+        font-size: 1.45rem !important;
+    }
+
+    .p-badge-card {
+        padding: 0.9rem 0.75rem !important;
+        gap: 0.85rem !important;
+    }
+
+    .p-badge-avatar {
+        width: 50px !important;
+        height: 50px !important;
+        min-width: 50px !important;
+        border-radius: 13px !important;
+    }
+
+    .p-badge-emoji {
+        font-size: 1.55rem !important;
+    }
+
+    .p-badge-title {
+        font-size: 1rem !important;
+    }
+
+    .p-badge-desc {
+        font-size: 0.82rem !important;
     }
 }
 </style>
