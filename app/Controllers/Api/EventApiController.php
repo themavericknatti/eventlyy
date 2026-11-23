@@ -443,6 +443,41 @@ class EventApiController extends Controller
             $this->jsonResponse(['success' => false, 'message' => 'Please select at least 1 ticket.'], 422);
         }
 
+        // Parse & validate optional merchandise add-ons
+        $addonsMap = $data['addons'] ?? ($data['merch'] ?? []);
+        $cleanAddonsMap = [];
+        $addonsById = [];
+        $addonsSubtotal = 0.00;
+
+        if (is_array($addonsMap) && !empty($addonsMap)) {
+            $addonIds = array_map('intval', array_keys($addonsMap));
+            if (!empty($addonIds)) {
+                $placeholders = implode(',', array_fill(0, count($addonIds), '?'));
+                $adStmt = $db->prepare("SELECT * FROM event_addons WHERE id IN ({$placeholders}) AND event_id = ? AND status = 'active'");
+                $adStmt->execute([...$addonIds, $event['id']]);
+                $validAddons = $adStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                foreach ($validAddons as $va) {
+                    $addonsById[(int)$va['id']] = $va;
+                }
+
+                foreach ($addonsMap as $aId => $aQty) {
+                    $aId = (int)$aId;
+                    $aQty = (int)$aQty;
+                    if ($aQty <= 0) continue;
+                    if (isset($addonsById[$aId])) {
+                        $ad = $addonsById[$aId];
+                        $rem = max(0, (int)$ad['quantity'] - (int)$ad['sold_count']);
+                        if ((int)$ad['quantity'] > 0 && $aQty > $rem) {
+                            $this->jsonResponse(['success' => false, 'message' => "Insufficient stock for merchandise '{$ad['name']}'. Only {$rem} remaining."], 422);
+                        }
+                        $cleanAddonsMap[$aId] = $aQty;
+                        $addonsSubtotal += ((float)$ad['price'] * $aQty);
+                    }
+                }
+            }
+        }
+        $subtotal += $addonsSubtotal;
+
         // Apply promo code discount if provided
         $discountAmount = 0.00;
         $validatedPromoCode = null;
@@ -558,6 +593,30 @@ class EventApiController extends Controller
                     'promo' => $validatedPromoCode,
                     'discount' => $discountAmount
                 ]);
+                $insertedTxId = (int)$db->lastInsertId();
+
+                // Fulfill any free merchandise orders
+                foreach ($cleanAddonsMap as $aId => $aQty) {
+                    $ad = $addonsById[$aId];
+                    $adUnit = (float)$ad['price'];
+                    $adTot = round($adUnit * $aQty, 2);
+                    $oaStmt = $db->prepare("
+                        INSERT INTO order_addons (transaction_id, event_id, addon_id, user_id, buyer_name, buyer_email, quantity, unit_price, total_price, redemption_status, created_at)
+                        VALUES (:tx_id, :event_id, :addon_id, NULL, :buyer_name, :buyer_email, :quantity, :unit_price, :total_price, 'pending', NOW())
+                    ");
+                    $oaStmt->execute([
+                        'tx_id' => $insertedTxId,
+                        'event_id' => $event['id'],
+                        'addon_id' => $aId,
+                        'buyer_name' => $name,
+                        'buyer_email' => $email,
+                        'quantity' => $aQty,
+                        'unit_price' => $adUnit,
+                        'total_price' => $adTot
+                    ]);
+                    $db->prepare("UPDATE event_addons SET sold_count = sold_count + :qty WHERE id = :addon_id")
+                       ->execute(['qty' => $aQty, 'addon_id' => $aId]);
+                }
 
                 // Increment promo code used count
                 if (!empty($validatedPromoCode)) {
@@ -652,6 +711,8 @@ class EventApiController extends Controller
                 'promo_code' => $validatedPromoCode,
                 'discount_amount' => $discountAmount,
                 'referral_id' => $referralId,
+                'addons' => $cleanAddonsMap,
+                'addons_subtotal' => $addonsSubtotal,
                 'external_callback_url' => $externalCallbackUrl ?: null
             ];
 
