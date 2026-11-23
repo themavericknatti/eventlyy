@@ -1074,16 +1074,16 @@ class EventActivityService
     /**
      * Evaluate and award attendance badges based on verified, physically attended purchased tickets.
      * Strict rules:
-     * - Only tickets with status = 'Paid' (genuine purchases, not comped or free issued passes).
-     * - (is_issued = 0 OR is_issued IS NULL)
-     * - checked_in = 1 (scanned at venue gate).
+     * - Only tickets with status = 'Paid' AND price > 0 (strictly paid purchases; free events/tickets are excluded).
+     * - (is_issued = 0 OR is_issued IS NULL) - excludes comped/free issued passes.
+     * - checked_in = 1 (physically scanned at venue gate; un-scanned tickets do NOT count).
      * - Event has commenced/happened (date <= NOW()).
      * - Excludes virtual/online live streams.
-     * - Distinct event thresholds:
-     *   - first_drop: >= 3 distinct attended purchased events
-     *   - nightlife_explorer: >= 6 distinct attended purchased events
-     *   - festival_legend: >= 12 distinct attended purchased events
-     *   - vip_enthusiast: >= 1 attended purchased VIP/Table tier ticket
+     * - Distinct paid event thresholds:
+     *   - first_drop: >= 3 distinct attended paid events
+     *   - nightlife_explorer: >= 6 distinct attended paid events
+     *   - festival_legend: >= 12 distinct attended paid events
+     *   - vip_enthusiast: >= 1 attended paid VIP/Table tier ticket
      */
     public function evaluateAttendanceBadges(int $userId): array
     {
@@ -1091,13 +1091,14 @@ class EventActivityService
         $uStmt->execute(['id' => $userId]);
         $userEmail = $uStmt->fetchColumn() ?: '';
 
-        // Count distinct physically attended purchased events (not virtual, gate check-in confirmed)
+        // Count distinct physically attended paid events (not virtual, gate check-in confirmed, price > 0)
         $stmt = $this->db->prepare("
             SELECT COUNT(DISTINCT t.event_id)
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE (t.user_id = :uid OR (t.attendee_email IS NOT NULL AND LOWER(t.attendee_email) = :email))
               AND t.status = 'Paid'
+              AND t.price > 0
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND t.checked_in = 1
               AND e.date <= NOW()
@@ -1115,7 +1116,7 @@ class EventActivityService
         ]);
         $attendedCount = (int)$stmt->fetchColumn();
 
-        // Count VIP/Table tier attended tickets
+        // Count VIP/Table tier attended paid tickets (price > 0, checked_in = 1)
         $vipStmt = $this->db->prepare("
             SELECT COUNT(*)
             FROM tickets t
@@ -1123,6 +1124,7 @@ class EventActivityService
             INNER JOIN ticket_types tt ON t.ticket_type_id = tt.id
             WHERE (t.user_id = :uid OR (t.attendee_email IS NOT NULL AND LOWER(t.attendee_email) = :email))
               AND t.status = 'Paid'
+              AND t.price > 0
               AND (t.is_issued = 0 OR t.is_issued IS NULL)
               AND t.checked_in = 1
               AND (
@@ -1192,7 +1194,7 @@ class EventActivityService
             'first_drop' => [
                 'title' => 'First Drop Pioneer',
                 'icon' => '🎟️',
-                'desc' => 'Purchased ticket & attended at least 3 physical events (scanned at gate).',
+                'desc' => 'Purchased paid ticket & attended at least 3 physical events (scanned at gate).',
                 'credits' => 50.00,
                 'xp' => 150,
                 'category' => 'ticketing'
@@ -1200,7 +1202,7 @@ class EventActivityService
             'nightlife_explorer' => [
                 'title' => 'Nightlife Explorer',
                 'icon' => '🌙',
-                'desc' => 'Purchased tickets & attended 6 or more physical events at the venue.',
+                'desc' => 'Purchased paid tickets & attended 6 or more physical events at the venue.',
                 'credits' => 100.00,
                 'xp' => 350,
                 'category' => 'ticketing'
@@ -1208,7 +1210,7 @@ class EventActivityService
             'festival_legend' => [
                 'title' => 'Festival Veteran',
                 'icon' => '👑',
-                'desc' => 'Purchased tickets & attended 12 or more physical events at the venue.',
+                'desc' => 'Purchased paid tickets & attended 12 or more physical events at the venue.',
                 'credits' => 150.00,
                 'xp' => 600,
                 'category' => 'ticketing'
@@ -1280,7 +1282,7 @@ class EventActivityService
             'vip_enthusiast' => [
                 'title' => 'VIP Connoisseur',
                 'icon' => '💎',
-                'desc' => 'Purchased and attended an event with a VIP or Table tier pass.',
+                'desc' => 'Purchased and attended an event with a paid VIP or Table tier pass.',
                 'credits' => 75.00,
                 'xp' => 400,
                 'category' => 'ticketing'

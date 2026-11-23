@@ -37,42 +37,42 @@ foreach ($badges as $b) {
 
 // Balanced Milestone Badge Suite (Clean micro-credits & rigorous verified milestones)
 $allBadgeDefs = [
-    // ── Physical Venue Attendance (Strictly Gate Verified) ──
+    // ── Physical Venue Attendance (Strictly Paid & Gate Verified) ──
     'first_drop' => [
         'title' => 'First Drop Pioneer',
         'icon' => '🎟️',
-        'desc' => 'Purchased ticket & attended at least 3 physical events (verified at venue gate).',
+        'desc' => 'Purchased paid ticket & attended at least 3 physical events (verified at venue gate).',
         'reward' => '₦50 Credit',
         'xp' => '+150 XP',
         'category' => 'Venue Attendance',
-        'req' => '3 Gate Check-ins'
+        'req' => '3 Paid Gate Scans'
     ],
     'nightlife_explorer' => [
         'title' => 'Nightlife Explorer',
         'icon' => '🌙',
-        'desc' => 'Purchased tickets & attended 6 or more physical events at the venue.',
+        'desc' => 'Purchased paid tickets & attended 6 or more physical events at the venue.',
         'reward' => '₦100 Credit',
         'xp' => '+350 XP',
         'category' => 'Venue Attendance',
-        'req' => '6 Gate Check-ins'
+        'req' => '6 Paid Gate Scans'
     ],
     'festival_legend' => [
         'title' => 'Festival Veteran',
         'icon' => '👑',
-        'desc' => 'Purchased tickets & attended 12 or more physical events at the venue.',
+        'desc' => 'Purchased paid tickets & attended 12 or more physical events at the venue.',
         'reward' => '₦150 Credit',
         'xp' => '+600 XP',
         'category' => 'Venue Attendance',
-        'req' => '12 Gate Check-ins'
+        'req' => '12 Paid Gate Scans'
     ],
     'vip_enthusiast' => [
         'title' => 'VIP Connoisseur',
         'icon' => '💎',
-        'desc' => 'Purchased and attended an event with a VIP or Table tier admission pass.',
+        'desc' => 'Purchased and attended an event with a paid VIP or Table tier admission pass.',
         'reward' => '₦75 Credit',
         'xp' => '+400 XP',
         'category' => 'Venue Attendance',
-        'req' => '1 VIP Admission'
+        'req' => '1 Paid VIP Scan'
     ],
 
     // ── Arena & Trivia ──
@@ -169,6 +169,7 @@ $unlockedCount = count($badges);
 $totalBadgesCount = count($allBadgeDefs);
 $attendedCount = (int)($attendedCount ?? 0);
 $ticketCount = (int)($ticketCount ?? 0);
+$unscannedCount = (int)($unscannedCount ?? 0);
 ?>
 
 @extends('layouts/main')
@@ -274,12 +275,12 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
                 <div class="p-stat-item">
                     <span class="p-stat-lbl">Events Attended</span>
                     <strong class="p-stat-num p-stat-attended"><?= number_format($attendedCount) ?></strong>
-                    <span class="p-stat-sub">Gate Scanned</span>
+                    <span class="p-stat-sub">Paid Gate Scans</span>
                 </div>
                 <div class="p-stat-item">
-                    <span class="p-stat-lbl">Tickets Purchased</span>
+                    <span class="p-stat-lbl">Paid Passes</span>
                     <strong class="p-stat-num"><?= number_format($ticketCount) ?></strong>
-                    <span class="p-stat-sub">Verified Orders</span>
+                    <span class="p-stat-sub">Purchased Orders</span>
                 </div>
                 <div class="p-stat-item">
                     <span class="p-stat-lbl">Unlocked Badges</span>
@@ -307,6 +308,17 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
             </div>
         </div>
     </div>
+
+    <!-- Unchecked Ticket Incentive Notice -->
+    <?php if ($unscannedCount > 0): ?>
+        <div class="p-checkin-notice">
+            <span class="p-checkin-icon">🎫</span>
+            <div class="p-checkin-body">
+                <strong class="p-checkin-title"><?= $unscannedCount ?> Paid Ticket<?= $unscannedCount > 1 ? 's' : '' ?> Awaiting Venue Check-In</strong>
+                <p class="p-checkin-text">Only paid tickets scanned at the venue gate count towards attendance milestones, XP, and badges. Present your pass at the gate when attending to activate your rewards!</p>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- ═══════════════════════════════════════════════════════════════
          2. PRESTIGE REBIRTH BANNER (Level 6 Milestone Unlock)
@@ -359,7 +371,7 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
             <div>
                 <span class="p-section-tag">Milestone Challenges</span>
                 <h2 class="p-section-title">Digital Passport Stamps</h2>
-                <p class="p-section-desc">Attend physical events, vote in live contests, and engage with the community to unlock stamps and credits.</p>
+                <p class="p-section-desc">Only paid tickets scanned at venue gates count towards attendance badges and ranking. Free events and un-scanned passes do not qualify.</p>
             </div>
             <div class="p-badge-counter">
                 <span><?= $unlockedCount ?> of <?= $totalBadgesCount ?> Unlocked</span>
@@ -905,6 +917,50 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
     transition: background 0.15s ease;
 }
 .p-credits-action-btn:hover { background: #059669; }
+
+/* ── Check-in Notice Banner (Motivates gate check-ins) ── */
+.p-checkin-notice {
+    margin-top: 1.25rem;
+    background: #f0fdf4;
+    border: 1.5px solid #86efac;
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.p-checkin-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.p-checkin-body {
+    flex: 1;
+}
+
+.p-checkin-title {
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #166534;
+    margin-bottom: 0.2rem;
+}
+
+.p-checkin-text {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #15803d;
+    line-height: 1.45;
+}
+
+:root[data-theme='dark'] .p-checkin-notice {
+    background: #064e3b;
+    border-color: #059669;
+}
+:root[data-theme='dark'] .p-checkin-title { color: #6ee7b7; }
+:root[data-theme='dark'] .p-checkin-text { color: #a7f3d0; }
 
 /* ── Badges Section (Crisp, High-Contrast Cards, Easy on the Eyes) ── */
 .p-badges-section {

@@ -34,20 +34,33 @@ class UserPassportController extends Controller
         $credits = LayawayCredit::findAvailableByEmail($user->email, $userId);
         $totalCredits = LayawayCredit::getTotalAvailable($user->email, $userId);
 
-        // 1. Fetch user genuine purchased ticket count (excluding comped/issued)
+        // 1. Fetch user genuine paid ticket count (excluding free/comped/issued passes)
         $db = Application::$app->db->pdo;
         $tStmt = $db->prepare("
             SELECT COUNT(*) FROM tickets 
             WHERE (user_id = :uid OR LOWER(attendee_email) = :email) 
               AND status = 'Paid' 
+              AND price > 0
               AND (is_issued = 0 OR is_issued IS NULL)
         ");
         $tStmt->execute(['uid' => $userId, 'email' => strtolower(trim($user->email))]);
         $ticketCount = (int)$tStmt->fetchColumn();
 
+        // Count pending un-scanned paid tickets (purchased but not yet checked in at venue)
+        $unscannedStmt = $db->prepare("
+            SELECT COUNT(*) FROM tickets 
+            WHERE (user_id = :uid OR LOWER(attendee_email) = :email) 
+              AND status = 'Paid' 
+              AND price > 0
+              AND (is_issued = 0 OR is_issued IS NULL)
+              AND (checked_in = 0 OR checked_in IS NULL)
+        ");
+        $unscannedStmt->execute(['uid' => $userId, 'email' => strtolower(trim($user->email))]);
+        $unscannedCount = (int)$unscannedStmt->fetchColumn();
+
         // 2. Strict Attendance Badge Evaluation:
-        // Requires genuinely purchased tickets, physical gate check-in (checked_in = 1),
-        // excludes virtual/online live streams, and requires distinct events attended (>=3, >=6, >=12).
+        // Requires genuinely purchased paid tickets (price > 0), physical gate check-in (checked_in = 1),
+        // excludes virtual/online live streams and free events, and requires distinct events attended (>=3, >=6, >=12).
         $attendanceStats = $this->service->evaluateAttendanceBadges($userId);
         $attendedCount = $attendanceStats['attended_count'] ?? 0;
 
@@ -65,6 +78,7 @@ class UserPassportController extends Controller
             'totalCredits' => $totalCredits,
             'ticketCount' => $ticketCount,
             'attendedCount' => $attendedCount,
+            'unscannedCount' => $unscannedCount,
             'progression' => $progression
         ]);
     }
