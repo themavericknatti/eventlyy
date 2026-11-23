@@ -145,6 +145,38 @@ class EventApiController extends Controller
             $imageUrl = str_starts_with($imagePath, 'http') ? $imagePath : $baseUrl . '/' . ltrim($imagePath, '/');
         }
 
+        // Fetch event merchandise & add-ons
+        $addonStmt = $db->prepare("
+            SELECT id, name, description, price, quantity, sold_count, image, status
+            FROM event_addons
+            WHERE event_id = :event_id AND status = 'active'
+            ORDER BY id ASC
+        ");
+        $addonStmt->execute(['event_id' => $event['id']]);
+        $rawAddons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $merchandise = [];
+        foreach ($rawAddons as $a) {
+            $qty = (int)$a['quantity'];
+            $sold = (int)$a['sold_count'];
+            $rem = max(0, $qty - $sold);
+            $img = !empty($a['image']) ? (str_starts_with($a['image'], 'http') ? $a['image'] : $baseUrl . '/' . ltrim($a['image'], '/')) : null;
+
+            $merchandise[] = [
+                'id' => (int)$a['id'],
+                'name' => $a['name'],
+                'description' => $a['description'],
+                'price' => (float)$a['price'],
+                'formatted_price' => format_price((float)$a['price']),
+                'total_quantity' => $qty,
+                'sold' => $sold,
+                'remaining' => $rem,
+                'is_sold_out' => ($qty > 0 && $rem <= 0),
+                'is_available' => (($qty <= 0 || $rem > 0) && !$isCompleted && $event['status'] === 'published'),
+                'image_url' => $img
+            ];
+        }
+
         $platformFeePercent = (float)get_setting('platform_fee', 5);
         $extraCharge = (float)get_setting('extra_charge', 100.00);
 
@@ -171,6 +203,7 @@ class EventApiController extends Controller
                 ]
             ],
             'tickets' => $ticketTiers,
+            'merchandise' => $merchandise,
             'pricing_rules' => [
                 'currency' => get_setting('currency', 'NGN'),
                 'currency_symbol' => get_currency_symbol(),
