@@ -16,7 +16,11 @@ $prog = $progression ?? [
     'prestige' => 0,
     'rank_title' => 'Eventlyy Citizen',
     'rank_tier_key' => 'citizen',
+    'next_rank_title' => 'Culture Scout',
     'progress_percent' => 0,
+    'level_xp' => 0,
+    'level_span' => 500,
+    'xp_needed' => 500,
     'next_level_xp' => 500,
     'current_level_min_xp' => 0,
     'can_prestige' => false
@@ -217,25 +221,51 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
                 Your permanent verified event record. Earn XP and loyalty credits by purchasing tickets, physically checking in at venues, voting in award polls, and engaging with the community.
             </p>
 
-            <!-- Clean XP Progress Bar -->
+            <!-- Dynamic Animated Gamified XP Progress Bar -->
             <div class="p-xp-card">
                 <div class="p-xp-header">
-                    <span class="p-xp-current">
-                        <strong><?= number_format($prog['xp']) ?> XP</strong> Lifetime Earned
-                    </span>
-                    <span class="p-xp-goal">
+                    <div class="p-xp-stat-left">
+                        <span class="p-xp-level-badge">Level <?= (int)$prog['level'] ?> &bull; <?= e($prog['rank_title']) ?></span>
+                        <div class="p-xp-numbers">
+                            <?php if ($prog['level'] >= 6): ?>
+                                <strong class="p-xp-accent-gold"><?= number_format($prog['xp']) ?> XP</strong> <span class="p-xp-sub">Pinnacle Mastered</span>
+                            <?php else: ?>
+                                <strong class="p-xp-accent-green"><?= number_format($prog['level_xp'] ?? 0) ?></strong> <span class="p-xp-divider">/</span> <?= number_format($prog['level_span'] ?? 500) ?> XP
+                                <span class="p-xp-lifetime-tag"><?= number_format($prog['xp']) ?> Lifetime Total</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="p-xp-stat-right">
                         <?php if ($prog['level'] >= 6): ?>
-                            🏆 Max Level Conquered!
+                            <span class="p-xp-cap-badge">🏆 Ready for Prestige Rebirth!</span>
                         <?php else: ?>
-                            Next Level: <strong><?= number_format($prog['next_level_xp']) ?> XP</strong>
+                            <div class="p-xp-needed-wrap">
+                                <span class="p-xp-needed-lbl">Next Rank</span>
+                                <span class="p-xp-needed-val"><strong><?= number_format($prog['xp_needed'] ?? 0) ?> XP</strong> to <?= e($prog['next_rank_title'] ?? 'Next Tier') ?></span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- XP Bar Track with Smooth Loading Fill & Shimmer -->
+                <div class="p-xp-track" role="progressbar" aria-valuenow="<?= (int)$prog['progress_percent'] ?>" aria-valuemin="0" aria-valuemax="100" title="<?= (int)$prog['progress_percent'] ?>% completed">
+                    <div class="p-xp-fill <?= ($prog['level'] >= 6) ? 'is-max' : '' ?>" style="--p-target-width: <?= (int)$prog['progress_percent'] ?>%; width: <?= (int)$prog['progress_percent'] ?>%;">
+                        <div class="p-xp-shimmer"></div>
+                    </div>
+                </div>
+
+                <!-- Range Scale Footnotes (Min Threshold -> Percent -> Target Threshold) -->
+                <div class="p-xp-scale-row">
+                    <span class="p-xp-scale-item"><?= number_format($prog['current_level_min_xp']) ?> XP</span>
+                    <span class="p-xp-scale-current">
+                        <?php if ($prog['level'] >= 6): ?>
+                            ★ 100% Conquered &bull; Living Legend Rank
+                        <?php else: ?>
+                            <strong><?= (int)$prog['progress_percent'] ?>%</strong> of Level <?= (int)$prog['level'] ?> Completed
                         <?php endif; ?>
                     </span>
-                </div>
-                <div class="p-xp-track">
-                    <div class="p-xp-fill" style="width: <?= (int)$prog['progress_percent'] ?>%;"></div>
-                </div>
-                <div class="p-xp-footer">
-                    <span><?= (int)$prog['progress_percent'] ?>% to next rank</span>
+                    <span class="p-xp-scale-item"><?= number_format($prog['next_level_xp']) ?> XP</span>
                 </div>
             </div>
 
@@ -500,46 +530,207 @@ My Event Passport &amp; Badges — <?= e($siteName) ?>
 
 /* XP Card */
 .p-xp-card {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1.5px solid #334155;
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
     margin-bottom: 1.25rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
 
 .p-xp-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    font-size: 0.84rem;
-    margin-bottom: 0.5rem;
+    align-items: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    flex-wrap: wrap;
 }
-.p-xp-current { color: #e2e8f0; }
-.p-xp-current strong { color: #34d399; font-size: 0.95rem; }
-.p-xp-goal { color: #94a3b8; }
-.p-xp-goal strong { color: #ffffff; }
 
+.p-xp-stat-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.p-xp-level-badge {
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.p-xp-numbers {
+    font-size: 1.05rem;
+    color: #e2e8f0;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.p-xp-accent-green {
+    color: #34d399;
+    font-size: 1.2rem;
+    font-weight: 900;
+}
+
+.p-xp-accent-gold {
+    color: #fbbf24;
+    font-size: 1.2rem;
+    font-weight: 900;
+}
+
+.p-xp-divider {
+    color: #64748b;
+    font-weight: 400;
+}
+
+.p-xp-sub {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.p-xp-lifetime-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    margin-left: 0.25rem;
+}
+
+.p-xp-stat-right {
+    text-align: right;
+}
+
+.p-xp-needed-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+}
+
+.p-xp-needed-lbl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.04em;
+}
+
+.p-xp-needed-val {
+    font-size: 0.88rem;
+    color: #cbd5e1;
+}
+.p-xp-needed-val strong {
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+
+.p-xp-cap-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #fcd34d;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+/* XP Loading Bar Track */
 .p-xp-track {
     width: 100%;
-    height: 8px;
+    height: 14px;
     background: #090d16;
-    border-radius: 99px;
+    border: 1px solid #1e293b;
+    border-radius: 999px;
     overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
 }
 
+/* Dynamic Animated XP Fill with Page-Load Progression */
 .p-xp-fill {
     height: 100%;
-    background: linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #6366f1 100%);
-    border-radius: 99px;
-    transition: width 0.3s ease;
+    background: linear-gradient(90deg, #10b981 0%, #06b6d4 40%, #6366f1 80%, #8b5cf6 100%);
+    border-radius: 999px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+    animation: xpBarLoad 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.p-xp-footer {
+.p-xp-fill.is-max {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+}
+
+@keyframes xpBarLoad {
+    0% {
+        width: 0%;
+        opacity: 0.6;
+    }
+    100% {
+        width: var(--p-target-width, 100%);
+        opacity: 1;
+    }
+}
+
+/* Polished Shimmer Wave across XP Bar */
+.p-xp-shimmer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.35) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: xpShimmerWave 2.4s infinite ease-in-out;
+}
+
+@keyframes xpShimmerWave {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+/* Range Scale Footnotes (Min -> Current -> Max) */
+.p-xp-scale-row {
     display: flex;
-    justify-content: flex-end;
-    font-size: 0.72rem;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.74rem;
     color: #94a3b8;
-    margin-top: 0.35rem;
+    margin-top: 0.45rem;
+}
+
+.p-xp-scale-item {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.p-xp-scale-current {
+    font-size: 0.76rem;
+    color: #cbd5e1;
+    text-align: center;
+}
+.p-xp-scale-current strong {
+    color: #38bdf8;
 }
 
 /* Stats Row */

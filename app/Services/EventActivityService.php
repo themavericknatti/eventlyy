@@ -963,14 +963,23 @@ class EventActivityService
             }
         }
 
-        if ($currentLevel >= 6 && $xp >= 12000) {
+        if ($currentLevel >= 6) {
+            // Level 6 Living Legend is max tier before Prestige Rebirth
             $minXp = 7500;
-            $maxXp = 12000;
+            $maxXp = 7500;
+            $levelSpan = 7500;
+            $levelXp = $xp;
+            $progressPercent = 100;
+            $xpNeeded = 0;
+            $nextRankTitle = 'Prestige Rebirth';
+        } else {
+            $nextLevel = $currentLevel + 1;
+            $nextRankTitle = $thresholds[$nextLevel]['title'] ?? 'Living Legend';
+            $levelSpan = max(1, $maxXp - $minXp);
+            $levelXp = max(0, min($levelSpan, $xp - $minXp));
+            $progressPercent = min(100, max(0, round(($levelXp / $levelSpan) * 100)));
+            $xpNeeded = max(0, $maxXp - $xp);
         }
-
-        $levelSpan = max(1, $maxXp - $minXp);
-        $progressWithinLevel = max(0, min($levelSpan, $xp - $minXp));
-        $progressPercent = min(100, round(($progressWithinLevel / $levelSpan) * 100));
 
         // Sync with users table if level changed
         if ((int)$userRow['passport_level'] !== $currentLevel) {
@@ -984,7 +993,11 @@ class EventActivityService
             'prestige' => $prestige,
             'rank_title' => $rankTitle,
             'rank_tier_key' => $rankTier,
+            'next_rank_title' => $nextRankTitle,
             'progress_percent' => $progressPercent,
+            'level_xp' => $levelXp,
+            'level_span' => $levelSpan,
+            'xp_needed' => $xpNeeded,
             'next_level_xp' => $maxXp,
             'current_level_min_xp' => $minXp,
             'can_prestige' => ($currentLevel >= 6 && $xp >= 7500)
