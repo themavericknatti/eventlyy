@@ -901,6 +901,164 @@ class EventActivityService
     // ═══════════════════════════════════════════════════════════════════
 
     /**
+     * Get comprehensive passport profile progression: XP, Level, Rank Title, Next Level Progress, and Prestige.
+     */
+    public function getUserPassportProgress(int $userId): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT id, name, email, passport_xp, passport_level, prestige_tier, prestige_unlocked_at 
+            FROM users 
+            WHERE id = :id 
+            LIMIT 1
+        ");
+        $stmt->execute(['id' => $userId]);
+        $userRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$userRow) {
+            return [
+                'xp' => 0,
+                'level' => 1,
+                'prestige' => 0,
+                'rank_title' => 'Eventlyy Citizen',
+                'rank_tier_key' => 'citizen',
+                'progress_percent' => 0,
+                'next_level_xp' => 500,
+                'current_level_min_xp' => 0,
+                'can_prestige' => false
+            ];
+        }
+
+        $xp = (int)($userRow['passport_xp'] ?? 0);
+        $prestige = (int)($userRow['prestige_tier'] ?? 0);
+
+        // Tiered XP Curves:
+        // Level 1: 0 - 500 XP (Eventlyy Citizen)
+        // Level 2: 500 - 1,200 XP (Culture Scout)
+        // Level 3: 1,200 - 2,500 XP (Nightlife Explorer)
+        // Level 4: 2,500 - 4,500 XP (Festival Headliner)
+        // Level 5: 4,500 - 7,500 XP (VIP Cultural Icon)
+        // Level 6+: 7,500+ XP (Living Legend)
+        $thresholds = [
+            1 => ['min' => 0, 'max' => 500, 'title' => 'Eventlyy Citizen', 'tier' => 'citizen'],
+            2 => ['min' => 500, 'max' => 1200, 'title' => 'Culture Scout', 'tier' => 'scout'],
+            3 => ['min' => 1200, 'max' => 2500, 'title' => 'Nightlife Explorer', 'tier' => 'explorer'],
+            4 => ['min' => 2500, 'max' => 4500, 'title' => 'Festival Headliner', 'tier' => 'headliner'],
+            5 => ['min' => 4500, 'max' => 7500, 'title' => 'VIP Cultural Icon', 'tier' => 'vip'],
+            6 => ['min' => 7500, 'max' => 12000, 'title' => 'Living Legend', 'tier' => 'legend']
+        ];
+
+        $currentLevel = 1;
+        $rankTitle = 'Eventlyy Citizen';
+        $rankTier = 'citizen';
+        $minXp = 0;
+        $maxXp = 500;
+
+        foreach ($thresholds as $lvl => $info) {
+            if ($xp >= $info['min']) {
+                $currentLevel = $lvl;
+                $rankTitle = $info['title'];
+                $rankTier = $info['tier'];
+                $minXp = $info['min'];
+                $maxXp = $info['max'];
+            }
+        }
+
+        if ($currentLevel >= 6 && $xp >= 12000) {
+            $minXp = 7500;
+            $maxXp = 12000;
+        }
+
+        $levelSpan = max(1, $maxXp - $minXp);
+        $progressWithinLevel = max(0, min($levelSpan, $xp - $minXp));
+        $progressPercent = min(100, round(($progressWithinLevel / $levelSpan) * 100));
+
+        // Sync with users table if level changed
+        if ((int)$userRow['passport_level'] !== $currentLevel) {
+            $up = $this->db->prepare("UPDATE users SET passport_level = :lvl WHERE id = :id");
+            $up->execute(['lvl' => $currentLevel, 'id' => $userId]);
+        }
+
+        return [
+            'xp' => $xp,
+            'level' => $currentLevel,
+            'prestige' => $prestige,
+            'rank_title' => $rankTitle,
+            'rank_tier_key' => $rankTier,
+            'progress_percent' => $progressPercent,
+            'next_level_xp' => $maxXp,
+            'current_level_min_xp' => $minXp,
+            'can_prestige' => ($currentLevel >= 6 && $xp >= 7500)
+        ];
+    }
+
+    /**
+     * Add XP to a user's passport.
+     */
+    public function awardPassportXp(int $userId, int $xpAmount): void
+    {
+        if ($xpAmount <= 0) return;
+        $stmt = $this->db->prepare("UPDATE users SET passport_xp = passport_xp + :xp WHERE id = :id");
+        $stmt->execute(['xp' => $xpAmount, 'id' => $userId]);
+    }
+
+    /**
+     * Trigger Prestige Rebirth: resets active XP/level cycle, elevates Prestige Tier, and awards massive Event Credits!
+     */
+    public function activatePrestige(int $userId): array
+    {
+        $prog = $this->getUserPassportProgress($userId);
+        if (!$prog['can_prestige']) {
+            return [
+                'success' => false,
+                'message' => 'You must reach Living Legend rank (Level 6 with 7,500+ XP) to unlock Prestige Rebirth!'
+            ];
+        }
+
+        $newPrestige = $prog['prestige'] + 1;
+        $rewardCredits = 2500.00 * $newPrestige; // e.g. ₦2,500 for Prestige I, ₦5,000 for Prestige II
+
+        // Reset XP back to baseline, increment prestige
+        $stmt = $this->db->prepare("
+            UPDATE users 
+            SET passport_xp = 0, 
+                passport_level = 1, 
+                prestige_tier = :prestige, 
+                prestige_unlocked_at = NOW() 
+            WHERE id = :id
+        ");
+        $stmt->execute(['prestige' => $newPrestige, 'id' => $userId]);
+
+        // Award bonus prestige credits into LayawayCredit model
+        $userRow = $this->db->query("SELECT email FROM users WHERE id = {$userId}")->fetch(PDO::FETCH_ASSOC);
+        if ($userRow && !empty($userRow['email'])) {
+            try {
+                $insCredit = $this->db->prepare("
+                    INSERT INTO layaway_credits 
+                    (user_id, email, original_ticket_id, original_event_id, amount, remaining_amount, status, created_at, updated_at)
+                    VALUES (:u_id, :email, :t_id, NULL, :amt, :rem, 'available', NOW(), NOW())
+                ");
+                $insCredit->execute([
+                    'u_id' => $userId,
+                    'email' => $userRow['email'],
+                    't_id' => 'PRESTIGE-STAR-' . $newPrestige . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)),
+                    'amt' => $rewardCredits,
+                    'rem' => $rewardCredits
+                ]);
+            } catch (\Throwable $e) {}
+        }
+
+        // Award exclusive Prestige Crown badge
+        $this->checkAndAwardBadge($userId, 'prestige_ascendant');
+
+        return [
+            'success' => true,
+            'new_prestige' => $newPrestige,
+            'reward_credits' => $rewardCredits,
+            'message' => "Congratulations! You have ascended to Prestige Tier {$newPrestige} and earned " . format_price($rewardCredits) . " in loyalty Event Credits!"
+        ];
+    }
+
+    /**
      * Get all unlocked badges for a user.
      */
     public function getUserBadges(int $userId): array
@@ -917,7 +1075,7 @@ class EventActivityService
     }
 
     /**
-     * Check and award a badge if not already earned, with optional Event Credits reward!
+     * Check and award a badge if not already earned, with optional Event Credits reward and XP!
      */
     public function checkAndAwardBadge(int $userId, string $badgeKey, ?int $eventId = null): bool
     {
@@ -926,59 +1084,125 @@ class EventActivityService
                 'title' => 'First Drop Pioneer',
                 'icon' => '🎟️',
                 'desc' => 'Secured your first live ticket on Eventlyy.',
-                'credits' => 500.00
+                'credits' => 500.00,
+                'xp' => 300,
+                'category' => 'ticketing'
             ],
             'nightlife_explorer' => [
                 'title' => 'Nightlife Explorer',
                 'icon' => '🌙',
                 'desc' => 'Attended 3 or more live events.',
-                'credits' => 1000.00
+                'credits' => 1000.00,
+                'xp' => 600,
+                'category' => 'ticketing'
+            ],
+            'festival_legend' => [
+                'title' => 'Festival Veteran',
+                'icon' => '👑',
+                'desc' => 'Attended 5 or more live events on Eventlyy.',
+                'credits' => 1500.00,
+                'xp' => 1000,
+                'category' => 'ticketing'
             ],
             'first_vote' => [
                 'title' => 'Culture Voter',
                 'icon' => '🗳️',
                 'desc' => 'Voted in an event contest or award poll.',
-                'credits' => 200.00
+                'credits' => 200.00,
+                'xp' => 150,
+                'category' => 'community'
+            ],
+            'poll_regular' => [
+                'title' => 'Ballot Champion',
+                'icon' => '🏆',
+                'desc' => 'Cast 5 or more votes in community award polls.',
+                'credits' => 400.00,
+                'xp' => 350,
+                'category' => 'community'
             ],
             'trivia_master' => [
                 'title' => 'Trivia Mastermind',
                 'icon' => '🧠',
                 'desc' => 'Scored a winning round on an event trivia game.',
-                'credits' => 300.00
+                'credits' => 300.00,
+                'xp' => 250,
+                'category' => 'knowledge'
+            ],
+            'trivia_genius' => [
+                'title' => 'Speed Genius',
+                'icon' => '⚡',
+                'desc' => 'Played 3 or more trivia challenges across events.',
+                'credits' => 500.00,
+                'xp' => 450,
+                'category' => 'knowledge'
             ],
             'song_suggester' => [
                 'title' => 'Setlist Curator',
                 'icon' => '🎵',
                 'desc' => 'Suggested a top song or panel question.',
-                'credits' => 150.00
+                'credits' => 150.00,
+                'xp' => 150,
+                'category' => 'stage'
             ],
             'community_voice' => [
                 'title' => 'Hype Starter',
                 'icon' => '📣',
                 'desc' => 'Posted on an event Hype Wall or Squad Finder.',
-                'credits' => 200.00
+                'credits' => 200.00,
+                'xp' => 150,
+                'category' => 'social'
+            ],
+            'social_butterfly' => [
+                'title' => 'Hype Conductor',
+                'icon' => '🔥',
+                'desc' => 'Shared 3 or more posts or squad finder threads on community walls.',
+                'credits' => 450.00,
+                'xp' => 400,
+                'category' => 'social'
             ],
             'power_voter' => [
                 'title' => 'Power Voter',
                 'icon' => '⚡',
                 'desc' => 'Purchased a Power Vote pack to boost your nominee.',
-                'credits' => 500.00
+                'credits' => 500.00,
+                'xp' => 500,
+                'category' => 'supporter'
+            ],
+            'vip_enthusiast' => [
+                'title' => 'VIP Connoisseur',
+                'icon' => '💎',
+                'desc' => 'Acquired a VIP or Table tier admission pass.',
+                'credits' => 800.00,
+                'xp' => 700,
+                'category' => 'ticketing'
+            ],
+            'prestige_ascendant' => [
+                'title' => 'Ascendant Star',
+                'icon' => '✨',
+                'desc' => 'Completed all master ranks and achieved Prestige Rebirth.',
+                'credits' => 2500.00,
+                'xp' => 1500,
+                'category' => 'prestige'
             ]
         ];
 
         if (!isset($badgeDefinitions[$badgeKey])) return false;
         $def = $badgeDefinitions[$badgeKey];
 
-        // Check if already earned
-        $chk = $this->db->prepare("SELECT id FROM user_passport_badges WHERE user_id = :u_id AND badge_key = :key LIMIT 1");
-        $chk->execute(['u_id' => $userId, 'key' => $badgeKey]);
+        // Fetch user's current prestige tier cycle
+        $userRow = $this->db->query("SELECT prestige_tier, email FROM users WHERE id = {$userId}")->fetch(PDO::FETCH_ASSOC);
+        $prestigeCycle = (int)($userRow['prestige_tier'] ?? 0);
+
+        // Check if already earned in this prestige cycle
+        $chk = $this->db->prepare("SELECT id FROM user_passport_badges WHERE user_id = :u_id AND badge_key = :key AND prestige_cycle = :cycle LIMIT 1");
+        $chk->execute(['u_id' => $userId, 'key' => $badgeKey, 'cycle' => $prestigeCycle]);
         if ($chk->fetch()) return false;
 
         // Insert badge
         $ins = $this->db->prepare("
             INSERT INTO user_passport_badges 
-            (user_id, badge_key, badge_title, badge_icon, badge_desc, event_id, reward_credits, created_at)
-            VALUES (:u_id, :key, :title, :icon, :desc, :e_id, :credits, NOW())
+            (user_id, badge_key, badge_title, badge_icon, badge_desc, event_id, prestige_cycle, reward_credits, created_at)
+            VALUES (:u_id, :key, :title, :icon, :desc, :e_id, :cycle, :credits, NOW())
         ");
         $ins->execute([
             'u_id' => $userId,
@@ -987,12 +1211,16 @@ class EventActivityService
             'icon' => $def['icon'],
             'desc' => $def['desc'],
             'e_id' => $eventId,
+            'cycle' => $prestigeCycle,
             'credits' => $def['credits']
         ]);
 
+        // Award passport XP
+        $xpToAdd = (int)($def['xp'] ?? 200);
+        $this->awardPassportXp($userId, $xpToAdd);
+
         // If credits awarded and user exists, issue Event Credit into LayawayCredit model
         if ($def['credits'] > 0) {
-            $userRow = $this->db->query("SELECT email FROM users WHERE id = {$userId}")->fetch(PDO::FETCH_ASSOC);
             if ($userRow && !empty($userRow['email'])) {
                 try {
                     $stmt = $this->db->prepare("

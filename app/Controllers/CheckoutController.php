@@ -691,7 +691,8 @@ class CheckoutController extends Controller
                 }
             }
             $pmMethod = ($appliedCreditAmount > 0) ? 'event_credit' : 'free';
-            return $this->issueTicketsDirectly($event, $name, $email, $pmMethod, $qtyMap, $ticketTypes, $promoCode, $discountAmount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery, $selectedAddons);
+            $effectiveDiscount = $discountAmount + $appliedCreditAmount;
+            return $this->issueTicketsDirectly($event, $name, $email, $pmMethod, $qtyMap, $ticketTypes, $promoCode, $effectiveDiscount, $refCode, $normalizedAttendees, $phone, $whatsappDelivery, $selectedAddons);
         }
 
         // ── Layaway / Partial Payment Preparation ────────────────

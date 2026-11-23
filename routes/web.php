@@ -102,6 +102,7 @@ $router->post('/event/{id}/vote/power/verify', [EventActivityController::class, 
 
 // Gamified User Passport & Badges
 $router->get('/user/passport', [UserPassportController::class, 'index']);
+$router->post('/user/passport/prestige', [UserPassportController::class, 'prestige']);
 
 $router->get('/checkout/paystack/callback', [CheckoutController::class, 'paystackCallback']);
 $router->post('/checkout/validate-promo', [CheckoutController::class, 'validatePromo']);

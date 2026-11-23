@@ -15,7 +15,7 @@ class UserPassportController extends Controller
 
     public function __construct()
     {
-        $this->registerMiddleware(new AuthMiddleware(['index']));
+        $this->registerMiddleware(new AuthMiddleware(['index', 'prestige']));
         $this->service = new EventActivityService();
     }
 
@@ -43,13 +43,49 @@ class UserPassportController extends Controller
         $tStmt->execute(['uid' => $userId, 'email' => $user->email]);
         $ticketCount = (int)$tStmt->fetchColumn();
 
+        // Retroactively award First Drop Pioneer or Nightlife Explorer badges if tickets exist and badge is missing
+        if ($ticketCount >= 1) {
+            $this->service->checkAndAwardBadge($userId, 'first_drop');
+        }
+        if ($ticketCount >= 3) {
+            $this->service->checkAndAwardBadge($userId, 'nightlife_explorer');
+        }
+        if ($ticketCount >= 5) {
+            $this->service->checkAndAwardBadge($userId, 'festival_legend');
+        }
+
+        // Re-fetch badges if newly unlocked
+        $badges = $this->service->getUserBadges($userId);
+
+        // Fetch full gamified progression (XP, Level, Rank, Next Threshold, Prestige Tier)
+        $progression = $this->service->getUserPassportProgress($userId);
+
         return $this->render('user/passport', [
             'title' => 'My Event Passport & Badges — ' . site_setting('site_title', 'Eventlyy'),
             'user' => $user,
             'badges' => $badges,
             'credits' => $credits,
             'totalCredits' => $totalCredits,
-            'ticketCount' => $ticketCount
+            'ticketCount' => $ticketCount,
+            'progression' => $progression
         ]);
+    }
+
+    /**
+     * POST: Activate Prestige Rebirth when Level 6 Living Legend is conquered.
+     */
+    public function prestige(Request $request): void
+    {
+        $user = Application::$app->user;
+        $userId = (int)$user->id;
+
+        $res = $this->service->activatePrestige($userId);
+        if ($res['success']) {
+            Application::$app->session->setFlash('success', $res['message']);
+        } else {
+            Application::$app->session->setFlash('error', $res['message']);
+        }
+
+        redirect('/user/passport');
     }
 }

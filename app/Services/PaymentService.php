@@ -226,6 +226,10 @@ class PaymentService
         }
 
         $discountAmount = (float)($orderData['discount_amount'] ?? ($tx['discount_amount'] ?? 0.00));
+        $appliedCreditAmount = (float)($orderData['applied_credit_amount'] ?? 0.00);
+
+        // Combined deductions: promo code discount + loyalty event credits
+        $totalDeductions = $discountAmount + $appliedCreditAmount;
 
         // Calculate raw ticket subtotal across all purchased tickets
         $rawTicketSubtotal = 0.00;
@@ -238,9 +242,9 @@ class PaymentService
             }
         }
 
-        // Calculate proportional discount ratio to deduct promo code discount from ticket seat prices
-        $discountRatio = ($rawTicketSubtotal > 0 && $discountAmount > 0)
-            ? min(1.0, $discountAmount / $rawTicketSubtotal)
+        // Calculate proportional discount ratio to deduct promo code & event credit discounts from ticket seat prices
+        $discountRatio = ($rawTicketSubtotal > 0 && $totalDeductions > 0)
+            ? min(1.0, $totalDeductions / $rawTicketSubtotal)
             : 0.0;
 
         $db->beginTransaction();
