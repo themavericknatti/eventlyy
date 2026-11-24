@@ -279,11 +279,44 @@ class PaymentService
                     $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
                     $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
                     $attPhone = $attendees[$ttId][$i]['phone'] ?? ($attendees[$i]['phone'] ?? $phone);
+                    $attSeat = $attendees[$ttId][$i]['assigned_seat'] ?? ($attendees[$i]['assigned_seat'] ?? null);
+                    $attRole = $attendees[$ttId][$i]['attendee_role'] ?? ($attendees[$i]['attendee_role'] ?? ($i === 0 ? 'primary' : 'group_member'));
+                    if (!in_array($attRole, ['primary', 'plus_one', 'group_member'])) {
+                        $attRole = 'primary';
+                    }
+                    if (($tt['ticket_kind'] ?? '') === 'duo' || $admits === 2) {
+                        if ($i % 2 === 1) $attRole = 'plus_one';
+                    }
+
+                    // Auto-assign seat if not explicitly provided or missing seat number
+                    $hasSeating = (!empty($tt['has_seating']) || !empty($tt['section_name']));
+                    if ($hasSeating) {
+                        $parsedNum = \App\Models\Ticket::parseSeatNumber($attSeat);
+                        if (empty($attSeat) || $parsedNum === null) {
+                            $start = (isset($tt['seat_start']) && is_numeric($tt['seat_start'])) ? (int)$tt['seat_start'] : 1;
+                            $occupied = \App\Models\Ticket::getOccupiedSeatNumbers((int)$tt['id']);
+                            $cursor = $start;
+                            for ($step = 0; $step <= $i; $step++) {
+                                while (in_array($cursor, $occupied, true)) {
+                                    $cursor++;
+                                }
+                                if ($step < $i) {
+                                    $occupied[] = $cursor;
+                                    $cursor++;
+                                }
+                            }
+                            $attSeat = \App\Models\Ticket::formatSeatString($tt, $cursor);
+                        }
+                    }
+
                     if (empty($attName)) $attName = $name;
                     if (empty($attEmail)) $attEmail = $email;
                     if (empty($attPhone)) $attPhone = $phone;
 
                     $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
+                    if (!empty($attSeat)) {
+                        $seatLabel .= " | " . $attSeat;
+                    }
                     $typeNameDisplay = $tt['name'] . $seatLabel;
 
                     $isLayawayOrder = !empty($orderData['is_layaway']);
@@ -296,8 +329,15 @@ class PaymentService
 
                     $ticketPassFee = isset($orderData['pass_fee']) ? ($orderData['pass_fee'] ? 1 : 0) : (!empty($event['pass_fee']) ? 1 : 0);
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, pass_fee, status, status_detail, security_pin, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :pass_fee, :status, :status_detail, :security_pin, NOW(), 0)
+                        INSERT INTO tickets (
+                            id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, 
+                            attendee_phone, price, pass_fee, status, status_detail, security_pin, 
+                            assigned_seat, attendee_role, purchase_date, checked_in
+                        ) VALUES (
+                            :id, :event_id, :ticket_type_id, :user_id, :name, :email, 
+                            :phone, :price, :pass_fee, :status, :status_detail, :security_pin, 
+                            :assigned_seat, :attendee_role, NOW(), 0
+                        )
                     ");
                     $insertStmt->execute([
                         'id' => $ticketCode,
@@ -311,7 +351,9 @@ class PaymentService
                         'pass_fee' => $ticketPassFee,
                         'status' => $ticketStatus,
                         'status_detail' => $ticketStatusDetail,
-                        'security_pin' => $securityPin
+                        'security_pin' => $securityPin,
+                        'assigned_seat' => $attSeat ?: null,
+                        'attendee_role' => $attRole
                     ]);
 
                     $createdTickets[] = [
@@ -324,7 +366,14 @@ class PaymentService
                         'price' => $seatPrice,
                         'status' => $ticketStatus,
                         'checked_in' => false,
-                        'security_pin' => $securityPin
+                        'security_pin' => $securityPin,
+                        'assigned_seat' => $attSeat ?: null,
+                        'attendee_role' => $attRole,
+                        'ticket_kind' => $tt['ticket_kind'] ?? 'standard',
+                        'section_name' => $tt['section_name'] ?? null,
+                        'row_name' => $tt['row_name'] ?? null,
+                        'has_seating' => !empty($tt['has_seating']),
+                        'admits' => (int)($tt['admits'] ?? 1)
                     ];
                     $calculatedSubtotal += $seatPrice;
                 }

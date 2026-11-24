@@ -74,8 +74,8 @@ class HostEventController extends Controller
         $event = new Event();
 
         if ($this->createEventAction->execute($data, $user->id, $event)) {
-            Application::$app->session->setFlash('success', 'Event successfully created and published!');
-            return Application::$app->response->redirect('/host/dashboard');
+            Application::$app->session->setFlash('success', 'Event successfully created! Now configure your ticket options, seating arrangements, and guest lineup.');
+            return Application::$app->response->redirect('/host/event/' . $event->id . '/tickets-setup');
         }
 
         Application::$app->session->setFlash('error', 'Event validation failed: ' . implode(', ', $event->getErrorMessages()));
@@ -91,6 +91,323 @@ class HostEventController extends Controller
         $eventDate = strtotime($event->date ?? '');
         $liveWindowEnd = $eventDate ? $eventDate + (event_completion_hours() * 3600) : 0;
         return ($eventDate && time() > $liveWindowEnd) || in_array($event->status ?? '', ['completed', 'past']);
+    }
+
+    /**
+     * Dedicated Step 2 / Studio: Tickets, Seating Arrangements, Lineup & Addons Hub
+     */
+    public function ticketsSetup(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+        if (!$event) {
+            throw new \Exception("Event not found or access denied.", 404);
+        }
+
+        if ($this->isEventCompleted($event)) {
+            Application::$app->session->setFlash('error', 'Completed events cannot be edited.');
+            return Application::$app->response->redirect('/host/event/management/' . $event->id);
+        }
+
+        // Fetch ticket types breakdown via EventService
+        $ticketTypes = $this->eventService->getEventTicketTypesBreakdown($event->id);
+
+        // Fetch existing special guests
+        $db = Application::$app->db->pdo;
+        $guestStmt = $db->prepare("SELECT * FROM event_guests WHERE event_id = :event_id ORDER BY id ASC");
+        $guestStmt->execute(['event_id' => $event->id]);
+        $eventGuests = $guestStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        // Fetch existing add-ons & merchandise
+        $addonStmt = $db->prepare("SELECT * FROM event_addons WHERE event_id = :event_id AND status != 'deleted' ORDER BY id ASC");
+        $addonStmt->execute(['event_id' => $event->id]);
+        $eventAddons = $addonStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        return $this->render('host/tickets-setup', [
+            'title' => 'Tickets & Seating Setup — ' . $event->name,
+            'event' => $event,
+            'ticketTypes' => $ticketTypes,
+            'eventGuests' => $eventGuests,
+            'eventAddons' => $eventAddons,
+            'isAdmin' => $isAdmin
+        ]);
+    }
+
+    /**
+     * Save all ticket tiers, seating sections, special guests, and addons
+     */
+    public function saveTicketsSetup(Request $request, int|string $id)
+    {
+        $user = Application::$app->user;
+        $isAdmin = (method_exists($user, 'isAdmin') && $user->isAdmin()) || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) || hasRole('admin') || hasRole('super-admin');
+        $event = $this->eventService->findHostEvent($id, $user->id, $isAdmin);
+        if (!$event) {
+            throw new \Exception("Event not found or access denied.", 404);
+        }
+
+        if ($this->isEventCompleted($event)) {
+            Application::$app->session->setFlash('error', 'Completed events cannot be edited.');
+            return Application::$app->response->redirect('/host/event/management/' . $event->id);
+        }
+
+        $db = Application::$app->db->pdo;
+        $data = $request->getBody();
+
+        // 1. Process Ticket Types
+        $ticketIds = $data['ticket-id'] ?? [];
+        $ticketNames = $data['ticket-name'] ?? [];
+        $ticketPrices = $data['ticket-price'] ?? [];
+        $ticketQtys = $data['ticket-qty'] ?? [];
+        $ticketAdmits = $data['ticket-admits'] ?? [];
+        $ticketMaxPerPerson = $data['ticket-max-per-person'] ?? [];
+        $ticketKinds = $data['ticket-kind'] ?? [];
+        $ticketSections = $data['ticket-section'] ?? [];
+        $ticketRows = $data['ticket-row'] ?? [];
+        $ticketSeatPrefixes = $data['ticket-seat-prefix'] ?? [];
+        $ticketSeatStarts = $data['ticket-seat-start'] ?? [];
+        $ticketSeatEnds = $data['ticket-seat-end'] ?? [];
+        $ticketHasSeatings = $data['ticket-has-seating'] ?? [];
+        $ticketDescriptions = $data['ticket-description'] ?? [];
+
+        $submittedIds = [];
+
+        foreach ($ticketNames as $index => $name) {
+            $name = trim((string)$name);
+            if (empty($name)) continue;
+
+            $price = isset($ticketPrices[$index]) ? max(0, (float)$ticketPrices[$index]) : 0.00;
+            $qty = isset($ticketQtys[$index]) ? max(0, (int)$ticketQtys[$index]) : 0;
+            $admits = isset($ticketAdmits[$index]) && is_numeric($ticketAdmits[$index]) ? max(1, (int)$ticketAdmits[$index]) : 1;
+            $maxPerPerson = isset($ticketMaxPerPerson[$index]) && is_numeric($ticketMaxPerPerson[$index]) && (int)$ticketMaxPerPerson[$index] > 0 ? (int)$ticketMaxPerPerson[$index] : null;
+
+            $kind = in_array($ticketKinds[$index] ?? '', ['standard', 'duo', 'group', 'seated']) ? $ticketKinds[$index] : 'standard';
+            if ($kind === 'duo') {
+                $admits = max(2, $admits);
+            }
+
+            $sectionName = trim((string)($ticketSections[$index] ?? '')) ?: null;
+            $rowName = trim((string)($ticketRows[$index] ?? '')) ?: null;
+            $seatPrefix = trim((string)($ticketSeatPrefixes[$index] ?? '')) ?: null;
+            $seatStart = isset($ticketSeatStarts[$index]) && is_numeric($ticketSeatStarts[$index]) ? (int)$ticketSeatStarts[$index] : null;
+            $seatEnd = isset($ticketSeatEnds[$index]) && is_numeric($ticketSeatEnds[$index]) ? (int)$ticketSeatEnds[$index] : null;
+            $hasSeating = (!empty($ticketHasSeatings[$index]) || $kind === 'seated' || !empty($sectionName)) ? 1 : 0;
+            $description = trim((string)($ticketDescriptions[$index] ?? '')) ?: null;
+
+            // Default seatStart to 1 if seating is active and seatEnd or section is provided
+            if ($hasSeating && $seatStart === null && ($seatEnd !== null || !empty($sectionName) || !empty($rowName))) {
+                $seatStart = 1;
+            }
+            if ($hasSeating && $seatEnd === null && $seatStart !== null && $qty > 0) {
+                $seatEnd = $seatStart + $qty - 1;
+            }
+
+            // Auto-calculate capacity from seat range if specified and qty is zero
+            if ($hasSeating && $seatStart !== null && $seatEnd !== null && $seatEnd >= $seatStart && $qty <= 0) {
+                $qty = ($seatEnd - $seatStart) + 1;
+            }
+
+            // Auto-detect table/booth capacity
+            if ($admits === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $name, $matches)) {
+                $admits = max(1, (int)$matches[1]);
+                if ($kind === 'standard') {
+                    $kind = 'group';
+                }
+            }
+
+            $existingId = $ticketIds[$index] ?? null;
+
+            if ($existingId && is_numeric($existingId)) {
+                $updateStmt = $db->prepare("
+                    UPDATE ticket_types 
+                    SET name = :name, 
+                        ticket_kind = :ticket_kind,
+                        price = :price, 
+                        capacity = :capacity, 
+                        admits = :admits, 
+                        max_per_person = :max_per_person,
+                        section_name = :section_name,
+                        row_name = :row_name,
+                        seat_prefix = :seat_prefix,
+                        seat_start = :seat_start,
+                        seat_end = :seat_end,
+                        has_seating = :has_seating,
+                        description = :description
+                    WHERE id = :id AND event_id = :event_id
+                ");
+                $updateStmt->execute([
+                    'name' => $name,
+                    'ticket_kind' => $kind,
+                    'price' => $price,
+                    'capacity' => $qty,
+                    'admits' => $admits,
+                    'max_per_person' => $maxPerPerson,
+                    'section_name' => $sectionName,
+                    'row_name' => $rowName,
+                    'seat_prefix' => $seatPrefix,
+                    'seat_start' => $seatStart,
+                    'seat_end' => $seatEnd,
+                    'has_seating' => $hasSeating,
+                    'description' => $description,
+                    'id' => $existingId,
+                    'event_id' => $event->id
+                ]);
+                $submittedIds[] = (int)$existingId;
+            } else {
+                $insertStmt = $db->prepare("
+                    INSERT INTO ticket_types (
+                        event_id, name, ticket_kind, price, capacity, admits, 
+                        max_per_person, section_name, row_name, seat_prefix, 
+                        seat_start, seat_end, has_seating, description
+                    ) VALUES (
+                        :event_id, :name, :ticket_kind, :price, :capacity, :admits, 
+                        :max_per_person, :section_name, :row_name, :seat_prefix, 
+                        :seat_start, :seat_end, :has_seating, :description
+                    )
+                ");
+                $insertStmt->execute([
+                    'event_id' => $event->id,
+                    'name' => $name,
+                    'ticket_kind' => $kind,
+                    'price' => $price,
+                    'capacity' => $qty,
+                    'admits' => $admits,
+                    'max_per_person' => $maxPerPerson,
+                    'section_name' => $sectionName,
+                    'row_name' => $rowName,
+                    'seat_prefix' => $seatPrefix,
+                    'seat_start' => $seatStart,
+                    'seat_end' => $seatEnd,
+                    'has_seating' => $hasSeating,
+                    'description' => $description
+                ]);
+                $submittedIds[] = (int)$db->lastInsertId();
+            }
+        }
+
+        // Clean up deleted ticket types that have 0 sold tickets
+        if (!empty($submittedIds)) {
+            $inClause = implode(',', array_map('intval', $submittedIds));
+            $deleteStmt = $db->prepare("
+                DELETE FROM ticket_types 
+                WHERE event_id = :event_id 
+                  AND id NOT IN ({$inClause})
+                  AND (SELECT COUNT(*) FROM tickets t WHERE t.ticket_type_id = ticket_types.id AND t.status IN ('Paid', 'Comped', 'Layaway')) = 0
+            ");
+            $deleteStmt->execute(['event_id' => $event->id]);
+        }
+
+        // 2. Process Special Guests
+        $guestNames = $data['guest-name'] ?? [];
+        $guestRoles = $data['guest-role'] ?? [];
+        $guestPhones = $data['guest-phone'] ?? [];
+        $guestSocials = $data['guest-social'] ?? [];
+
+        $db->prepare("DELETE FROM event_guests WHERE event_id = :event_id")->execute(['event_id' => $event->id]);
+        foreach ($guestNames as $index => $gName) {
+            $gName = trim((string)$gName);
+            if (empty($gName)) continue;
+            $gStmt = $db->prepare("INSERT INTO event_guests (event_id, name, role, phone, social) VALUES (:event_id, :name, :role, :phone, :social)");
+            $gStmt->execute([
+                'event_id' => $event->id,
+                'name' => $gName,
+                'role' => trim($guestRoles[$index] ?? ''),
+                'phone' => trim($guestPhones[$index] ?? ''),
+                'social' => trim($guestSocials[$index] ?? '')
+            ]);
+        }
+
+        // 3. Process Add-ons & Merchandise
+        $addonIds = $data['addon-id'] ?? [];
+        $addonNames = $data['addon-name'] ?? [];
+        $addonPrices = $data['addon-price'] ?? [];
+        $addonQtys = $data['addon-quantity'] ?? [];
+        $addonDescs = $data['addon-description'] ?? [];
+        $addonExistingImages = $data['addon-image-existing'] ?? [];
+        $addonImageUrls = $data['addon-image-url'] ?? [];
+        $submittedAddonIds = [];
+
+        $addonsTargetDir = function_exists('public_dir') ? public_dir('uploads/addons') : (Application::$ROOT_DIR . '/public/uploads/addons');
+        \Ace\UploadService::ensureDirectory($addonsTargetDir);
+        $uploadService = new \Ace\UploadService();
+
+        foreach ($addonNames as $index => $aName) {
+            $aName = trim((string)$aName);
+            if (empty($aName)) continue;
+
+            $existingAddonId = $addonIds[$index] ?? null;
+            $aPrice = isset($addonPrices[$index]) && is_numeric($addonPrices[$index]) ? max(0, (float)$addonPrices[$index]) : 0.00;
+            $aQty = isset($addonQtys[$index]) && is_numeric($addonQtys[$index]) && (int)$addonQtys[$index] > 0 ? (int)$addonQtys[$index] : null;
+            $aDesc = trim($addonDescs[$index] ?? '');
+
+            // Determine image from URL input, existing image, or file upload
+            $urlInput = !empty($addonImageUrls[$index]) ? trim((string)$addonImageUrls[$index]) : '';
+            $imagePath = !empty($urlInput) ? $urlInput : (!empty($addonExistingImages[$index]) ? $addonExistingImages[$index] : null);
+
+            if (isset($_FILES['addon-image']['name'][$index]) && $_FILES['addon-image']['error'][$index] === UPLOAD_ERR_OK) {
+                $fileItem = [
+                    'name' => $_FILES['addon-image']['name'][$index],
+                    'type' => $_FILES['addon-image']['type'][$index],
+                    'tmp_name' => $_FILES['addon-image']['tmp_name'][$index],
+                    'error' => $_FILES['addon-image']['error'][$index],
+                    'size' => $_FILES['addon-image']['size'][$index]
+                ];
+                $uploadRes = $uploadService->uploadFile($fileItem, $addonsTargetDir, ['jpg', 'jpeg', 'png', 'webp', 'gif'], 5 * 1024 * 1024);
+                if ($uploadRes['success']) {
+                    $imagePath = '/uploads/addons/' . $uploadRes['filename'];
+                }
+            }
+
+            if ($existingAddonId && is_numeric($existingAddonId)) {
+                $updateAddonStmt = $db->prepare("
+                    UPDATE event_addons 
+                    SET name = :name, 
+                        description = :desc, 
+                        price = :price, 
+                        quantity = :qty, 
+                        image = :img 
+                    WHERE id = :id AND event_id = :event_id
+                ");
+                $updateAddonStmt->execute([
+                    'name' => $aName,
+                    'desc' => $aDesc,
+                    'price' => $aPrice,
+                    'qty' => $aQty,
+                    'img' => $imagePath,
+                    'id' => $existingAddonId,
+                    'event_id' => $event->id
+                ]);
+                $submittedAddonIds[] = (int)$existingAddonId;
+            } else {
+                $insertAddonStmt = $db->prepare("
+                    INSERT INTO event_addons (event_id, name, description, price, quantity, image, sold_count, status)
+                    VALUES (:event_id, :name, :desc, :price, :qty, :img, 0, 'active')
+                ");
+                $insertAddonStmt->execute([
+                    'event_id' => $event->id,
+                    'name' => $aName,
+                    'desc' => $aDesc,
+                    'price' => $aPrice,
+                    'qty' => $aQty,
+                    'img' => $imagePath
+                ]);
+                $submittedAddonIds[] = (int)$db->lastInsertId();
+            }
+        }
+
+        if (!empty($submittedAddonIds)) {
+            $inClause = implode(',', array_map('intval', $submittedAddonIds));
+            $db->prepare("DELETE FROM event_addons WHERE event_id = :event_id AND id NOT IN ({$inClause}) AND sold_count = 0")
+               ->execute(['event_id' => $event->id]);
+            $db->prepare("UPDATE event_addons SET status = 'archived' WHERE event_id = :event_id AND id NOT IN ({$inClause}) AND sold_count > 0")
+               ->execute(['event_id' => $event->id]);
+        }
+
+        Application::$app->session->setFlash('success', 'Tickets, seating arrangements, and lineup saved successfully!');
+        if (!empty($data['save_action']) && $data['save_action'] === 'finish') {
+            return Application::$app->response->redirect('/host/event/management/' . $event->id);
+        }
+        return Application::$app->response->redirect('/host/event/' . $event->id . '/tickets-setup');
     }
 
     public function editEvent(Request $request, int|string $id)

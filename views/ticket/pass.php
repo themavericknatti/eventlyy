@@ -315,6 +315,70 @@ $qrUrl = url('/ticket/qr/' . urlencode($ticketCode) . '?s=360');
     gap: 0.75rem;
 }
 
+/* Seating & Arrangement Banner */
+.flyer-seating-banner {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    border-radius: 14px;
+    padding: 0.75rem 0.95rem;
+    margin-bottom: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.flyer-kind-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    align-self: flex-start;
+}
+.flyer-kind-tag--duo {
+    background: rgba(236, 72, 153, 0.18);
+    color: #f472b6;
+    border: 1px solid rgba(236, 72, 153, 0.35);
+}
+.flyer-kind-tag--group {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+}
+.flyer-kind-tag--seated {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.flyer-seating-pill-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+}
+.flyer-seat-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    color: #e2e8f0;
+}
+.flyer-seat-chip strong {
+    color: #94a3b8;
+    font-weight: 700;
+    margin-right: 2px;
+}
+.flyer-seat-chip--highlight {
+    background: rgba(52, 211, 153, 0.16);
+    border-color: rgba(52, 211, 153, 0.38);
+    color: #6ee7b7;
+    font-weight: 800;
+}
+
 .flyer-spec-item label {
     display: block;
     font-size: 0.64rem;
@@ -819,6 +883,58 @@ $qrUrl = url('/ticket/qr/' . urlencode($ticketCode) . '?s=360');
                         </div>
                     </div>
 
+                    <!-- Seating & Ticket Arrangement Badge Banner -->
+                    <?php 
+                    $ticketKind = $ticket['ticket_kind'] ?? 'standard';
+                    $assignedSeat = $ticket['assigned_seat'] ?? '';
+                    $attendeeRole = $ticket['attendee_role'] ?? 'primary';
+                    $sectionName = $ticket['section_name'] ?? '';
+                    $rowName = $ticket['row_name'] ?? '';
+                    $hasSeating = !empty($ticket['has_seating']) || !empty($assignedSeat) || !empty($sectionName);
+                    ?>
+
+                    <?php if ($hasSeating || $ticketKind === 'duo' || $ticketKind === 'group' || $admits > 1): ?>
+                        <div class="flyer-seating-banner">
+                            <?php if ($ticketKind === 'duo' || $admits === 2): ?>
+                                <div class="flyer-kind-tag flyer-kind-tag--duo">
+                                    <span>💑</span>
+                                    <span>Duo / Couples Pass <?= $attendeeRole === 'plus_one' ? '• Plus-One (+1) Guest' : '• Lead Attendee' ?></span>
+                                </div>
+                            <?php elseif ($ticketKind === 'group' || $admits > 2): ?>
+                                <div class="flyer-kind-tag flyer-kind-tag--group">
+                                    <span>👥</span>
+                                    <span>Group / Table Package (Admits <?= $admits ?>)</span>
+                                </div>
+                            <?php elseif ($hasSeating): ?>
+                                <div class="flyer-kind-tag flyer-kind-tag--seated">
+                                    <span>💺</span>
+                                    <span>Reserved Hall / Stadium Seating</span>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($hasSeating): ?>
+                                <?php 
+                                $displaySeatVal = $assignedSeat;
+                                if (preg_match('/(?:Seat[-:\s]*|\#)?(\d+)\s*$/i', $assignedSeat, $sm)) {
+                                    $prefix = $ticket['seat_prefix'] ?? '';
+                                    $displaySeatVal = ($prefix ?: 'Seat ') . $sm[1];
+                                }
+                                ?>
+                                <div class="flyer-seating-pill-row">
+                                    <?php if (!empty($sectionName)): ?>
+                                        <span class="flyer-seat-chip"><strong>Section:</strong> <?= e($sectionName) ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($rowName)): ?>
+                                        <span class="flyer-seat-chip"><strong>Row:</strong> <?= e($rowName) ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($displaySeatVal)): ?>
+                                        <span class="flyer-seat-chip flyer-seat-chip--highlight"><strong>Seat:</strong> <?= e($displaySeatVal) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Pass Holder & Admission Details Grid -->
                     <div class="flyer-specs-grid">
                         <div class="flyer-spec-item">
@@ -829,6 +945,23 @@ $qrUrl = url('/ticket/qr/' . urlencode($ticketCode) . '?s=360');
                             <label>Ticket Tier</label>
                             <strong><?= e($ticket['ticket_tier'] ?? 'General Admission') ?><?= $admits > 1 ? " ({$admits} Admits)" : "" ?></strong>
                         </div>
+                        <?php if ($hasSeating): ?>
+                            <div class="flyer-spec-item">
+                                <label>Allocated Seat</label>
+                                <strong style="color: #34d399;">💺 <?= e($assignedSeat ?: ($sectionName . (!empty($rowName) ? ' • ' . $rowName : ''))) ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($attendeeRole === 'plus_one'): ?>
+                            <div class="flyer-spec-item">
+                                <label>Pass Role</label>
+                                <strong style="color: #f472b6;">💑 Plus-One (+1)</strong>
+                            </div>
+                        <?php elseif ($ticketKind === 'duo'): ?>
+                            <div class="flyer-spec-item">
+                                <label>Pass Role</label>
+                                <strong style="color: #60a5fa;">Lead Attendee</strong>
+                            </div>
+                        <?php endif; ?>
                         <div class="flyer-spec-item">
                             <label>Gate Status</label>
                             <strong style="color: <?= $isCheckedIn ? '#60a5fa' : '#34d399' ?>;">

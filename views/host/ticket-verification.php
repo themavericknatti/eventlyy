@@ -660,7 +660,15 @@ $checkedInCount = count($verified_tickets ?? []);
                             <div class="ticket-avatar" id="ticket-success-avatar"><?= strtoupper(substr($t['attendee_name'] ?? 'U', 0, 2)) ?></div>
                             <div class="ticket-attendee-info">
                                 <h3 id="ticket-success-attendee-name" style="margin: 0; font-size: 1.1rem; font-weight: 800;"><?= e($t['attendee_name'] ?? 'Attendee') ?></h3>
-                                <p id="ticket-success-ticket-type" style="margin: 2px 0 0; font-size: 0.84rem; color: rgb(var(--muted));"><?= e($t['ticket_type'] ?? 'General Admission') ?> Ticket</p>
+                                <p id="ticket-success-ticket-type" style="margin: 2px 0 0; font-size: 0.84rem; color: rgb(var(--muted));">
+                                    <?= e($t['ticket_type'] ?? 'General Admission') ?> Ticket
+                                    <?php if (!empty($t['assigned_seat'])): ?>
+                                        &bull; <span style="font-weight:700; color:#059669;">💺 <?= e($t['assigned_seat']) ?></span>
+                                    <?php endif; ?>
+                                    <?php if (($t['attendee_role'] ?? '') === 'plus_one'): ?>
+                                        &bull; <span style="font-weight:700; color:#db2777;">💑 Plus-One (+1)</span>
+                                    <?php endif; ?>
+                                </p>
                             </div>
                         </div>
                         <div class="ticket-details-grid">

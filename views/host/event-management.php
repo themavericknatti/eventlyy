@@ -185,8 +185,11 @@ Manage <?= e($event->name) ?> - <?= e($siteName) ?> Host
                 <!-- Primary Management Action Buttons -->
                 <div class="mgmt-action-buttons">
                     <?php if (!$isCompleted): ?>
-                        <a href="{{ route('host/event/edit/' . $event->id) }}" class="admin-action-btn primary" style="text-decoration:none;">
-                            <span>✏️</span> Edit Details
+                        <a href="{{ route('host/event/' . $event->id . '/tickets-setup') }}" class="admin-action-btn primary" style="text-decoration:none; background:rgb(var(--brand)); color:#fff; font-weight:700;">
+                            <span>🎟️</span> Tickets &amp; Seating Studio
+                        </a>
+                        <a href="{{ route('host/event/edit/' . $event->id) }}" class="admin-action-btn" style="text-decoration:none;">
+                            <span>✏️</span> Edit Essentials
                         </a>
                     <?php else: ?>
                         <button class="admin-action-btn" disabled style="opacity:0.5; cursor:not-allowed;" title="Completed events cannot be edited">

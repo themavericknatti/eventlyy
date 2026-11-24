@@ -337,6 +337,14 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
             $holderEmail = !empty($t['attendee_email']) ? $t['attendee_email'] : ($order['attendee_email'] ?? '');
             $maskedEmail = !empty($holderEmail) ? preg_replace('/(?<=.{2}).(?=.*@)/', '*', $holderEmail) : 'your email';
             $isTUnlocked = !empty(\Ace\Application::$app->session->get('pass_unlocked_' . $tCode));
+
+            $tKind = $t['ticket_kind'] ?? 'standard';
+            $tRole = $t['attendee_role'] ?? 'primary';
+            $tSeat = $t['assigned_seat'] ?? '';
+            $tSection = $t['section_name'] ?? '';
+            $tRow = $t['row_name'] ?? '';
+            $tAdmits = max(1, (int)($t['admits'] ?? 1));
+            $tHasSeating = !empty($t['has_seating']) || !empty($tSeat) || !empty($tSection);
         ?>
             <div class="suc-pass-card">
                 
@@ -353,6 +361,19 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                     </div>
                     <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                         <span class="suc-pass-type-badge"><?= e($ticketType) ?></span>
+                        <?php if ($tKind === 'duo' || $tAdmits === 2): ?>
+                            <span class="suc-kind-pill suc-kind-pill--duo" style="display:inline-flex; align-items:center; gap:0.3rem; background:rgba(236,72,153,0.14); color:#db2777; border:1px solid rgba(236,72,153,0.3); font-size:0.75rem; font-weight:800; padding:3px 9px; border-radius:99px;">
+                                💑 <?= $tRole === 'plus_one' ? 'Plus-One (+1) Pass' : 'Duo Pass (Lead)' ?>
+                            </span>
+                        <?php elseif ($tKind === 'group' || $tAdmits > 2): ?>
+                            <span class="suc-kind-pill suc-kind-pill--group" style="display:inline-flex; align-items:center; gap:0.3rem; background:rgba(99,102,241,0.14); color:#6366f1; border:1px solid rgba(99,102,241,0.3); font-size:0.75rem; font-weight:800; padding:3px 9px; border-radius:99px;">
+                                👥 Group Pass (Admits <?= $tAdmits ?>)
+                            </span>
+                        <?php elseif ($tHasSeating): ?>
+                            <span class="suc-kind-pill suc-kind-pill--seated" style="display:inline-flex; align-items:center; gap:0.3rem; background:rgba(16,185,129,0.14); color:#059669; border:1px solid rgba(16,185,129,0.3); font-size:0.75rem; font-weight:800; padding:3px 9px; border-radius:99px;">
+                                💺 Reserved Seating
+                            </span>
+                        <?php endif; ?>
                         <button type="button" class="btn-ticket-story no-print"
                                 data-story-trigger
                                 data-event-name="<?= e($order['event_name']) ?>"
@@ -374,6 +395,35 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                     
                     <!-- Left: Details -->
                     <div class="suc-pass-info">
+                        <?php if ($tHasSeating): ?>
+                            <?php 
+                            $tDisplaySeat = $tSeat;
+                            if (preg_match('/(?:Seat[-:\s]*|\#)?(\d+)\s*$/i', $tSeat, $sm)) {
+                                $pfx = $t['seat_prefix'] ?? '';
+                                $tDisplaySeat = ($pfx ?: 'Seat ') . $sm[1];
+                            }
+                            ?>
+                            <!-- Prominent Seating Arrangement Banner -->
+                            <div class="suc-seating-banner" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:0.65rem 0.95rem; margin-bottom:1rem; font-size:0.86rem;">
+                                <span style="font-size:1.15rem;">💺</span>
+                                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                                    <?php if (!empty($tSection)): ?>
+                                        <span><strong>Section:</strong> <span style="color:#059669; font-weight:700;"><?= e($tSection) ?></span></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($tRow)): ?>
+                                        <span style="color:rgba(var(--muted),0.5);">&bull;</span>
+                                        <span><strong>Row:</strong> <span style="color:#059669; font-weight:700;"><?= e($tRow) ?></span></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($tDisplaySeat)): ?>
+                                        <span style="color:rgba(var(--muted),0.5);">&bull;</span>
+                                        <span style="background:rgba(16,185,129,0.2); color:#047857; padding:2px 8px; border-radius:6px; font-weight:800;">
+                                            Seat: <?= e($tDisplaySeat) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <div class="suc-pass-meta-grid">
                             <div class="suc-pass-meta-item">
                                 <span class="suc-pass-meta-label">Date &amp; Time</span>
@@ -387,6 +437,28 @@ Order Success — <?= e($order['event_name'] ?? 'Purchase Confirmed') ?>
                                 <span class="suc-pass-meta-label">Ticket Holder</span>
                                 <strong class="suc-pass-meta-val">👤 <?= e($holderName) ?></strong>
                             </div>
+                            <?php if ($tHasSeating): ?>
+                                <div class="suc-pass-meta-item">
+                                    <span class="suc-pass-meta-label">Allocated Seat</span>
+                                    <strong class="suc-pass-meta-val" style="color:#059669;">💺 <?= e($tSeat ?: ($tSection . (!empty($tRow) ? ' • ' . $tRow : ''))) ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($tRole === 'plus_one'): ?>
+                                <div class="suc-pass-meta-item">
+                                    <span class="suc-pass-meta-label">Pass Role</span>
+                                    <strong class="suc-pass-meta-val" style="color:#db2777;">💑 Plus-One (+1) Guest</strong>
+                                </div>
+                            <?php elseif ($tKind === 'duo'): ?>
+                                <div class="suc-pass-meta-item">
+                                    <span class="suc-pass-meta-label">Pass Role</span>
+                                    <strong class="suc-pass-meta-val" style="color:#6366f1;">Lead Duo Attendee</strong>
+                                </div>
+                            <?php elseif ($tAdmits > 1): ?>
+                                <div class="suc-pass-meta-item">
+                                    <span class="suc-pass-meta-label">Admission Capacity</span>
+                                    <strong class="suc-pass-meta-val" style="color:#6366f1;">👥 Admits <?= $tAdmits ?> Guests</strong>
+                                </div>
+                            <?php endif; ?>
                             <div class="suc-pass-meta-item">
                                 <span class="suc-pass-meta-label">Payment Reference</span>
                                 <strong class="suc-pass-meta-val suc-pass-ref"><?= e($orderRef) ?></strong>

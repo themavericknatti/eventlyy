@@ -1779,6 +1779,21 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
             <!-- Section 5: Ticket Types & Pricing -->
             <div class="event-form-section ticket-section">
+                <!-- Advanced Seating Studio Shortcut -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.9rem 1.25rem; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:14px; margin-bottom:1.5rem; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="font-size:1.3rem;">✨</span>
+                        <div>
+                            <strong style="color:#6366f1; font-size:0.9rem; display:block;">Looking for Advanced Seating &amp; Duo Passes?</strong>
+                            <span style="font-size:0.8rem; color:rgb(var(--muted));">Configure couples/duo passes with plus-one requirements or hall/stadium seated sections with row and seat allocations.</span>
+                        </div>
+                    </div>
+                    <a href="{{ route('host/event/' . $event->id . '/tickets-setup') }}" style="display:inline-flex; align-items:center; gap:0.4rem; background:#6366f1; color:#fff; padding:0.55rem 1.1rem; border-radius:10px; font-size:0.85rem; font-weight:700; text-decoration:none;">
+                        <span>🎟️ Open Tickets &amp; Seating Studio</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
                 <div class="event-section-header">
                     <div class="event-section-title-wrap">
                         <span class="event-section-icon">🎟️</span>

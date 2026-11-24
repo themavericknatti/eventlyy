@@ -113,6 +113,8 @@ class TicketController extends Controller
                    e.date as event_date, e.location as event_location, e.image as event_image, e.category as event_category,
                    e.status as event_status, e.organizer_id as event_organizer_id,
                    tt.name as ticket_tier, tt.admits as ticket_admits,
+                   tt.ticket_kind, tt.section_name, tt.row_name, tt.seat_prefix, 
+                   tt.seat_start, tt.seat_end, tt.has_seating, tt.description as ticket_description,
                    u.name as organizer_name
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
@@ -128,6 +130,16 @@ class TicketController extends Controller
             \Ace\Application::$app->session->setFlash('error', 'Ticket pass not found or reference has expired.');
             redirect('/');
             return '';
+        }
+
+        // If ticket has seating in ticket_types but assigned_seat is blank on the ticket row, synthesize it
+        if (empty($ticket['assigned_seat']) && (!empty($ticket['has_seating']) || !empty($ticket['section_name']))) {
+            $seatParts = [];
+            if (!empty($ticket['section_name'])) $seatParts[] = 'Section ' . $ticket['section_name'];
+            if (!empty($ticket['row_name'])) $seatParts[] = 'Row ' . $ticket['row_name'];
+            if (!empty($seatParts)) {
+                $ticket['assigned_seat'] = implode(' • ', $seatParts);
+            }
         }
 
         // Fetch any purchased add-ons / merchandise for this order / attendee

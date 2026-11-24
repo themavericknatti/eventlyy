@@ -114,14 +114,51 @@ class LayawayService
 
                     $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
                     $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
+                    $attSeat = $attendees[$ttId][$i]['assigned_seat'] ?? ($attendees[$i]['assigned_seat'] ?? null);
+                    $attRole = $attendees[$ttId][$i]['attendee_role'] ?? ($attendees[$i]['attendee_role'] ?? ($i === 0 ? 'primary' : 'group_member'));
+                    if (!in_array($attRole, ['primary', 'plus_one', 'group_member'])) {
+                        $attRole = 'primary';
+                    }
+                    if (($tt['ticket_kind'] ?? '') === 'duo' || $admits === 2) {
+                        if ($i % 2 === 1) $attRole = 'plus_one';
+                    }
+
+                    // Auto-assign seat if not explicitly provided or missing seat number
+                    $hasSeating = (!empty($tt['has_seating']) || !empty($tt['section_name']));
+                    if ($hasSeating) {
+                        $parsedNum = \App\Models\Ticket::parseSeatNumber($attSeat);
+                        if (empty($attSeat) || $parsedNum === null) {
+                            $start = (isset($tt['seat_start']) && is_numeric($tt['seat_start'])) ? (int)$tt['seat_start'] : 1;
+                            $occupied = \App\Models\Ticket::getOccupiedSeatNumbers((int)$tt['id']);
+                            $cursor = $start;
+                            for ($step = 0; $step <= $i; $step++) {
+                                while (in_array($cursor, $occupied, true)) {
+                                    $cursor++;
+                                }
+                                if ($step < $i) {
+                                    $occupied[] = $cursor;
+                                    $cursor++;
+                                }
+                            }
+                            $attSeat = \App\Models\Ticket::formatSeatString($tt, $cursor);
+                        }
+                    }
+
                     if (empty($attName)) $attName = $name;
                     if (empty($attEmail)) $attEmail = $email;
 
                     $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
                     $ticketPassFee = $passFee ? 1 : 0;
                     $insertStmt = $db->prepare("
-                        INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, pass_fee, status, status_detail, security_pin, purchase_date, checked_in)
-                        VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :price, :pass_fee, 'Layaway', :status_detail, :security_pin, NOW(), 0)
+                        INSERT INTO tickets (
+                            id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, 
+                            price, pass_fee, status, status_detail, security_pin, assigned_seat, 
+                            attendee_role, purchase_date, checked_in
+                        ) VALUES (
+                            :id, :event_id, :ticket_type_id, :user_id, :name, :email, 
+                            :price, :pass_fee, 'Layaway', :status_detail, :security_pin, :assigned_seat, 
+                            :attendee_role, NOW(), 0
+                        )
                     ");
                     $statusDetail = "Layaway Reservation - Plan Total: " . format_price($seatPrice) . " | Ref: " . $reference;
                     $insertStmt->execute([
@@ -134,7 +171,9 @@ class LayawayService
                         'price' => $seatPrice,
                         'pass_fee' => $ticketPassFee,
                         'status_detail' => $statusDetail,
-                        'security_pin' => $securityPin
+                        'security_pin' => $securityPin,
+                        'assigned_seat' => $attSeat ?: null,
+                        'attendee_role' => $attRole
                     ]);
 
                     $createdTickets[] = [
@@ -142,9 +181,17 @@ class LayawayService
                         'attendee_name' => $attName,
                         'attendee_email' => $attEmail,
                         'ticket_type' => $tt['name'],
+                        'base_ticket_type' => $tt['name'],
                         'price' => $seatPrice,
                         'status' => 'Layaway',
-                        'security_pin' => $securityPin
+                        'security_pin' => $securityPin,
+                        'assigned_seat' => $attSeat ?: null,
+                        'attendee_role' => $attRole,
+                        'ticket_kind' => $tt['ticket_kind'] ?? 'standard',
+                        'section_name' => $tt['section_name'] ?? null,
+                        'row_name' => $tt['row_name'] ?? null,
+                        'has_seating' => !empty($tt['has_seating']),
+                        'admits' => (int)($tt['admits'] ?? 1)
                     ];
                 }
             }

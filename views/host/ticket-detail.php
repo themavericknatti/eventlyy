@@ -140,6 +140,14 @@ Ticket #<?= e($ticketId) ?> - <?= e($siteName) ?> Host Portal
                         <span class="htd-user-tier">
                             <?= !empty($ticket['user_id']) ? 'Verified Platform Member' : 'Guest Attendee' ?>
                         </span>
+                        <?php if (($ticket['attendee_role'] ?? '') === 'plus_one'): ?>
+                            <span class="htd-bullet">&bull;</span>
+                            <span style="color:#db2777; font-weight:700;">💑 Plus-One (+1)</span>
+                        <?php endif; ?>
+                        <?php if (!empty($ticket['assigned_seat'])): ?>
+                            <span class="htd-bullet">&bull;</span>
+                            <span style="color:#059669; font-weight:700;">💺 <?= e($ticket['assigned_seat']) ?></span>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

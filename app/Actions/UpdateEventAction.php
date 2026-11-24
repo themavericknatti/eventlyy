@@ -301,13 +301,22 @@ class UpdateEventAction
                 ]);
             }
 
-            // 3. Process Ticket Types update / insertion
+            // 3. Process Ticket Types update / insertion (only if ticket data was submitted)
+            if (isset($data['ticket-name']) || isset($data['process_tickets'])) {
             $ticketIds = $data['ticket-id'] ?? [];
             $ticketNames = $data['ticket-name'] ?? [];
             $ticketPrices = $data['ticket-price'] ?? [];
             $ticketQtys = $data['ticket-qty'] ?? [];
             $ticketAdmits = $data['ticket-admits'] ?? [];
             $ticketMaxPerPerson = $data['ticket-max-per-person'] ?? [];
+            $ticketKinds = $data['ticket-kind'] ?? [];
+            $ticketSections = $data['ticket-section'] ?? [];
+            $ticketRows = $data['ticket-row'] ?? [];
+            $ticketSeatPrefixes = $data['ticket-seat-prefix'] ?? [];
+            $ticketSeatStarts = $data['ticket-seat-start'] ?? [];
+            $ticketSeatEnds = $data['ticket-seat-end'] ?? [];
+            $ticketHasSeatings = $data['ticket-has-seating'] ?? [];
+            $ticketDescriptions = $data['ticket-description'] ?? [];
 
             $submittedIds = [];
 
@@ -320,9 +329,30 @@ class UpdateEventAction
                 $admits = isset($ticketAdmits[$index]) && is_numeric($ticketAdmits[$index]) ? max(1, (int)$ticketAdmits[$index]) : 1;
                 $maxPerPerson = isset($ticketMaxPerPerson[$index]) && is_numeric($ticketMaxPerPerson[$index]) && (int)$ticketMaxPerPerson[$index] > 0 ? (int)$ticketMaxPerPerson[$index] : null;
 
+                $kind = in_array($ticketKinds[$index] ?? '', ['standard', 'duo', 'group', 'seated']) ? $ticketKinds[$index] : 'standard';
+                if ($kind === 'duo') {
+                    $admits = max(2, $admits);
+                }
+
+                $sectionName = trim((string)($ticketSections[$index] ?? '')) ?: null;
+                $rowName = trim((string)($ticketRows[$index] ?? '')) ?: null;
+                $seatPrefix = trim((string)($ticketSeatPrefixes[$index] ?? '')) ?: null;
+                $seatStart = isset($ticketSeatStarts[$index]) && is_numeric($ticketSeatStarts[$index]) ? (int)$ticketSeatStarts[$index] : null;
+                $seatEnd = isset($ticketSeatEnds[$index]) && is_numeric($ticketSeatEnds[$index]) ? (int)$ticketSeatEnds[$index] : null;
+                $hasSeating = (!empty($ticketHasSeatings[$index]) || $kind === 'seated' || !empty($sectionName)) ? 1 : 0;
+                $description = trim((string)($ticketDescriptions[$index] ?? '')) ?: null;
+
+                // Auto-calculate capacity from seat range if specified and qty is zero
+                if ($hasSeating && $seatStart !== null && $seatEnd !== null && $seatEnd >= $seatStart && $qty <= 0) {
+                    $qty = ($seatEnd - $seatStart) + 1;
+                }
+
                 // Auto-detect table/booth capacity if admits wasn't manually set
                 if ($admits === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $name, $matches)) {
                     $admits = max(1, (int)$matches[1]);
+                    if ($kind === 'standard') {
+                        $kind = 'group';
+                    }
                 }
 
                 $existingId = $ticketIds[$index] ?? null;
@@ -332,18 +362,34 @@ class UpdateEventAction
                     $updateTierStmt = $db->prepare("
                         UPDATE ticket_types 
                         SET name = :name, 
+                            ticket_kind = :ticket_kind,
                             price = :price, 
                             capacity = :capacity, 
                             admits = :admits, 
-                            max_per_person = :max_per_person 
+                            max_per_person = :max_per_person,
+                            section_name = :section_name,
+                            row_name = :row_name,
+                            seat_prefix = :seat_prefix,
+                            seat_start = :seat_start,
+                            seat_end = :seat_end,
+                            has_seating = :has_seating,
+                            description = :description
                         WHERE id = :id AND event_id = :event_id
                     ");
                     $updateTierStmt->execute([
                         'name' => $name,
+                        'ticket_kind' => $kind,
                         'price' => $price,
                         'capacity' => $qty,
                         'admits' => $admits,
                         'max_per_person' => $maxPerPerson,
+                        'section_name' => $sectionName,
+                        'row_name' => $rowName,
+                        'seat_prefix' => $seatPrefix,
+                        'seat_start' => $seatStart,
+                        'seat_end' => $seatEnd,
+                        'has_seating' => $hasSeating,
+                        'description' => $description,
                         'id' => $existingId,
                         'event_id' => $event->id
                     ]);
@@ -351,16 +397,31 @@ class UpdateEventAction
                 } else {
                     // Create newly added tier
                     $insertTierStmt = $db->prepare("
-                        INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) 
-                        VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)
+                        INSERT INTO ticket_types (
+                            event_id, name, ticket_kind, price, capacity, admits, 
+                            max_per_person, section_name, row_name, seat_prefix, 
+                            seat_start, seat_end, has_seating, description
+                        ) VALUES (
+                            :event_id, :name, :ticket_kind, :price, :capacity, :admits, 
+                            :max_per_person, :section_name, :row_name, :seat_prefix, 
+                            :seat_start, :seat_end, :has_seating, :description
+                        )
                     ");
                     $insertTierStmt->execute([
                         'event_id' => $event->id,
                         'name' => $name,
+                        'ticket_kind' => $kind,
                         'price' => $price,
                         'capacity' => $qty,
                         'admits' => $admits,
-                        'max_per_person' => $maxPerPerson
+                        'max_per_person' => $maxPerPerson,
+                        'section_name' => $sectionName,
+                        'row_name' => $rowName,
+                        'seat_prefix' => $seatPrefix,
+                        'seat_start' => $seatStart,
+                        'seat_end' => $seatEnd,
+                        'has_seating' => $hasSeating,
+                        'description' => $description
                     ]);
                     $submittedIds[] = (int)$db->lastInsertId();
                 }
@@ -377,15 +438,17 @@ class UpdateEventAction
                 ");
                 $deleteStmt->execute(['event_id' => $event->id]);
             }
+            }
 
-            // 4. Process Special Guests (replace all)
-            $guestNames = $data['guest-name'] ?? [];
-            $guestRoles = $data['guest-role'] ?? [];
-            $guestPhones = $data['guest-phone'] ?? [];
-            $guestSocials = $data['guest-social'] ?? [];
+            // 4. Process Special Guests (replace all only if guest data was submitted)
+            if (isset($data['guest-name']) || isset($data['process_guests'])) {
+                $guestNames = $data['guest-name'] ?? [];
+                $guestRoles = $data['guest-role'] ?? [];
+                $guestPhones = $data['guest-phone'] ?? [];
+                $guestSocials = $data['guest-social'] ?? [];
 
-            // Delete existing guests for this event and re-insert
-            $db->prepare("DELETE FROM event_guests WHERE event_id = :event_id")->execute(['event_id' => $event->id]);
+                // Delete existing guests for this event and re-insert
+                $db->prepare("DELETE FROM event_guests WHERE event_id = :event_id")->execute(['event_id' => $event->id]);
 
             foreach ($guestNames as $index => $gName) {
                 $gName = trim($gName);
@@ -400,9 +463,11 @@ class UpdateEventAction
                     'social' => trim($guestSocials[$index] ?? '')
                 ]);
             }
+            }
 
-            // 4b. Process Ticket Add-Ons & Merchandise
-            $addonIds = $data['addon-id'] ?? [];
+            // 4b. Process Ticket Add-Ons & Merchandise (only if addon data was submitted)
+            if (isset($data['addon-name']) || isset($data['process_addons'])) {
+                $addonIds = $data['addon-id'] ?? [];
             $addonNames = $data['addon-name'] ?? [];
             $addonPrices = $data['addon-price'] ?? [];
             $addonQtys = $data['addon-quantity'] ?? [];
@@ -495,11 +560,18 @@ class UpdateEventAction
                 $db->prepare("UPDATE event_addons SET status = 'archived' WHERE event_id = :event_id AND sold_count > 0")
                    ->execute(['event_id' => $event->id]);
             }
+            }
 
             // 5. If converted to recurring series, spawn future occurrences (seq 2..N)
             if ($convertRecurring && count($occurrences) > 1) {
                 // Fetch current ticket types for cloning
-                $currTicketsStmt = $db->prepare("SELECT name, price, capacity, admits, max_per_person FROM ticket_types WHERE event_id = :event_id");
+                $currTicketsStmt = $db->prepare("
+                    SELECT name, ticket_kind, price, capacity, admits, max_per_person, 
+                           section_name, row_name, seat_prefix, seat_start, seat_end, 
+                           has_seating, description 
+                    FROM ticket_types 
+                    WHERE event_id = :event_id
+                ");
                 $currTicketsStmt->execute(['event_id' => $event->id]);
                 $clonableTickets = $currTicketsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
@@ -545,14 +617,32 @@ class UpdateEventAction
                     if ($occEvent->save()) {
                         // Clone ticket types
                         foreach ($clonableTickets as $tRow) {
-                            $stmt = $db->prepare("INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)");
+                            $stmt = $db->prepare("
+                                INSERT INTO ticket_types (
+                                    event_id, name, ticket_kind, price, capacity, admits, 
+                                    max_per_person, section_name, row_name, seat_prefix, 
+                                    seat_start, seat_end, has_seating, description
+                                ) VALUES (
+                                    :event_id, :name, :ticket_kind, :price, :capacity, :admits, 
+                                    :max_per_person, :section_name, :row_name, :seat_prefix, 
+                                    :seat_start, :seat_end, :has_seating, :description
+                                )
+                            ");
                             $stmt->execute([
                                 'event_id' => $occEvent->id,
                                 'name' => $tRow['name'],
+                                'ticket_kind' => $tRow['ticket_kind'] ?? 'standard',
                                 'price' => $tRow['price'],
                                 'capacity' => $tRow['capacity'],
                                 'admits' => $tRow['admits'],
-                                'max_per_person' => $tRow['max_per_person']
+                                'max_per_person' => $tRow['max_per_person'],
+                                'section_name' => $tRow['section_name'] ?? null,
+                                'row_name' => $tRow['row_name'] ?? null,
+                                'seat_prefix' => $tRow['seat_prefix'] ?? null,
+                                'seat_start' => $tRow['seat_start'] ?? null,
+                                'seat_end' => $tRow['seat_end'] ?? null,
+                                'has_seating' => $tRow['has_seating'] ?? 0,
+                                'description' => $tRow['description'] ?? null
                             ]);
                         }
 

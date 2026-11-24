@@ -1128,7 +1128,7 @@ Create Event - <?= e($siteName) ?> Host
         <span class="panel-badge">✨ Host Dashboard</span>
         <h1>Create Your Event &amp; Start Selling</h1>
         <p class="lede">
-            Configure your event information, launch tiered ticket packages, and showcase special guests with a seamless experience for attendees.
+            Configure your event essentials — title, venue, date, and description. Tickets, seating, and guest lineup are set up on the next page.
         </p>
     </header>
 
@@ -1148,6 +1148,26 @@ Create Event - <?= e($siteName) ?> Host
                 </ul>
             </div>
         <?php endif; ?>
+
+        <!-- Flow Stepper Banner -->
+        <div class="studio-stepper-card" style="background:rgba(var(--card),0.9); border:1px solid rgba(var(--muted),0.2); border-radius:16px; padding:1.15rem 1.4rem; margin-bottom:1.75rem; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgb(var(--brand)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.9rem; box-shadow:0 0 0 4px rgba(var(--brand),0.2);">1</div>
+                    <div>
+                        <span style="font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:rgb(var(--brand));">Step 1 of 2 (Current)</span>
+                        <strong style="display:block; font-size:0.95rem; color:rgb(var(--text));">Event Essentials &amp; Venue</strong>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; opacity:0.7;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgba(var(--muted),0.2); color:rgb(var(--muted)); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.9rem;">2</div>
+                    <div>
+                        <span style="font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:rgb(var(--muted));">Step 2 (Next Page)</span>
+                        <strong style="display:block; font-size:0.95rem; color:rgb(var(--muted));">Tickets, Seating Studio &amp; Lineup</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <form id="create-event-form" method="POST" action="{{ route('host/event/create') }}" enctype="multipart/form-data" novalidate>
             <?= csrf_field() ?>
@@ -1393,227 +1413,23 @@ Create Event - <?= e($siteName) ?> Host
                 </div>
             </div>
 
-            <!-- Section 5: Special Guests & Performers -->
-            <div class="event-form-section guest-section">
-                <div class="event-section-header">
-                    <div class="event-section-title-wrap">
-                        <span class="event-section-icon">🌟</span>
-                        <div>
-                            <h3 class="event-section-title">Special Guests &amp; Lineup</h3>
-                            <p class="event-section-subtitle">Spotlight featured artists, speakers, panelists, and hosts.</p>
-                        </div>
+            <!-- Step 2 Preview: Tickets, Seating & Lineup (configured after event creation) -->
+            <div class="event-form-section" style="background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(16,185,129,0.04)); border: 1.5px dashed rgba(99,102,241,0.3); text-align: center; padding: 2.5rem 1.5rem;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; justify-content:center;">
+                        <span style="font-size:2rem;">🎟️</span>
+                        <span style="font-size:2rem;">🌟</span>
+                        <span style="font-size:2rem;">🛍️</span>
                     </div>
-                    <button type="button" id="add-guest-btn" class="form-secondary-btn">
-                        <span>➕</span> Add Guest
-                    </button>
-                </div>
-
-                <div id="guest-list" class="guest-list scrollable-list">
-                    <?php 
-                    $oldGuestNames = old('guest-name', []);
-                    $oldGuestRoles = old('guest-role', []);
-                    $oldGuestPhones = old('guest-phone', []);
-                    $oldGuestSocials = old('guest-social', []);
-                    if (is_array($oldGuestNames) && count($oldGuestNames) > 0):
-                        $gCount = 0;
-                        foreach ($oldGuestNames as $idx => $gName):
-                            if (empty($gName)) continue;
-                            $gCount++;
-                    ?>
-                        <div class="guest-row guest-card">
-                            <div class="guest-card-header">
-                                <div class="guest-card-avatar">
-                                    <span class="guest-card-avatar-circle">👤</span>
-                                    <span class="guest-card-title">Guest / Performer #<?= $gCount ?></span>
-                                </div>
-                                <button type="button" class="guest-remove guest-card-remove-btn" title="Remove guest">
-                                    <span>✕</span> Remove
-                                </button>
-                            </div>
-                            <div class="guest-card-grid">
-                                <div class="event-field-group">
-                                    <label class="event-label">Name <span class="required-star">*</span></label>
-                                    <input type="text" name="guest-name[]" class="event-input" value="<?= e($gName) ?>" placeholder="Artist or Speaker Name" required>
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Role / Title <span class="optional-tag">(Optional)</span></label>
-                                    <input type="text" name="guest-role[]" class="event-input" value="<?= e($oldGuestRoles[$idx] ?? '') ?>" placeholder="e.g. Headliner, Keynote, Panelist">
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Contact Phone <span class="optional-tag">(Optional)</span></label>
-                                    <input type="tel" name="guest-phone[]" class="event-input" value="<?= e($oldGuestPhones[$idx] ?? '') ?>" placeholder="+1 555 555 5555">
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Social / Website <span class="optional-tag">(Optional)</span></label>
-                                    <input type="text" name="guest-social[]" class="event-input" value="<?= e($oldGuestSocials[$idx] ?? '') ?>" placeholder="@handle or https://...">
-                                </div>
-                            </div>
-                        </div>
-                    <?php 
-                        endforeach;
-                    endif; 
-                    ?>
-                </div>
-            </div>
-
-            <!-- Section 6: Ticket Types & Pricing -->
-            <div class="event-form-section ticket-section">
-                <div class="event-section-header">
-                    <div class="event-section-title-wrap">
-                        <span class="event-section-icon">🎟️</span>
-                        <div>
-                            <h3 class="event-section-title">Ticket Packages &amp; Tiers</h3>
-                            <p class="event-section-subtitle">Set prices, quantities, and admission tiers for your attendees.</p>
-                        </div>
+                    <div>
+                        <h3 style="margin:0 0 0.4rem; font-size:1.1rem; font-weight:800; color:rgb(var(--text));">Tickets, Seating & Guest Lineup</h3>
+                        <p style="margin:0; font-size:0.88rem; color:rgb(var(--muted)); line-height:1.55; max-width:520px;">
+                            After saving your event essentials, you'll be taken to the <strong style="color:#6366f1;">Tickets & Seating Studio</strong> where you can configure ticket tiers (Standard, Duo/Couples, Group, Seated), seating arrangements, special guests, and add-on merchandise.
+                        </p>
                     </div>
-                    <button type="button" id="add-ticket-btn" class="form-secondary-btn">
-                        <span>➕</span> Add Ticket Tier
-                    </button>
-                </div>
-
-                <div id="ticket-list" class="ticket-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
-                    <?php 
-                    $oldTicketNames = old('ticket-name', []);
-                    $oldTicketPrices = old('ticket-price', []);
-                    $oldTicketQtys = old('ticket-qty', []);
-                    $oldTicketAdmits = old('ticket-admits', []);
-                    $oldTicketMaxPerPerson = old('ticket-max-per-person', []);
-                    if (is_array($oldTicketNames) && count($oldTicketNames) > 0):
-                        $tCount = 0;
-                        foreach ($oldTicketNames as $idx => $tName):
-                            if (empty($tName)) continue;
-                            $tCount++;
-                    ?>
-                        <div class="ticket-row-item ticket-card">
-                            <input type="hidden" name="ticket-id[]" value="0">
-                            <div class="ticket-card-header">
-                                <div class="ticket-card-badge">
-                                    <span>🎟️</span>
-                                    <span class="ticket-tier-number">Tier #<?= $tCount ?></span>
-                                </div>
-                                <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" title="Remove ticket tier">
-                                    <span class="remove-icon">✕</span>
-                                    <span class="remove-text">Remove Tier</span>
-                                </button>
-                            </div>
-                            <div class="ticket-primary-grid">
-                                <div class="event-field-group">
-                                    <label class="event-label">Tier Name <span class="required-star">*</span></label>
-                                    <input type="text" name="ticket-name[]" class="event-input" value="<?= e($tName) ?>" required placeholder="e.g. VIP Access, General Admission, Table for 5">
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
-                                    <input type="number" step="0.01" name="ticket-price[]" class="event-input" value="<?= e($oldTicketPrices[$idx] ?? '0.00') ?>" required placeholder="0.00" min="0">
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Total Capacity <span class="required-star">*</span></label>
-                                    <input type="number" name="ticket-qty[]" class="event-input" value="<?= e($oldTicketQtys[$idx] ?? '100') ?>" required placeholder="e.g. 100" min="1">
-                                </div>
-                            </div>
-                            <div class="ticket-access-shelf">
-                                <div class="ticket-subfield">
-                                    <div class="ticket-subfield-header">
-                                        <span>👥</span>
-                                        <label class="event-label" style="margin:0;">Admits (Per Ticket)</label>
-                                    </div>
-                                    <input type="number" name="ticket-admits[]" class="event-input" value="<?= e($oldTicketAdmits[$idx] ?? '1') ?>" min="1" placeholder="1 (people/ticket)">
-                                    <span class="ticket-subfield-hint">People entering per 1 ticket (1 = Single, 2 = Couple, 5 = Table).</span>
-                                </div>
-                                <div class="ticket-subfield">
-                                    <div class="ticket-subfield-header">
-                                        <span>🔒</span>
-                                        <label class="event-label" style="margin:0;">Max Per Person</label>
-                                    </div>
-                                    <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= e($oldTicketMaxPerPerson[$idx] ?? '') ?>" min="1" placeholder="Unlimited">
-                                    <span class="ticket-subfield-hint">Purchase limit per customer email (leave blank for unlimited).</span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php 
-                        endforeach;
-                    endif; 
-                    ?>
-                </div>
-            </div>
-
-            <!-- Section 7: Ticket Add-Ons & Merchandise (Optional) -->
-            <div class="event-form-section addon-section">
-                <div class="event-section-header">
-                    <div class="event-section-title-wrap">
-                        <span class="event-section-icon">🛍️</span>
-                        <div>
-                            <h3 class="event-section-title">Add-Ons &amp; Merchandise Upselling <span style="font-size:0.78rem; font-weight:600; color:rgb(var(--muted)); text-transform:none;">(Optional)</span></h3>
-                            <p class="event-section-subtitle">Boost event revenue by selling event t-shirts, VIP parking passes, backstage wristbands, or drink tokens directly at checkout.</p>
-                        </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; padding:0.6rem 1.2rem; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); border-radius:10px;">
+                        <span style="font-size:0.85rem; font-weight:700; color:#6366f1;">📋 Step 2 of 2 — Configured on the next page</span>
                     </div>
-                    <button type="button" id="add-addon-btn" class="form-secondary-btn">
-                        <span>➕</span> Add Merch / Add-On
-                    </button>
-                </div>
-
-                <div id="addon-list" class="addon-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
-                    <?php 
-                    $oldAddonNames = old('addon-name', []);
-                    $oldAddonPrices = old('addon-price', []);
-                    $oldAddonQtys = old('addon-quantity', []);
-                    $oldAddonDescs = old('addon-description', []);
-                    $oldAddonImages = old('addon-image-existing', []);
-                    if (is_array($oldAddonNames) && count($oldAddonNames) > 0):
-                        $aCount = 0;
-                        foreach ($oldAddonNames as $idx => $aName):
-                            if (empty($aName)) continue;
-                            $aCount++;
-                    ?>
-                        <div class="addon-row-item addon-card">
-                            <input type="hidden" name="addon-id[]" value="0">
-                            <div class="addon-card-header">
-                                <div class="addon-card-badge">
-                                    <span>🛍️</span>
-                                    <span class="addon-tier-number">Item #<?= $aCount ?>: <?= e($aName) ?></span>
-                                </div>
-                                <button type="button" class="addon-card-remove-btn" title="Remove item">
-                                    <span class="remove-icon">✕</span>
-                                    <span class="remove-text">Remove</span>
-                                </button>
-                            </div>
-                            <div class="addon-primary-grid">
-                                <div class="event-field-group">
-                                    <label class="event-label">Item / Merch Name <span class="required-star">*</span></label>
-                                    <input type="text" name="addon-name[]" class="event-input" value="<?= e($aName) ?>" required placeholder="e.g. Official Tour T-Shirt, VIP Parking Pass, Drink Tokens">
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
-                                    <input type="number" step="0.01" name="addon-price[]" class="event-input" value="<?= e($oldAddonPrices[$idx] ?? '0.00') ?>" required placeholder="0.00" min="0">
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Inventory / Stock</label>
-                                    <input type="number" name="addon-quantity[]" class="event-input" value="<?= e($oldAddonQtys[$idx] ?? '') ?>" min="1" placeholder="Unlimited">
-                                    <span class="event-help-text" style="font-size:0.72rem;">Leave empty for unlimited.</span>
-                                </div>
-                            </div>
-                            <div class="event-field-group">
-                                <label class="event-label">Description / Redemption Notes</label>
-                                <textarea name="addon-description[]" class="event-input" rows="2" placeholder="e.g. 100% premium cotton tee. Collect at the official merchandise booth upon entry with your ticket QR code."><?= e($oldAddonDescs[$idx] ?? '') ?></textarea>
-                            </div>
-                            <div class="addon-media-row" style="display:flex; align-items:center; gap:1rem; margin-top:0.85rem; padding:0.75rem 1rem; background:rgba(var(--muted),0.05); border:1px dashed rgba(var(--muted),0.25); border-radius:12px;">
-                                <div class="addon-img-preview-box" style="width:64px; height:64px; border-radius:10px; background:rgba(var(--muted),0.1); border:1px solid rgba(var(--muted),0.2); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
-                                    <?php if (!empty($oldAddonImages[$idx])): ?>
-                                        <img src="<?= e($oldAddonImages[$idx]) ?>" alt="Preview" style="width:100%; height:100%; object-fit:cover;" />
-                                    <?php else: ?>
-                                        <span class="addon-img-placeholder" style="font-size:1.6rem; opacity:0.6;">🛍️</span>
-                                    <?php endif; ?>
-                                </div>
-                                <div style="flex:1; min-width:0;">
-                                    <label class="event-label" style="margin-bottom:0.25rem; font-size:0.82rem; font-weight:700;">Item Image / Photo <span style="font-size:0.72rem; color:rgb(var(--muted)); font-weight:normal;">(JPG, PNG, WebP up to 5MB)</span></label>
-                                    <input type="file" name="addon-image[]" accept="image/jpeg,image/png,image/webp,image/gif" class="addon-file-input event-input" style="font-size:0.8rem; padding:0.4rem 0.6rem;">
-                                    <input type="hidden" name="addon-image-existing[]" value="<?= e($oldAddonImages[$idx] ?? '') ?>">
-                                </div>
-                            </div>
-                        </div>
-                    <?php 
-                        endforeach;
-                    endif; 
-                    ?>
                 </div>
             </div>
 
@@ -1836,10 +1652,12 @@ Create Event - <?= e($siteName) ?> Host
             </div>
 
             <!-- Submit Row -->
-            <div class="form-submit-row">
-                <button type="submit" class="form-publish-btn">
-                    <span>🚀</span> Publish Event &amp; Launch Tickets
+            <div class="form-submit-row" style="display:flex; flex-direction:column; align-items:center; gap:0.6rem;">
+                <button type="submit" class="form-publish-btn" style="width:100%; max-width:480px; justify-content:center;">
+                    <span>Next: Set Up Tickets &amp; Seating</span>
+                    <span>➔</span>
                 </button>
+                <span style="font-size:0.82rem; color:rgb(var(--muted)); font-weight:600;">Proceed to Step 2 to configure single, couple/duo passes, or hall/stadium seating rows</span>
             </div>
         </form>
     </div>

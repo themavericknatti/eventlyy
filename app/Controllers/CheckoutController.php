@@ -93,6 +93,15 @@ class CheckoutController extends Controller
                 $admits = max(1, (int)($tt['admits'] ?? 1));
                 $itemSubtotal = (float)$tt['price'] * $qty;
                 $subtotal += $itemSubtotal;
+                $hasSeating = !empty($tt['has_seating']) || !empty($tt['section_name']);
+                $seatStart = (isset($tt['seat_start']) && is_numeric($tt['seat_start'])) ? (int)$tt['seat_start'] : ($hasSeating ? 1 : null);
+                $seatEnd = (isset($tt['seat_end']) && is_numeric($tt['seat_end'])) ? (int)$tt['seat_end'] : null;
+
+                $occupiedSeats = [];
+                if ($hasSeating) {
+                    $occupiedSeats = \App\Models\Ticket::getOccupiedSeatNumbers((int)$tt['id']);
+                }
+
                 $selectedItems[] = [
                     'ticket_type_id' => $tt['id'],
                     'name' => $tt['name'],
@@ -100,7 +109,16 @@ class CheckoutController extends Controller
                     'qty' => $qty,
                     'admits' => $admits,
                     'total_passes' => $qty * $admits,
-                    'subtotal' => $itemSubtotal
+                    'subtotal' => $itemSubtotal,
+                    'ticket_kind' => $tt['ticket_kind'] ?? 'standard',
+                    'section_name' => $tt['section_name'] ?? null,
+                    'row_name' => $tt['row_name'] ?? null,
+                    'seat_prefix' => $tt['seat_prefix'] ?? null,
+                    'seat_start' => $seatStart,
+                    'seat_end' => $seatEnd,
+                    'has_seating' => $hasSeating,
+                    'occupied_seats' => $occupiedSeats,
+                    'description' => $tt['description'] ?? null
                 ];
             }
         }
@@ -246,6 +264,15 @@ class CheckoutController extends Controller
                 $admits = max(1, (int)($tt['admits'] ?? 1));
                 $itemSubtotal = (float)$tt['price'] * $qty;
                 $subtotal += $itemSubtotal;
+                $hasSeating = !empty($tt['has_seating']) || !empty($tt['section_name']);
+                $seatStart = (isset($tt['seat_start']) && is_numeric($tt['seat_start'])) ? (int)$tt['seat_start'] : ($hasSeating ? 1 : null);
+                $seatEnd = (isset($tt['seat_end']) && is_numeric($tt['seat_end'])) ? (int)$tt['seat_end'] : null;
+
+                $occupiedSeats = [];
+                if ($hasSeating) {
+                    $occupiedSeats = \App\Models\Ticket::getOccupiedSeatNumbers((int)$tt['id']);
+                }
+
                 $selectedItems[] = [
                     'ticket_type_id' => $tt['id'],
                     'name' => $tt['name'],
@@ -253,7 +280,16 @@ class CheckoutController extends Controller
                     'qty' => $qty,
                     'admits' => $admits,
                     'total_passes' => $qty * $admits,
-                    'subtotal' => $itemSubtotal
+                    'subtotal' => $itemSubtotal,
+                    'ticket_kind' => $tt['ticket_kind'] ?? 'standard',
+                    'section_name' => $tt['section_name'] ?? null,
+                    'row_name' => $tt['row_name'] ?? null,
+                    'seat_prefix' => $tt['seat_prefix'] ?? null,
+                    'seat_start' => $seatStart,
+                    'seat_end' => $seatEnd,
+                    'has_seating' => $hasSeating,
+                    'occupied_seats' => $occupiedSeats,
+                    'description' => $tt['description'] ?? null
                 ];
             }
         }
@@ -271,7 +307,16 @@ class CheckoutController extends Controller
                 'qty' => 1,
                 'admits' => $admits,
                 'total_passes' => 1 * $admits,
-                'subtotal' => $subtotal
+                'subtotal' => $subtotal,
+                'ticket_kind' => $firstTier['ticket_kind'] ?? 'standard',
+                'section_name' => $firstTier['section_name'] ?? null,
+                'row_name' => $firstTier['row_name'] ?? null,
+                'seat_prefix' => $firstTier['seat_prefix'] ?? null,
+                'seat_start' => $firstTier['seat_start'] ?? null,
+                'seat_end' => $firstTier['seat_end'] ?? null,
+                'has_seating' => !empty($firstTier['has_seating']),
+                'occupied_seats' => !empty($firstTier['has_seating']) ? \App\Models\Ticket::getOccupiedSeatNumbers((int)$firstTier['id']) : [],
+                'description' => $firstTier['description'] ?? null
             ];
         }
 
@@ -652,14 +697,28 @@ class CheckoutController extends Controller
                 $attName = '';
                 $attEmail = '';
                 $attPhone = '';
+                $attSeat = '';
+                $attSeatNum = null;
+                $attRole = '';
+
                 if (isset($rawAttendees[$ttId][$i])) {
-                    $attName = trim($rawAttendees[$ttId][$i]['name'] ?? '');
-                    $attEmail = trim($rawAttendees[$ttId][$i]['email'] ?? '');
-                    $attPhone = trim($rawAttendees[$ttId][$i]['phone'] ?? '');
+                    $attName = trim((string)($rawAttendees[$ttId][$i]['name'] ?? ''));
+                    $attEmail = trim((string)($rawAttendees[$ttId][$i]['email'] ?? ''));
+                    $attPhone = trim((string)($rawAttendees[$ttId][$i]['phone'] ?? ''));
+                    $attSeat = trim((string)($rawAttendees[$ttId][$i]['assigned_seat'] ?? ''));
+                    $attRole = trim((string)($rawAttendees[$ttId][$i]['attendee_role'] ?? ''));
+                    if (isset($rawAttendees[$ttId][$i]['seat_number']) && is_numeric($rawAttendees[$ttId][$i]['seat_number'])) {
+                        $attSeatNum = (int)$rawAttendees[$ttId][$i]['seat_number'];
+                    }
                 } elseif (isset($rawAttendees[$i])) {
-                    $attName = trim($rawAttendees[$i]['name'] ?? '');
-                    $attEmail = trim($rawAttendees[$i]['email'] ?? '');
-                    $attPhone = trim($rawAttendees[$i]['phone'] ?? '');
+                    $attName = trim((string)($rawAttendees[$i]['name'] ?? ''));
+                    $attEmail = trim((string)($rawAttendees[$i]['email'] ?? ''));
+                    $attPhone = trim((string)($rawAttendees[$i]['phone'] ?? ''));
+                    $attSeat = trim((string)($rawAttendees[$i]['assigned_seat'] ?? ''));
+                    $attRole = trim((string)($rawAttendees[$i]['attendee_role'] ?? ''));
+                    if (isset($rawAttendees[$i]['seat_number']) && is_numeric($rawAttendees[$i]['seat_number'])) {
+                        $attSeatNum = (int)$rawAttendees[$i]['seat_number'];
+                    }
                 }
 
                 if (empty($attName)) {
@@ -671,12 +730,20 @@ class CheckoutController extends Controller
                 if (empty($attPhone)) {
                     $attPhone = $phone;
                 }
+                if (empty($attRole)) {
+                    $attRole = ($i === 0 ? 'primary' : 'group_member');
+                    if (($tt['ticket_kind'] ?? '') === 'duo' || $admits === 2) {
+                        if ($i % 2 === 1) $attRole = 'plus_one';
+                    }
+                }
 
                 $normalizedAttendees[$ttId][] = [
                     'name' => $attName,
                     'email' => $attEmail,
                     'phone' => $attPhone,
-                    'seat_number' => $i + 1,
+                    'assigned_seat' => $attSeat ?: null,
+                    'seat_number' => $attSeatNum ?: ($i + 1),
+                    'attendee_role' => $attRole,
                     'total_seats' => $totalPassesForTier
                 ];
             }
@@ -1586,18 +1653,58 @@ class CheckoutController extends Controller
                         $attName = $attendees[$ttId][$i]['name'] ?? ($attendees[$i]['name'] ?? $name);
                         $attEmail = $attendees[$ttId][$i]['email'] ?? ($attendees[$i]['email'] ?? $email);
                         $attPhone = $attendees[$ttId][$i]['phone'] ?? ($attendees[$i]['phone'] ?? $phone);
+                        $attSeat = $attendees[$ttId][$i]['assigned_seat'] ?? ($attendees[$i]['assigned_seat'] ?? null);
+                        $attRole = $attendees[$ttId][$i]['attendee_role'] ?? ($attendees[$i]['attendee_role'] ?? ($i === 0 ? 'primary' : 'group_member'));
+                        if (!in_array($attRole, ['primary', 'plus_one', 'group_member'])) {
+                            $attRole = 'primary';
+                        }
+                        if (($tt['ticket_kind'] ?? '') === 'duo' || $admits === 2) {
+                            if ($i % 2 === 1) $attRole = 'plus_one';
+                        }
+
+                        // Auto-assign seat if not explicitly provided or missing seat number
+                        $hasSeating = (!empty($tt['has_seating']) || !empty($tt['section_name']));
+                        if ($hasSeating) {
+                            $parsedNum = \App\Models\Ticket::parseSeatNumber($attSeat);
+                            if (empty($attSeat) || $parsedNum === null) {
+                                $start = (isset($tt['seat_start']) && is_numeric($tt['seat_start'])) ? (int)$tt['seat_start'] : 1;
+                                $occupied = \App\Models\Ticket::getOccupiedSeatNumbers((int)$tt['id']);
+                                $cursor = $start;
+                                for ($step = 0; $step <= $i; $step++) {
+                                    while (in_array($cursor, $occupied, true)) {
+                                        $cursor++;
+                                    }
+                                    if ($step < $i) {
+                                        $occupied[] = $cursor;
+                                        $cursor++;
+                                    }
+                                }
+                                $attSeat = \App\Models\Ticket::formatSeatString($tt, $cursor);
+                            }
+                        }
+
                         if (empty($attName)) $attName = $name;
                         if (empty($attEmail)) $attEmail = $email;
                         if (empty($attPhone)) $attPhone = $phone;
 
                         $seatLabel = $admits > 1 ? " (Guest " . ($i + 1) . " of " . $totalPassesForTier . ")" : "";
+                        if (!empty($attSeat)) {
+                            $seatLabel .= " | " . $attSeat;
+                        }
                         $typeNameDisplay = $tt['name'] . $seatLabel;
 
                         $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
                         $ticketPassFee = !empty($event['pass_fee']) ? 1 : 0;
                         $insertStmt = $db->prepare("
-                            INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, attendee_phone, price, pass_fee, status, status_detail, security_pin, purchase_date)
-                            VALUES (:id, :event_id, :ticket_type_id, :user_id, :name, :email, :phone, :price, :pass_fee, 'Paid', :status_detail, :security_pin, NOW())
+                            INSERT INTO tickets (
+                                id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, 
+                                attendee_phone, price, pass_fee, status, status_detail, security_pin, 
+                                assigned_seat, attendee_role, purchase_date
+                            ) VALUES (
+                                :id, :event_id, :ticket_type_id, :user_id, :name, :email, 
+                                :phone, :price, :pass_fee, 'Paid', :status_detail, :security_pin, 
+                                :assigned_seat, :attendee_role, NOW()
+                            )
                         ");
                         // Note: $reference is set after the loop; we'll update status_detail after reference is generated
                         $insertStmt->execute([
@@ -1611,7 +1718,9 @@ class CheckoutController extends Controller
                             'price' => $seatPrice,
                             'pass_fee' => $ticketPassFee,
                             'status_detail' => '', // placeholder, updated below after reference is generated
-                            'security_pin' => $securityPin
+                            'security_pin' => $securityPin,
+                            'assigned_seat' => $attSeat ?: null,
+                            'attendee_role' => $attRole
                         ]);
 
                         $createdTickets[] = [
@@ -1622,7 +1731,14 @@ class CheckoutController extends Controller
                             'ticket_type' => $typeNameDisplay,
                             'base_ticket_type' => $tt['name'],
                             'price' => $seatPrice,
-                            'security_pin' => $securityPin
+                            'security_pin' => $securityPin,
+                            'assigned_seat' => $attSeat ?: null,
+                            'attendee_role' => $attRole,
+                            'ticket_kind' => $tt['ticket_kind'] ?? 'standard',
+                            'section_name' => $tt['section_name'] ?? null,
+                            'row_name' => $tt['row_name'] ?? null,
+                            'has_seating' => !empty($tt['has_seating']),
+                            'admits' => (int)($tt['admits'] ?? 1)
                         ];
                     }
                 }
@@ -1909,7 +2025,10 @@ class CheckoutController extends Controller
                 // Fetch tickets with ticket_type name
                 $resolvedRef = $tx['reference'] ?? $ref;
                 $tStmt = $db->prepare("
-                    SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                    SELECT t.*, tt.name as ticket_type, t.id as ticket_code,
+                           tt.ticket_kind, tt.admits, tt.section_name, tt.row_name, 
+                           tt.seat_prefix, tt.seat_start, tt.seat_end, tt.has_seating, 
+                           tt.description as ticket_description
                     FROM tickets t 
                     LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
                     WHERE t.status_detail LIKE :ref1 OR t.status_detail LIKE :ref2 OR t.id = :ref3
@@ -1925,7 +2044,10 @@ class CheckoutController extends Controller
                 // Fallback for older free tickets without status_detail
                 if (empty($tickets) && !empty($tx['event_id']) && !empty($tx['payer_email'])) {
                     $fbTStmt = $db->prepare("
-                        SELECT t.*, tt.name as ticket_type, t.id as ticket_code 
+                        SELECT t.*, tt.name as ticket_type, t.id as ticket_code,
+                               tt.ticket_kind, tt.admits, tt.section_name, tt.row_name, 
+                               tt.seat_prefix, tt.seat_start, tt.seat_end, tt.has_seating, 
+                               tt.description as ticket_description
                         FROM tickets t 
                         LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
                         WHERE t.event_id = :event_id AND LOWER(t.attendee_email) = :email
@@ -1963,6 +2085,49 @@ class CheckoutController extends Controller
         }
 
         if ($order) {
+            // Ensure every ticket in order has full seating, section, row, and ticket_kind details
+            if (!empty($order['tickets'])) {
+                foreach ($order['tickets'] as &$ot) {
+                    $code = $ot['ticket_code'] ?? ($ot['id'] ?? '');
+                    if ($code && (empty($ot['assigned_seat']) || empty($ot['ticket_kind']) || empty($ot['section_name']))) {
+                        $rowStmt = $db->prepare("
+                            SELECT t.assigned_seat, t.attendee_role, tt.ticket_kind, tt.admits, 
+                                   tt.section_name, tt.row_name, tt.seat_prefix, tt.has_seating, 
+                                   tt.description as ticket_description 
+                            FROM tickets t 
+                            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id 
+                            WHERE t.id = :code LIMIT 1
+                        ");
+                        $rowStmt->execute(['code' => $code]);
+                        $dbRow = $rowStmt->fetch(\PDO::FETCH_ASSOC);
+                        if ($dbRow) {
+                            if (empty($ot['assigned_seat']) && !empty($dbRow['assigned_seat'])) {
+                                $ot['assigned_seat'] = $dbRow['assigned_seat'];
+                            }
+                            if (empty($ot['attendee_role']) && !empty($dbRow['attendee_role'])) {
+                                $ot['attendee_role'] = $dbRow['attendee_role'];
+                            }
+                            if (empty($ot['ticket_kind']) && !empty($dbRow['ticket_kind'])) {
+                                $ot['ticket_kind'] = $dbRow['ticket_kind'];
+                            }
+                            if (empty($ot['section_name']) && !empty($dbRow['section_name'])) {
+                                $ot['section_name'] = $dbRow['section_name'];
+                            }
+                            if (empty($ot['row_name']) && !empty($dbRow['row_name'])) {
+                                $ot['row_name'] = $dbRow['row_name'];
+                            }
+                            if (!isset($ot['has_seating'])) {
+                                $ot['has_seating'] = !empty($dbRow['has_seating']);
+                            }
+                            if (empty($ot['admits']) && !empty($dbRow['admits'])) {
+                                $ot['admits'] = (int)$dbRow['admits'];
+                            }
+                        }
+                    }
+                }
+                unset($ot);
+            }
+
             if (empty($order['event_image']) || empty($order['event_slug'])) {
                 $evStmt = null;
                 if (!empty($order['event_id'])) {

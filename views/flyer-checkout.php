@@ -137,21 +137,37 @@ $layawayRemainingBalance = max(0, $subtotal - $depositTicketSubtotal);
                             <?php if (empty($selectedItems)): ?>
                                 <p style="font-size:0.86rem; color:var(--flyer-text-muted); padding:1rem 0;">No tickets currently selected.</p>
                             <?php else: ?>
-                                <?php foreach ($selectedItems as $item): ?>
-                                    <div class="ticket-item-pill">
-                                        <div>
+                                <?php foreach ($selectedItems as $item): 
+                                    $fKind = $item['ticket_kind'] ?? 'standard';
+                                    $fAdmits = (int)($item['admits'] ?? 1);
+                                    $fHasSeating = !empty($item['has_seating']) || !empty($item['section_name']);
+                                    $fSection = $item['section_name'] ?? '';
+                                    $fRow = $item['row_name'] ?? '';
+                                    $fSeatStart = $item['seat_start'] ?? null;
+                                ?>
+                                    <div class="ticket-item-pill" style="flex-direction:column; align-items:flex-start; gap:0.4rem;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                                             <strong class="ticket-item-title"><?= e($item['name']) ?></strong>
-                                            <div class="ticket-item-meta">
-                                                <span>Qty: <strong><?= (int)$item['qty'] ?></strong></span>
-                                                <?php if (!empty($item['admits']) && (int)$item['admits'] > 1): ?>
-                                                    <span>•</span>
-                                                    <span>Admits <?= (int)$item['admits'] ?></span>
-                                                <?php endif; ?>
-                                            </div>
+                                            <strong class="ticket-item-price">
+                                                <?= (float)$item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
+                                            </strong>
                                         </div>
-                                        <strong class="ticket-item-price">
-                                            <?= (float)$item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
-                                        </strong>
+                                        <div class="ticket-item-meta" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; font-size:0.75rem;">
+                                            <span>Qty: <strong><?= (int)$item['qty'] ?></strong></span>
+                                            <?php if ($fKind === 'duo' || $fAdmits === 2): ?>
+                                                <span>•</span>
+                                                <span style="color:#db2777; font-weight:700;">💑 Duo Pass (Admits 2)</span>
+                                            <?php elseif ($fAdmits > 1): ?>
+                                                <span>•</span>
+                                                <span style="color:#6366f1; font-weight:700;">👥 Admits <?= $fAdmits ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($fHasSeating): ?>
+                                                <span>•</span>
+                                                <span style="color:#059669; font-weight:700;">
+                                                    💺 <?= $fSection ? 'Section ' . e($fSection) : 'Seated' ?><?= $fRow ? ' • Row ' . e($fRow) : '' ?><?= $fSeatStart !== null ? ' • Seat ' . e($fSeatStart) : '' ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>

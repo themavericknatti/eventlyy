@@ -812,7 +812,11 @@ $tweetText = urlencode("Check out " . ($event->name ?? 'this event') . " on @" .
                                                 <?php elseif ($remaining <= 15): ?>
                                                     <span class="ve-tier-badge ve-tier-badge--urgency">🔥 <?= $remaining ?> left</span>
                                                 <?php endif; ?>
-                                                <?php if (!empty($tt['admits']) && (int)$tt['admits'] > 1): ?>
+                                                <?php if (($tt['ticket_kind'] ?? '') === 'duo'): ?>
+                                                    <span class="ve-tier-badge" style="background:rgba(236,72,153,0.14); color:#db2777; border-color:rgba(236,72,153,0.35); font-weight:700;">💑 Duo / Couples (Admits 2)</span>
+                                                <?php elseif (!empty($tt['has_seating']) || !empty($tt['section_name'])): ?>
+                                                    <span class="ve-tier-badge" style="background:rgba(16,185,129,0.14); color:#059669; border-color:rgba(16,185,129,0.35); font-weight:700;">💺 <?= e($tt['section_name'] ?: 'Reserved Seating') ?><?= !empty($tt['row_name']) ? ' • ' . e($tt['row_name']) : '' ?></span>
+                                                <?php elseif (!empty($tt['admits']) && (int)$tt['admits'] > 1): ?>
                                                     <span class="ve-tier-badge" style="background:rgba(99,102,241,0.12); color:#6366f1; border-color:rgba(99,102,241,0.3);">👥 Admits <?= (int)$tt['admits'] ?></span>
                                                 <?php endif; ?>
                                                 <?php if (!empty($tt['max_per_person'])): ?>

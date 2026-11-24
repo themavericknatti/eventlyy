@@ -31,20 +31,87 @@ if (!empty($selectedItems) && is_iterable($selectedItems)) {
         $passesForTier = $qty * $admits;
         $totalPasses += $passesForTier;
 
+        $ticketKind = $item['ticket_kind'] ?? 'standard';
+        $hasSeating = !empty($item['has_seating']) || !empty($item['section_name']);
+        $sectionName = $item['section_name'] ?? '';
+        $rowName = $item['row_name'] ?? '';
+        $seatPrefix = $item['seat_prefix'] ?? '';
+        $seatStart = (isset($item['seat_start']) && is_numeric($item['seat_start'])) ? (int)$item['seat_start'] : ($hasSeating ? 1 : null);
+        $seatEnd = (isset($item['seat_end']) && is_numeric($item['seat_end'])) ? (int)$item['seat_end'] : null;
+        $rawOcc = $item['occupied_seats'] ?? [];
+        $occupiedSeats = ($rawOcc instanceof \Ace\ViewData) ? $rawOcc->toArray() : (is_array($rawOcc) ? $rawOcc : (array)$rawOcc);
+
+        // Auto-assign sequential non-colliding seats starting from seatStart
+        $autoSeatNumbers = [];
+        $cursorSeat = ($seatStart !== null) ? $seatStart : 1;
+        for ($p = 0; $p < $passesForTier; $p++) {
+            if ($hasSeating) {
+                while (in_array($cursorSeat, $occupiedSeats, true)) {
+                    $cursorSeat++;
+                }
+                $autoSeatNumbers[$p] = $cursorSeat;
+                $occupiedSeats[] = $cursorSeat; // mark as reserved for subsequent passes in this order
+                $cursorSeat++;
+            } else {
+                $autoSeatNumbers[$p] = null;
+            }
+        }
+
         for ($p = 0; $p < $passesForTier; $p++) {
             $isPrimary = (count($attendeeSlots) === 0);
             $tierPassNum = $p + 1;
-            $slotLabel = $admits > 1
-                ? ($tierName . ' (Guest ' . $tierPassNum . ' of ' . $passesForTier . ')')
-                : ($tierName . ($qty > 1 ? ' #' . $tierPassNum : ''));
+
+            $isPlusOne = false;
+            $roleLabel = 'Guest';
+            if ($ticketKind === 'duo' || $admits === 2) {
+                if ($p % 2 === 0) {
+                    $pairNum = (int)floor($p / 2) + 1;
+                    $roleLabel = ($qty > 1) ? "Lead Attendee (Pair #{$pairNum})" : "Lead Attendee";
+                } else {
+                    $pairNum = (int)floor($p / 2) + 1;
+                    $roleLabel = ($qty > 1) ? "💑 Plus-One (+1) (Pair #{$pairNum})" : "💑 Plus-One (+1) Partner";
+                    $isPlusOne = true;
+                }
+            } elseif ($admits > 1) {
+                $roleLabel = 'Table Guest #' . $tierPassNum;
+            }
+
+            // Seat assignment display
+            $seatNum = $autoSeatNumbers[$p] ?? null;
+            $seatString = null;
+            if ($hasSeating && $seatNum !== null) {
+                $parts = [];
+                if (!empty($sectionName)) $parts[] = 'Section ' . $sectionName;
+                if (!empty($rowName)) $parts[] = 'Row ' . $rowName;
+                $parts[] = ($seatPrefix ?: 'Seat ') . $seatNum;
+                $seatString = implode(' • ', $parts);
+            }
+
+            $slotLabel = $tierName;
+            if ($isPlusOne) {
+                $slotLabel .= ' — 💑 Plus-One (+1)';
+            } elseif ($admits > 1) {
+                $slotLabel .= ' (' . $roleLabel . ')';
+            } elseif ($qty > 1) {
+                $slotLabel .= ' #' . $tierPassNum;
+            }
 
             $attendeeSlots[] = [
                 'ticket_type_id' => $tierId,
                 'tier_name' => $tierName,
+                'ticket_kind' => $ticketKind,
                 'admits' => $admits,
                 'pass_index' => $p,
                 'global_index' => count($attendeeSlots) + 1,
                 'is_primary' => $isPrimary,
+                'is_plus_one' => $isPlusOne,
+                'role_label' => $roleLabel,
+                'has_seating' => $hasSeating,
+                'section_name' => $sectionName,
+                'row_name' => $rowName,
+                'seat_prefix' => $seatPrefix,
+                'seat_number' => $seatNum,
+                'seat_string' => $seatString,
                 'label' => $slotLabel
             ];
         }
@@ -82,6 +149,219 @@ $platformFeePercent = e($platformFeePercent ?? get_setting('platform_fee', 5));
 
 @section('title')
 Checkout — <?= e($eventName) ?>
+@endsection
+
+@section('style')
+<style>
+/* ═══════════════════════════════════════════════════════════
+   INTERACTIVE SEAT PICKER STYLES
+   ═══════════════════════════════════════════════════════════ */
+.co-seat-picker-card {
+    background: rgb(var(--card, 15 23 42));
+    border: 1.5px solid rgba(16, 185, 129, 0.25);
+    border-radius: 18px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 25px -8px rgba(0, 0, 0, 0.3);
+}
+.co-seat-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(var(--muted), 0.15);
+}
+.co-seat-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.co-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: rgb(var(--text));
+}
+.co-legend-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+}
+.co-legend-dot--avail {
+    background: #10b981;
+    border: 1px solid #059669;
+}
+.co-legend-dot--selected {
+    background: #0ea5e9;
+    border: 1px solid #0284c7;
+    box-shadow: 0 0 8px rgba(14, 165, 233, 0.5);
+}
+.co-legend-dot--taken {
+    background: #ef4444;
+    border: 1px solid #dc2626;
+    opacity: 0.7;
+}
+
+/* Active Slot Switcher */
+.co-slot-switcher-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    background: rgba(var(--muted), 0.08);
+    padding: 0.5rem 0.65rem;
+    border-radius: 12px;
+}
+.co-slot-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 1px solid rgba(var(--muted), 0.25);
+    color: rgb(var(--text));
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.co-slot-pill-btn:hover {
+    border-color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.1);
+}
+.co-slot-pill-btn.active {
+    background: #0ea5e9;
+    color: #ffffff;
+    border-color: #0284c7;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+}
+
+/* Stage Indicator */
+.co-stage-indicator {
+    width: 100%;
+    margin: 0.5rem 0 1.25rem;
+    text-align: center;
+}
+.co-stage-bar {
+    max-width: 320px;
+    margin: 0 auto;
+    padding: 0.35rem 1rem;
+    background: linear-gradient(180deg, rgba(var(--muted), 0.2), rgba(var(--muted), 0.05));
+    border-top: 2px solid rgba(16, 185, 129, 0.7);
+    border-radius: 8px 8px 0 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    color: rgb(var(--muted));
+    text-transform: uppercase;
+}
+
+/* Seat Grid */
+.co-seat-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: center;
+    align-items: center;
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 0.75rem 0.35rem;
+}
+.co-seat-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 56px;
+    border-radius: 8px 8px 6px 6px;
+    border: 1.5px solid transparent;
+    background: rgba(var(--muted), 0.12);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+    position: relative;
+    padding: 2px;
+}
+.co-seat-btn span {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+.co-seat-btn strong {
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-top: 2px;
+}
+.co-seat-btn .co-seat-status {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+/* Available */
+.co-seat-btn--available {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #10b981;
+}
+.co-seat-btn--available:hover {
+    background: rgba(16, 185, 129, 0.22);
+    border-color: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+/* Selected */
+.co-seat-btn--selected {
+    background: #0ea5e9;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.55);
+    transform: scale(1.05);
+    z-index: 2;
+}
+.co-seat-btn--selected strong,
+.co-seat-btn--selected .co-seat-status {
+    color: #ffffff;
+}
+
+/* Taken */
+.co-seat-btn--taken {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: rgba(239, 68, 68, 0.55);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+.co-seat-btn--taken strong,
+.co-seat-btn--taken .co-seat-status {
+    color: rgba(239, 68, 68, 0.7);
+}
+
+@media (max-width: 640px) {
+    .co-seat-picker-card {
+        padding: 1rem;
+    }
+    .co-seat-btn {
+        width: 46px;
+        height: 52px;
+    }
+    .co-seat-btn strong {
+        font-size: 0.72rem;
+    }
+}
+</style>
 @endsection
 
 
@@ -191,19 +471,32 @@ Checkout — <?= e($eventName) ?>
                     </div>
                 </div>
 
-                <?php if ($totalPasses > 1): ?>
-                    <!-- Individual Attendee Assignments for Group / Table Tickets -->
+                <?php 
+                $hasSeatingSlot = false;
+                $hasDuoSlot = false;
+                foreach ($attendeeSlots as $s) {
+                    if (!empty($s['seat_string'])) $hasSeatingSlot = true;
+                    if (!empty($s['is_plus_one']) || ($s['ticket_kind'] ?? '') === 'duo') $hasDuoSlot = true;
+                }
+                ?>
+                <?php if ($totalPasses > 1 || $hasSeatingSlot || $hasDuoSlot): ?>
+                    <!-- Individual Attendee Assignments for Group / Table / Seated Tickets -->
                     <div class="co-attendees-section" id="co-attendees-section">
                         <div class="co-attendees-header">
                             <div>
                                 <div class="co-section-title-row">
                                     <span class="co-section-badge">2</span>
                                     <h3 class="co-section-heading">
-                                        Attendee Ticket Passes (<?= $totalPasses ?> Total)
+                                        <?= ($totalPasses > 1) ? "Attendee Ticket Passes ({$totalPasses} Total)" : "Attendee & Seated Pass Allocation" ?>
                                     </h3>
                                 </div>
-                                <p class="co-attendees-subtitle">Enter the attendee name and email for each seat. A unique ticket code and QR pass will be issued and emailed to each person at no extra cost.</p>
+                                <p class="co-attendees-subtitle">
+                                    <?= ($totalPasses > 1) 
+                                        ? "Enter the attendee name and email for each seat. A unique ticket code and QR pass will be issued and emailed to each person at no extra cost."
+                                        : "Review your allocated section, row, and seat credentials for entrance verification." ?>
+                                </p>
                             </div>
+                            <?php if ($totalPasses > 1): ?>
                             <button type="button" id="btn-copy-buyer-to-all" class="co-copy-buyer-btn" title="Fill all tickets with primary buyer details">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -211,6 +504,7 @@ Checkout — <?= e($eventName) ?>
                                 </svg>
                                 <span>Copy Buyer to All</span>
                             </button>
+                            <?php endif; ?>
                         </div>
 
                         <div class="co-attendee-cards-list">
@@ -221,46 +515,198 @@ Checkout — <?= e($eventName) ?>
                                             <span class="co-pass-badge">Pass #<?= $slot['global_index'] ?></span>
                                             <strong class="co-pass-tier"><?= e($slot['label']) ?></strong>
                                         </div>
-                                        <?php if ($slot['is_primary']): ?>
-                                            <span class="co-primary-tag">Ticket #1 (Primary Buyer)</span>
-                                        <?php else: ?>
-                                            <span class="co-guest-tag">Guest Pass #<?= $slot['global_index'] ?></span>
-                                        <?php endif; ?>
+                                        <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                            <?php if ($slot['is_primary']): ?>
+                                                <span class="co-primary-tag">Ticket #1 (Primary Buyer)</span>
+                                            <?php elseif (!empty($slot['is_plus_one'])): ?>
+                                                <span class="co-guest-tag" style="background:rgba(236,72,153,0.15); color:#db2777; border-color:rgba(236,72,153,0.3); font-weight:700;">💑 Plus-One (+1)</span>
+                                            <?php else: ?>
+                                                <span class="co-guest-tag">Guest Pass #<?= $slot['global_index'] ?></span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($slot['seat_string'])): ?>
+                                                <span class="co-seat-pill" id="seat-pill-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>" style="display:inline-flex; align-items:center; gap:0.3rem; background:rgba(16,185,129,0.14); color:#059669; border:1px solid rgba(16,185,129,0.3); font-size:0.75rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:999px;">
+                                                    💺 <?= e($slot['seat_string']) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
+
+                                    <input type="hidden" name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][assigned_seat]" id="input-assigned-seat-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>" value="<?= e($slot['seat_string'] ?? '') ?>">
+                                    <input type="hidden" name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][seat_number]" id="input-seat-num-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>" value="<?= e($slot['seat_number'] ?? '') ?>">
+                                    <input type="hidden" name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][attendee_role]" value="<?= !empty($slot['is_primary']) ? 'primary' : (!empty($slot['is_plus_one']) ? 'plus_one' : 'group_member') ?>">
 
                                     <div class="co-attendee-card__grid">
                                         <div class="co-field-group">
                                             <label class="co-label" for="att-name-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>">
-                                                Attendee Name <?= $slot['is_primary'] ? '<span class="co-required">*</span>' : '' ?>
+                                                <?= !empty($slot['is_plus_one']) ? '💑 Partner / Plus-One Name' : 'Attendee Name' ?> <?= ($slot['is_primary'] || !empty($slot['is_plus_one'])) ? '<span class="co-required">*</span>' : '' ?>
                                             </label>
                                             <input type="text"
                                                    name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][name]"
                                                    id="att-name-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>"
-                                                   class="co-input att-name-input <?= $slot['is_primary'] ? 'att-primary-name' : 'att-guest-name' ?>"
-                                                   placeholder="<?= $slot['is_primary'] ? 'Primary holder full name' : 'Guest full name' ?>"
+                                                   class="co-input att-name-input <?= $slot['is_primary'] ? 'att-primary-name' : (!empty($slot['is_plus_one']) ? 'att-plusone-name' : 'att-guest-name') ?>"
+                                                   placeholder="<?= $slot['is_primary'] ? 'Primary holder full name' : (!empty($slot['is_plus_one']) ? 'Plus-one partner full name' : 'Guest full name') ?>"
                                                    value="<?= $slot['is_primary'] ? e($userName) : '' ?>"
-                                                   <?= $slot['is_primary'] ? 'required' : '' ?> />
+                                                   <?= ($slot['is_primary'] || !empty($slot['is_plus_one'])) ? 'required' : '' ?> />
                                         </div>
 
                                         <div class="co-field-group">
                                             <label class="co-label" for="att-email-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>">
-                                                Email Address (Pass Delivery) <?= $slot['is_primary'] ? '<span class="co-required">*</span>' : '' ?>
+                                                <?= !empty($slot['is_plus_one']) ? '💑 Partner / Plus-One Email (Pass Delivery)' : 'Email Address (Pass Delivery)' ?> <?= ($slot['is_primary'] || !empty($slot['is_plus_one'])) ? '<span class="co-required">*</span>' : '' ?>
                                             </label>
                                             <input type="email"
                                                    name="attendees[<?= $slot['ticket_type_id'] ?>][<?= $slot['pass_index'] ?>][email]"
                                                    id="att-email-<?= $slot['ticket_type_id'] ?>-<?= $slot['pass_index'] ?>"
-                                                   class="co-input att-email-input <?= $slot['is_primary'] ? 'att-primary-email' : 'att-guest-email' ?>"
-                                                   placeholder="<?= $slot['is_primary'] ? 'primary@example.com' : 'guest@example.com' ?>"
+                                                   class="co-input att-email-input <?= $slot['is_primary'] ? 'att-primary-email' : (!empty($slot['is_plus_one']) ? 'att-plusone-email' : 'att-guest-email') ?>"
+                                                   placeholder="<?= $slot['is_primary'] ? 'primary@example.com' : (!empty($slot['is_plus_one']) ? 'partner@example.com' : 'guest@example.com') ?>"
                                                    value="<?= $slot['is_primary'] ? e($userEmail) : '' ?>"
-                                                   <?= $slot['is_primary'] ? 'required' : '' ?> />
+                                                   <?= ($slot['is_primary'] || !empty($slot['is_plus_one'])) ? 'required' : '' ?> />
                                         </div>
                                     </div>
-                                    <?php if (!$slot['is_primary']): ?>
+                                    <?php if (!empty($slot['is_plus_one'])): ?>
+                                        <span class="co-attendee-hint" style="color:#db2777; font-weight:600;">💑 An individual personalized QR pass will be emailed directly to your plus-one.</span>
+                                    <?php elseif (!$slot['is_primary']): ?>
                                         <span class="co-attendee-hint">Leave blank to default to primary buyer</span>
                                     <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
+
+                        <?php 
+                        // Filter selected items that have seating
+                        $itemsList = ($selectedItems instanceof \Ace\ViewData) ? $selectedItems->toArray() : (is_array($selectedItems) ? $selectedItems : (array)$selectedItems);
+                        $seatedTiers = array_filter($itemsList, fn($it) => !empty($it['has_seating']));
+                        ?>
+                        <?php if (!empty($seatedTiers)): ?>
+                            <div class="co-seat-pickers-container" style="margin-top: 1.5rem;">
+                                <?php foreach ($seatedTiers as $sTier): 
+                                    $tId = $sTier['ticket_type_id'];
+                                    $sSec = $sTier['section_name'] ?? '';
+                                    $sRow = $sTier['row_name'] ?? '';
+                                    $sPrefix = $sTier['seat_prefix'] ?? '';
+                                    $sStart = (int)($sTier['seat_start'] ?? 1);
+                                    $sEnd = !empty($sTier['seat_end']) ? (int)$sTier['seat_end'] : ($sStart + max(12, (int)$sTier['total_passes']) - 1);
+                                    if ($sEnd < $sStart) $sEnd = $sStart + 10;
+                                    $rawSOcc = $sTier['occupied_seats'] ?? [];
+                                    $sOcc = ($rawSOcc instanceof \Ace\ViewData) ? $rawSOcc->toArray() : (is_array($rawSOcc) ? $rawSOcc : (array)$rawSOcc);
+
+                                    // Get passes belonging to this tier
+                                    $tierSlots = array_values(array_filter($attendeeSlots, fn($s) => $s['ticket_type_id'] == $tId));
+                                    $tierSlotMap = [];
+                                    foreach ($tierSlots as $ts) {
+                                        if (!empty($ts['seat_number'])) {
+                                            $tierSlotMap[$ts['seat_number']] = $ts;
+                                        }
+                                    }
+                                ?>
+                                    <div class="co-seat-picker-card" data-tier-id="<?= $tId ?>">
+                                        <div class="co-seat-picker-header">
+                                            <div>
+                                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                                    <span style="font-size:1.3rem;">🏟️</span>
+                                                    <strong style="font-size:0.95rem; font-weight:800; color:rgb(var(--text));">
+                                                        Interactive Seat Selector — <?= e($sTier['name']) ?>
+                                                    </strong>
+                                                </div>
+                                                <p style="font-size:0.78rem; color:rgb(var(--muted)); margin:0.25rem 0 0;">
+                                                    <?= $sSec ? 'Section ' . e($sSec) : '' ?>
+                                                    <?= $sRow ? ' • Row ' . e($sRow) : '' ?>
+                                                    <span style="opacity:0.8;">(Range: <?= e($sPrefix ?: 'Seat ') . $sStart ?> to <?= e($sPrefix ?: 'Seat ') . $sEnd ?>)</span>
+                                                </p>
+                                            </div>
+
+                                            <div class="co-seat-legend">
+                                                <span class="co-legend-item"><span class="co-legend-dot co-legend-dot--avail"></span> Open</span>
+                                                <span class="co-legend-item"><span class="co-legend-dot co-legend-dot--selected"></span> Selected</span>
+                                                <span class="co-legend-item"><span class="co-legend-dot co-legend-dot--taken"></span> Taken</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Pass Slot Selector Tabs -->
+                                        <div style="margin-bottom:0.85rem;">
+                                            <div style="font-size:0.75rem; font-weight:700; color:rgb(var(--muted)); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.4rem;">
+                                                Click a pass to assign its seat:
+                                            </div>
+                                            <div class="co-slot-switcher-bar" data-tier-id="<?= $tId ?>">
+                                                <?php $sIdx = 0; foreach ($tierSlots as $ts): 
+                                                    $isActive = ($sIdx === 0);
+                                                    $sIdx++;
+                                                    $slotKey = "{$tId}-{$ts['pass_index']}";
+                                                ?>
+                                                    <button type="button" 
+                                                            class="co-slot-pill-btn <?= $isActive ? 'active' : '' ?>" 
+                                                            data-slot-key="<?= $slotKey ?>"
+                                                            data-tier-id="<?= $tId ?>"
+                                                            data-pass-idx="<?= $ts['pass_index'] ?>"
+                                                            data-global-idx="<?= $ts['global_index'] ?>"
+                                                            data-section-name="<?= e($ts['section_name'] ?? '') ?>"
+                                                            data-row-name="<?= e($ts['row_name'] ?? '') ?>"
+                                                            data-seat-prefix="<?= e($ts['seat_prefix'] ?? '') ?>"
+                                                            onclick="setActiveSlotToPick(<?= $tId ?>, <?= $ts['pass_index'] ?>)">
+                                                        <span><?= $ts['is_primary'] ? '👤 Lead' : (!empty($ts['is_plus_one']) ? '💑 Plus-One' : '👥 Pass #' . $ts['global_index']) ?>:</span>
+                                                        <span class="slot-seat-badge" id="slot-seat-badge-<?= $slotKey ?>" style="background:rgba(255,255,255,0.2); padding:1px 6px; border-radius:4px; font-weight:800;">
+                                                            <?= ($ts['seat_prefix'] ?: 'Seat ') . $ts['seat_number'] ?>
+                                                        </span>
+                                                    </button>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+
+                                        <!-- Stage Focus Banner -->
+                                        <div class="co-stage-indicator">
+                                            <div class="co-stage-bar">STAGE / SCREEN / EVENT VIEW</div>
+                                        </div>
+
+                                        <!-- Visual Seat Grid -->
+                                        <div class="co-seat-grid" data-tier-id="<?= $tId ?>">
+                                            <?php for ($num = $sStart; $num <= $sEnd; $num++): 
+                                                $isTaken = in_array($num, $sOcc, true);
+                                                $isCurrentOrder = isset($tierSlotMap[$num]);
+                                                $assignedSlotKey = $isCurrentOrder ? "{$tId}-" . $tierSlotMap[$num]['pass_index'] : null;
+                                                $assignedGlobalNum = $isCurrentOrder ? $tierSlotMap[$num]['global_index'] : null;
+                                            ?>
+                                                <?php if ($isTaken && !$isCurrentOrder): ?>
+                                                    <button type="button" 
+                                                            class="co-seat-btn co-seat-btn--taken" 
+                                                            disabled 
+                                                            title="Seat <?= $num ?> is already booked">
+                                                        <span>🔒</span>
+                                                        <strong><?= $num ?></strong>
+                                                        <small class="co-seat-status">Taken</small>
+                                                    </button>
+                                                <?php elseif ($isCurrentOrder): ?>
+                                                    <button type="button" 
+                                                            class="co-seat-btn co-seat-btn--selected" 
+                                                            data-tier-id="<?= $tId ?>" 
+                                                            data-seat-num="<?= $num ?>"
+                                                            data-assigned-slot="<?= $assignedSlotKey ?>"
+                                                            onclick="pickSeat(this, <?= $tId ?>, <?= $num ?>)"
+                                                            title="Seat <?= $num ?> (Assigned to Pass #<?= $assignedGlobalNum ?>)">
+                                                        <span>💺</span>
+                                                        <strong><?= $num ?></strong>
+                                                        <small class="co-seat-status">Pass #<?= $assignedGlobalNum ?></small>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button" 
+                                                            class="co-seat-btn co-seat-btn--available" 
+                                                            data-tier-id="<?= $tId ?>" 
+                                                            data-seat-num="<?= $num ?>"
+                                                            onclick="pickSeat(this, <?= $tId ?>, <?= $num ?>)"
+                                                            title="Seat <?= $num ?> (Available - Click to select)">
+                                                        <span>💺</span>
+                                                        <strong><?= $num ?></strong>
+                                                        <small class="co-seat-status">Open</small>
+                                                    </button>
+                                                <?php endif; ?>
+                                            <?php endfor; ?>
+                                        </div>
+
+                                        <div style="margin-top:0.75rem; font-size:0.74rem; color:rgb(var(--muted)); text-align:center;">
+                                            💡 Tap any <span style="color:#10b981; font-weight:700;">Open</span> seat to assign it to your active pass. Your digital passes will be issued with these exact reserved seats.
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
@@ -501,17 +947,55 @@ Checkout — <?= e($eventName) ?>
                     <?php if (empty($selectedItems)): ?>
                         <p class="co-summary-empty">No tickets selected.</p>
                     <?php else: ?>
-                        <?php foreach ($selectedItems as $item): ?>
-                            <div class="summary-row co-ticket-row">
-                                <span class="co-ticket-row__name">
-                                    <strong><?= (int)$item['qty'] ?>×</strong> <?= e($item['name']) ?>
-                                    <?php if (!empty($item['admits']) && (int)$item['admits'] > 1): ?>
-                                        <span class="co-admits-pill">👥 Admits <?= (int)$item['admits'] ?></span>
+                        <?php foreach ($selectedItems as $item): 
+                            $iKind = $item['ticket_kind'] ?? 'standard';
+                            $iAdmits = (int)($item['admits'] ?? 1);
+                            $iHasSeating = !empty($item['has_seating']) || !empty($item['section_name']);
+                            $iSection = $item['section_name'] ?? '';
+                            $iRow = $item['row_name'] ?? '';
+                            $iSeatStart = $item['seat_start'] ?? null;
+                            $iSeatEnd = $item['seat_end'] ?? null;
+                        ?>
+                            <div class="summary-row co-ticket-row" style="flex-direction:column; align-items:flex-start; gap:0.35rem; padding:0.6rem 0; border-bottom:1px dashed rgba(var(--muted),0.15);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                    <span class="co-ticket-row__name">
+                                        <strong><?= (int)$item['qty'] ?>×</strong> <?= e($item['name']) ?>
+                                    </span>
+                                    <strong class="co-ticket-row__price">
+                                        <?= $item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
+                                    </strong>
+                                </div>
+                                
+                                <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; font-size:0.75rem;">
+                                    <?php if ($iKind === 'duo' || $iAdmits === 2): ?>
+                                        <span class="co-kind-badge" style="background:rgba(236,72,153,0.12); color:#db2777; border:1px solid rgba(236,72,153,0.25); padding:2px 7px; border-radius:6px; font-weight:700;">
+                                            💑 Duo / Couples Pass (Admits 2)
+                                        </span>
+                                    <?php elseif ($iKind === 'group' || $iAdmits > 2): ?>
+                                        <span class="co-kind-badge" style="background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); padding:2px 7px; border-radius:6px; font-weight:700;">
+                                            👥 Table / Group (Admits <?= $iAdmits ?>)
+                                        </span>
                                     <?php endif; ?>
-                                </span>
-                                <strong class="co-ticket-row__price">
-                                    <?= $item['subtotal'] > 0 ? format_price($item['subtotal']) : 'Free' ?>
-                                </strong>
+
+                                    <?php if ($iHasSeating): ?>
+                                        <span class="co-seating-pill" style="display:inline-flex; align-items:center; gap:0.25rem; background:rgba(16,185,129,0.12); color:#059669; border:1px solid rgba(16,185,129,0.25); padding:2px 7px; border-radius:6px; font-weight:700;">
+                                            <span>💺</span>
+                                            <span>
+                                                <?= $iSection ? 'Section ' . e($iSection) : 'Seated' ?>
+                                                <?= $iRow ? ' • Row ' . e($iRow) : '' ?>
+                                                <?php if ($iSeatStart !== null): ?>
+                                                    • <?= ($item['seat_prefix'] ?: 'Seat ') . $iSeatStart ?><?= ($iSeatEnd && $iSeatEnd > $iSeatStart) ? '-' . $iSeatEnd : '' ?>
+                                                <?php endif; ?>
+                                            </span>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+
+                                <?php if (!empty($item['description'])): ?>
+                                    <div style="font-size:0.72rem; color:rgb(var(--muted)); line-height:1.3; margin-top:1px;">
+                                        <?= e($item['description']) ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -1318,6 +1802,94 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize UI on page load
     updateGatewayUI(selectedPmInput ? selectedPmInput.value : 'paystack');
 });
+
+// ── Interactive Stadium & Hall Seat Picker Engine ─────────────────
+window.setActiveSlotToPick = function(tierId, passIdx) {
+    const slotKey = `${tierId}-${passIdx}`;
+    document.querySelectorAll(`.co-slot-switcher-bar[data-tier-id="${tierId}"] .co-slot-pill-btn`).forEach(btn => {
+        if (btn.dataset.slotKey === slotKey) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+};
+
+window.pickSeat = function(btn, tierId, seatNum) {
+    if (btn.classList.contains('co-seat-btn--taken')) return;
+
+    // Find the active slot for this tier
+    let targetSlotBtn = document.querySelector(`.co-slot-switcher-bar[data-tier-id="${tierId}"] .co-slot-pill-btn.active`);
+    if (!targetSlotBtn) {
+        targetSlotBtn = document.querySelector(`.co-slot-switcher-bar[data-tier-id="${tierId}"] .co-slot-pill-btn`);
+        if (targetSlotBtn) {
+            targetSlotBtn.classList.add('active');
+        }
+    }
+    if (!targetSlotBtn) return;
+
+    const passIdx = targetSlotBtn.dataset.passIdx;
+    const globalIdx = targetSlotBtn.dataset.globalIdx;
+    const secName = targetSlotBtn.dataset.sectionName || '';
+    const rowName = targetSlotBtn.dataset.rowName || '';
+    const prefix = targetSlotBtn.dataset.seatPrefix || 'Seat ';
+    const slotKey = `${tierId}-${passIdx}`;
+
+    // Format new seat string
+    const parts = [];
+    if (secName) parts.push('Section ' + secName);
+    if (rowName) parts.push('Row ' + rowName);
+    parts.push((prefix || 'Seat ') + seatNum);
+    const newSeatString = parts.join(' • ');
+
+    // 1. Release any seat currently held by this slot in this tier
+    const currentSeatOfSlot = document.querySelector(`.co-seat-grid[data-tier-id="${tierId}"] .co-seat-btn[data-assigned-slot="${slotKey}"]`);
+    if (currentSeatOfSlot) {
+        currentSeatOfSlot.classList.remove('co-seat-btn--selected');
+        currentSeatOfSlot.classList.add('co-seat-btn--available');
+        currentSeatOfSlot.removeAttribute('data-assigned-slot');
+        const stSpan = currentSeatOfSlot.querySelector('.co-seat-status');
+        if (stSpan) stSpan.textContent = 'Open';
+        currentSeatOfSlot.title = `Seat ${currentSeatOfSlot.dataset.seatNum} (Available - Click to select)`;
+    }
+
+    // 2. Mark clicked seat as selected for this slot
+    btn.classList.remove('co-seat-btn--available');
+    btn.classList.add('co-seat-btn--selected');
+    btn.setAttribute('data-assigned-slot', slotKey);
+    const stSpan = btn.querySelector('.co-seat-status');
+    if (stSpan) stSpan.textContent = `Pass #${globalIdx}`;
+    btn.title = `Seat ${seatNum} (Assigned to Pass #${globalIdx})`;
+
+    // 3. Update hidden form inputs
+    const inputAssigned = document.getElementById(`input-assigned-seat-${tierId}-${passIdx}`);
+    if (inputAssigned) inputAssigned.value = newSeatString;
+
+    const inputSeatNum = document.getElementById(`input-seat-num-${tierId}-${passIdx}`);
+    if (inputSeatNum) inputSeatNum.value = seatNum;
+
+    // 4. Update badge on Attendee Card
+    const pill = document.getElementById(`seat-pill-${tierId}-${passIdx}`);
+    if (pill) {
+        pill.innerHTML = `💺 ${newSeatString}`;
+        pill.style.transform = 'scale(1.06)';
+        setTimeout(() => { pill.style.transform = 'scale(1)'; }, 250);
+    }
+
+    // 5. Update slot pill badge in switcher bar
+    const slotBadge = document.getElementById(`slot-seat-badge-${slotKey}`);
+    if (slotBadge) {
+        slotBadge.textContent = (prefix || 'Seat ') + seatNum;
+    }
+
+    // 6. Advance to the next pass slot in this tier if more exist
+    const allTierSlotBtns = Array.from(document.querySelectorAll(`.co-slot-switcher-bar[data-tier-id="${tierId}"] .co-slot-pill-btn`));
+    const currentPos = allTierSlotBtns.indexOf(targetSlotBtn);
+    if (currentPos !== -1 && currentPos < allTierSlotBtns.length - 1) {
+        const nextBtn = allTierSlotBtns[currentPos + 1];
+        window.setActiveSlotToPick(tierId, nextBtn.dataset.passIdx);
+    }
+};
 
 // Lightbox modal for merchandise preview
 window.openAddonImageModal = function(src, title) {

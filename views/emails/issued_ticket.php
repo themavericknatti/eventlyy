@@ -171,6 +171,12 @@ $introText = !empty($greeting_text) ? $greeting_text : 'Your official admission 
                                         <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 14px; margin-bottom: 12px; display: inline-block;">
                                             <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.04em;">Registered Attendee:</span>
                                             <strong style="font-size: 13px; color: #0f172a; margin-left: 5px;"><?= e($tAttendeeName) ?></strong>
+                                            <?php if (($t['attendee_role'] ?? '') === 'plus_one'): ?>
+                                                <span style="background-color: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; padding: 2px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 700; margin-left: 6px;">💑 Plus-One (+1)</span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($t['assigned_seat'])): ?>
+                                                <span style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 700; margin-left: 6px;">💺 <?= e($t['assigned_seat']) ?></span>
+                                            <?php endif; ?>
                                         </div>
                                         <br/>
                                         <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 10px;">

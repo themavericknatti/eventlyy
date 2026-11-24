@@ -176,19 +176,48 @@ class CreateEventAction
         $ticketQtys = $data['ticket-qty'] ?? [];
         $ticketAdmits = $data['ticket-admits'] ?? [];
         $ticketMaxPerPerson = $data['ticket-max-per-person'] ?? [];
+        $ticketKinds = $data['ticket-kind'] ?? [];
+        $ticketSections = $data['ticket-section'] ?? [];
+        $ticketRows = $data['ticket-row'] ?? [];
+        $ticketSeatPrefixes = $data['ticket-seat-prefix'] ?? [];
+        $ticketSeatStarts = $data['ticket-seat-start'] ?? [];
+        $ticketSeatEnds = $data['ticket-seat-end'] ?? [];
+        $ticketHasSeatings = $data['ticket-has-seating'] ?? [];
+        $ticketDescriptions = $data['ticket-description'] ?? [];
 
         foreach ($ticketNames as $index => $name) {
             $name = trim((string)$name);
             if (empty($name)) continue;
 
             $price = $ticketPrices[$index] ?? 0.00;
-            $qty = $ticketQtys[$index] ?? 0;
+            $qty = (int)($ticketQtys[$index] ?? 0);
             $admits = isset($ticketAdmits[$index]) && is_numeric($ticketAdmits[$index]) ? max(1, (int)$ticketAdmits[$index]) : 1;
             $maxPerPerson = isset($ticketMaxPerPerson[$index]) && is_numeric($ticketMaxPerPerson[$index]) && (int)$ticketMaxPerPerson[$index] > 0 ? (int)$ticketMaxPerPerson[$index] : null;
+
+            $kind = in_array($ticketKinds[$index] ?? '', ['standard', 'duo', 'group', 'seated']) ? $ticketKinds[$index] : 'standard';
+            if ($kind === 'duo') {
+                $admits = max(2, $admits);
+            }
+
+            $sectionName = trim((string)($ticketSections[$index] ?? '')) ?: null;
+            $rowName = trim((string)($ticketRows[$index] ?? '')) ?: null;
+            $seatPrefix = trim((string)($ticketSeatPrefixes[$index] ?? '')) ?: null;
+            $seatStart = isset($ticketSeatStarts[$index]) && is_numeric($ticketSeatStarts[$index]) ? (int)$ticketSeatStarts[$index] : null;
+            $seatEnd = isset($ticketSeatEnds[$index]) && is_numeric($ticketSeatEnds[$index]) ? (int)$ticketSeatEnds[$index] : null;
+            $hasSeating = (!empty($ticketHasSeatings[$index]) || $kind === 'seated' || !empty($sectionName)) ? 1 : 0;
+            $description = trim((string)($ticketDescriptions[$index] ?? '')) ?: null;
+
+            // Auto-calculate capacity from seat range if specified and qty is zero
+            if ($hasSeating && $seatStart !== null && $seatEnd !== null && $seatEnd >= $seatStart && $qty <= 0) {
+                $qty = ($seatEnd - $seatStart) + 1;
+            }
 
             // Smart detection: e.g. "VIP Table for 5" or "Table of 8"
             if ($admits === 1 && preg_match('/(?:table|booth|group|cabana)\s+(?:for|of)\s+(\d+)/i', $name, $matches)) {
                 $admits = max(1, (int)$matches[1]);
+                if ($kind === 'standard') {
+                    $kind = 'group';
+                }
             }
 
             // Using model insertion pattern
@@ -201,14 +230,32 @@ class CreateEventAction
             ]);
 
             if ($ticketType->validate()) {
-                $stmt = $db->prepare("INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)");
+                $stmt = $db->prepare("
+                    INSERT INTO ticket_types (
+                        event_id, name, ticket_kind, price, capacity, admits, 
+                        max_per_person, section_name, row_name, seat_prefix, 
+                        seat_start, seat_end, has_seating, description
+                    ) VALUES (
+                        :event_id, :name, :ticket_kind, :price, :capacity, :admits, 
+                        :max_per_person, :section_name, :row_name, :seat_prefix, 
+                        :seat_start, :seat_end, :has_seating, :description
+                    )
+                ");
                 $stmt->execute([
                     'event_id' => $event->id,
                     'name' => $name,
+                    'ticket_kind' => $kind,
                     'price' => $price,
                     'capacity' => $qty,
                     'admits' => $admits,
-                    'max_per_person' => $maxPerPerson
+                    'max_per_person' => $maxPerPerson,
+                    'section_name' => $sectionName,
+                    'row_name' => $rowName,
+                    'seat_prefix' => $seatPrefix,
+                    'seat_start' => $seatStart,
+                    'seat_end' => $seatEnd,
+                    'has_seating' => $hasSeating,
+                    'description' => $description
                 ]);
             }
         }
@@ -368,14 +415,48 @@ class CreateEventAction
                             $admits = max(1, (int)$matches[1]);
                         }
 
-                        $stmt = $db->prepare("INSERT INTO ticket_types (event_id, name, price, capacity, admits, max_per_person) VALUES (:event_id, :name, :price, :capacity, :admits, :max_per_person)");
+                        $kind = in_array($ticketKinds[$index] ?? '', ['standard', 'duo', 'group', 'seated']) ? $ticketKinds[$index] : 'standard';
+                        if ($kind === 'duo') {
+                            $admits = max(2, $admits);
+                        }
+                        $sectionName = trim((string)($ticketSections[$index] ?? '')) ?: null;
+                        $rowName = trim((string)($ticketRows[$index] ?? '')) ?: null;
+                        $seatPrefix = trim((string)($ticketSeatPrefixes[$index] ?? '')) ?: null;
+                        $seatStart = isset($ticketSeatStarts[$index]) && is_numeric($ticketSeatStarts[$index]) ? (int)$ticketSeatStarts[$index] : null;
+                        $seatEnd = isset($ticketSeatEnds[$index]) && is_numeric($ticketSeatEnds[$index]) ? (int)$ticketSeatEnds[$index] : null;
+                        $hasSeating = (!empty($ticketHasSeatings[$index]) || $kind === 'seated' || !empty($sectionName)) ? 1 : 0;
+                        $description = trim((string)($ticketDescriptions[$index] ?? '')) ?: null;
+
+                        if ($hasSeating && $seatStart !== null && $seatEnd !== null && $seatEnd >= $seatStart && $qty <= 0) {
+                            $qty = ($seatEnd - $seatStart) + 1;
+                        }
+
+                        $stmt = $db->prepare("
+                            INSERT INTO ticket_types (
+                                event_id, name, ticket_kind, price, capacity, admits, 
+                                max_per_person, section_name, row_name, seat_prefix, 
+                                seat_start, seat_end, has_seating, description
+                            ) VALUES (
+                                :event_id, :name, :ticket_kind, :price, :capacity, :admits, 
+                                :max_per_person, :section_name, :row_name, :seat_prefix, 
+                                :seat_start, :seat_end, :has_seating, :description
+                            )
+                        ");
                         $stmt->execute([
                             'event_id' => $occEvent->id,
                             'name' => $name,
+                            'ticket_kind' => $kind,
                             'price' => $price,
                             'capacity' => $qty,
                             'admits' => $admits,
-                            'max_per_person' => $maxPerPerson
+                            'max_per_person' => $maxPerPerson,
+                            'section_name' => $sectionName,
+                            'row_name' => $rowName,
+                            'seat_prefix' => $seatPrefix,
+                            'seat_start' => $seatStart,
+                            'seat_end' => $seatEnd,
+                            'has_seating' => $hasSeating,
+                            'description' => $description
                         ]);
                     }
 
