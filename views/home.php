@@ -228,15 +228,23 @@ $siteTitle = site_setting('site_title', 'Eventlyy');
                         $feImg = !empty($fe['image']) ? $fe['image'] : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1200&q=80&auto=format&fit=crop';
                         $feDate = date('M d, Y', strtotime($fe['date']));
                         $feMinPrice = isset($fe['min_price']) && $fe['min_price'] !== null ? format_price($fe['min_price']) : 'Free Entry';
+                        $isAdminFeatured = !empty($fe['is_featured']);
+                        $ticketsSold = (int)($fe['tickets_sold'] ?? 0);
+                        $feTagLabel = $isAdminFeatured ? '⭐ Featured' : ($ticketsSold >= 5 ? '🔥 Popular' : '★ Trending');
+                        $feTagClass = $isAdminFeatured ? 'vn-tag--featured' : ($ticketsSold >= 5 ? 'vn-tag--popular' : 'vn-tag--brass');
+                        $feStubClass = 'vn-featured-stub' . ($isAdminFeatured ? ' vn-featured-stub--admin' : '');
                     ?>
-                        <a href="<?= $feUrl ?>" class="vn-featured-stub" data-card-idx="<?= $idx ?>">
+                        <a href="<?= $feUrl ?>" class="<?= $feStubClass ?>" data-card-idx="<?= $idx ?>">
                             <div class="vn-featured-img-box">
                                 <img src="<?= e($feImg) ?>" alt="<?= e($fe['name']) ?>" class="vn-featured-img" loading="lazy" decoding="async">
+                                <?php if ($isAdminFeatured): ?>
+                                    <span class="vn-featured-ribbon">⭐ Featured</span>
+                                <?php endif; ?>
                             </div>
                             <div class="vn-featured-details">
                                 <div>
                                     <div class="vn-stub-tag-row">
-                                        <span class="vn-tag vn-tag--brass">★ Trending Drop</span>
+                                        <span class="vn-tag <?= $feTagClass ?>"><?= $feTagLabel ?></span>
                                         <span class="vn-tag"><?= e($fe['category'] ?? 'Event') ?></span>
                                     </div>
                                     <h3 class="vn-featured-title"><?= e($fe['name']) ?></h3>
@@ -331,15 +339,24 @@ $siteTitle = site_setting('site_title', 'Eventlyy');
                     $minPrice = isset($ev['min_price']) && $ev['min_price'] !== null ? format_price($ev['min_price']) : 'Free Entry';
                     $evDate = date('M d, Y • g:i A', strtotime($ev['date']));
                     $passId = 'PASS-' . strtoupper(substr(md5($ev['id'] . ($ev['date'] ?? '')), 0, 6));
+                    $evIsFeatured = !empty($ev['is_featured']);
+                    $evTicketsSold = (int)($ev['tickets_sold'] ?? 0);
+                    $evIsPopular = $evTicketsSold >= 5;
+                    $evCardClass = 'vn-ticket-card' . ($evIsFeatured ? ' vn-ticket-card--featured' : ($evIsPopular ? ' vn-ticket-card--popular' : ''));
                 ?>
                     <!-- Ticket Stub Card -->
-                    <article class="vn-ticket-card">
+                    <article class="<?= $evCardClass ?>">
                         <div class="vn-card-thumb-wrap">
                             <img src="<?= e($evImg) ?>" alt="<?= e($ev['name']) ?>" class="vn-card-thumb" loading="lazy" decoding="async">
                             <div class="vn-card-top-tags">
                                 <span class="vn-card-tag"><?= e($ev['category'] ?? 'Event') ?></span>
                                 <span class="vn-card-price-pill"><?= $minPrice ?></span>
                             </div>
+                            <?php if ($evIsFeatured): ?>
+                                <span class="vn-card-status-badge vn-card-status-badge--featured">⭐ Featured</span>
+                            <?php elseif ($evIsPopular): ?>
+                                <span class="vn-card-status-badge vn-card-status-badge--popular">🔥 Popular</span>
+                            <?php endif; ?>
                         </div>
 
                         <div class="vn-card-body">
@@ -1537,18 +1554,36 @@ document.addEventListener('DOMContentLoaded', function() {
             currentIdx = (idx + totalCards) % totalCards;
             const card = carouselTrack.querySelector(`[data-card-idx="${currentIdx}"]`);
             if (card) {
-                card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                const trackRect = carouselTrack.getBoundingClientRect();
+                const cardRect = card.getBoundingClientRect();
+                const scrollOffset = cardRect.left - trackRect.left + carouselTrack.scrollLeft;
+                carouselTrack.scrollTo({ left: scrollOffset, behavior: 'smooth' });
             }
             dots.forEach((dot, i) => {
                 dot.classList.toggle('active', i === currentIdx);
             });
         }
 
-        if (prevBtn) prevBtn.addEventListener('click', () => updateCarousel(currentIdx - 1));
-        if (nextBtn) nextBtn.addEventListener('click', () => updateCarousel(currentIdx + 1));
+        if (prevBtn) prevBtn.addEventListener('click', () => { updateCarousel(currentIdx - 1); resetAutoPlay(); });
+        if (nextBtn) nextBtn.addEventListener('click', () => { updateCarousel(currentIdx + 1); resetAutoPlay(); });
         dots.forEach((dot, idx) => {
-            dot.addEventListener('click', () => updateCarousel(idx));
+            dot.addEventListener('click', () => { updateCarousel(idx); resetAutoPlay(); });
         });
+
+        // Auto-play: advance every 6 seconds, pause on hover
+        let autoPlayTimer = setInterval(() => updateCarousel(currentIdx + 1), 6000);
+        function resetAutoPlay() {
+            clearInterval(autoPlayTimer);
+            autoPlayTimer = setInterval(() => updateCarousel(currentIdx + 1), 6000);
+        }
+        const carouselWrap = document.getElementById('vn-carousel-wrap');
+        if (carouselWrap) {
+            carouselWrap.addEventListener('mouseenter', () => clearInterval(autoPlayTimer));
+            carouselWrap.addEventListener('mouseleave', () => { autoPlayTimer = setInterval(() => updateCarousel(currentIdx + 1), 6000); });
+            // Touch support: pause on touch, resume on touch end
+            carouselWrap.addEventListener('touchstart', () => clearInterval(autoPlayTimer), { passive: true });
+            carouselWrap.addEventListener('touchend', () => { autoPlayTimer = setInterval(() => updateCarousel(currentIdx + 1), 6000); }, { passive: true });
+        }
     }
 
     // ── 3. Smooth Anchor Scrolling for Quick-Jump Links ──
