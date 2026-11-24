@@ -68,6 +68,7 @@
 </head>
 
 <body class="vn-shell">
+    @include('partials/page-loader')
     <?php if (app()->request->is('about') || app()->request->is('support')): ?>
         <!-- Floating decorative background elements -->
         <div class="hero-orb hero-orb-1" style="top: -10%; left: -10%; width: 50vw; height: 50vw; opacity: 0.15;"

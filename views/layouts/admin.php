@@ -37,6 +37,7 @@
 </head>
 
 <body class="vn-shell">
+    @include('partials/page-loader')
     @include('partials/admin-header')
     <main class="container">
         @session('success')

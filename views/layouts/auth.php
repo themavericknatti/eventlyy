@@ -49,6 +49,7 @@ $siteName = site_setting('site_title', 'Eventlyy');
 </head>
 
 <body class="auth-body">
+    @include('partials/page-loader')
     <!-- Atmospheric Ambient Duo-Tone Orbs -->
     <div class="auth-ambient" aria-hidden="true">
         <div class="auth-orb auth-orb-primary"></div>

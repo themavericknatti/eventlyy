@@ -197,6 +197,7 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
 </head>
 
 <body class="vn-shell <?= $isLoginPage ? 'auth-body' : 'team-workstation-body' ?>">
+    @include('partials/page-loader')
     <?php if ($isLoginPage): ?>
         <div class="hero-orb hero-orb-1" style="top: -10%; left: -10%; width: 50vw; height: 50vw; opacity: 0.12;"
             aria-hidden="true"></div>

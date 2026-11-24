@@ -52,6 +52,7 @@
 </head>
 
 <body class="vn-shell">
+    @include('partials/page-loader')
     @include('partials/host-header')
     <?php
         $hostMainClass = 'container';
