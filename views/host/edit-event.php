@@ -682,6 +682,61 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Staffing Assistance Section
+   ═══════════════════════════════════════════════════════════ */
+.staff-roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.staff-role-card {
+    background: rgb(var(--card));
+    border: 1.5px solid rgba(var(--muted), 0.18);
+    border-radius: 14px;
+    padding: 1.1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    transition: all 0.2s ease;
+}
+
+.staff-role-card:hover {
+    border-color: rgba(var(--brand), 0.4);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+}
+
+.staff-role-card:has(input[type="checkbox"]:checked) {
+    border-color: rgba(var(--brand), 0.55);
+    background: rgba(var(--brand), 0.025);
+}
+
+.staff-role-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.staff-role-qty-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.staff-qty-input {
+    width: 58px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--muted), 0.25);
+    background: rgba(var(--bg), 0.9);
+    color: rgb(var(--text));
+    text-align: center;
+    font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════
    Modern Interactive Settings Tiles (Checkboxes)
    ═══════════════════════════════════════════════════════════ */
 .setting-tile,
@@ -1019,6 +1074,10 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
         grid-column: 1 / -1;
     }
 
+    .staff-roles-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
     /* Tablet ticket primary grid */
     .ticket-primary-grid {
         grid-template-columns: 1fr 1fr !important;
@@ -1100,6 +1159,10 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
 
     .event-section-subtitle {
         font-size: 0.78rem;
+    }
+
+    .staff-roles-grid {
+        grid-template-columns: 1fr !important;
     }
 
     .event-grid-2,
@@ -1445,6 +1508,28 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
             </div>
         <?php endif; ?>
 
+        <!-- Flow Stepper Banner -->
+        <div class="studio-stepper-card" style="background:rgba(var(--card),0.9); border:1px solid rgba(var(--muted),0.2); border-radius:16px; padding:1.15rem 1.4rem; margin-bottom:1.75rem; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgb(var(--brand)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.9rem; box-shadow:0 0 0 4px rgba(var(--brand),0.2);">1</div>
+                    <div>
+                        <span style="font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:rgb(var(--brand));">Step 1 of 2 (Active Form)</span>
+                        <strong style="display:block; font-size:0.95rem; color:rgb(var(--text));">Event Essentials &amp; Venue</strong>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <a href="{{ route('host/event/' . $event->id . '/tickets-setup') }}" style="display:flex; align-items:center; gap:0.75rem; text-decoration:none; color:inherit; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); padding:0.45rem 1rem; border-radius:12px; transition:all 0.2s ease;">
+                        <div style="width:32px; height:32px; border-radius:50%; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem;">2</div>
+                        <div>
+                            <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#6366f1;">Step 2 Studio ➔</span>
+                            <strong style="display:block; font-size:0.88rem; color:rgb(var(--text));">Tickets, Seating &amp; Lineup</strong>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <form id="edit-event-form" method="POST" action="{{ route('host/event/edit/' . $event->id) }}" enctype="multipart/form-data" novalidate>
             <?= csrf_field() ?>
 
@@ -1705,14 +1790,43 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                 </div>
             </div>
 
-            <!-- Section 3: Description -->
+            <!-- Section 3: Contact Details -->
+            <div class="event-form-section">
+                <div class="event-section-header">
+                    <div class="event-section-title-wrap">
+                        <span class="event-section-icon">📞</span>
+                        <div>
+                            <h3 class="event-section-title">Organizer Contacts</h3>
+                            <p class="event-section-subtitle">How attendees and staff can reach you for inquiries.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-grid-2">
+                    <div class="event-field-group">
+                        <label class="event-label" for="organizer-phone">
+                            Phone Number <span class="optional-tag">(Optional)</span>
+                        </label>
+                        <input type="tel" id="organizer-phone" name="organizer_phone" class="event-input" value="<?= e(old('organizer_phone', $event->organizer_phone ?? '')) ?>" placeholder="+1 555 555 5555">
+                    </div>
+
+                    <div class="event-field-group">
+                        <label class="event-label" for="organizer-social">
+                            Website or Social Link <span class="optional-tag">(Optional)</span>
+                        </label>
+                        <input type="url" id="organizer-social" name="organizer_social" class="event-input" value="<?= e(old('organizer_social', $event->organizer_social ?? '')) ?>" placeholder="https://... or @instagram">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Description -->
             <div class="event-form-section">
                 <div class="event-section-header">
                     <div class="event-section-title-wrap">
                         <span class="event-section-icon">📝</span>
                         <div>
                             <h3 class="event-section-title">Event Story &amp; Details</h3>
-                            <p class="event-section-subtitle">Updated description, agenda, instructions, and FAQs.</p>
+                            <p class="event-section-subtitle">Share what makes this experience memorable and unique.</p>
                         </div>
                     </div>
                 </div>
@@ -1721,281 +1835,179 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                     <label class="event-label" for="event-description">
                         Description &amp; Highlights <span class="required-star">*</span>
                     </label>
-                    <textarea id="event-description" name="event_description" class="event-textarea" rows="5" required placeholder="Share what makes this event special."><?= e($event->description) ?></textarea>
+                    <textarea id="event-description" name="event_description" class="event-textarea" rows="5" required placeholder="Describe the program schedule, age restrictions, dress code, and what attendees should expect."><?= e(old('event_description', $event->description ?? '')) ?></textarea>
                 </div>
             </div>
 
-            <!-- Section 4: Special Guests & Performers -->
-            <div class="event-form-section guest-section">
+            <!-- Step 2 Studio Banner: Tickets, Seating & Lineup Studio -->
+            <div class="event-form-section" style="background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(16,185,129,0.04)); border: 1.5px dashed rgba(99,102,241,0.3); text-align: center; padding: 2.5rem 1.5rem;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; justify-content:center;">
+                        <span style="font-size:2rem;">🎟️</span>
+                        <span style="font-size:2rem;">🌟</span>
+                        <span style="font-size:2rem;">🛍️</span>
+                    </div>
+                    <div>
+                        <h3 style="margin:0 0 0.4rem; font-size:1.1rem; font-weight:800; color:rgb(var(--text));">Tickets, Seating &amp; Guest Lineup</h3>
+                        <p style="margin:0; font-size:0.88rem; color:rgb(var(--muted)); line-height:1.55; max-width:540px;">
+                            Configure ticket packages (Standard, Duo/Couples, Group, Stadium Seated rows), assigned seat picker, special guests lineup, and add-on merchandise in the dedicated studio.
+                        </p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; justify-content:center; margin-top:0.35rem;">
+                        <a href="{{ route('host/event/' . $event->id . '/tickets-setup') }}" style="display:inline-flex; align-items:center; gap:0.5rem; background:#6366f1; color:#ffffff; padding:0.7rem 1.35rem; border-radius:12px; font-size:0.9rem; font-weight:700; text-decoration:none; box-shadow:0 4px 12px rgba(99,102,241,0.3); transition:all 0.2s ease;">
+                            <span>✨ Open Step 2 Studio: Edit Tickets &amp; Seating</span>
+                            <span>➔</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Organization Staffing Assistance Request -->
+            <div class="event-form-section staffing-request-section">
                 <div class="event-section-header">
                     <div class="event-section-title-wrap">
-                        <span class="event-section-icon">🌟</span>
+                        <span class="event-section-icon">🤝</span>
                         <div>
-                            <h3 class="event-section-title">Special Guests &amp; Lineup</h3>
-                            <p class="event-section-subtitle">Manage guest performers, speakers, and VIP attendees.</p>
+                            <h3 class="event-section-title">Organization Staffing Support</h3>
+                            <p class="event-section-subtitle">
+                                Need on-site assistance? Request trained gate scanners, ushers, support leads, or box office staff.
+                            </p>
                         </div>
                     </div>
-                    <button type="button" id="add-guest-btn" class="form-secondary-btn">
-                        <span>➕</span> Add Guest
-                    </button>
                 </div>
 
-                <div id="guest-list" class="guest-list scrollable-list">
-                    <?php if (!empty($eventGuests)): ?>
-                        <?php foreach ($eventGuests as $index => $guest): ?>
-                            <div class="guest-row guest-card">
-                                <div class="guest-card-header">
-                                    <div class="guest-card-avatar">
-                                        <span class="guest-card-avatar-circle">👤</span>
-                                        <span class="guest-card-title">Guest / Performer #<?= $index + 1 ?></span>
-                                    </div>
-                                    <button type="button" class="guest-remove guest-card-remove-btn" title="Remove guest">
-                                        <span>✕</span> Remove
-                                    </button>
-                                </div>
-                                <div class="guest-card-grid">
-                                    <div class="event-field-group">
-                                        <label class="event-label">Name <span class="required-star">*</span></label>
-                                        <input type="text" name="guest-name[]" class="event-input" value="<?= e($guest['name']) ?>" placeholder="Artist or Speaker Name" required>
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Role / Title <span class="optional-tag">(Optional)</span></label>
-                                        <input type="text" name="guest-role[]" class="event-input" value="<?= e($guest['role'] ?? '') ?>" placeholder="e.g. Headliner, Keynote, Panelist">
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Contact Phone <span class="optional-tag">(Optional)</span></label>
-                                        <input type="tel" name="guest-phone[]" class="event-input" value="<?= e($guest['phone'] ?? '') ?>" placeholder="+1 555 555 5555">
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Social / Website <span class="optional-tag">(Optional)</span></label>
-                                        <input type="text" name="guest-social[]" class="event-input" value="<?= e($guest['social'] ?? '') ?>" placeholder="@handle or https://...">
-                                    </div>
+                <?php 
+                    $hasStaffReq = !empty($staffRequest) || !empty(old('request_staffing'));
+                    $rolesReqData = $staffRolesData ?? [];
+                ?>
+                <div class="setting-tile" style="margin-bottom: 1.25rem;">
+                    <label class="setting-tile-label" for="request-staffing-toggle">
+                        <div class="setting-tile-checkbox-wrap">
+                            <input type="checkbox" id="request-staffing-toggle" name="request_staffing" value="1" <?= $hasStaffReq ? 'checked' : '' ?> onchange="toggleStaffingOptions(this.checked)" class="setting-tile-checkbox">
+                        </div>
+                        <div class="setting-tile-content">
+                            <div class="setting-tile-title">
+                                <span>🤝</span> Request On-Site Event Staffing Assistance
+                                <span class="setting-badge-promo">Staff On-Demand</span>
+                            </div>
+                            <div class="setting-tile-desc">
+                                Request vetted personnel to manage ticket scanning, ushering, customer support, or gate cashiers.
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="staffing-options-container" style="display: <?= $hasStaffReq ? 'block' : 'none' ?>; margin-top: 1rem; border-top: 1px dashed rgba(var(--muted), 0.2); padding-top: 1.25rem;">
+                    <p style="margin:0 0 1rem 0; font-size:0.88rem; font-weight:700; color:rgb(var(--text));">
+                        Select the specialized personnel roles and quantities needed:
+                    </p>
+
+                    <div class="staff-roles-grid">
+                        <!-- Role 1: Ticket Scanner -->
+                        <div class="staff-role-card">
+                            <div class="staff-role-header">
+                                <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
+                                    <input type="checkbox" name="staff_roles[ticket-scanner][selected]" value="1" <?= (!empty($rolesReqData['ticket-scanner']['selected']) || old('staff_roles.ticket-scanner.selected')) ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
+                                    <span>🎫 Ticket Scanner</span>
+                                </label>
+                                <div class="staff-role-qty-wrap">
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Qty:</span>
+                                    <input type="number" name="staff_roles[ticket-scanner][qty]" class="staff-qty-input" value="<?= e(old('staff_roles.ticket-scanner.qty', $rolesReqData['ticket-scanner']['qty'] ?? '1')) ?>" min="1" max="20" onchange="updateStaffSummary()">
                                 </div>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                            <p style="margin:0; font-size:0.8rem; color:rgb(var(--muted)); line-height:1.4;">
+                                Operates gate scanners, validates QR codes, and keeps attendee check-in queues moving rapidly.
+                            </p>
+                        </div>
+
+                        <!-- Role 2: Organizer Staff / Usher -->
+                        <div class="staff-role-card">
+                            <div class="staff-role-header">
+                                <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
+                                    <input type="checkbox" name="staff_roles[organizer-staff][selected]" value="1" <?= (!empty($rolesReqData['organizer-staff']['selected']) || old('staff_roles.organizer-staff.selected')) ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
+                                    <span>🏷️ Usher / Coordination</span>
+                                </label>
+                                <div class="staff-role-qty-wrap">
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Qty:</span>
+                                    <input type="number" name="staff_roles[organizer-staff][qty]" class="staff-qty-input" value="<?= e(old('staff_roles.organizer-staff.qty', $rolesReqData['organizer-staff']['qty'] ?? '1')) ?>" min="1" max="20" onchange="updateStaffSummary()">
+                                </div>
+                            </div>
+                            <p style="margin:0; font-size:0.8rem; color:rgb(var(--muted)); line-height:1.4;">
+                                Floor directions, VIP seating guidance, wristband verification, and crowd flow management.
+                            </p>
+                        </div>
+
+                        <!-- Role 3: Customer Support -->
+                        <div class="staff-role-card">
+                            <div class="staff-role-header">
+                                <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
+                                    <input type="checkbox" name="staff_roles[customer-support][selected]" value="1" <?= (!empty($rolesReqData['customer-support']['selected']) || old('staff_roles.customer-support.selected')) ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
+                                    <span>🎧 Support Lead</span>
+                                </label>
+                                <div class="staff-role-qty-wrap">
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Qty:</span>
+                                    <input type="number" name="staff_roles[customer-support][qty]" class="staff-qty-input" value="<?= e(old('staff_roles.customer-support.qty', $rolesReqData['customer-support']['qty'] ?? '1')) ?>" min="1" max="10" onchange="updateStaffSummary()">
+                                </div>
+                            </div>
+                            <p style="margin:0; font-size:0.8rem; color:rgb(var(--muted)); line-height:1.4;">
+                                Info desk operations, attendee assistance, email receipt lookup, and lost &amp; found management.
+                            </p>
+                        </div>
+
+                        <!-- Role 4: Technical Operations -->
+                        <div class="staff-role-card">
+                            <div class="staff-role-header">
+                                <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
+                                    <input type="checkbox" name="staff_roles[technical-ops][selected]" value="1" <?= (!empty($rolesReqData['technical-ops']['selected']) || old('staff_roles.technical-ops.selected')) ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
+                                    <span>⚙️ Technical Ops</span>
+                                </label>
+                                <div class="staff-role-qty-wrap">
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Qty:</span>
+                                    <input type="number" name="staff_roles[technical-ops][qty]" class="staff-qty-input" value="<?= e(old('staff_roles.technical-ops.qty', $rolesReqData['technical-ops']['qty'] ?? '1')) ?>" min="1" max="10" onchange="updateStaffSummary()">
+                                </div>
+                            </div>
+                            <p style="margin:0; font-size:0.8rem; color:rgb(var(--muted)); line-height:1.4;">
+                                Scanner hardware provisioning, entrance WiFi sync, power stations, and stage AV liaison.
+                            </p>
+                        </div>
+
+                        <!-- Role 5: Finance & Box Office -->
+                        <div class="staff-role-card">
+                            <div class="staff-role-header">
+                                <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.92rem; cursor:pointer;">
+                                    <input type="checkbox" name="staff_roles[finance-manager][selected]" value="1" <?= (!empty($rolesReqData['finance-manager']['selected']) || old('staff_roles.finance-manager.selected')) ? 'checked' : '' ?> onchange="updateStaffSummary()" class="setting-tile-checkbox">
+                                    <span>💼 Box Office Cashier</span>
+                                </label>
+                                <div class="staff-role-qty-wrap">
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted));">Qty:</span>
+                                    <input type="number" name="staff_roles[finance-manager][qty]" class="staff-qty-input" value="<?= e(old('staff_roles.finance-manager.qty', $rolesReqData['finance-manager']['qty'] ?? '1')) ?>" min="1" max="5" onchange="updateStaffSummary()">
+                                </div>
+                            </div>
+                            <p style="margin:0; font-size:0.8rem; color:rgb(var(--muted)); line-height:1.4;">
+                                Door cash &amp; card ticket purchases, physical receipts, gate reconciliation, and refund handling.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="event-field-group">
+                        <label class="event-label" for="staff-notes">
+                            Special Instructions / Requirements for Team Staff:
+                        </label>
+                        <textarea id="staff-notes" name="staff_notes" class="event-textarea" rows="2" placeholder="e.g. Report by 4:00 PM for gate briefing at Gate 2. Dress code: Black polo shirt."><?= e(old('staff_notes', $staffNotes ?? '')) ?></textarea>
+                    </div>
+
+                    <div id="staffing-summary-box" style="background:rgba(var(--brand),0.06); border:1px solid rgba(var(--brand),0.2); border-radius:12px; padding:0.85rem 1.15rem; font-size:0.85rem;">
+                        <div style="font-weight:700; color:rgb(var(--brand)); margin-bottom:0.25rem; display:flex; align-items:center; gap:0.4rem;">
+                            <span>📋</span> Staffing Request Summary: <span id="staffing-total-count" style="background:rgb(var(--brand)); color:#fff; padding:1px 8px; border-radius:99px; font-size:0.75rem;">0 Staff</span>
+                        </div>
+                        <div id="staffing-roles-summary" style="color:rgb(var(--muted)); font-size:0.82rem;">
+                            Select one or more roles above to generate your staffing assistance package.
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Section 5: Ticket Types & Pricing -->
-            <div class="event-form-section ticket-section">
-                <!-- Advanced Seating Studio Shortcut -->
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.9rem 1.25rem; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:14px; margin-bottom:1.5rem; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:0.6rem;">
-                        <span style="font-size:1.3rem;">✨</span>
-                        <div>
-                            <strong style="color:#6366f1; font-size:0.9rem; display:block;">Looking for Advanced Seating &amp; Duo Passes?</strong>
-                            <span style="font-size:0.8rem; color:rgb(var(--muted));">Configure couples/duo passes with plus-one requirements or hall/stadium seated sections with row and seat allocations.</span>
-                        </div>
-                    </div>
-                    <a href="{{ route('host/event/' . $event->id . '/tickets-setup') }}" style="display:inline-flex; align-items:center; gap:0.4rem; background:#6366f1; color:#fff; padding:0.55rem 1.1rem; border-radius:10px; font-size:0.85rem; font-weight:700; text-decoration:none;">
-                        <span>🎟️ Open Tickets &amp; Seating Studio</span>
-                        <span>→</span>
-                    </a>
-                </div>
-
-                <div class="event-section-header">
-                    <div class="event-section-title-wrap">
-                        <span class="event-section-icon">🎟️</span>
-                        <div>
-                            <h3 class="event-section-title">Ticket Packages &amp; Tiers</h3>
-                            <p class="event-section-subtitle">Manage pricing tiers, capacities, and live ticket statuses.</p>
-                        </div>
-                    </div>
-                    <button type="button" id="add-ticket-btn" class="form-secondary-btn">
-                        <span>➕</span> Add Ticket Tier
-                    </button>
-                </div>
-
-                <div id="ticket-list" class="ticket-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
-                    <?php if (!empty($ticketTypes)): ?>
-                        <?php foreach ($ticketTypes as $index => $tt): 
-                            $sold = (int)($tt['sold'] ?? 0);
-                            $issued = (int)($tt['issued'] ?? 0);
-                            $taken = $sold + $issued;
-                            $remaining = max(0, (int)$tt['capacity'] - $taken);
-                        ?>
-                            <div class="ticket-row-item ticket-card">
-                                <input type="hidden" name="ticket-id[]" value="<?= $tt['id'] ?>">
-                                
-                                <div class="ticket-card-header">
-                                    <div class="ticket-card-badge">
-                                        <span>🎟️</span>
-                                        <span class="ticket-tier-number">Tier #<?= $index + 1 ?>: <?= e($tt['name']) ?></span>
-                                    </div>
-                                    <div>
-                                        <?php if ($taken == 0): ?>
-                                            <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" title="Remove ticket tier">
-                                                <span class="remove-icon">✕</span>
-                                                <span class="remove-text">Remove Tier</span>
-                                            </button>
-                                        <?php else: ?>
-                                            <button type="button" class="remove-ticket-row-btn ticket-card-remove-btn" disabled title="Cannot delete tier with sold or issued tickets">
-                                                <span class="remove-icon">🔒</span>
-                                                <span class="remove-text">Locked (<?= number_format($taken) ?> Sold)</span>
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-
-                                <div class="ticket-primary-grid">
-                                    <div class="event-field-group">
-                                        <label class="event-label">Tier Name <span class="required-star">*</span></label>
-                                        <input type="text" name="ticket-name[]" class="event-input" required value="<?= e($tt['name']) ?>" placeholder="Tier Name (e.g. VIP, General Admission)">
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
-                                        <input type="number" step="0.01" name="ticket-price[]" class="event-input" required value="<?= (float)$tt['price'] ?>" placeholder="0.00" min="0">
-                                        <?php if ($taken > 0): ?>
-                                            <small style="display:block; margin-top:4px; font-size:0.75rem; color:#d97706; font-weight:700;">
-                                                ℹ️ Future sales only. <?= number_format($taken) ?> sold ticket(s) retain original price.
-                                            </small>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Total Capacity <span class="required-star">*</span></label>
-                                        <input type="number" name="ticket-qty[]" class="event-input" required value="<?= (int)$tt['capacity'] ?>" min="<?= $taken ?>" placeholder="Capacity">
-                                    </div>
-                                </div>
-
-                                <div class="ticket-access-shelf">
-                                    <div class="ticket-subfield">
-                                        <div class="ticket-subfield-header">
-                                            <span>👥</span>
-                                            <label class="event-label" style="margin:0;">Admits (Per Ticket)</label>
-                                        </div>
-                                        <input type="number" name="ticket-admits[]" class="event-input" value="<?= max(1, (int)($tt['admits'] ?? 1)) ?>" min="1" placeholder="1 (people/ticket)">
-                                        <span class="ticket-subfield-hint">People entering per 1 ticket (1 = Single, 2 = Couple, 5 = Table).</span>
-                                    </div>
-                                    <div class="ticket-subfield">
-                                        <div class="ticket-subfield-header">
-                                            <span>🔒</span>
-                                            <label class="event-label" style="margin:0;">Max Per Person</label>
-                                        </div>
-                                        <input type="number" name="ticket-max-per-person[]" class="event-input" value="<?= !empty($tt['max_per_person']) ? (int)$tt['max_per_person'] : '' ?>" min="1" placeholder="Unlimited">
-                                        <span class="ticket-subfield-hint">Purchase limit per customer email (leave blank for unlimited).</span>
-                                    </div>
-                                </div>
-
-                                <?php if ($taken > 0): ?>
-                                    <div class="tier-stats-bar" style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px dashed rgba(var(--muted),0.2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.82rem;">
-                                        <span style="color:#10b981; font-weight:700;">
-                                            🎟️ <?= number_format($taken) ?> Tickets Taken (<?= number_format($sold) ?> sold, <?= number_format($issued) ?> issued)
-                                        </span>
-                                        <span style="color:rgb(var(--brand)); font-weight:700;">
-                                            📊 <?= number_format($remaining) ?> Remaining Available
-                                        </span>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Section 6: Ticket Add-Ons & Merchandise (Optional) -->
-            <div class="event-form-section addon-section">
-                <div class="event-section-header">
-                    <div class="event-section-title-wrap">
-                        <span class="event-section-icon">🛍️</span>
-                        <div>
-                            <h3 class="event-section-title">Add-Ons &amp; Merchandise Upselling <span style="font-size:0.78rem; font-weight:600; color:rgb(var(--muted)); text-transform:none;">(Optional)</span></h3>
-                            <p class="event-section-subtitle">Boost event revenue by selling event t-shirts, VIP parking passes, backstage wristbands, or drink tokens directly at checkout.</p>
-                        </div>
-                    </div>
-                    <button type="button" id="add-addon-btn" class="form-secondary-btn">
-                        <span>➕</span> Add Merch / Add-On
-                    </button>
-                </div>
-
-                <div id="addon-list" class="addon-list scrollable-list" data-currency="<?= e(get_currency_symbol()) ?>">
-                    <?php if (!empty($eventAddons)): ?>
-                        <?php foreach ($eventAddons as $index => $addon): 
-                            $soldUnits = (int)($addon['sold_count'] ?? 0);
-                        ?>
-                            <div class="addon-row-item addon-card">
-                                <input type="hidden" name="addon-id[]" value="<?= (int)$addon['id'] ?>">
-                                <div class="addon-card-header">
-                                    <div class="addon-card-badge">
-                                        <span>🛍️</span>
-                                        <span class="addon-tier-number">Item #<?= $index + 1 ?>: <?= e($addon['name']) ?></span>
-                                    </div>
-                                    <div>
-                                        <?php if ($soldUnits == 0): ?>
-                                            <button type="button" class="addon-card-remove-btn" title="Remove item">
-                                                <span class="remove-icon">✕</span>
-                                                <span class="remove-text">Remove</span>
-                                            </button>
-                                        <?php else: ?>
-                                            <button type="button" class="addon-card-remove-btn" disabled title="Cannot delete merchandise with completed purchases">
-                                                <span class="remove-icon">🔒</span>
-                                                <span class="remove-text">Locked (<?= number_format($soldUnits) ?> Sold)</span>
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                <div class="addon-primary-grid">
-                                    <div class="event-field-group">
-                                        <label class="event-label">Item / Merch Name <span class="required-star">*</span></label>
-                                        <input type="text" name="addon-name[]" class="event-input" required value="<?= e($addon['name']) ?>" placeholder="e.g. Official Tour T-Shirt, VIP Parking Pass, Drink Tokens">
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Price (<?= e(get_currency_symbol()) ?>) <span class="required-star">*</span></label>
-                                        <input type="number" step="0.01" name="addon-price[]" class="event-input" required value="<?= (float)$addon['price'] ?>" placeholder="0.00" min="0">
-                                        <?php if ($soldUnits > 0): ?>
-                                            <small style="display:block; margin-top:4px; font-size:0.75rem; color:#d97706; font-weight:700;">
-                                                ℹ️ Future sales only. <?= number_format($soldUnits) ?> already purchased.
-                                            </small>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="event-field-group">
-                                        <label class="event-label">Inventory / Stock</label>
-                                        <input type="number" name="addon-quantity[]" class="event-input" value="<?= !empty($addon['quantity']) ? (int)$addon['quantity'] : '' ?>" min="<?= $soldUnits ?>" placeholder="Unlimited">
-                                        <span class="event-help-text" style="font-size:0.72rem;">Leave empty for unlimited.</span>
-                                    </div>
-                                </div>
-                                <div class="event-field-group">
-                                    <label class="event-label">Description / Redemption Notes</label>
-                                    <textarea name="addon-description[]" class="event-input" rows="2" placeholder="e.g. 100% premium cotton tee. Collect at the official merchandise booth upon entry with your ticket QR code."><?= e($addon['description'] ?? '') ?></textarea>
-                                </div>
-                                <div class="addon-media-row" style="display:flex; align-items:center; gap:1rem; margin-top:0.85rem; padding:0.75rem 1rem; background:rgba(var(--muted),0.05); border:1px dashed rgba(var(--muted),0.25); border-radius:12px;">
-                                    <div class="addon-img-preview-box" style="width:64px; height:64px; border-radius:10px; background:rgba(var(--muted),0.1); border:1px solid rgba(var(--muted),0.2); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
-                                        <?php if (!empty($addon['image'])): ?>
-                                            <img src="<?= e($addon['image']) ?>" alt="<?= e($addon['name']) ?>" style="width:100%; height:100%; object-fit:cover;" />
-                                        <?php else: ?>
-                                            <span class="addon-img-placeholder" style="font-size:1.6rem; opacity:0.6;">🛍️</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div style="flex:1; min-width:0;">
-                                        <label class="event-label" style="margin-bottom:0.25rem; font-size:0.82rem; font-weight:700;">
-                                            Item Image / Photo 
-                                            <span style="font-size:0.72rem; color:rgb(var(--muted)); font-weight:normal;">
-                                                <?= !empty($addon['image']) ? '(Choose new file to replace existing photo)' : '(JPG, PNG, WebP up to 5MB)' ?>
-                                            </span>
-                                        </label>
-                                        <input type="file" name="addon-image[]" accept="image/jpeg,image/png,image/webp,image/gif" class="addon-file-input event-input" style="font-size:0.8rem; padding:0.4rem 0.6rem;">
-                                        <input type="hidden" name="addon-image-existing[]" value="<?= e($addon['image'] ?? '') ?>">
-                                    </div>
-                                </div>
-                                <?php if ($soldUnits > 0): ?>
-                                    <div class="tier-stats-bar" style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px dashed rgba(var(--muted),0.2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.82rem;">
-                                        <span style="color:#0d9488; font-weight:700;">
-                                            🛍️ <?= number_format($soldUnits) ?> Units Sold
-                                        </span>
-                                        <?php if (!empty($addon['quantity'])): ?>
-                                            <span style="color:rgb(var(--brand)); font-weight:700;">
-                                                📊 <?= number_format(max(0, (int)$addon['quantity'] - $soldUnits)) ?> In Stock Remaining
-                                            </span>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Section 7: Ticketing & Marketing Settings -->
+            <!-- Section 6: Ticketing & Marketing Settings -->
             <div class="event-form-section">
                 <div class="event-section-header">
                     <div class="event-section-title-wrap">
@@ -2077,6 +2089,9 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                 <button type="submit" class="form-publish-btn">
                     <span>💾</span> Save Changes
                 </button>
+                <button type="submit" name="save_and_tickets" value="1" class="form-publish-btn" style="background:#6366f1; border-color:#6366f1;">
+                    <span>✨</span> Save &amp; Edit Tickets Studio ➔
+                </button>
                 <a href="{{ route('host/event/management/' . $event->id) }}" class="form-cancel-btn">
                     Cancel
                 </a>
@@ -2084,4 +2099,55 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
         </form>
     </div>
 </div>
+
+<script>
+function toggleStaffingOptions(checked) {
+    var container = document.getElementById('staffing-options-container');
+    if (container) {
+        container.style.display = checked ? 'block' : 'none';
+    }
+    if (checked) {
+        updateStaffSummary();
+    }
+}
+
+function updateStaffSummary() {
+    var cards = document.querySelectorAll('.staff-role-card');
+    var totalStaff = 0;
+    var selectedRoles = [];
+
+    cards.forEach(function(card) {
+        var checkbox = card.querySelector('input[type="checkbox"]');
+        var qtyInput = card.querySelector('input[type="number"]');
+        if (checkbox && checkbox.checked) {
+            var qty = parseInt(qtyInput ? qtyInput.value : 1, 10) || 1;
+            totalStaff += qty;
+            var roleTitle = card.querySelector('label span') ? card.querySelector('label span').textContent.trim() : 'Role';
+            selectedRoles.push('<strong>' + qty + 'x</strong> ' + roleTitle);
+        }
+    });
+
+    var countBadge = document.getElementById('staffing-total-count');
+    var summaryEl = document.getElementById('staffing-roles-summary');
+
+    if (countBadge) {
+        countBadge.textContent = totalStaff + ' Staff Member' + (totalStaff !== 1 ? 's' : '');
+    }
+
+    if (summaryEl) {
+        if (selectedRoles.length === 0) {
+            summaryEl.innerHTML = 'Select one or more roles above to generate your staffing assistance package.';
+        } else {
+            summaryEl.innerHTML = 'Requesting: ' + selectedRoles.join(', ') + '. Admin coordination will review and deploy qualified team members.';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var toggle = document.getElementById('request-staffing-toggle');
+    if (toggle && toggle.checked) {
+        updateStaffSummary();
+    }
+});
+</script>
 @endsection

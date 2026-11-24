@@ -674,6 +674,58 @@ class UpdateEventAction
                 }
             }
 
+            // 5b. Save staffing assistance request if opted-in
+            if (!empty($data['request_staffing'])) {
+                $staffRolesInput = $data['staff_roles'] ?? [];
+                $rolesRequested = [];
+                
+                $roleMeta = [
+                    'ticket-scanner' => ['name' => 'Ticket Scanner', 'icon' => '🎫', 'role_id' => 5],
+                    'organizer-staff' => ['name' => 'Organizer Staff / Usher', 'icon' => '🏷️', 'role_id' => 4],
+                    'customer-support' => ['name' => 'Customer Support Lead', 'icon' => '🎧', 'role_id' => 8],
+                    'technical-ops' => ['name' => 'Technical Operations', 'icon' => '⚙️', 'role_id' => 9],
+                    'finance-manager' => ['name' => 'Finance & Box Office', 'icon' => '💼', 'role_id' => 7],
+                ];
+
+                foreach ($staffRolesInput as $slugKey => $item) {
+                    if (!empty($item['selected'])) {
+                        $qty = max(1, min(20, (int)($item['qty'] ?? 1)));
+                        $meta = $roleMeta[$slugKey] ?? ['name' => ucwords(str_replace('-', ' ', $slugKey)), 'icon' => '👤', 'role_id' => 4];
+                        $rolesRequested[] = [
+                            'slug' => $slugKey,
+                            'role_id' => $meta['role_id'],
+                            'name' => $meta['name'],
+                            'icon' => $meta['icon'],
+                            'quantity' => $qty,
+                        ];
+                    }
+                }
+
+                if (!empty($rolesRequested)) {
+                    $notes = trim($data['staff_notes'] ?? '');
+                    $existStaffStmt = $db->prepare("SELECT id FROM event_staff_requests WHERE event_id = :event_id AND status = 'pending' LIMIT 1");
+                    $existStaffStmt->execute(['event_id' => $event->id]);
+                    $existingReqId = $existStaffStmt->fetchColumn();
+
+                    if ($existingReqId) {
+                        $updateStaffStmt = $db->prepare("UPDATE event_staff_requests SET roles_requested = :roles_requested, notes = :notes WHERE id = :id");
+                        $updateStaffStmt->execute([
+                            'roles_requested' => json_encode($rolesRequested),
+                            'notes' => $notes,
+                            'id' => $existingReqId
+                        ]);
+                    } else {
+                        $stmt = $db->prepare("INSERT INTO event_staff_requests (event_id, host_id, roles_requested, notes, status) VALUES (:event_id, :host_id, :roles_requested, :notes, 'pending')");
+                        $stmt->execute([
+                            'event_id' => $event->id,
+                            'host_id' => $hostId,
+                            'roles_requested' => json_encode($rolesRequested),
+                            'notes' => $notes,
+                        ]);
+                    }
+                }
+            }
+
             $db->commit();
 
             // Clean up old image from disk ONLY if it is not used by any other event/occurrence

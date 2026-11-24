@@ -448,16 +448,36 @@ class HostEventController extends Controller
         $eventVenue = trim($locationParts[0] ?? '');
         $eventCity = trim($locationParts[1] ?? '');
 
+        $db = Application::$app->db->pdo;
+
         // Fetch organizer info for admin context
         $organizerName = null;
         $organizerEmail = null;
         if ($isAdmin && $event->organizer_id != $user->id) {
-            $db = Application::$app->db->pdo;
             $orgStmt = $db->prepare("SELECT name, email FROM users WHERE id = :id LIMIT 1");
             $orgStmt->execute(['id' => $event->organizer_id]);
             $org = $orgStmt->fetch(\PDO::FETCH_ASSOC);
             $organizerName = $org['name'] ?? 'Unknown';
             $organizerEmail = $org['email'] ?? '';
+        }
+
+        // Fetch existing staffing request if any
+        $staffStmt = $db->prepare("SELECT * FROM event_staff_requests WHERE event_id = :event_id ORDER BY id DESC LIMIT 1");
+        $staffStmt->execute(['event_id' => $event->id]);
+        $staffRequest = $staffStmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $staffRolesData = [];
+        $staffNotes = '';
+        if ($staffRequest) {
+            $staffNotes = $staffRequest['notes'] ?? '';
+            $decodedRoles = json_decode($staffRequest['roles_requested'] ?? '[]', true) ?: [];
+            foreach ($decodedRoles as $r) {
+                if (!empty($r['slug'])) {
+                    $staffRolesData[$r['slug']] = [
+                        'selected' => 1,
+                        'qty' => (int)($r['quantity'] ?? 1)
+                    ];
+                }
+            }
         }
 
         // Fetch recurring series occurrences if applicable
@@ -487,7 +507,10 @@ class HostEventController extends Controller
             'categories' => $this->categories,
             'isAdmin' => $isAdmin,
             'organizerName' => $organizerName,
-            'organizerEmail' => $organizerEmail
+            'organizerEmail' => $organizerEmail,
+            'staffRequest' => $staffRequest,
+            'staffRolesData' => $staffRolesData,
+            'staffNotes' => $staffNotes
         ]);
     }
 
@@ -547,6 +570,9 @@ class HostEventController extends Controller
 
         if ($this->updateEventAction->execute($data, $user->id, $event)) {
             Application::$app->session->setFlash('success', 'Event successfully updated!');
+            if (!empty($data['save_and_tickets'])) {
+                return Application::$app->response->redirect('/host/event/' . $event->id . '/tickets-setup');
+            }
             return Application::$app->response->redirect('/host/event/management/' . $event->id);
         }
 
