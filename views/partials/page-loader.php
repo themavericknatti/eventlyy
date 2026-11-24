@@ -294,8 +294,8 @@
             if (!loader) return;
 
             var dismissed = false;
-            // Smooth minimum display threshold (500ms) so it's clean and doesn't flicker
-            var minDisplayTime = 500;
+            // Smooth minimum display threshold (800ms) for an optimal, polished production feel
+            var minDisplayTime = 800;
             var startTime = Date.now();
 
             function dismissLoader() {
@@ -325,8 +325,8 @@
                 window.addEventListener('load', dismissLoader, { once: true });
             }
 
-            // Hard failsafe timeout: Guarantee loader opens within 1.5s under all circumstances
-            setTimeout(dismissLoader, 1500);
+            // Hard failsafe timeout: Guarantee loader opens within 2.0s under all circumstances
+            setTimeout(dismissLoader, 2000);
         })();
     </script>
 </div>
