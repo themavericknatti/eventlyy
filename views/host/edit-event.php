@@ -1768,7 +1768,16 @@ Edit Event - <?= e($event->name) ?> - <?= e($siteName) ?> Host
                             Category <span class="required-star">*</span>
                         </label>
                         <select id="event-category" name="event_category" class="event-select" required>
-                            <?php foreach (($categories ?? []) as $cat): ?>
+                            <?php
+                            $categoryList = !empty($categories) ? $categories : [
+                                'Concerts', 'Tech', 'Comedy', 'Sports', 'Theater', 'Family', 'Art & Wine',
+                                'Parties & Festivals', 'Workshops & Classes', 'Networking', 'Business & Finance',
+                                'Conferences & Summits', 'Food & Drink', 'Health & Wellness', 'Fashion & Beauty',
+                                'Film & Media', 'Gaming & Esports', 'Education & Academia', 'Charity & Fundraising',
+                                'Religion & Spirituality', 'Travel & Outdoor', 'Nightlife & Clubbing',
+                                'Cultural & Heritage', 'Exhibitions & Trade Shows', 'Other'
+                            ];
+                            foreach ($categoryList as $cat): ?>
                                 <option value="<?= e($cat) ?>" <?= ($event->category ?? 'Concerts') === $cat ? 'selected' : '' ?>><?= e($cat) ?></option>
                             <?php endforeach; ?>
                         </select>

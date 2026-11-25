@@ -55,7 +55,22 @@ class HostEventController extends Controller
         'Art & Wine',
         'Parties & Festivals',
         'Workshops & Classes',
-        'Networking'
+        'Networking',
+        'Business & Finance',
+        'Conferences & Summits',
+        'Food & Drink',
+        'Health & Wellness',
+        'Fashion & Beauty',
+        'Film & Media',
+        'Gaming & Esports',
+        'Education & Academia',
+        'Charity & Fundraising',
+        'Religion & Spirituality',
+        'Travel & Outdoor',
+        'Nightlife & Clubbing',
+        'Cultural & Heritage',
+        'Exhibitions & Trade Shows',
+        'Other'
     ];
 
     public function createEvent()

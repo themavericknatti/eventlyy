@@ -46,7 +46,34 @@ class HomeController extends Controller
         // Fetch available locations for filter
         $locations = $this->eventService->getPublicLocations();
 
-        $categories = ['All', 'Concerts', 'Tech', 'Comedy', 'Sports', 'Theater', 'Family', 'Art & Wine'];
+        $categories = [
+            'All',
+            'Concerts',
+            'Tech',
+            'Comedy',
+            'Sports',
+            'Theater',
+            'Family',
+            'Art & Wine',
+            'Parties & Festivals',
+            'Workshops & Classes',
+            'Networking',
+            'Business & Finance',
+            'Conferences & Summits',
+            'Food & Drink',
+            'Health & Wellness',
+            'Fashion & Beauty',
+            'Film & Media',
+            'Gaming & Esports',
+            'Education & Academia',
+            'Charity & Fundraising',
+            'Religion & Spirituality',
+            'Travel & Outdoor',
+            'Nightlife & Clubbing',
+            'Cultural & Heritage',
+            'Exhibitions & Trade Shows',
+            'Other'
+        ];
 
         return $this->render('home', [
             'title' => 'Welcome to Evently - Find live events, concerts & experiences.',

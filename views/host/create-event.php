@@ -185,6 +185,16 @@ Create Event - <?= e($siteName) ?> Host
     transition: all 0.2s ease;
 }
 
+.event-select option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+:root[data-theme='dark'] .event-select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+
 .event-textarea {
     min-height: 120px;
     resize: vertical;
@@ -1342,7 +1352,16 @@ Create Event - <?= e($siteName) ?> Host
                         </label>
                         <select id="event-category" name="event_category" class="event-select" required>
                             <option value="" disabled <?= empty(old('event_category', $model->category ?? '')) ? 'selected' : '' ?>>Select category</option>
-                            <?php foreach ($categories as $cat): ?>
+                            <?php
+                            $categoryList = !empty($categories) ? $categories : [
+                                'Concerts', 'Tech', 'Comedy', 'Sports', 'Theater', 'Family', 'Art & Wine',
+                                'Parties & Festivals', 'Workshops & Classes', 'Networking', 'Business & Finance',
+                                'Conferences & Summits', 'Food & Drink', 'Health & Wellness', 'Fashion & Beauty',
+                                'Film & Media', 'Gaming & Esports', 'Education & Academia', 'Charity & Fundraising',
+                                'Religion & Spirituality', 'Travel & Outdoor', 'Nightlife & Clubbing',
+                                'Cultural & Heritage', 'Exhibitions & Trade Shows', 'Other'
+                            ];
+                            foreach ($categoryList as $cat): ?>
                                 <option value="<?= e($cat) ?>" <?= old('event_category', $model->category ?? '') === $cat ? 'selected' : '' ?>><?= e($cat) ?></option>
                             <?php endforeach; ?>
                         </select>
