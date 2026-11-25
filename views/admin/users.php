@@ -34,6 +34,11 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     flex-direction: column;
     gap: 1.35rem;
     padding-bottom: 2.5rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: clip;
 }
 
 /* ─── Hero Header ──────────────────────────────────────────────────────── */
@@ -623,6 +628,10 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     justify-content: space-between;
     gap: 0.85rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .au-user-card--flagged {
@@ -783,17 +792,17 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
 
 @media (max-width: 600px) {
     .au-cards-list {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
     .au-filter-group {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
-    .admin-users-table-section { padding: 1rem; }
+    .admin-users-table-section { padding: 0.95rem; }
 }
 
 @media (max-width: 420px) {
     .admin-users-stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 </style>
