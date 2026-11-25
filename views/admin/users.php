@@ -23,101 +23,188 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
 
 @section('content')
 <style>
-/* ═══════════════════════════════════════════════════════════
-   Admin Users — Responsive Polish & Layout Refactor
-   ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════
+   Admin Users — Human-Crafted UI/UX Design System (.au-*)
+   Cohesive Desktop Table (> 960px), Tablet 2-Col Grid (601-960px),
+   and Mobile Single-Column Cards (<= 600px). Light & Dark mode native.
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* Summary Stats: Fluid responsive grid */
+.au-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    padding-bottom: 2.5rem;
+}
+
+/* ─── Hero Header ──────────────────────────────────────────────────────── */
+.au-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 1.5rem 1.75rem;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(var(--brand), 0.08) 0%, rgba(var(--card), 0.96) 55%, rgba(var(--card), 1) 100%);
+    border: 1px solid rgba(var(--muted), 0.16);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.au-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.72rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(var(--brand), 0.12);
+    color: rgb(var(--brand));
+    margin-bottom: 0.65rem;
+}
+
+.au-hero-title {
+    margin: 0 0 0.35rem;
+    font-size: clamp(1.45rem, 2.6vw, 1.95rem);
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: rgb(var(--text));
+    line-height: 1.15;
+}
+
+.au-hero-sub {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgb(var(--muted));
+    line-height: 1.5;
+    max-width: 640px;
+}
+
+.au-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.au-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 12px;
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.16);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgb(var(--text));
+}
+
+/* ─── Summary Stats Grid ───────────────────────────────────────────────── */
 .admin-users-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.9rem;
 }
 
 .au-stat-card {
     background: rgb(var(--card));
     border: 1px solid rgba(var(--muted), 0.14);
     border-radius: 18px;
-    padding: 1.2rem 1.35rem;
+    padding: 1.1rem 1.15rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    gap: 0.9rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.025);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    min-width: 0;
 }
 
 .au-stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    border-color: rgba(var(--brand), 0.28);
+}
+
+.au-stat-card--alert {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgb(var(--card)));
 }
 
 .au-stat-icon {
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(var(--muted), 0.08);
+    background: rgba(var(--muted), 0.09);
     color: rgb(var(--text));
     flex-shrink: 0;
 }
 
-.au-stat-icon--brand {
-    background: rgba(var(--brand), 0.12);
-    color: rgb(var(--brand));
-}
-
-.au-stat-icon--success {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-}
-
-.au-stat-icon--warning {
-    background: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
-}
+.au-stat-icon--brand { background: rgba(var(--brand), 0.12); color: rgb(var(--brand)); }
+.au-stat-icon--success { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.au-stat-icon--danger { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.au-stat-icon--warning { background: rgba(245, 158, 11, 0.14); color: #d97706; }
 
 .au-stat-body {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .au-stat-num {
     font-size: 1.45rem;
     font-weight: 900;
-    line-height: 1.2;
+    line-height: 1.15;
     color: rgb(var(--text));
+    font-variant-numeric: tabular-nums;
 }
 
 .au-stat-lbl {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: rgb(var(--muted));
     font-weight: 600;
     margin-top: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Toolbar: Search & Filter */
-.admin-users-toolbar {
-    margin-bottom: 1.5rem;
+.au-stat-link {
+    font-size: 0.72rem;
+    color: #d97706;
+    font-weight: 800;
+    text-decoration: none;
+    margin-top: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+.au-stat-link:hover { text-decoration: underline; }
+
+/* ─── Toolbar: Search & Filter ─────────────────────────────────────────── */
+.au-toolbar-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 18px;
+    padding: 0.9rem 1.15rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.025);
 }
 
 .au-toolbar-form {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.65rem;
     flex-wrap: wrap;
-    background: rgb(var(--card));
-    border: 1px solid rgba(var(--muted), 0.14);
-    border-radius: 18px;
-    padding: 0.85rem 1.15rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .au-search-wrap {
-    flex: 1;
-    min-width: 220px;
+    flex: 1.4;
+    min-width: 230px;
     position: relative;
     display: flex;
     align-items: center;
@@ -125,47 +212,95 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
 
 .au-search-wrap input[type="search"] {
     width: 100%;
-    padding: 0.55rem 0.85rem 0.55rem 2.3rem;
-    border-radius: 11px;
-    border: 1px solid rgba(var(--muted), 0.18);
-    background: rgba(var(--card), 0.6);
+    height: 42px;
+    padding: 0 0.9rem 0 2.45rem;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--muted), 0.22);
+    background: rgb(var(--bg));
     color: rgb(var(--text));
     font-size: 0.88rem;
     font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.au-search-wrap input[type="search"]:focus,
+.au-filter-group select:focus {
+    outline: none;
+    border-color: rgb(var(--brand));
+    box-shadow: 0 0 0 3px rgba(var(--brand), 0.14);
 }
 
 .au-search-icon {
     position: absolute;
-    left: 0.75rem;
+    left: 0.82rem;
     color: rgb(var(--muted));
     pointer-events: none;
 }
 
 .au-filter-group {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.55rem;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .au-filter-group select {
-    padding: 0.55rem 0.85rem;
-    border-radius: 11px;
-    border: 1px solid rgba(var(--muted), 0.18);
-    background: rgb(var(--card));
+    height: 42px;
+    padding: 0 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--muted), 0.22);
+    background: rgb(var(--bg));
     color: rgb(var(--text));
-    font-size: 0.85rem;
+    font-size: 0.84rem;
+    font-weight: 600;
     font-family: inherit;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
-/* Table Section Container */
+.au-filter-submit {
+    height: 42px;
+    padding: 0 1.2rem;
+    border-radius: 12px;
+    border: none;
+    background: rgb(var(--brand));
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.au-filter-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+
+.au-filter-reset {
+    height: 42px;
+    padding: 0 0.9rem;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--muted), 0.22);
+    background: transparent;
+    color: rgb(var(--muted));
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+.au-filter-reset:hover { color: rgb(var(--text)); border-color: rgba(var(--muted), 0.4); }
+
+/* ─── Directory Container ──────────────────────────────────────────────── */
 .admin-users-table-section {
     background: rgb(var(--card));
     border: 1px solid rgba(var(--muted), 0.14);
     border-radius: 22px;
-    padding: 1.5rem;
+    padding: 1.35rem 1.5rem;
     box-shadow: 0 2px 14px rgba(0, 0, 0, 0.03);
-    margin-bottom: 2rem;
 }
 
 .au-table-header {
@@ -173,74 +308,109 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.15rem;
     flex-wrap: wrap;
+}
+
+.au-table-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: rgb(var(--text));
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.au-count-chip {
+    font-size: 0.76rem;
+    font-weight: 800;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(var(--muted), 0.1);
+    color: rgb(var(--muted));
 }
 
 .au-table-wrap {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border: 1px solid rgba(var(--muted), 0.12);
+    border-radius: 16px;
 }
 
 .au-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     text-align: left;
 }
 
 .au-table th {
     background: rgba(var(--muted), 0.05);
     color: rgb(var(--muted));
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     padding: 0.85rem 1rem;
-    border-bottom: 1px solid rgba(var(--muted), 0.15);
+    border-bottom: 1px solid rgba(var(--muted), 0.14);
     white-space: nowrap;
 }
 
 .au-table td {
-    padding: 0.95rem 1rem;
+    padding: 0.9rem 1rem;
     border-bottom: 1px solid rgba(var(--muted), 0.08);
     color: rgb(var(--text));
     vertical-align: middle;
 }
 
-.au-table tr:hover td {
-    background: rgba(var(--muted), 0.03);
-}
+.au-table tbody tr:last-child td { border-bottom: none; }
+.au-table tbody tr:hover td { background: rgba(var(--muted), 0.03); }
+.au-row--flagged td { background: rgba(245, 158, 11, 0.035); }
 
 /* User Avatar & Name */
 .au-user-cell {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 0;
 }
 
 .au-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 800;
     color: #ffffff;
-    background: hsl(var(--avatar-hue, 200), 65%, 45%);
+    background: hsl(var(--avatar-hue, 200), 62%, 44%);
     flex-shrink: 0;
+    letter-spacing: 0.02em;
 }
 
 .au-user-name {
     font-weight: 800;
     color: rgb(var(--text));
     font-size: 0.92rem;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
     line-height: 1.25;
+}
+
+.au-you-tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
 }
 
 .au-user-id {
@@ -248,227 +418,231 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     color: rgb(var(--muted));
     font-family: monospace;
     display: block;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
-/* Role Pills */
+.au-email-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+    min-width: 0;
+}
+
+.au-email-addr {
+    font-weight: 600;
+    color: rgb(var(--text));
+    word-break: break-word;
+}
+
+.au-verify-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    width: fit-content;
+}
+.au-verify-tag--ok { color: #10b981; }
+.au-verify-tag--warn {
+    color: #d97706;
+    background: rgba(245, 158, 11, 0.12);
+    padding: 0.12rem 0.48rem;
+    border-radius: 999px;
+}
+.au-verify-tag--muted { color: rgb(var(--muted)); }
+
+/* Role Pills (supports both .au-role--* and .is-*) */
 .au-role-badge {
-    font-size: 0.73rem;
+    font-size: 0.72rem;
     font-weight: 800;
     padding: 0.25rem 0.65rem;
-    border-radius: 20px;
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     white-space: nowrap;
 }
 
-.au-role--admin {
+.au-role--admin, .au-role-badge.is-admin {
     background: rgba(239, 68, 68, 0.12);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
-.au-role--host {
+.au-role--host, .au-role-badge.is-host {
     background: rgba(139, 92, 246, 0.12);
     color: #8b5cf6;
     border: 1px solid rgba(139, 92, 246, 0.25);
 }
 
-.au-role--attendee {
+.au-role--attendee, .au-role-badge.is-attendee {
     background: rgba(var(--muted), 0.1);
     color: rgb(var(--text));
     border: 1px solid rgba(var(--muted), 0.18);
 }
 
-/* Status Badges */
+/* Status Badges (supports both .au-status--* and .is-*) */
 .au-status-badge {
-    font-size: 0.73rem;
+    font-size: 0.72rem;
     font-weight: 800;
     padding: 0.24rem 0.65rem;
-    border-radius: 20px;
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     white-space: nowrap;
 }
 
-.au-status--active {
+.au-status--active, .au-status-badge.is-active, .au-status-badge.is-published, .au-status-badge.is-completed, .au-status-badge.is-paid, .au-status-badge.is-Paid {
     background: rgba(16, 185, 129, 0.12);
     color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.28);
 }
 
-.au-status--suspended {
+.au-status--suspended, .au-status-badge.is-suspended, .au-status-badge.is-cancelled, .au-status-badge.is-failed {
     background: rgba(239, 68, 68, 0.12);
     color: #dc2626;
     border: 1px solid rgba(239, 68, 68, 0.28);
 }
 
+.au-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.24rem 0.65rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.au-badge--success { background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); }
+.au-badge--warning { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.28); }
+
 /* Action Buttons */
 .admin-actions {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.35rem;
     flex-wrap: nowrap;
 }
 
-.au-view-btn {
-    padding: 0.42rem 0.75rem;
-    font-size: 0.8rem;
+.au-view-btn, .au-verify-btn, .au-reactivate-btn, .au-suspend-btn,
+.au-export-btn, .au-dossier-btn, .au-purge-btn, .au-btn-disabled {
+    height: 32px;
+    padding: 0 0.68rem;
+    font-size: 0.78rem;
     font-weight: 700;
     border-radius: 9px;
-    background: rgba(var(--brand), 0.1);
-    color: rgb(var(--brand)) !important;
-    border: 1px solid rgba(var(--brand), 0.25);
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    transition: all 0.2s ease;
+    justify-content: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    box-sizing: border-box;
 }
 
-.au-view-btn:hover {
-    background: rgba(var(--brand), 0.18);
+.au-view-btn {
+    background: rgba(var(--brand), 0.1);
+    color: rgb(var(--brand)) !important;
+    border: 1px solid rgba(var(--brand), 0.24);
+    cursor: pointer;
 }
+.au-view-btn:hover { background: rgba(var(--brand), 0.18); }
 
 .au-verify-btn {
-    padding: 0.42rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 9px;
     background: rgba(245, 158, 11, 0.12);
     color: #d97706 !important;
     border: 1px solid rgba(245, 158, 11, 0.3);
     cursor: pointer;
-    transition: all 0.2s ease;
 }
-
-.au-verify-btn:hover {
-    background: rgba(245, 158, 11, 0.2);
-}
+.au-verify-btn:hover { background: rgba(245, 158, 11, 0.22); }
 
 .au-reactivate-btn {
-    padding: 0.42rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 9px;
     background: rgba(16, 185, 129, 0.12);
     color: #10b981 !important;
     border: 1px solid rgba(16, 185, 129, 0.28);
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    transition: all 0.2s ease;
 }
-
-.au-reactivate-btn:hover {
-    background: rgba(16, 185, 129, 0.2);
-}
+.au-reactivate-btn:hover { background: rgba(16, 185, 129, 0.22); }
 
 .au-suspend-btn {
-    padding: 0.42rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 9px;
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444 !important;
-    border: 1px solid rgba(239, 68, 68, 0.22);
+    border: 1px solid rgba(239, 68, 68, 0.24);
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    transition: all 0.2s ease;
 }
+.au-suspend-btn:hover { background: rgba(239, 68, 68, 0.18); }
 
-.au-suspend-btn:hover {
-    background: rgba(239, 68, 68, 0.18);
-    border-color: rgba(239, 68, 68, 0.35);
-}
-
-
-.au-export-btn {
-    padding: 0.42rem 0.65rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 9px;
-    background: rgba(99, 102, 241, 0.1);
-    color: #6366f1 !important;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-.au-export-btn:hover {
-    background: rgba(99, 102, 241, 0.2);
-}
 .au-dossier-btn {
-    padding: 0.42rem 0.65rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 9px;
     background: rgba(14, 165, 233, 0.1);
     color: #0284c7 !important;
     border: 1px solid rgba(14, 165, 233, 0.25);
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    transition: all 0.2s ease;
 }
-.au-dossier-btn:hover {
-    background: rgba(14, 165, 233, 0.2);
+.au-dossier-btn:hover { background: rgba(14, 165, 233, 0.2); }
+
+.au-export-btn {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1 !important;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    cursor: pointer;
 }
+.au-export-btn:hover { background: rgba(99, 102, 241, 0.2); }
+
 .au-purge-btn {
-    padding: 0.42rem 0.65rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 9px;
     background: rgba(225, 29, 72, 0.1);
     color: #e11d48 !important;
     border: 1px solid rgba(225, 29, 72, 0.25);
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    transition: all 0.2s ease;
 }
-.au-purge-btn:hover {
-    background: rgba(225, 29, 72, 0.2);
-    border-color: rgba(225, 29, 72, 0.4);
-}
+.au-purge-btn:hover { background: rgba(225, 29, 72, 0.2); }
 
 .au-btn-disabled {
-    padding: 0.42rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: 9px;
     background: rgba(var(--muted), 0.08);
     color: rgb(var(--muted));
     border: 1px solid rgba(var(--muted), 0.15);
-    opacity: 0.65;
+    opacity: 0.7;
     cursor: not-allowed;
 }
 
-/* ── Mobile Card Polish ── */
+/* ─── Tablet & Mobile Cards ────────────────────────────────────────────── */
+.au-cards-list {
+    display: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
 .au-user-card {
-    background: rgba(var(--card), 0.7);
-    border: 1px solid rgba(var(--muted), 0.14);
+    background: rgb(var(--bg));
+    border: 1px solid rgba(var(--muted), 0.16);
     border-radius: 18px;
     padding: 1.15rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.85rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.au-user-card--flagged {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.04), rgb(var(--bg)));
 }
 
 .au-card-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    gap: 0.65rem;
+}
+
+.au-card-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+    flex-shrink: 0;
 }
 
 .au-card-meta {
@@ -476,28 +650,93 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
-    margin-top: 0.55rem;
-    font-size: 0.85rem;
     flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: rgb(var(--muted));
+    padding: 0.55rem 0.75rem;
+    border-radius: 11px;
+    background: rgba(var(--muted), 0.05);
 }
 
 .au-card-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.95rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid rgba(var(--muted), 0.1);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(var(--muted), 0.12);
 }
 
-.au-card-actions button,
-.au-card-actions span {
-    flex: 1;
+.au-card-actions > * {
+    height: 36px;
+    width: 100%;
     justify-content: center;
-    text-align: center;
-    padding: 0.55rem 0.75rem;
 }
 
-/* Modals */
+.au-card-ndpa {
+    display: flex;
+    gap: 0.4rem;
+    grid-column: 1 / -1;
+}
+.au-card-ndpa > * {
+    flex: 1;
+    height: 34px;
+    justify-content: center;
+}
+
+/* ─── Pagination ───────────────────────────────────────────────────────── */
+.au-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(var(--muted), 0.12);
+}
+
+.au-page-btn, .au-page-num {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(var(--muted), 0.18);
+    background: rgb(var(--bg));
+    color: rgb(var(--text));
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+
+.au-page-btn:hover:not(.disabled),
+.au-page-num:hover:not(.active) {
+    border-color: rgb(var(--brand));
+    color: rgb(var(--brand));
+}
+
+.au-page-num.active {
+    background: rgb(var(--brand));
+    border-color: rgb(var(--brand));
+    color: #ffffff;
+}
+
+.au-page-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.au-page-ellipsis {
+    padding: 0 0.35rem;
+    color: rgb(var(--muted));
+    font-weight: 700;
+}
+
+/* ─── Modals ───────────────────────────────────────────────────────────── */
 .modal-card {
     width: 100%;
     max-width: min(92vw, 520px);
@@ -506,57 +745,83 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     border: 1px solid rgba(var(--muted), 0.2);
     border-radius: 22px;
     padding: 1.5rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
     box-sizing: border-box;
 }
 
-/* ══ Tablet (<= 768px) ══ */
-@media (max-width: 768px) {
-    .au-table-wrap {
-        display: none;
+/* ─── Responsive Breakpoints ───────────────────────────────────────────── */
+@media (max-width: 1180px) {
+    .admin-users-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-    .au-cards-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
+}
+
+@media (max-width: 960px) {
+    .au-table-wrap { display: none; }
+    .au-cards-list { display: grid; }
+    .au-hero { padding: 1.25rem 1.35rem; }
+    .admin-users-table-section { padding: 1.2rem; border-radius: 18px; }
+}
+
+@media (max-width: 720px) {
+    .admin-users-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .au-toolbar-form {
         flex-direction: column;
         align-items: stretch;
     }
-    .au-search-wrap,
-    .au-filter-group select,
-    .au-toolbar-form button {
-        width: 100%;
-    }
+    .au-search-wrap { min-width: 0; width: 100%; }
     .au-filter-group {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         width: 100%;
     }
+    .au-filter-group select { width: 100%; }
+    .au-filter-submit, .au-filter-reset { width: 100%; }
 }
 
-/* ══ Desktop (> 768px) ══ */
-@media (min-width: 769px) {
+@media (max-width: 600px) {
     .au-cards-list {
-        display: none;
+        grid-template-columns: 1fr;
+    }
+    .au-filter-group {
+        grid-template-columns: 1fr;
+    }
+    .admin-users-table-section { padding: 1rem; }
+}
+
+@media (max-width: 420px) {
+    .admin-users-stats {
+        grid-template-columns: 1fr;
     }
 }
 </style>
 
-<section class="page-hero">
+<div class="au-page">
+
+<header class="au-hero">
     <div>
-        <span class="panel-badge">Admin — Users</span>
-        <h1>Registered Accounts</h1>
-        <p class="lede">View and manage all registered user accounts, organizer profiles, and role privileges.</p>
+        <span class="au-hero-badge">👥 Admin — User Directory</span>
+        <h1 class="au-hero-title">Registered Accounts</h1>
+        <p class="au-hero-sub">Manage attendee, host, and administrator accounts, verify organizer identities, and handle NDPA/GDPR compliance exports.</p>
     </div>
-</section>
+    <div class="au-hero-meta">
+        <span class="au-hero-pill">
+            <span>🛡️</span> NDPA 2023 Ready
+        </span>
+        <span class="au-hero-pill">
+            <span>📄</span> Page <?= (int)($page ?? 1) ?> of <?= max(1, (int)($totalPages ?? 1)) ?>
+        </span>
+    </div>
+</header>
 
 <!-- Summary Stats -->
 <section class="admin-users-stats">
     <div class="au-stat-card">
         <span class="au-stat-icon">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" />
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 00-3-3.87" />
                 <path d="M16 3.13a4 4 0 010 7.75" />
@@ -570,7 +835,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     <div class="au-stat-card">
         <span class="au-stat-icon au-stat-icon--brand">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" />
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                 <circle cx="8.5" cy="7" r="4" />
                 <path d="M20 8v6" />
                 <path d="M23 11h-6" />
@@ -594,11 +859,10 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
         </div>
     </div>
     <div class="au-stat-card">
-        <span class="au-stat-icon au-stat-icon--warning">
+        <span class="au-stat-icon au-stat-icon--danger">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
             </svg>
         </span>
         <div class="au-stat-body">
@@ -606,8 +870,8 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
             <span class="au-stat-lbl">Suspended</span>
         </div>
     </div>
-    <div class="au-stat-card" style="<?= ($unverified_hosts ?? 0) > 0 ? 'border-color: #f59e0b; background: rgba(245,158,11,0.04);' : '' ?>">
-        <span class="au-stat-icon" style="<?= ($unverified_hosts ?? 0) > 0 ? 'background: rgba(245,158,11,0.12); color: #f59e0b;' : 'background: rgba(var(--muted),0.08); color: rgb(var(--muted));' ?>">
+    <div class="au-stat-card <?= ($unverified_hosts ?? 0) > 0 ? 'au-stat-card--alert' : '' ?>">
+        <span class="au-stat-icon <?= ($unverified_hosts ?? 0) > 0 ? 'au-stat-icon--warning' : '' ?>">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 <line x1="12" y1="9" x2="12" y2="13" />
@@ -615,24 +879,25 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
             </svg>
         </span>
         <div class="au-stat-body">
-            <span class="au-stat-num" style="<?= ($unverified_hosts ?? 0) > 0 ? 'color: #f59e0b;' : '' ?>"><?= number_format($unverified_hosts ?? 0) ?></span>
+            <span class="au-stat-num" style="<?= ($unverified_hosts ?? 0) > 0 ? 'color: #d97706;' : '' ?>"><?= number_format($unverified_hosts ?? 0) ?></span>
             <span class="au-stat-lbl">Unverified Hosts</span>
             <?php if (($unverified_hosts ?? 0) > 0): ?>
-                <a href="?verification=unverified_hosts" style="font-size:0.72rem; color:#f59e0b; text-decoration:underline; font-weight:700; margin-top:0.15rem; display:inline-block;">View Blocked →</a>
+                <a href="?verification=unverified_hosts" class="au-stat-link">View Blocked &rarr;</a>
             <?php endif; ?>
         </div>
     </div>
 </section>
 
 <!-- Toolbar: Search & Filter -->
-<section class="admin-users-toolbar">
+<?php $hasActiveFilters = !empty($search) || !empty($role) || !empty($status) || !empty($verification); ?>
+<section class="au-toolbar-card">
     <form method="GET" action="" class="au-toolbar-form">
         <div class="au-search-wrap">
-            <svg class="au-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="au-search-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input type="search" name="q" id="users-search" placeholder="Search by name or email..." aria-label="Search users" value="<?= e($search ?? '') ?>" />
+            <input type="search" name="q" id="users-search" placeholder="Search by name, email, or user ID..." aria-label="Search users" value="<?= e($search ?? '') ?>" />
         </div>
         <div class="au-filter-group">
             <select name="role" id="users-role-filter" aria-label="Filter by role">
@@ -652,33 +917,39 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                 <option value="">All Verification</option>
                 <option value="verified" <?= ($verification ?? '') === 'verified' ? 'selected' : '' ?>>✅ Verified</option>
                 <option value="unverified" <?= ($verification ?? '') === 'unverified' ? 'selected' : '' ?>>❌ All Unverified</option>
-                <option value="unverified_hosts" <?= ($verification ?? '') === 'unverified_hosts' ? 'selected' : '' ?>>⚠️ Unverified Hosts (Blocked)</option>
+                <option value="unverified_hosts" <?= ($verification ?? '') === 'unverified_hosts' ? 'selected' : '' ?>>⚠️ Unverified Hosts</option>
             </select>
         </div>
-        <button type="submit" class="admin-action-btn primary" style="padding: 0.55rem 1.15rem; border-radius: 11px; font-weight: 700; cursor: pointer;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        <button type="submit" class="au-filter-submit">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
-            Filter
+            Apply Filters
         </button>
+        <?php if ($hasActiveFilters): ?>
+            <a href="{{ route('admin/users') }}" class="au-filter-reset">✕ Clear</a>
+        <?php endif; ?>
     </form>
 </section>
 
-<!-- Users Table Section -->
+<!-- Users Table & Card Directory -->
 <section class="admin-users-table-section">
     <div class="au-table-header">
-        <h2 style="font-size: 1.25rem; margin: 0;">User Accounts</h2>
+        <h2 class="au-table-title">
+            User Accounts
+            <span class="au-count-chip"><?= count($users ?? []) ?> shown</span>
+        </h2>
     </div>
 
-    <!-- Desktop Table View -->
+    <!-- Desktop Table View (> 960px) -->
     <div class="au-table-wrap">
         <table class="au-table" id="users-table">
             <thead>
                 <tr>
                     <th>User</th>
-                    <th>Email Address</th>
+                    <th>Email &amp; Verification</th>
                     <th>Role</th>
-                    <th>Account Status</th>
+                    <th>Status</th>
                     <th>Joined</th>
                     <th style="text-align: right;">Actions</th>
                 </tr>
@@ -722,28 +993,30 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                         $canModify = !$isSelf && ($isCurrentSuperAdmin || !$isTargetAdmin);
                         $canPurge = $isCurrentSuperAdmin && !$isSelf && (!$isTargetSuperAdmin || $user['id'] != 1);
                     ?>
-                    <tr<?= $isUnverifiedHost ? ' style="background:rgba(245,158,11,0.03);"' : '' ?>>
+                    <tr class="<?= $isUnverifiedHost ? 'au-row--flagged' : '' ?>">
                         <td>
                             <div class="au-user-cell">
-                                <span class="au-avatar" style="--avatar-hue:<?= $hue ?>"><?= $initials ?></span>
+                                <span class="au-avatar" style="--avatar-hue:<?= $hue ?>"><?= e($initials) ?></span>
                                 <div>
                                     <span class="au-user-name">
                                         <?= e($user['name']) ?>
-                                        <?= $isSelf ? ' <small style="color:#10b981; font-weight:700;">(You)</small>' : '' ?>
+                                        <?php if ($isSelf): ?><span class="au-you-tag">You</span><?php endif; ?>
                                     </span>
-                                    <span class="au-user-id">ID: #<?= (int)$user['id'] ?></span>
+                                    <span class="au-user-id">#<?= (int)$user['id'] ?></span>
                                 </div>
                             </div>
                         </td>
-                        <td class="au-email-cell" style="font-size:0.88rem;">
-                            <span style="color:rgb(var(--text)); font-weight:600;"><?= e($user['email']) ?></span>
-                            <?php if ($isUnverifiedHost): ?>
-                                <span class="au-status-badge" style="background:rgba(245,158,11,0.12); color:#f59e0b; font-size:0.68rem; margin-left:0.4rem;">⚠️ Unverified Host</span>
-                            <?php elseif ($isEmailVerified): ?>
-                                <span style="font-size:0.7rem; color:#10b981; font-weight:700; margin-left:0.4rem;">✓ Verified</span>
-                            <?php else: ?>
-                                <span style="font-size:0.7rem; color:rgb(var(--muted)); margin-left:0.4rem;">Unverified</span>
-                            <?php endif; ?>
+                        <td class="au-email-cell" style="font-size:0.86rem;">
+                            <div class="au-email-stack">
+                                <span class="au-email-addr"><?= e($user['email']) ?></span>
+                                <?php if ($isUnverifiedHost): ?>
+                                    <span class="au-verify-tag au-verify-tag--warn">⚠️ Unverified Host</span>
+                                <?php elseif ($isEmailVerified): ?>
+                                    <span class="au-verify-tag au-verify-tag--ok">✓ Verified</span>
+                                <?php else: ?>
+                                    <span class="au-verify-tag au-verify-tag--muted">Unverified</span>
+                                <?php endif; ?>
+                            </div>
                         </td>
                         <td>
                             <span class="au-role-badge <?= $roleClass ?>"><?= $roleLabel ?></span>
@@ -755,7 +1028,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                                 <span class="au-status-badge au-status--active">Active</span>
                             <?php endif; ?>
                         </td>
-                        <td class="au-date-cell" style="font-size:0.84rem; white-space:nowrap; color:rgb(var(--muted));">
+                        <td class="au-date-cell" style="font-size:0.82rem; white-space:nowrap; color:rgb(var(--muted));">
                             <?= date('M d, Y', strtotime($user['created_at'])) ?>
                         </td>
                         <td style="text-align: right;">
@@ -813,7 +1086,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
         </table>
     </div>
 
-    <!-- Mobile Card View (<= 768px) -->
+    <!-- Tablet & Mobile Card Grid (<= 960px) -->
     <div class="au-cards-list" id="users-cards">
         <?php if (!empty($users)): ?>
             <?php foreach ($users as $user):
@@ -844,42 +1117,39 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                 $isTargetSuperAdmin = ($roleSlug === 'super-admin');
                 $isTargetAdmin = in_array($roleSlug, ['admin', 'super-admin']);
                 $canModify = !$isSelf && ($isCurrentSuperAdmin || !$isTargetAdmin);
-                        $canPurge = $isCurrentSuperAdmin && !$isSelf && (!$isTargetSuperAdmin || $user['id'] != 1);
+                $canPurge = $isCurrentSuperAdmin && !$isSelf && (!$isTargetSuperAdmin || $user['id'] != 1);
             ?>
-            <article class="au-user-card"<?= $isUnverifiedHost ? ' style="border-color:rgba(245,158,11,0.3);"' : '' ?>>
+            <article class="au-user-card <?= $isUnverifiedHost ? 'au-user-card--flagged' : '' ?>">
                 <div class="au-card-top">
                     <div class="au-user-cell">
-                        <span class="au-avatar" style="--avatar-hue:<?= $hue ?>"><?= $initials ?></span>
-                        <div>
+                        <span class="au-avatar" style="--avatar-hue:<?= $hue ?>"><?= e($initials) ?></span>
+                        <div style="min-width:0;">
                             <span class="au-user-name">
                                 <?= e($user['name']) ?>
-                                <?= $isSelf ? ' <small style="color:#10b981; font-weight:700;">(You)</small>' : '' ?>
+                                <?php if ($isSelf): ?><span class="au-you-tag">You</span><?php endif; ?>
                             </span>
-                            <span style="font-size:0.8rem; color:rgb(var(--muted));"><?= e($user['email']) ?></span>
+                            <span class="au-email-addr" style="font-size:0.78rem; color:rgb(var(--muted));"><?= e($user['email']) ?></span>
                         </div>
                     </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
+                    <div class="au-card-badges">
                         <?php if ($isSuspended): ?>
                             <span class="au-status-badge au-status--suspended">Suspended</span>
                         <?php else: ?>
                             <span class="au-status-badge au-status--active">Active</span>
                         <?php endif; ?>
                         <?php if ($isUnverifiedHost): ?>
-                            <span class="au-status-badge" style="background:rgba(245,158,11,0.12); color:#f59e0b; font-size:0.65rem;">⚠️ Unverified</span>
+                            <span class="au-verify-tag au-verify-tag--warn">⚠️ Unverified Host</span>
                         <?php endif; ?>
                     </div>
                 </div>
 
                 <div class="au-card-meta">
                     <span class="au-role-badge <?= $roleClass ?>"><?= $roleLabel ?></span>
-                    <span style="font-size:0.78rem; color:rgb(var(--muted));">Joined <?= date('M d, Y', strtotime($user['created_at'])) ?></span>
+                    <span>Joined <?= date('M d, Y', strtotime($user['created_at'])) ?></span>
                 </div>
 
                 <div class="au-card-actions">
-                    <button type="button" class="au-view-btn" data-user-id="<?= $user['id'] ?>" data-detail-url="<?= route('admin/users/detail', ['id' => $user['id']]) ?>">View</button>
-                    <?php if ($isUnverifiedHost && $canModify): ?>
-                        <button type="button" class="au-verify-btn" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>">✓ Verify</button>
-                    <?php endif; ?>
+                    <button type="button" class="au-view-btn" data-user-id="<?= $user['id'] ?>" data-detail-url="<?= route('admin/users/detail', ['id' => $user['id']]) ?>">👁️ View</button>
                     <?php if ($isSelf): ?>
                         <span class="au-btn-disabled">Self</span>
                     <?php elseif (!$canModify): ?>
@@ -889,6 +1159,24 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
                     <?php else: ?>
                         <button type="button" class="au-suspend-btn" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>">Suspend</button>
                     <?php endif; ?>
+
+                    <?php if ($isUnverifiedHost && $canModify): ?>
+                        <button type="button" class="au-verify-btn" style="grid-column: 1 / -1;" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>">✓ Manually Verify Host</button>
+                    <?php endif; ?>
+
+                    <div class="au-card-ndpa">
+                        <button type="button" class="au-dossier-btn" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>" data-dossier-url="<?= route('admin/users/dossier', ['id' => $user['id']]) ?>" data-export-url="<?= route('admin/users/export-data', ['id' => $user['id']]) ?>">
+                            🗂️ Dossier
+                        </button>
+                        <a href="<?= route('admin/users/export-data', ['id' => $user['id']]) ?>" class="au-export-btn" download>
+                            📥 Export
+                        </a>
+                        <?php if (!empty($canPurge)): ?>
+                            <button type="button" class="au-purge-btn" data-user-id="<?= $user['id'] ?>" data-user-name="<?= e($user['name']) ?>" data-user-email="<?= e($user['email']) ?>">
+                                🗑️ Purge
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </article>
             <?php endforeach; ?>
@@ -947,6 +1235,7 @@ Admin Users - Manage Your <?= e($siteName) ?> Users
     </nav>
     <?php endif; ?>
 </section>
+</div>
 
 <!-- Confirm Suspend Modal -->
 <div class="modal-overlay hidden" id="suspend-modal" role="dialog" aria-modal="true" aria-labelledby="suspend-modal-title">
@@ -1328,13 +1617,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Close on overlay backdrop click
+    // Close on overlay backdrop click & Escape key
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', function(e) {
             if (e.target === this) {
                 this.classList.add('hidden');
             }
         });
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => m.classList.add('hidden'));
+        }
     });
 
     // Suspend user buttons
@@ -1407,11 +1702,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Verification
                     const verBadge = document.getElementById('vd-verification-badge');
+                    const verActions = document.getElementById('vd-verification-actions');
+                    const verWarn = document.getElementById('vd-verification-warning');
                     const isVerified = (user.is_verified == 1 || user.email_verified_at);
                     verBadge.textContent = isVerified ? '✓ Verified Email' : '⚠️ Unverified';
                     verBadge.className = 'au-badge ' + (isVerified ? 'au-badge--success' : 'au-badge--warning');
 
                     const isHost = (user.role === 'host' || stats.total_events > 0);
+                    if (verActions) {
+                        if (!isVerified) {
+                            verActions.classList.remove('hidden');
+                            const mVerifyBtn = verActions.querySelector('.au-modal-verify-btn');
+                            const mResendBtn = verActions.querySelector('.au-modal-resend-btn');
+                            if (mVerifyBtn) {
+                                mVerifyBtn.onclick = function() {
+                                    document.getElementById('verify-user-id').value = user.id;
+                                    document.getElementById('verify-user-name').textContent = user.name || 'this user';
+                                    closeModal('view-modal');
+                                    openModal('verify-modal');
+                                };
+                            }
+                            if (mResendBtn) {
+                                mResendBtn.onclick = function() {
+                                    document.getElementById('resend-user-id').value = user.id;
+                                    document.getElementById('resend-user-name').textContent = user.name || 'this user';
+                                    closeModal('view-modal');
+                                    openModal('resend-modal');
+                                };
+                            }
+                        } else {
+                            verActions.classList.add('hidden');
+                        }
+                    }
+                    if (verWarn) {
+                        verWarn.classList.toggle('hidden', isVerified || !isHost);
+                    }
                     const hostSection = document.getElementById('vd-section-host');
                     const attendeeSection = document.getElementById('vd-section-attendee');
 

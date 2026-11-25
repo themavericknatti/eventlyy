@@ -376,6 +376,16 @@ html {
 /* ── Footer Overrides & Hover Effects (Duo-Tone Interplay) ─────────────────── */
 .footer::before,
 .site-footer::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  transform: none !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
   background: linear-gradient(90deg, <?= $primaryHex ?> 0%, <?= $secondaryHex ?> 50%, <?= $primaryHex ?> 100%) !important;
   height: 3px !important;
   opacity: 0.9 !important;
