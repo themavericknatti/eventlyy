@@ -36,6 +36,7 @@ class TeamController extends Controller
             'techOps',
             'financeDesk',
             'usherGuide',
+            'assignSeat',
             'issueGateTicket',
             'toggleStaffCheckin',
             'switchEvent',
@@ -319,6 +320,8 @@ class TeamController extends Controller
         return $this->render('teams/coordinator-dashboard', array_merge($context, [
             'stats' => $stats,
             'ticket_types' => $metrics['ticket_types'],
+            'ticket_kinds' => $metrics['ticket_kinds'] ?? [],
+            'seating_stats' => $metrics['seating_stats'] ?? [],
             'recent_activity' => $metrics['recent_activity'],
             'staff_roster' => $staffRoster,
             'all_ticket_types' => $allTicketTypes,
@@ -331,23 +334,91 @@ class TeamController extends Controller
     public function usherGuide(Request $request)
     {
         $context = $this->ensureStaffContext();
-        if (!$context) return redirect('/teams/login');
+        $isAjax = $request->isAjax() 
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || !empty($_GET['ajax']) 
+            || !empty($_POST['ajax']);
+
+        if (!$context) {
+            if ($isAjax) {
+                return Application::$app->response->json(['success' => false, 'message' => 'Staff session expired.'], 401);
+            }
+            return redirect('/teams/login');
+        }
 
         $queryParams = $request->getBody();
         $search = trim($queryParams['q'] ?? '');
 
         $usherData = $this->teamService->getUsherFloorGuideData((int)$context['event']['id'], $search);
         $stats = $this->teamService->getCheckinStats((int)$context['event']['id']);
+
+        if ($isAjax) {
+            return Application::$app->response->json([
+                'success' => true,
+                'sections' => $usherData['sections'],
+                'attendees' => $usherData['attendees'],
+                'unseated_tickets' => $usherData['unseated_tickets'] ?? [],
+                'total_seated' => $usherData['total_seated'],
+                'total_expected' => $usherData['total_expected'],
+                'stats' => $stats,
+            ]);
+        }
+
         $assignments = $this->teamService->getStaffAssignments((int)$context['staff']['id']);
 
         return $this->render('teams/usher-guide', array_merge($context, [
             'sections' => $usherData['sections'],
             'attendees' => $usherData['attendees'],
+            'unseated_tickets' => $usherData['unseated_tickets'] ?? [],
             'total_seated' => $usherData['total_seated'],
             'total_expected' => $usherData['total_expected'],
             'search' => $search,
             'stats' => $stats,
             'assignments' => $assignments,
+        ]));
+    }
+
+    /**
+     * API / Action: Assign attendee to a seat, reserve VIP/Special Guest seat, or release seat (Usher Guide).
+     */
+    public function assignSeat(Request $request)
+    {
+        $context = $this->ensureStaffContext();
+        if (!$context) {
+            return Application::$app->response->json(['success' => false, 'message' => 'Staff session expired.'], 401);
+        }
+
+        $data = $request->getBody();
+        $eventId = (int)$context['event']['id'];
+        $ticketTypeId = (int)($data['ticket_type_id'] ?? 0);
+        $seatNumber = trim($data['seat_number'] ?? '');
+        $action = trim($data['action'] ?? '');
+        $guestName = trim($data['guest_name'] ?? '');
+        $guestEmail = trim($data['guest_email'] ?? '');
+        $ticketCode = trim($data['ticket_code'] ?? '');
+        $search = trim($data['q'] ?? '');
+
+        $res = $this->teamService->assignOrReserveSeat(
+            $eventId,
+            $ticketTypeId,
+            $seatNumber,
+            $action,
+            $guestName,
+            $guestEmail,
+            $ticketCode,
+            (int)$context['staff']['id']
+        );
+
+        $usherData = $this->teamService->getUsherFloorGuideData($eventId, $search);
+        $stats = $this->teamService->getCheckinStats($eventId);
+
+        return Application::$app->response->json(array_merge($res, [
+            'sections' => $usherData['sections'],
+            'attendees' => $usherData['attendees'],
+            'unseated_tickets' => $usherData['unseated_tickets'] ?? [],
+            'total_seated' => $usherData['total_seated'],
+            'total_expected' => $usherData['total_expected'],
+            'stats' => $stats,
         ]));
     }
 

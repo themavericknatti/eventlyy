@@ -652,7 +652,7 @@ Staff Workstation Portal — <?= e($siteTitle) ?>
         </section>
 
         <!-- ═══ Right Panel: Sign-In / Assignment Picker Card ═══ -->
-        <main class="tm-auth-card">
+        <section class="tm-auth-card">
             <div class="tm-auth-card-head">
                 <h2 class="tm-auth-card-title">Staff Portal Entry</h2>
                 <p class="tm-auth-card-desc">
@@ -783,7 +783,7 @@ Staff Workstation Portal — <?= e($siteTitle) ?>
                     </div>
                 </div>
             <?php endif; ?>
-        </main>
+        </section>
     </div>
 </div>
 @endsection

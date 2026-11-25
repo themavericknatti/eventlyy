@@ -288,6 +288,7 @@ $router->post('/teams/toggle-staff-checkin', [TeamController::class, 'toggleStaf
 $router->post('/teams/issue-gate-ticket', [TeamController::class, 'issueGateTicket']);
 
 $router->get('/teams/usher-guide', [TeamController::class, 'usherGuide']);
+$router->post('/teams/assign-seat', [TeamController::class, 'assignSeat']);
 
 $router->get('/teams/support-desk', [TeamController::class, 'supportDesk']);
 $router->post('/teams/support-action', [TeamController::class, 'supportAction']);

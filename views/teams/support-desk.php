@@ -615,6 +615,45 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
     margin-top: 0.2rem;
 }
 
+.sd-kind-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.16rem 0.45rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sd-kind--standard { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.sd-kind--duo { background: rgba(236, 72, 153, 0.12); color: #db2777; }
+.sd-kind--group { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.sd-kind--seated { background: rgba(16, 185, 129, 0.14); color: #059669; }
+
+.sd-seat-badge {
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: #065f46;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sd-role-pill {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.12rem 0.45rem;
+    border-radius: 6px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+}
+
 /* ── Badges ── */
 .sd-badge {
     display: inline-flex;
@@ -1144,25 +1183,49 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                                     <?= strtoupper(substr($t['attendee_name'] ?? 'A', 0, 1)) ?>
                                 </div>
                                 <div>
-                                    <div class="sd-attendee-name"><?= e($t['attendee_name']) ?></div>
+                                    <div class="sd-attendee-name" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+                                        <?= e($t['attendee_name']) ?>
+                                        <?php if (($t['attendee_role'] ?? '') === 'plus_one'): ?>
+                                            <span class="sd-role-pill">💑 Plus-One</span>
+                                        <?php elseif (($t['attendee_role'] ?? '') === 'group_member'): ?>
+                                            <span class="sd-role-pill">👥 Group</span>
+                                        <?php endif; ?>
+                                    </div>
                                     <div class="sd-attendee-email"><?= e($t['attendee_email']) ?></div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <span class="sd-code-badge"><?= e($t['id']) ?></span>
+                            <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+                                <span class="sd-code-badge"><?= e($t['id']) ?></span>
+                                <span class="sd-kind-badge sd-kind--<?= e($t['ticket_kind'] ?? 'standard') ?>">
+                                    <?= e(strtoupper($t['ticket_kind'] ?? 'standard')) ?>
+                                </span>
+                                <?php if (!empty($t['assigned_seat'])): ?>
+                                    <span class="sd-seat-badge">📍 Seat <?= e($t['assigned_seat']) ?></span>
+                                <?php endif; ?>
+                            </div>
                             <div class="sd-tier-sub">
                                 <?= e($t['ticket_type_name'] ?? 'General Admission') ?>
                                 <?php if (!empty($t['price'])): ?>
                                     <span>(<?= format_price($t['price']) ?>)</span>
                                 <?php endif; ?>
+                                <?php if (!empty($t['section_name']) || !empty($t['row_name'])): ?>
+                                    &bull; <span>Sec <?= e($t['section_name'] ?: 'Reserved') ?> <?= !empty($t['row_name']) ? ('Row ' . e($t['row_name'])) : '' ?></span>
+                                <?php endif; ?>
                             </div>
                         </td>
                         <td>
-                            <?php if (strcasecmp($t['status'], 'Paid') === 0): ?>
+                            <?php 
+                                $tStatLower = strtolower(trim($t['status'] ?? ''));
+                                $isLayawayBlocked = in_array($tStatLower, ['layaway', 'layaway expired', 'cancelled', 'refunded']);
+                            ?>
+                            <?php if ($tStatLower === 'paid'): ?>
                                 <span class="sd-badge sd-badge-paid">Paid</span>
-                            <?php elseif (strcasecmp($t['status'], 'Comped') === 0 || strcasecmp($t['status'], 'Free') === 0): ?>
+                            <?php elseif ($tStatLower === 'comped' || $tStatLower === 'free'): ?>
                                 <span class="sd-badge sd-badge-free"><?= e(ucfirst($t['status'])) ?></span>
+                            <?php elseif ($tStatLower === 'layaway'): ?>
+                                <span class="sd-badge sd-badge-pending" title="Installment balance not yet completed">⏳ Layaway Unpaid</span>
                             <?php else: ?>
                                 <span class="sd-badge sd-badge-pending"><?= e(ucfirst($t['status'])) ?></span>
                             <?php endif; ?>
@@ -1175,18 +1238,26 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                                         <?= date('M d, H:i', strtotime($t['checked_in_at'])) ?>
                                     </div>
                                 <?php endif; ?>
+                            <?php elseif ($tStatLower === 'layaway'): ?>
+                                <span class="sd-badge sd-badge-pending">🔒 Balance Due</span>
                             <?php else: ?>
                                 <span class="sd-badge sd-badge-not-in">Not Arrived</span>
                             <?php endif; ?>
                         </td>
                         <td style="text-align: right;" class="sd-action-cell">
-                            <button type="button" 
-                                class="sd-btn-action <?= $isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override' ?>"
-                                data-ticket-id="<?= e($t['id']) ?>"
-                                data-check-in="<?= $isCheckedIn ? '0' : '1' ?>"
-                                data-attendee-name="<?= e($t['attendee_name']) ?>">
-                                <?= $isCheckedIn ? '↩ Reset' : '✓ Override Entry' ?>
-                            </button>
+                            <?php if ($isLayawayBlocked && !$isCheckedIn): ?>
+                                <button type="button" class="sd-btn-action" disabled style="opacity:0.55; cursor:not-allowed; background:rgba(var(--muted),0.12); color:rgb(var(--muted));" title="Cannot admit until payment is completed">
+                                    🔒 Payment Incomplete
+                                </button>
+                            <?php else: ?>
+                                <button type="button" 
+                                    class="sd-btn-action <?= $isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override' ?>"
+                                    data-ticket-id="<?= e($t['id']) ?>"
+                                    data-check-in="<?= $isCheckedIn ? '0' : '1' ?>"
+                                    data-attendee-name="<?= e($t['attendee_name']) ?>">
+                                    <?= $isCheckedIn ? '↩ Reset' : '✓ Override Entry' ?>
+                                </button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -1245,13 +1316,23 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                 </div>
 
                 <div class="sd-mobile-action">
-                    <button type="button" 
-                        class="sd-btn-action <?= $isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override' ?>"
-                        data-ticket-id="<?= e($t['id']) ?>"
-                        data-check-in="<?= $isCheckedIn ? '0' : '1' ?>"
-                        data-attendee-name="<?= e($t['attendee_name']) ?>">
-                        <?= $isCheckedIn ? '↩ Reset Check-In Status' : '🎟️ Override Check-In &amp; Admit' ?>
-                    </button>
+                    <?php 
+                        $mStatLower = strtolower(trim($t['status'] ?? ''));
+                        $mLayawayBlocked = in_array($mStatLower, ['layaway', 'layaway expired', 'cancelled', 'refunded']);
+                    ?>
+                    <?php if ($mLayawayBlocked && !$isCheckedIn): ?>
+                        <button type="button" class="sd-btn-action" disabled style="opacity:0.55; cursor:not-allowed; background:rgba(var(--muted),0.12); color:rgb(var(--muted));">
+                            🔒 Payment Incomplete (<?= e(ucfirst($t['status'])) ?>)
+                        </button>
+                    <?php else: ?>
+                        <button type="button" 
+                            class="sd-btn-action <?= $isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override' ?>"
+                            data-ticket-id="<?= e($t['id']) ?>"
+                            data-check-in="<?= $isCheckedIn ? '0' : '1' ?>"
+                            data-attendee-name="<?= e($t['attendee_name']) ?>">
+                            <?= $isCheckedIn ? '↩ Reset Check-In Status' : '🎟️ Override Check-In &amp; Admit' ?>
+                        </button>
+                    <?php endif; ?>
                 </div>
             </article>
             <?php endforeach; ?>
@@ -1832,10 +1913,15 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
             
             let statusBadge = '<span class="sd-badge sd-badge-pending">Pending</span>';
             const statLower = String(t.status || '').toLowerCase();
+            const isLayawayBlocked = ['layaway', 'layaway expired', 'cancelled', 'refunded'].includes(statLower);
             if (statLower === 'paid') {
                 statusBadge = '<span class="sd-badge sd-badge-paid">Paid</span>';
             } else if (statLower === 'comped' || statLower === 'free') {
                 statusBadge = `<span class="sd-badge sd-badge-free">${esc(t.status)}</span>`;
+            } else if (statLower === 'layaway') {
+                statusBadge = '<span class="sd-badge sd-badge-pending" title="Installment balance not yet completed">⏳ Layaway Unpaid</span>';
+            } else if (statLower) {
+                statusBadge = `<span class="sd-badge sd-badge-pending">${esc(t.status)}</span>`;
             }
 
             let checkinBadge = '<span class="sd-badge sd-badge-not-in">Not Arrived</span>';
@@ -1844,7 +1930,18 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                 const bText = isOffline ? '⚡ Checked In (Offline)' : '✓ Checked In';
                 const timeStr = t.checked_in_at ? `<div class="sd-tier-sub sd-checkin-time">${esc(t.checked_in_at)}</div>` : '';
                 checkinBadge = `<span class="${bClass}">${bText}</span>${timeStr}`;
+            } else if (statLower === 'layaway') {
+                checkinBadge = '<span class="sd-badge sd-badge-pending">🔒 Balance Due</span>';
             }
+
+            const kind = esc(String(t.ticket_kind || 'standard').toLowerCase());
+            const role = String(t.attendee_role || 'primary').toLowerCase();
+            let rolePill = '';
+            if (role === 'plus_one') rolePill = '<span class="sd-role-pill">💑 Plus-One</span>';
+            else if (role === 'group_member') rolePill = '<span class="sd-role-pill">👥 Group</span>';
+
+            let seatBadge = t.assigned_seat ? `<span class="sd-seat-badge">📍 Seat ${esc(t.assigned_seat)}</span>` : '';
+            let secRow = (t.section_name || t.row_name) ? ` &bull; <span>Sec ${esc(t.section_name || 'Reserved')}${t.row_name ? ' Row ' + esc(t.row_name) : ''}</span>` : '';
 
             tableHtml += `
             <tr id="ticket-row-${esc(t.id)}" data-ticket-id="${esc(t.id)}" class="${isCheckedIn ? 'row-checked-in' : ''}">
@@ -1852,27 +1949,39 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                     <div class="sd-attendee-cell">
                         <div class="sd-avatar">${initial}</div>
                         <div>
-                            <div class="sd-attendee-name">${esc(t.attendee_name)}</div>
+                            <div class="sd-attendee-name" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+                                ${esc(t.attendee_name)} ${rolePill}
+                            </div>
                             <div class="sd-attendee-email">${esc(t.attendee_email)}</div>
                         </div>
                     </div>
                 </td>
                 <td>
-                    <span class="sd-code-badge">${esc(t.id)}</span>
+                    <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+                        <span class="sd-code-badge">${esc(t.id)}</span>
+                        <span class="sd-kind-badge sd-kind--${kind}">${esc(kind.toUpperCase())}</span>
+                        ${seatBadge}
+                    </div>
                     <div class="sd-tier-sub">
-                        ${esc(t.ticket_type_name || 'General Admission')} ${priceHtml}
+                        ${esc(t.ticket_type_name || 'General Admission')} ${priceHtml}${secRow}
                     </div>
                 </td>
                 <td>${statusBadge}</td>
                 <td class="sd-status-cell">${checkinBadge}</td>
                 <td style="text-align: right;" class="sd-action-cell">
-                    <button type="button" 
-                        class="sd-btn-action ${isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override'}"
-                        data-ticket-id="${esc(t.id)}"
-                        data-check-in="${isCheckedIn ? '0' : '1'}"
-                        data-attendee-name="${esc(t.attendee_name)}">
-                        ${isCheckedIn ? '↩ Reset' : '✓ Override Entry'}
-                    </button>
+                    ${isLayawayBlocked && !isCheckedIn ? `
+                        <button type="button" class="sd-btn-action" disabled style="opacity:0.55; cursor:not-allowed; background:rgba(var(--muted),0.12); color:rgb(var(--muted));">
+                            🔒 Payment Incomplete
+                        </button>
+                    ` : `
+                        <button type="button" 
+                            class="sd-btn-action ${isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override'}"
+                            data-ticket-id="${esc(t.id)}"
+                            data-check-in="${isCheckedIn ? '0' : '1'}"
+                            data-attendee-name="${esc(t.attendee_name)}">
+                            ${isCheckedIn ? '↩ Reset' : '✓ Override Entry'}
+                        </button>
+                    `}
                 </td>
             </tr>`;
         });
@@ -1928,13 +2037,19 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
                 </div>
 
                 <div class="sd-mobile-action">
-                    <button type="button" 
-                        class="sd-btn-action ${isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override'}"
-                        data-ticket-id="${esc(t.id)}"
-                        data-check-in="${isCheckedIn ? '0' : '1'}"
-                        data-attendee-name="${esc(t.attendee_name)}">
-                        ${isCheckedIn ? '↩ Reset Check-In Status' : '🎟️ Override Check-In &amp; Admit'}
-                    </button>
+                    ${['layaway', 'layaway expired', 'cancelled', 'refunded'].includes(String(t.status || '').toLowerCase()) && !isCheckedIn ? `
+                        <button type="button" class="sd-btn-action" disabled style="opacity:0.55; cursor:not-allowed; background:rgba(var(--muted),0.12); color:rgb(var(--muted));">
+                            🔒 Payment Incomplete (${esc(t.status)})
+                        </button>
+                    ` : `
+                        <button type="button" 
+                            class="sd-btn-action ${isCheckedIn ? 'sd-btn-reset' : 'sd-btn-override'}"
+                            data-ticket-id="${esc(t.id)}"
+                            data-check-in="${isCheckedIn ? '0' : '1'}"
+                            data-attendee-name="${esc(t.attendee_name)}">
+                            ${isCheckedIn ? '↩ Reset Check-In Status' : '🎟️ Override Check-In &amp; Admit'}
+                        </button>
+                    `}
                 </div>
             </article>`;
         });
@@ -1952,7 +2067,10 @@ Guest & Support Desk - <?= e($event['name'] ?? 'Evently') ?>
             const email = String(t.attendee_email || '').toLowerCase();
             const code = String(t.id || '').toLowerCase();
             const tier = String(t.ticket_type_name || '').toLowerCase();
-            return name.includes(clean) || email.includes(clean) || code.includes(clean) || tier.includes(clean);
+            const seat = String(t.assigned_seat || '').toLowerCase();
+            const kind = String(t.ticket_kind || '').toLowerCase();
+            const sec = String(t.section_name || '').toLowerCase();
+            return name.includes(clean) || email.includes(clean) || code.includes(clean) || tier.includes(clean) || seat.includes(clean) || kind.includes(clean) || sec.includes(clean);
         });
     }
 

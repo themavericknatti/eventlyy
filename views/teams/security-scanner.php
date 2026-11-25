@@ -247,6 +247,71 @@ Gate Security Scanner - <?= e($event['name'] ?? 'Evently') ?>
     display: flex;
     align-items: center;
     gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.sc-result-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.sc-badge-kind {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(11, 115, 102, 0.12);
+    color: #0B7366;
+    border: 1px solid rgba(11, 115, 102, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.sc-badge-role {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.sc-result-seating {
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1.5px dashed rgba(16, 185, 129, 0.45);
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #065f46;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sc-result-companions {
+    margin-top: 0.4rem;
+    padding: 0.55rem 0.8rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: #4338ca;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
 }
 
 .sc-result-icon {
@@ -844,10 +909,19 @@ Gate Security Scanner - <?= e($event['name'] ?? 'Evently') ?>
         <div class="sc-result-header">
             <span class="sc-result-icon" id="sc-result-icon">✓</span>
             <div class="sc-result-headline" id="sc-result-headline">ADMISSION GRANTED</div>
+            <div id="sc-result-badges" class="sc-result-badges"></div>
         </div>
         <div class="sc-result-body">
             <div class="sc-result-attendee" id="sc-result-attendee">Attendee Name</div>
             <div class="sc-result-meta" id="sc-result-meta">Tier • Pass #EV-XXXXXXXX</div>
+            
+            <!-- Seating Details Pill -->
+            <div id="sc-result-seating" class="sc-result-seating" style="display:none;"></div>
+            
+            <!-- Duo / Group Companions Pill -->
+            <div id="sc-result-companions" class="sc-result-companions" style="display:none;"></div>
+
+            <!-- Add-ons / Merchandise Notice -->
             <div class="sc-result-note" id="sc-result-note"></div>
         </div>
         <div class="sc-result-actions">
@@ -1619,7 +1693,14 @@ function decodeQrFromImageFile(file, containerId) {
                                 try { tempScanner.clear(); } catch (e) {}
                                 reject(err2);
                             });
-                    } else {
+                    } else if (statusType === 'layaway_incomplete') {
+                resultCard.className = 'sc-result-card result-warning';
+                if (iconEl) iconEl.textContent = '⏳';
+                if (headlineEl) headlineEl.textContent = 'LAYAWAY PAYMENT INCOMPLETE';
+                if (nameEl) nameEl.textContent = attendeeName;
+                if (metaEl) metaEl.textContent = typeName + ' • #' + displayCode;
+                if (noteEl) noteEl.textContent = data.message || 'Installment balance is not fully paid. Direct guest to complete payment.';
+            } else {
                         try { tempScanner.clear(); } catch (e) {}
                         reject(err);
                     }
@@ -1723,6 +1804,14 @@ function performCheckIn(code, isFromCamera) {
             var metaEl = document.getElementById('sc-result-meta');
             var noteEl = document.getElementById('sc-result-note');
 
+            var badgesEl = document.getElementById('sc-result-badges');
+            var seatingEl = document.getElementById('sc-result-seating');
+            var companionsEl = document.getElementById('sc-result-companions');
+
+            if (badgesEl) badgesEl.innerHTML = '';
+            if (seatingEl) seatingEl.style.display = 'none';
+            if (companionsEl) companionsEl.style.display = 'none';
+
             if (data.success) {
                 resultCard.className = 'sc-result-card result-success';
                 if (iconEl) iconEl.textContent = '✓';
@@ -1737,6 +1826,13 @@ function performCheckIn(code, isFromCamera) {
                 if (nameEl) nameEl.textContent = attendeeName;
                 if (metaEl) metaEl.textContent = typeName + ' • #' + displayCode;
                 if (noteEl) noteEl.textContent = data.message + ' (Check if another attendee in this group already used this pass).';
+            } else if (statusType === 'layaway_incomplete') {
+                resultCard.className = 'sc-result-card result-warning';
+                if (iconEl) iconEl.textContent = '⏳';
+                if (headlineEl) headlineEl.textContent = 'LAYAWAY PAYMENT INCOMPLETE';
+                if (nameEl) nameEl.textContent = attendeeName;
+                if (metaEl) metaEl.textContent = typeName + ' • #' + displayCode;
+                if (noteEl) noteEl.textContent = data.message || 'Installment balance is not fully paid. Direct guest to complete payment.';
             } else {
                 resultCard.className = 'sc-result-card result-error';
                 if (iconEl) iconEl.textContent = '🚫';
@@ -1744,6 +1840,52 @@ function performCheckIn(code, isFromCamera) {
                 if (nameEl) nameEl.textContent = attendeeName !== 'Guest' ? attendeeName : ('Code: ' + code);
                 if (metaEl) metaEl.textContent = '#' + displayCode;
                 if (noteEl) noteEl.textContent = data.message || 'Ticket code is invalid or cancelled.';
+            }
+
+            // Populate Ticket Kind, Seating & Duo Badges if ticket data available
+            if (ticket) {
+                var kind = ticket.ticket_kind || 'standard';
+                var kindIcons = { standard: '🎫', duo: '👥', group: '🎪', seated: '🏟️' };
+                var kindLabels = { standard: 'Standard Pass', duo: 'Duo Pass (Admits 2)', group: 'Group Pass', seated: 'Reserved Seating' };
+
+                if (badgesEl) {
+                    var kindHtml = '<span class="sc-badge-kind">' + (kindIcons[kind] || '🎫') + ' ' + (kindLabels[kind] || kind) + '</span>';
+                    if (ticket.attendee_role && ticket.attendee_role !== 'primary') {
+                        var roleLabel = ticket.attendee_role === 'plus_one' ? '💑 Plus-One Guest' : '👥 Group Member';
+                        kindHtml += '<span class="sc-badge-role">' + roleLabel + '</span>';
+                    }
+                    badgesEl.innerHTML = kindHtml;
+                }
+
+                // Render Seating assignment notice
+                var seatDisplay = ticket.seat_display || '';
+                if (!seatDisplay && (ticket.assigned_seat || ticket.section_name || ticket.row_name)) {
+                    var sParts = [];
+                    if (ticket.section_name) sParts.push('Sec ' + ticket.section_name);
+                    if (ticket.row_name) sParts.push('Row ' + ticket.row_name);
+                    if (ticket.assigned_seat) sParts.push('Seat ' + ticket.assigned_seat);
+                    seatDisplay = sParts.join(' • ');
+                }
+
+                if (seatDisplay && seatingEl) {
+                    seatingEl.style.display = 'flex';
+                    seatingEl.innerHTML = '<span>📍</span> <strong>' + escapeHtml(seatDisplay) + '</strong> <span style="font-size:0.75rem; font-weight:600; opacity:0.85; margin-left:auto;">Direct to Usher</span>';
+                }
+
+                // Render Duo / Group Companions list
+                if (ticket.companions && ticket.companions.length > 0 && companionsEl) {
+                    companionsEl.style.display = 'flex';
+                    var compHtml = '<div style="font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em;">Group / Companion Status</div>';
+                    ticket.companions.forEach(function(comp) {
+                        var cState = comp.checked_in == 1 ? '<span style="color:#059669; font-weight:700;">✓ In Venue</span>' : '<span style="color:#d97706; font-weight:600;">⏳ Awaiting Entry</span>';
+                        var cSeat = comp.assigned_seat ? (' • Seat: ' + comp.assigned_seat) : '';
+                        compHtml += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+                            '<span>' + escapeHtml(comp.attendee_name || 'Companion') + cSeat + '</span>' +
+                            cState +
+                            '</div>';
+                    });
+                    companionsEl.innerHTML = compHtml;
+                }
             }
 
             // Start countdown to auto-resume
@@ -1756,7 +1898,14 @@ function performCheckIn(code, isFromCamera) {
                 secondsLeft--;
                 if (secondsLeft > 0) {
                     if (timerEl) timerEl.textContent = 'Resuming in ' + secondsLeft + 's...';
-                } else {
+                } else if (statusType === 'layaway_incomplete') {
+                resultCard.className = 'sc-result-card result-warning';
+                if (iconEl) iconEl.textContent = '⏳';
+                if (headlineEl) headlineEl.textContent = 'LAYAWAY PAYMENT INCOMPLETE';
+                if (nameEl) nameEl.textContent = attendeeName;
+                if (metaEl) metaEl.textContent = typeName + ' • #' + displayCode;
+                if (noteEl) noteEl.textContent = data.message || 'Installment balance is not fully paid. Direct guest to complete payment.';
+            } else {
                     clearInterval(resumeTimerInterval);
                     resumeTimerInterval = null;
                     resumeCameraScanner();
@@ -1778,9 +1927,11 @@ function performCheckIn(code, isFromCamera) {
             }
 
             if (logContainer) {
+                var seatTag = (ticket && ticket.assigned_seat) ? (' • 📍 Seat ' + escapeHtml(ticket.assigned_seat)) : '';
+                var roleTag = (ticket && ticket.attendee_role && ticket.attendee_role !== 'primary') ? (' • ' + (ticket.attendee_role === 'plus_one' ? '💑 Plus-One' : '👥 Group')) : '';
                 var logHtml = '<div class="sc-log-item">' +
                     '<div class="sc-log-item-left"><span class="sc-log-name">' + escapeHtml(attendeeName) + '</span>' +
-                    '<span class="sc-log-sub">#' + escapeHtml(String(displayCode)) + ' • ' + escapeHtml(typeName) + ' • ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) + '</span></div>' +
+                    '<span class="sc-log-sub">#' + escapeHtml(String(displayCode)) + ' • ' + escapeHtml(typeName) + seatTag + roleTag + ' • ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) + '</span></div>' +
                     '<span class="sc-log-badge sc-log-in">✓ ADMIT</span></div>';
                 logContainer.insertAdjacentHTML('afterbegin', logHtml);
             }

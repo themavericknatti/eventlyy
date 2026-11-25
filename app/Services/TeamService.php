@@ -180,7 +180,17 @@ class TeamService
         $evCode = str_starts_with(strtoupper($code), 'EV-') ? $code : ('EV-' . $code);
 
         $stmt = $db->prepare("
-            SELECT t.*, COALESCE(tt.name, 'General Admission') as ticket_type_name, e.name as event_name 
+            SELECT t.*, 
+                   COALESCE(tt.name, 'General Admission') as ticket_type_name, 
+                   e.name as event_name,
+                   tt.ticket_kind,
+                   tt.section_name,
+                   tt.row_name,
+                   tt.seat_prefix,
+                   tt.seat_start,
+                   tt.seat_end,
+                   tt.has_seating,
+                   tt.admits
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             JOIN events e ON t.event_id = e.id
@@ -203,7 +213,62 @@ class TeamService
             ];
         }
 
-        if (in_array(strtolower($ticket['status'] ?? ''), ['cancelled', 'refunded']) || ($ticket['status_detail'] ?? '') === 'Refunded') {
+        // Format human-friendly seat display
+        $seatParts = [];
+        if (!empty($ticket['section_name'])) $seatParts[] = "Sec " . $ticket['section_name'];
+        if (!empty($ticket['row_name'])) $seatParts[] = "Row " . $ticket['row_name'];
+        if (!empty($ticket['assigned_seat'])) $seatParts[] = "Seat " . $ticket['assigned_seat'];
+        $ticket['seat_display'] = !empty($seatParts) ? implode(' • ', $seatParts) : null;
+
+        // Fetch companions (duo partner or group members from same order/email)
+        $companions = [];
+        if (!empty($ticket['ticket_type_id']) && (!empty($ticket['user_id']) || !empty($ticket['attendee_email']))) {
+            $compStmt = $db->prepare("
+                SELECT id as ticket_code, attendee_name, attendee_email, attendee_role, assigned_seat, checked_in, checked_in_at
+                FROM tickets
+                WHERE event_id = :event_id 
+                  AND id != :curr_id
+                  AND ticket_type_id = :tt_id
+                  AND status IN ('Paid', 'Comped', 'Free', 'Active')
+                  AND (
+                      (:user_id IS NOT NULL AND user_id = :user_id)
+                      OR (:email != '' AND LOWER(attendee_email) = :email)
+                  )
+                ORDER BY attendee_role ASC, id ASC
+            ");
+            $compStmt->execute([
+                'event_id' => $eventId,
+                'curr_id' => $ticket['id'],
+                'tt_id' => $ticket['ticket_type_id'],
+                'user_id' => !empty($ticket['user_id']) ? $ticket['user_id'] : null,
+                'email' => !empty($ticket['attendee_email']) ? strtolower(trim($ticket['attendee_email'])) : ''
+            ]);
+            $companions = $compStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        }
+        $ticket['companions'] = $companions;
+
+        $statusLower = strtolower(trim($ticket['status'] ?? ''));
+        $detailLower = strtolower(trim($ticket['status_detail'] ?? ''));
+
+        if ($statusLower === 'layaway' || str_contains($detailLower, 'layaway pending') || str_contains($detailLower, 'incomplete layaway')) {
+            return [
+                'success' => false,
+                'status' => 'layaway_incomplete',
+                'message' => "⏳ ENTRY DENIED: Incomplete Layaway Payment. Guest must complete their installment balance before admission.",
+                'ticket' => $ticket
+            ];
+        }
+
+        if ($statusLower === 'layaway expired') {
+            return [
+                'success' => false,
+                'status' => 'cancelled',
+                'message' => "🚫 ENTRY DENIED: Layaway reservation expired before event start.",
+                'ticket' => $ticket
+            ];
+        }
+
+        if (in_array($statusLower, ['cancelled', 'refunded']) || ($ticket['status_detail'] ?? '') === 'Refunded') {
             return [
                 'success' => false,
                 'status' => 'cancelled',
@@ -212,11 +277,12 @@ class TeamService
             ];
         }
 
-        if (!in_array(strtolower($ticket['status'] ?? ''), ['paid', 'comped', 'free', 'active'])) {
+        if (!in_array($statusLower, ['paid', 'comped', 'free', 'active'])) {
             return [
                 'success' => false,
                 'status' => 'invalid',
-                'message' => "Entry Denied: Ticket status is '{$ticket['status']}'."
+                'message' => "Entry Denied: Ticket status is '{$ticket['status']}'.",
+                'ticket' => $ticket
             ];
         }
 
@@ -298,10 +364,12 @@ class TeamService
             $addonNotice = " • 🛍️ Hand out: " . implode(', ', $addonNames);
         }
 
+        $seatNotice = !empty($ticket['seat_display']) ? " • 📍 {$ticket['seat_display']}" : '';
+
         return [
             'success' => true,
             'status' => 'success',
-            'message' => "VALID TICKET: Welcome {$ticket['attendee_name']}!{$addonNotice}",
+            'message' => "VALID TICKET: Welcome {$ticket['attendee_name']}!{$seatNotice}{$addonNotice}",
             'ticket' => $ticket,
             'addons' => $addons
         ];
@@ -318,18 +386,27 @@ class TeamService
 
         if (!empty($query)) {
             $cleanCode = preg_replace('/^EV-/i', '', trim($query));
-            $where .= " AND (t.attendee_name LIKE :q1 OR t.attendee_email LIKE :q2 OR t.id LIKE :q3 OR t.id LIKE :q4 OR t.status_detail LIKE :q5)";
+            $where .= " AND (t.attendee_name LIKE :q1 OR t.attendee_email LIKE :q2 OR t.id LIKE :q3 OR t.id LIKE :q4 OR t.status_detail LIKE :q5 OR t.assigned_seat LIKE :q6)";
             $params['q1'] = '%' . $query . '%';
             $params['q2'] = '%' . $query . '%';
             $params['q3'] = '%' . $query . '%';
             $params['q4'] = '%' . $cleanCode . '%';
             $params['q5'] = '%' . $query . '%';
+            $params['q6'] = '%' . $query . '%';
+        } else {
+            // Hide incomplete/expired layaway & cancelled passes from default attendee directory
+            $where .= " AND LOWER(t.status) IN ('paid', 'comped', 'free', 'active')";
         }
 
         $limitClause = $limit > 0 ? "LIMIT " . (int)$limit : "LIMIT 100";
 
         $stmt = $db->prepare("
-            SELECT t.*, COALESCE(tt.name, 'General Admission') as ticket_type_name
+            SELECT t.*, 
+                   COALESCE(tt.name, 'General Admission') as ticket_type_name,
+                   tt.ticket_kind,
+                   tt.section_name,
+                   tt.row_name,
+                   tt.has_seating
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             {$where}
@@ -384,6 +461,23 @@ class TeamService
         }
 
         if ($checkIn) {
+            $statusLower = strtolower(trim($ticket['status'] ?? ''));
+            $detailLower = strtolower(trim($ticket['status_detail'] ?? ''));
+
+            if ($statusLower === 'layaway' || str_contains($detailLower, 'layaway pending') || str_contains($detailLower, 'incomplete layaway')) {
+                return [
+                    'success' => false,
+                    'message' => "⏳ Blocked: {$ticket['attendee_name']} has an incomplete Layaway balance. Full payment is required before check-in."
+                ];
+            }
+
+            if (in_array($statusLower, ['cancelled', 'refunded', 'layaway expired']) || $detailLower === 'refunded') {
+                return [
+                    'success' => false,
+                    'message' => "🚫 Blocked: Ticket status is '{$ticket['status']}' and cannot be checked in."
+                ];
+            }
+
             $update = $db->prepare("UPDATE tickets SET checked_in = 1, checked_in_at = CURRENT_TIMESTAMP, checked_in_by = :staff_id WHERE id = :id");
             $update->execute(['id' => $ticketId, 'staff_id' => $staffId]);
             $msg = "Ticket check-in overridden to CHECKED IN for {$ticket['attendee_name']}.";
@@ -419,32 +513,66 @@ class TeamService
         // Fetch ticket breakdown by type
         $breakdownStmt = $db->prepare("
             SELECT 
+                tt.id,
                 tt.name as type_name,
+                COALESCE(tt.ticket_kind, 'standard') as ticket_kind,
+                tt.section_name,
+                tt.row_name,
+                tt.has_seating,
                 tt.capacity,
                 COUNT(t.id) as tickets_sold,
                 SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) as checked_in_count
             FROM ticket_types tt
             LEFT JOIN tickets t ON tt.id = t.ticket_type_id AND t.status IN ('Paid', 'Comped')
             WHERE tt.event_id = :event_id
-            GROUP BY tt.id, tt.name, tt.capacity
+            GROUP BY tt.id, tt.name, tt.ticket_kind, tt.section_name, tt.row_name, tt.has_seating, tt.capacity
+            ORDER BY tt.price DESC, tt.name ASC
         ");
         $breakdownStmt->execute(['event_id' => $eventId]);
         $types = $breakdownStmt->fetchAll() ?: [];
 
+        // Kind distribution breakdown
+        $kindStmt = $db->prepare("
+            SELECT 
+                COALESCE(tt.ticket_kind, 'standard') as kind,
+                COUNT(t.id) as sold_count,
+                SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) as checked_in_count
+            FROM ticket_types tt
+            LEFT JOIN tickets t ON tt.id = t.ticket_type_id AND t.status IN ('Paid', 'Comped')
+            WHERE tt.event_id = :event_id
+            GROUP BY COALESCE(tt.ticket_kind, 'standard')
+        ");
+        $kindStmt->execute(['event_id' => $eventId]);
+        $kinds = $kindStmt->fetchAll() ?: [];
+
+        // Seating occupancy summary
+        $seatedStmt = $db->prepare("
+            SELECT 
+                COUNT(t.id) as total_assigned,
+                SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) as seated_checked_in
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.event_id = :event_id AND t.status IN ('Paid', 'Comped') AND (t.assigned_seat IS NOT NULL OR tt.has_seating = 1)
+        ");
+        $seatedStmt->execute(['event_id' => $eventId]);
+        $seatingStats = $seatedStmt->fetch() ?: ['total_assigned' => 0, 'seated_checked_in' => 0];
+
         // Recent check-in activity log
         $recentStmt = $db->prepare("
-            SELECT t.attendee_name, t.id as ticket_code, tt.name as ticket_type, t.checked_in_at
+            SELECT t.attendee_name, t.id as ticket_code, tt.name as ticket_type, COALESCE(tt.ticket_kind, 'standard') as ticket_kind, t.assigned_seat, t.attendee_role, t.checked_in_at
             FROM tickets t
             JOIN ticket_types tt ON t.ticket_type_id = tt.id
             WHERE t.event_id = :event_id AND t.checked_in = 1
             ORDER BY t.checked_in_at DESC
-            LIMIT 10
+            LIMIT 12
         ");
         $recentStmt->execute(['event_id' => $eventId]);
         $recent = $recentStmt->fetchAll() ?: [];
 
         return [
             'ticket_types' => $types,
+            'ticket_kinds' => $kinds,
+            'seating_stats' => $seatingStats,
             'recent_activity' => $recent,
         ];
     }
@@ -568,6 +696,7 @@ class TeamService
                 'role_slug' => $m['role_slug'],
                 'scans_count' => (int)$m['scans_count'],
                 'last_login' => $m['last_login_at'] ? date('H:i • M d', strtotime($m['last_login_at'])) : 'Never',
+                'last_active_text' => $lastActiveTs > 0 ? ($minutesSinceActive <= 1 ? 'Just now' : ($minutesSinceActive < 60 ? "{$minutesSinceActive}m ago" : date('H:i • M d', $lastActiveTs))) : 'Never',
                 'last_logout' => $m['last_logout_at'] ? date('H:i • M d', strtotime($m['last_logout_at'])) : null,
                 'activity_summary' => $activitySummary,
                 'ip_address' => $m['last_ip'] ?: '127.0.0.1',
@@ -634,22 +763,46 @@ class TeamService
         // Checked-in Revenue per Tier Breakdown
         $tierStmt = $db->prepare("
             SELECT 
+                tt.id,
                 tt.name as type_name,
                 tt.price,
                 tt.capacity,
+                COALESCE(tt.ticket_kind, 'standard') as ticket_kind,
+                tt.section_name,
+                tt.row_name,
+                tt.has_seating,
                 SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) as checked_in_count,
                 SUM(CASE WHEN t.status IN ('Paid', 'Comped') AND t.checked_in = 1 THEN t.price ELSE 0 END) as gate_tier_revenue
             FROM ticket_types tt
             LEFT JOIN tickets t ON tt.id = t.ticket_type_id AND t.status IN ('Paid', 'Comped')
             WHERE tt.event_id = :event_id
-            GROUP BY tt.id, tt.name, tt.price, tt.capacity
+            GROUP BY tt.id, tt.name, tt.price, tt.capacity, tt.ticket_kind, tt.section_name, tt.row_name, tt.has_seating
+            ORDER BY tt.price DESC
         ");
         $tierStmt->execute(['event_id' => $eventId]);
         $tiers = $tierStmt->fetchAll() ?: [];
 
-        // Recent Checked-in Admissions Log with Price
+        // Kind distribution breakdown for finance
+        $kindRevStmt = $db->prepare("
+            SELECT 
+                COALESCE(tt.ticket_kind, 'standard') as kind,
+                COUNT(t.id) as sold_count,
+                SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) as checked_in_count,
+                SUM(CASE WHEN t.status IN ('Paid', 'Comped') AND t.checked_in = 1 THEN t.price ELSE 0 END) as realized_revenue
+            FROM ticket_types tt
+            LEFT JOIN tickets t ON tt.id = t.ticket_type_id AND t.status IN ('Paid', 'Comped')
+            WHERE tt.event_id = :event_id
+            GROUP BY COALESCE(tt.ticket_kind, 'standard')
+        ");
+        $kindRevStmt->execute(['event_id' => $eventId]);
+        $kindMetrics = $kindRevStmt->fetchAll() ?: [];
+
+        // Recent Checked-in Admissions Log with Price & Kind
         $txStmt = $db->prepare("
-            SELECT t.id as ticket_code, t.attendee_name, t.attendee_email, t.price, t.status, t.checked_in_at as purchase_date, COALESCE(tt.name, 'General Admission') as ticket_type_name
+            SELECT t.id as ticket_code, t.attendee_name, t.attendee_email, t.price, t.status, t.checked_in_at as purchase_date, 
+                   COALESCE(tt.name, 'General Admission') as ticket_type_name,
+                   COALESCE(tt.ticket_kind, 'standard') as ticket_kind,
+                   t.assigned_seat
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             WHERE t.event_id = :event_id AND t.checked_in = 1
@@ -663,6 +816,7 @@ class TeamService
             'gate_revenue' => $gateRevenue,
             'checked_in_count' => $checkedInCount,
             'tiers' => $tiers,
+            'kind_metrics' => $kindMetrics,
             'transactions' => $transactions,
         ];
     }
@@ -726,20 +880,69 @@ class TeamService
             'total' => $subtotal
         ]);
 
+        // Seating setup if seated ticket kind
+        $isSeatedTier = (!empty($ticketType['has_seating']) && $ticketType['has_seating'] == 1) || ($ticketType['ticket_kind'] ?? '') === 'seated';
+        $takenMap = [];
+        $seatStart = (int)($ticketType['seat_start'] ?: 1);
+        $seatEnd = (int)($ticketType['seat_end'] ?: ($capacity ?: 200));
+
+        if ($isSeatedTier) {
+            $takenStmt = $db->prepare("
+                SELECT assigned_seat FROM tickets 
+                WHERE ticket_type_id = :tt_id AND status IN ('Paid', 'Comped', 'Free', 'Active') AND assigned_seat IS NOT NULL
+            ");
+            $takenStmt->execute(['tt_id' => $ticketTypeId]);
+            $takenSeats = $takenStmt->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+            $takenMap = array_flip($takenSeats);
+        }
+
+        $nextSeatPtr = $seatStart;
         $createdTickets = [];
+
         for ($i = 0; $i < $quantity; $i++) {
             $ticketCode = 'EV-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
-            
             $securityPin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+
+            // Determine attendee_role
+            $ticketKind = $ticketType['ticket_kind'] ?? 'standard';
+            $attendeeRole = 'primary';
+            if ($ticketKind === 'duo') {
+                $attendeeRole = ($i % 2 === 0) ? 'primary' : 'plus_one';
+            } elseif ($ticketKind === 'group') {
+                $attendeeRole = ($i === 0) ? 'primary' : 'group_member';
+            }
+
+            // Assign seat if seated
+            $assignedSeat = null;
+            if ($isSeatedTier) {
+                while ($nextSeatPtr <= $seatEnd) {
+                    $testKey = (string)$nextSeatPtr;
+                    if (!isset($takenMap[$testKey])) {
+                        $assignedSeat = $testKey;
+                        $takenMap[$testKey] = true;
+                        $nextSeatPtr++;
+                        break;
+                    }
+                    $nextSeatPtr++;
+                }
+            }
+
+            $ticketAttendeeName = $name . ($quantity > 1 ? ' (' . ($i + 1) . ')' : '');
+            if ($attendeeRole === 'plus_one') {
+                $ticketAttendeeName = $name . ' (Plus-One Guest)';
+            } elseif ($attendeeRole === 'group_member' && $quantity > 1) {
+                $ticketAttendeeName = $name . ' (Group Guest #' . ($i + 1) . ')';
+            }
+
             $insStmt = $db->prepare("
-                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, pass_fee, status, status_detail, security_pin, is_issued, checked_in, checked_in_at, checked_in_by, purchase_date)
-                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, :price, 0, :status, :detail, :security_pin, 1, :checked_in, :checked_in_at, :checked_in_by, NOW())
+                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, pass_fee, status, status_detail, security_pin, is_issued, checked_in, checked_in_at, checked_in_by, purchase_date, assigned_seat, attendee_role)
+                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, :price, 0, :status, :detail, :security_pin, 1, :checked_in, :checked_in_at, :checked_in_by, NOW(), :assigned_seat, :attendee_role)
             ");
             $insStmt->execute([
                 'id' => $ticketCode,
                 'event_id' => $eventId,
                 'tt_id' => $ticketTypeId,
-                'name' => $name . ($quantity > 1 ? ' (' . ($i + 1) . ')' : ''),
+                'name' => $ticketAttendeeName,
                 'email' => !empty($email) ? $email : 'gate-walkin@evently.local',
                 'price' => $unitPrice,
                 'status' => $status,
@@ -748,16 +951,20 @@ class TeamService
                 'checked_in' => $markCheckedIn ? 1 : 0,
                 'checked_in_at' => $markCheckedIn ? date('Y-m-d H:i:s') : null,
                 'checked_in_by' => $markCheckedIn ? $staffId : null,
+                'assigned_seat' => $assignedSeat,
+                'attendee_role' => $attendeeRole,
             ]);
 
             $createdTickets[] = [
                 'ticket_code' => $ticketCode,
-                'attendee_name' => $name . ($quantity > 1 ? ' (' . ($i + 1) . ')' : ''),
+                'attendee_name' => $ticketAttendeeName,
                 'ticket_type' => $ticketType['name'],
                 'price' => $unitPrice,
                 'status' => $status,
                 'checked_in' => $markCheckedIn,
-                'security_pin' => $securityPin
+                'security_pin' => $securityPin,
+                'assigned_seat' => $assignedSeat,
+                'attendee_role' => $attendeeRole,
             ];
         }
 
@@ -830,6 +1037,10 @@ class TeamService
                 es.email as staff_email,
                 es.status as staff_status,
                 es.is_online,
+                es.last_active_at,
+                es.last_login_at,
+                es.last_ip,
+                es.user_agent,
                 r.name as role_name,
                 r.slug as role_slug,
                 (SELECT COUNT(*) FROM tickets t WHERE t.event_id = :event_id1 AND t.checked_in_by = es.id) as scans_count
@@ -837,10 +1048,31 @@ class TeamService
             JOIN event_staff es ON esa.staff_id = es.id
             JOIN roles r ON esa.role_id = r.id
             WHERE esa.event_id = :event_id2
-            ORDER BY esa.checked_in DESC, r.name ASC, es.name ASC
+            ORDER BY esa.checked_in DESC, es.is_online DESC, es.last_active_at DESC, r.name ASC, es.name ASC
         ");
         $stmt->execute(['event_id1' => $eventId, 'event_id2' => $eventId]);
-        return $stmt->fetchAll() ?: [];
+        $rows = $stmt->fetchAll() ?: [];
+
+        $now = time();
+        foreach ($rows as &$row) {
+            $isOnlineFlag = ($row['is_online'] == 1);
+            $lastActiveTs = !empty($row['last_active_at']) ? strtotime($row['last_active_at']) : 0;
+            $mins = $lastActiveTs > 0 ? (int)round(($now - $lastActiveTs) / 60) : 9999;
+
+            if ($isOnlineFlag && $mins <= 15) {
+                $row['online_state'] = 'online';
+                $row['online_label'] = $mins <= 1 ? 'Online now' : "Active {$mins}m ago";
+            } elseif ($isOnlineFlag && $mins <= 120) {
+                $row['online_state'] = 'idle';
+                $row['online_label'] = "Idle ({$mins}m ago)";
+            } else {
+                $row['online_state'] = 'offline';
+                $row['online_label'] = $lastActiveTs > 0 ? ('Last seen ' . date('H:i', $lastActiveTs)) : 'Offline';
+            }
+            $row['device_label'] = $this->parseUserAgentDevice($row['user_agent'] ?? null);
+        }
+
+        return $rows;
     }
 
     /**
@@ -904,34 +1136,99 @@ class TeamService
         $ttStmt = $db->prepare("
             SELECT tt.*,
                    (SELECT COUNT(*) FROM tickets t WHERE t.ticket_type_id = tt.id AND t.status IN ('Paid', 'Comped')) as sold_count,
-                   (SELECT COUNT(*) FROM tickets t WHERE t.ticket_type_id = tt.id AND t.checked_in = 1) as checked_in_count
+                   (SELECT COUNT(*) FROM tickets t WHERE t.ticket_type_id = tt.id AND t.checked_in = 1) as checked_in_count,
+                   (SELECT COUNT(*) FROM tickets t WHERE t.ticket_type_id = tt.id AND t.assigned_seat IS NOT NULL AND t.checked_in = 1) as seated_checked_in_count
             FROM ticket_types tt
             WHERE tt.event_id = :event_id
-            ORDER BY tt.price DESC, tt.name ASC
+            ORDER BY tt.has_seating DESC, tt.price DESC, tt.name ASC
         ");
         $ttStmt->execute(['event_id' => $eventId]);
         $ticketTypes = $ttStmt->fetchAll() ?: [];
 
-        // Build section allocations based on tiers
+        // Build section allocations based on actual ticket types & seating configurations
         $sections = [];
         $letters = ['A (Stage Front / VIP)', 'B (Center Premium)', 'C (Floor General)', 'D (Balcony / Mezzanine)', 'E (Gallery)'];
-        $rowsGuide = ['Rows 1 - 5 (VIP Front)', 'Rows 6 - 15 (Premium Center)', 'Rows 16 - 30 (General Floor)', 'Rows 31 - 45 (Balcony)', 'Rows 46+'];
 
         foreach ($ticketTypes as $idx => $tt) {
-            $secLabel = $letters[$idx % count($letters)];
-            $rowLabel = $rowsGuide[$idx % count($rowsGuide)];
+            $isSeated = (!empty($tt['has_seating']) && $tt['has_seating'] == 1) || ($tt['ticket_kind'] ?? '') === 'seated';
+            
+            if ($isSeated && !empty($tt['section_name'])) {
+                $secLabel = $tt['section_name'];
+            } else {
+                $secLabel = !empty($tt['section_name']) ? $tt['section_name'] : ($letters[$idx % count($letters)]);
+            }
+
+            if ($isSeated && !empty($tt['row_name'])) {
+                $rowLabel = "Row " . $tt['row_name'];
+                if (!empty($tt['seat_start']) && !empty($tt['seat_end'])) {
+                    $rowLabel .= " (Seats {$tt['seat_start']}-{$tt['seat_end']})";
+                }
+            } else {
+                $rowLabel = $isSeated ? "Reserved Rows" : "General Floor (Standing / Open)";
+            }
+
             $sold = (int)$tt['sold_count'];
             $checked = (int)$tt['checked_in_count'];
             $cap = (int)$tt['capacity'];
+
+            // Fetch seat map for this tier if seated
+            $seatMap = [];
+            if ($isSeated) {
+                $seatRosterStmt = $db->prepare("
+                    SELECT id as ticket_code, attendee_name, attendee_email, assigned_seat, checked_in, checked_in_at, attendee_role
+                    FROM tickets
+                    WHERE ticket_type_id = :tt_id AND status IN ('Paid', 'Comped') AND assigned_seat IS NOT NULL
+                    ORDER BY assigned_seat ASC
+                ");
+                $seatRosterStmt->execute(['tt_id' => $tt['id']]);
+                $roster = $seatRosterStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                $lookup = [];
+                foreach ($roster as $r) {
+                    $lookup[(string)$r['assigned_seat']] = $r;
+                }
+
+                $start = (int)($tt['seat_start'] ?: 1);
+                $end = (int)($tt['seat_end'] ?: ($cap > 0 ? $cap : count($roster)));
+                // Cap seat grid rendering to at most 100 per section for fast performance
+                $maxRender = min($end, $start + 99);
+                for ($s = $start; $s <= $maxRender; $s++) {
+                    $sStr = (string)$s;
+                    if (isset($lookup[$sStr])) {
+                        $isVip = ($lookup[$sStr]['attendee_role'] ?? '') === 'vip_guest';
+                        $seatStatus = $lookup[$sStr]['checked_in'] ? 'checked_in' : ($isVip ? 'vip_reserved' : 'reserved');
+                        $seatMap[] = [
+                            'seat_number' => $s,
+                            'seat_label' => ($tt['seat_prefix'] ?? '') . $s,
+                            'status' => $seatStatus,
+                            'attendee_name' => $lookup[$sStr]['attendee_name'],
+                            'ticket_code' => $lookup[$sStr]['ticket_code'],
+                            'attendee_role' => $lookup[$sStr]['attendee_role'] ?? 'primary',
+                        ];
+                    } else {
+                        $seatMap[] = [
+                            'seat_number' => $s,
+                            'seat_label' => ($tt['seat_prefix'] ?? '') . $s,
+                            'status' => 'available',
+                            'attendee_name' => null,
+                            'ticket_code' => null,
+                            'attendee_role' => null,
+                        ];
+                    }
+                }
+            }
+
             $sections[] = [
                 'tier_id' => $tt['id'],
                 'tier_name' => $tt['name'],
+                'ticket_kind' => $tt['ticket_kind'] ?? 'standard',
+                'is_seated' => $isSeated,
                 'section' => $secLabel,
                 'rows' => $rowLabel,
                 'capacity' => $cap,
                 'sold' => $sold,
                 'checked_in' => $checked,
                 'occupancy_pct' => $sold > 0 ? round(($checked / $sold) * 100, 1) : 0,
+                'seat_map' => $seatMap,
             ];
         }
 
@@ -939,29 +1236,259 @@ class TeamService
         $attendeeParams = ['event_id' => $eventId];
         $attendeeWhere = "WHERE t.event_id = :event_id AND t.status IN ('Paid', 'Comped')";
         if (!empty($search)) {
-            $attendeeWhere .= " AND (t.attendee_name LIKE :s1 OR t.attendee_email LIKE :s2 OR t.id LIKE :s3)";
+            $attendeeWhere .= " AND (t.attendee_name LIKE :s1 OR t.attendee_email LIKE :s2 OR t.id LIKE :s3 OR t.assigned_seat LIKE :s4 OR tt.section_name LIKE :s5)";
             $attendeeParams['s1'] = '%' . trim($search) . '%';
             $attendeeParams['s2'] = '%' . trim($search) . '%';
             $attendeeParams['s3'] = '%' . trim($search) . '%';
+            $attendeeParams['s4'] = '%' . trim($search) . '%';
+            $attendeeParams['s5'] = '%' . trim($search) . '%';
         }
 
         $attStmt = $db->prepare("
-            SELECT t.id as ticket_code, t.attendee_name, t.attendee_email, t.checked_in, t.checked_in_at, tt.name as ticket_type, tt.price
+            SELECT t.id as ticket_code, t.attendee_name, t.attendee_email, t.checked_in, t.checked_in_at,
+                   t.assigned_seat, t.attendee_role,
+                   tt.name as ticket_type, tt.price, COALESCE(tt.ticket_kind, 'standard') as ticket_kind,
+                   tt.section_name, tt.row_name, tt.has_seating
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             {$attendeeWhere}
-            ORDER BY t.checked_in DESC, t.attendee_name ASC
-            LIMIT 50
+            ORDER BY t.checked_in DESC, t.assigned_seat ASC, t.attendee_name ASC
+            LIMIT 75
         ");
         $attStmt->execute($attendeeParams);
         $attendees = $attStmt->fetchAll() ?: [];
 
+        // Fetch unseated valid attendees for quick seat assignment dropdown
+        $unseatedStmt = $db->prepare("
+            SELECT t.id as ticket_code, t.attendee_name, COALESCE(tt.name, 'General Admission') as ticket_type
+            FROM tickets t
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.event_id = :event_id 
+              AND t.status IN ('Paid', 'Comped', 'Free', 'Active')
+              AND (t.assigned_seat IS NULL OR t.assigned_seat = '')
+            ORDER BY t.attendee_name ASC
+            LIMIT 100
+        ");
+        $unseatedStmt->execute(['event_id' => $eventId]);
+        $unseatedTickets = $unseatedStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
         return [
             'sections' => $sections,
             'attendees' => $attendees,
+            'unseated_tickets' => $unseatedTickets,
             'total_seated' => array_sum(array_column($sections, 'checked_in')),
             'total_expected' => array_sum(array_column($sections, 'sold')),
         ];
+    }
+
+    /**
+     * Assign an attendee to a seat, reserve a seat for a VIP / Special Guest, check-in a seated guest, or release a seat.
+     */
+    public function assignOrReserveSeat(int $eventId, int $ticketTypeId, string $seatNumber, string $action, ?string $guestName = null, ?string $guestEmail = null, ?string $ticketCode = null, ?int $staffId = null): array
+    {
+        $db = Application::$app->db->pdo;
+        $seatNumber = trim($seatNumber);
+
+        if ($ticketTypeId <= 0 || $seatNumber === '') {
+            return ['success' => false, 'message' => 'Section tier and seat number are required.'];
+        }
+
+        // Verify ticket type belongs to this event
+        $ttStmt = $db->prepare("SELECT * FROM ticket_types WHERE id = :id AND event_id = :event_id LIMIT 1");
+        $ttStmt->execute(['id' => $ticketTypeId, 'event_id' => $eventId]);
+        $tier = $ttStmt->fetch();
+        if (!$tier) {
+            return ['success' => false, 'message' => 'Selected seating section was not found.'];
+        }
+
+        // Check current occupant of this seat
+        $occStmt = $db->prepare("
+            SELECT * FROM tickets 
+            WHERE event_id = :event_id AND ticket_type_id = :tt_id AND assigned_seat = :seat AND status IN ('Paid', 'Comped', 'Free', 'Active')
+            LIMIT 1
+        ");
+        $occStmt->execute(['event_id' => $eventId, 'tt_id' => $ticketTypeId, 'seat' => $seatNumber]);
+        $occupant = $occStmt->fetch();
+
+        if ($action === 'reserve_vip') {
+            if ($occupant) {
+                return ['success' => false, 'message' => "Seat {$seatNumber} is already occupied by {$occupant['attendee_name']}."];
+            }
+
+            $vipName = trim((string)$guestName);
+            if ($vipName === '') {
+                return ['success' => false, 'message' => 'Special Guest / VIP name is required.'];
+            }
+
+            $vipEmail = trim((string)$guestEmail);
+            if ($vipEmail === '') {
+                $vipEmail = 'vip-guest@evently.local';
+            }
+
+            $vipCode = 'EV-VIP-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            $pin = str_pad((string)random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+
+            $ins = $db->prepare("
+                INSERT INTO tickets (id, event_id, ticket_type_id, user_id, attendee_name, attendee_email, price, pass_fee, status, status_detail, security_pin, is_issued, checked_in, purchase_date, assigned_seat, attendee_role)
+                VALUES (:id, :event_id, :tt_id, NULL, :name, :email, 0.00, 0, 'Comped', :detail, :pin, 1, 0, NOW(), :seat, 'vip_guest')
+            ");
+            $ins->execute([
+                'id' => $vipCode,
+                'event_id' => $eventId,
+                'tt_id' => $ticketTypeId,
+                'name' => $vipName,
+                'email' => $vipEmail,
+                'detail' => 'VIP / Special Guest Seat Reserved by Usher #' . ($staffId ?: 'Floor'),
+                'pin' => $pin,
+                'seat' => $seatNumber,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "⭐ Seat {$seatNumber} ({$tier['section_name']}) reserved for Special Guest: {$vipName} (#{$vipCode}).",
+                'ticket_code' => $vipCode,
+            ];
+        }
+
+        if ($action === 'assign_ticket') {
+            if ($occupant) {
+                return ['success' => false, 'message' => "Seat {$seatNumber} is already assigned to {$occupant['attendee_name']}."];
+            }
+
+            $code = trim((string)$ticketCode);
+            if ($code === '') {
+                return ['success' => false, 'message' => 'Ticket code or attendee selection is required.'];
+            }
+
+            $tStmt = $db->prepare("SELECT * FROM tickets WHERE id = :id AND event_id = :event_id LIMIT 1");
+            $tStmt->execute(['id' => $code, 'event_id' => $eventId]);
+            $ticket = $tStmt->fetch();
+
+            if (!$ticket) {
+                return ['success' => false, 'message' => "Ticket #{$code} not found for this event."];
+            }
+            if (!in_array(strtolower($ticket['status'] ?? ''), ['paid', 'comped', 'free', 'active'])) {
+                return ['success' => false, 'message' => "Cannot assign seat: Ticket #{$code} status is '{$ticket['status']}'."];
+            }
+
+            $up = $db->prepare("UPDATE tickets SET ticket_type_id = :tt_id, assigned_seat = :seat WHERE id = :id");
+            $up->execute([
+                'tt_id' => $ticketTypeId,
+                'seat' => $seatNumber,
+                'id' => $ticket['id'],
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "🪑 Assigned {$ticket['attendee_name']} (#{$ticket['id']}) to Seat {$seatNumber}.",
+            ];
+        }
+
+        if ($action === 'checkin_seat') {
+            if (!$occupant) {
+                return ['success' => false, 'message' => "Seat {$seatNumber} has no assigned guest to check in."];
+            }
+            if ($occupant['checked_in'] == 1) {
+                return ['success' => true, 'message' => "{$occupant['attendee_name']} is already checked in at Seat {$seatNumber}."];
+            }
+            $up = $db->prepare("UPDATE tickets SET checked_in = 1, checked_in_at = CURRENT_TIMESTAMP, checked_in_by = :staff_id WHERE id = :id");
+            $up->execute(['staff_id' => $staffId, 'id' => $occupant['id']]);
+
+            return [
+                'success' => true,
+                'message' => "✓ {$occupant['attendee_name']} marked seated & checked in at Seat {$seatNumber}.",
+            ];
+        }
+
+        if ($action === 'release_seat') {
+            if (!$occupant) {
+                return ['success' => false, 'message' => "Seat {$seatNumber} is already empty."];
+            }
+
+            if (($occupant['attendee_role'] ?? '') === 'vip_guest' && str_starts_with($occupant['id'], 'EV-VIP-')) {
+                $del = $db->prepare("UPDATE tickets SET status = 'Cancelled', assigned_seat = NULL, status_detail = 'VIP Seat Reservation Released by Usher' WHERE id = :id");
+                $del->execute(['id' => $occupant['id']]);
+            } else {
+                $clr = $db->prepare("UPDATE tickets SET assigned_seat = NULL WHERE id = :id");
+                $clr->execute(['id' => $occupant['id']]);
+            }
+
+            return [
+                'success' => true,
+                'message' => "🔓 Seat {$seatNumber} has been released and is now available.",
+            ];
+        }
+
+        return ['success' => false, 'message' => 'Unknown seat action.'];
+    }
+
+    /**
+     * Get seat availability map for an event.
+     */
+    public function getSeatAvailability(int $eventId, ?int $ticketTypeId = null): array
+    {
+        $db = Application::$app->db->pdo;
+        $params = ['event_id' => $eventId];
+        $ttWhere = "WHERE tt.event_id = :event_id AND tt.has_seating = 1";
+        if ($ticketTypeId) {
+            $ttWhere .= " AND tt.id = :tt_id";
+            $params['tt_id'] = $ticketTypeId;
+        }
+
+        $stmt = $db->prepare("
+            SELECT tt.* 
+            FROM ticket_types tt
+            {$ttWhere}
+            ORDER BY tt.name ASC
+        ");
+        $stmt->execute($params);
+        $seatedTiers = $stmt->fetchAll() ?: [];
+
+        $results = [];
+        foreach ($seatedTiers as $tier) {
+            $takenStmt = $db->prepare("
+                SELECT id as ticket_code, attendee_name, attendee_email, assigned_seat, checked_in, checked_in_at, attendee_role
+                FROM tickets
+                WHERE ticket_type_id = :tt_id AND status IN ('Paid', 'Comped') AND assigned_seat IS NOT NULL
+                ORDER BY assigned_seat ASC
+            ");
+            $takenStmt->execute(['tt_id' => $tier['id']]);
+            $taken = $takenStmt->fetchAll() ?: [];
+
+            $takenMap = [];
+            foreach ($taken as $row) {
+                $takenMap[(string)$row['assigned_seat']] = $row;
+            }
+
+            $start = (int)($tier['seat_start'] ?: 1);
+            $end = (int)($tier['seat_end'] ?: ($tier['capacity'] ?: 50));
+            $seats = [];
+            for ($s = $start; $s <= $end; $s++) {
+                $sKey = (string)$s;
+                $isTaken = isset($takenMap[$sKey]);
+                $seats[] = [
+                    'seat_number' => $s,
+                    'seat_label' => ($tier['seat_prefix'] ?? '') . $s,
+                    'is_taken' => $isTaken,
+                    'checked_in' => $isTaken ? (bool)$takenMap[$sKey]['checked_in'] : false,
+                    'attendee_name' => $isTaken ? $takenMap[$sKey]['attendee_name'] : null,
+                    'ticket_code' => $isTaken ? $takenMap[$sKey]['ticket_code'] : null,
+                ];
+            }
+
+            $results[] = [
+                'ticket_type_id' => $tier['id'],
+                'tier_name' => $tier['name'],
+                'section_name' => $tier['section_name'] ?: 'Reserved',
+                'row_name' => $tier['row_name'] ?: 'General',
+                'total_seats' => count($seats),
+                'taken_seats' => count($taken),
+                'available_seats' => max(0, count($seats) - count($taken)),
+                'seats' => $seats
+            ];
+        }
+
+        return $results;
     }
 }
 

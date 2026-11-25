@@ -17,6 +17,8 @@
 $eventTime = !empty($event['date']) ? strtotime($event['date']) : null;
 $staffRoster = $staff_roster ?? [];
 $allTicketTypes = $all_ticket_types ?? [];
+$ticketKinds = $ticket_kinds ?? [];
+$seatingStats = $seating_stats ?? [];
 $currencySymbol = get_currency_symbol();
 ?>
 
@@ -431,6 +433,54 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
     flex-wrap: wrap;
 }
 
+/* ─── Ticket Kinds & Seating Indicators ─── */
+.cd-kind-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.cd-kind--standard { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.cd-kind--duo { background: rgba(236, 72, 153, 0.12); color: #db2777; }
+.cd-kind--group { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.cd-kind--seated { background: rgba(16, 185, 129, 0.14); color: #059669; }
+
+.cd-kind-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.cd-kind-card {
+    background: rgb(var(--bg));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 14px;
+    padding: 0.85rem 1.05rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.cd-seating-banner {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(11, 115, 102, 0.08));
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 16px;
+    padding: 0.9rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
 /* ═════════════════════════════════════════════════════════════
    Responsive Breakpoints
    ═════════════════════════════════════════════════════════════ */
@@ -603,17 +653,30 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
     </section>
 
     <!-- ═══ Staff Check-In & Deployment Roster ═══ -->
+    <?php
+        $onlineWorkersCount = 0;
+        $checkedInWorkersCount = 0;
+        foreach ($staffRoster as $srItem) {
+            if (($srItem['online_state'] ?? '') === 'online') $onlineWorkersCount++;
+            if (!empty($srItem['checked_in'])) $checkedInWorkersCount++;
+        }
+    ?>
     <section class="cd-card">
         <div class="cd-card-head">
             <div>
                 <h2 class="cd-card-title">
-                    <span>👥</span> Staff Check-In &amp; Deployment Roster
+                    <span>👥</span> Staff Check-In &amp; Live Worker Monitor
                 </h2>
-                <p class="cd-card-sub">Maintain and verify which team members are currently on duty and checked-in at the venue.</p>
+                <p class="cd-card-sub">Real-time worker online status, gate scan counts, and venue shift check-in roster.</p>
             </div>
-            <span class="cd-card-count">
-                <?= count($staffRoster) ?> Assigned Personnel
-            </span>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <span class="cd-card-count" style="background:rgba(16,185,129,0.12); color:#059669; border:1px solid rgba(16,185,129,0.25);">
+                    🟢 <?= $onlineWorkersCount ?> Online
+                </span>
+                <span class="cd-card-count">
+                    <?= $checkedInWorkersCount ?> / <?= count($staffRoster) ?> On-Site
+                </span>
+            </div>
         </div>
 
         <?php if (empty($staffRoster)): ?>
@@ -625,15 +688,27 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
             <div class="cd-roster-list">
                 <?php foreach ($staffRoster as $st): 
                     $isChecked = !empty($st['checked_in']);
+                    $onlineState = $st['online_state'] ?? 'offline';
+                    $onlineLabel = $st['online_label'] ?? 'Offline';
+                    $scansCount = (int)($st['scans_count'] ?? 0);
+                    $dotColor = $onlineState === 'online' ? '#10b981' : ($onlineState === 'idle' ? '#f59e0b' : '#94a3b8');
                 ?>
                     <div class="cd-roster-item" id="staff-row-<?= (int)$st['assignment_id'] ?>">
                         <div class="cd-roster-staff">
-                            <div class="cd-roster-avatar">
+                            <div class="cd-roster-avatar" style="position:relative;">
                                 <?= strtoupper(mb_substr($st['staff_name'], 0, 1)) ?>
+                                <span title="<?= e($onlineLabel) ?>" style="position:absolute; bottom:-1px; right:-1px; width:11px; height:11px; border-radius:50%; background:<?= $dotColor ?>; border:2px solid rgb(var(--card));"></span>
                             </div>
                             <div style="min-width: 0; flex: 1;">
-                                <strong class="cd-roster-name"><?= e($st['staff_name']) ?></strong>
-                                <span class="cd-roster-email"><?= e($st['staff_email']) ?></span>
+                                <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+                                    <strong class="cd-roster-name"><?= e($st['staff_name']) ?></strong>
+                                    <span style="font-size:0.7rem; font-weight:800; color:<?= $dotColor ?>; background:rgba(var(--muted),0.08); padding:0.12rem 0.45rem; border-radius:999px;">
+                                        <?= e($onlineLabel) ?>
+                                    </span>
+                                </div>
+                                <span class="cd-roster-email">
+                                    <?= e($st['staff_email']) ?> &bull; 🎯 <strong><?= $scansCount ?></strong> scan(s) &bull; <?= e($st['device_label'] ?? 'Workstation') ?>
+                                </span>
                             </div>
                         </div>
 
@@ -656,6 +731,57 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
         <?php endif; ?>
     </section>
 
+    <!-- ═══ Ticket Kinds Summary & Seating Overview ═══ -->
+    <?php if (!empty($ticketKinds)): ?>
+        <div class="cd-kind-grid">
+            <?php 
+                $kindIcons = ['standard' => '🎫', 'duo' => '👥', 'group' => '🎪', 'seated' => '🏟️'];
+                $kindTitles = ['standard' => 'Standard Passes', 'duo' => 'Duo Passes', 'group' => 'Group Passes', 'seated' => 'Reserved Seating'];
+                foreach ($ticketKinds as $k):
+                    $kSlug = $k['kind'] ?? 'standard';
+                    $kSold = (int)($k['sold_count'] ?? 0);
+                    $kChecked = (int)($k['checked_in_count'] ?? 0);
+                    $kPct = $kSold > 0 ? round(($kChecked / $kSold) * 100, 1) : 0;
+            ?>
+                <div class="cd-kind-card">
+                    <div class="cd-kind-card-head">
+                        <span class="cd-kind-badge cd-kind--<?= e($kSlug) ?>">
+                            <?= $kindIcons[$kSlug] ?? '🎫' ?> <?= e($kindTitles[$kSlug] ?? ucfirst($kSlug)) ?>
+                        </span>
+                        <span style="font-size:0.75rem; font-weight:800; color:#059669;"><?= $kPct ?>%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:0.35rem;">
+                        <strong style="font-size:1.15rem; color:rgb(var(--text));"><?= $kChecked ?></strong>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted));">/ <?= $kSold ?> admitted</span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($seatingStats['total_assigned']) && $seatingStats['total_assigned'] > 0): 
+        $seatedAssigned = (int)$seatingStats['total_assigned'];
+        $seatedChecked = (int)($seatingStats['seated_checked_in'] ?? 0);
+        $seatedPct = $seatedAssigned > 0 ? round(($seatedChecked / $seatedAssigned) * 100, 1) : 0;
+    ?>
+        <div class="cd-seating-banner">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <span style="font-size:1.4rem;">🏟️</span>
+                <div>
+                    <strong style="font-size:0.92rem; color:#065f46; display:block;">Reserved Seating Attendance</strong>
+                    <span style="font-size:0.8rem; color:rgb(var(--muted));">
+                        <?= $seatedChecked ?> of <?= $seatedAssigned ?> assigned seats currently occupied (<?= $seatedPct ?>% seated velocity)
+                    </span>
+                </div>
+            </div>
+            <div>
+                <a href="<?= route('teams/usher-guide') ?>" style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.82rem; font-weight:800; color:#0B7366; text-decoration:none; padding:0.4rem 0.85rem; background:rgba(11,115,102,0.12); border-radius:10px;">
+                    View Floor Matrix &rarr;
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- ═══ Content Dual Column Layout ═══ -->
     <div class="cd-content-grid">
         
@@ -666,7 +792,7 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
                     <h2 class="cd-card-title">
                         <span>📊</span> Ticket Tier Attendance
                     </h2>
-                    <p class="cd-card-sub">Live admission progress broken down by ticket tier.</p>
+                    <p class="cd-card-sub">Live admission progress broken down by ticket tier &amp; kind.</p>
                 </div>
             </div>
 
@@ -678,10 +804,22 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
                         $sold = (int)($type['tickets_sold'] ?? 0);
                         $checked = (int)($type['checked_in_count'] ?? 0);
                         $pct = $sold > 0 ? round(($checked / $sold) * 100, 1) : 0;
+                        $tKind = $type['ticket_kind'] ?? 'standard';
+                        $isSeatedTier = (!empty($type['has_seating']) && $type['has_seating'] == 1) || $tKind === 'seated';
                     ?>
                     <div class="cd-tier-item">
                         <div class="cd-tier-head">
-                            <strong style="color: rgb(var(--text)); font-size: 0.92rem;"><?= e($type['type_name']) ?></strong>
+                            <div>
+                                <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                    <strong style="color: rgb(var(--text)); font-size: 0.92rem;"><?= e($type['type_name']) ?></strong>
+                                    <span class="cd-kind-badge cd-kind--<?= e($tKind) ?>"><?= e(strtoupper($tKind)) ?></span>
+                                </div>
+                                <?php if ($isSeatedTier && (!empty($type['section_name']) || !empty($type['row_name']))): ?>
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block; margin-top:0.15rem;">
+                                        📍 Sec <?= e($type['section_name'] ?: 'Reserved') ?> <?= !empty($type['row_name']) ? ('• Row ' . e($type['row_name'])) : '' ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
                             <span style="font-size: 0.8rem; color: rgb(var(--muted));">
                                 <strong style="color: rgb(var(--text));"><?= $checked ?></strong> / <?= $sold ?> checked in (<?= $pct ?>%)
                             </span>
@@ -712,12 +850,27 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
                         No check-in activity logged yet.
                     </div>
                 <?php else: ?>
-                    <?php foreach ($recent_activity as $act): ?>
+                    <?php foreach ($recent_activity as $act): 
+                        $aKind = $act['ticket_kind'] ?? 'standard';
+                        $aRole = $act['attendee_role'] ?? 'primary';
+                    ?>
                     <div class="cd-activity-item">
                         <div style="min-width: 0; flex: 1;">
-                            <strong style="display: block; color: rgb(var(--text));"><?= e($act['attendee_name']) ?></strong>
+                            <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+                                <strong style="color: rgb(var(--text));"><?= e($act['attendee_name']) ?></strong>
+                                <?php if ($aRole === 'plus_one'): ?>
+                                    <span class="cd-kind-badge cd-kind--duo">💑 Plus-One</span>
+                                <?php elseif ($aRole === 'group_member'): ?>
+                                    <span class="cd-kind-badge cd-kind--group">👥 Group</span>
+                                <?php endif; ?>
+                                <?php if (!empty($act['assigned_seat'])): ?>
+                                    <span style="font-size:0.72rem; font-weight:800; color:#065f46; background:rgba(16,185,129,0.12); padding:0.15rem 0.45rem; border-radius:6px;">
+                                        📍 Seat <?= e($act['assigned_seat']) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
                             <div style="font-size: 0.76rem; color: rgb(var(--muted)); margin-top: 0.15rem;">
-                                <code style="font-family: monospace;"><?= e($act['ticket_code']) ?></code> &bull; <?= e($act['ticket_type']) ?>
+                                <code style="font-family: monospace; font-weight:700; color:rgb(var(--text));">#<?= e($act['ticket_code']) ?></code> &bull; <?= e($act['ticket_type']) ?>
                             </div>
                         </div>
                         <span style="font-size: 0.76rem; color: #10b981; font-weight: 800; background: rgba(16,185,129,0.12); padding: 0.2rem 0.55rem; border-radius: 6px; flex-shrink: 0;">
@@ -753,17 +906,25 @@ Event Organiser (Box Office) — <?= e($event['name'] ?? 'Eventlyy') ?>
             
             <div style="margin-bottom: 1rem;">
                 <label class="team-modal-label">Ticket Tier *</label>
-                <select name="ticket_type_id" id="gate-ticket-tier" required class="team-modal-select">
+                <select name="ticket_type_id" id="gate-ticket-tier" required class="team-modal-select" onchange="updateGateTierInfo()">
                     <?php foreach ($allTicketTypes as $tt): 
                         $cap = (int)($tt['capacity'] ?? 0);
                         $sold = (int)($tt['sold_count'] ?? 0);
                         $avail = $cap > 0 ? max(0, $cap - $sold) : 'Unlimited';
+                        $kind = $tt['ticket_kind'] ?? 'standard';
+                        $isSeated = (!empty($tt['has_seating']) && $tt['has_seating'] == 1) || $kind === 'seated';
                     ?>
-                        <option value="<?= $tt['id'] ?>" data-price="<?= (float)$tt['price'] ?>">
-                            <?= e($tt['name']) ?> — <?= (float)$tt['price'] > 0 ? format_price($tt['price']) : 'Free' ?> (Avail: <?= $avail ?>)
+                        <option value="<?= $tt['id'] ?>" 
+                                data-price="<?= (float)$tt['price'] ?>"
+                                data-kind="<?= e($kind) ?>"
+                                data-seated="<?= $isSeated ? '1' : '0' ?>"
+                                data-section="<?= e($tt['section_name'] ?? '') ?>"
+                                data-row="<?= e($tt['row_name'] ?? '') ?>">
+                            <?= e($tt['name']) ?> [<?= strtoupper($kind) ?>] — <?= (float)$tt['price'] > 0 ? format_price($tt['price']) : 'Free' ?> (Avail: <?= $avail ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <div id="gate-tier-info" style="font-size:0.78rem; color:rgb(var(--muted)); margin-top:0.35rem; font-weight:600;"></div>
             </div>
 
             <div class="gate-sale-grid-2">
@@ -876,15 +1037,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const formSale = document.getElementById('form-gate-sale');
     const saleStatus = document.getElementById('gate-sale-status');
     const btnSubmit = document.getElementById('btn-submit-gate-sale');
+    const tierSelect = document.getElementById('gate-ticket-tier');
+    const tierInfo = document.getElementById('gate-tier-info');
+
+    window.updateGateTierInfo = function() {
+        if (!tierSelect || !tierInfo) return;
+        const opt = tierSelect.options[tierSelect.selectedIndex];
+        if (!opt) return;
+        const kind = opt.getAttribute('data-kind') || 'standard';
+        const isSeated = opt.getAttribute('data-seated') === '1';
+        const sec = opt.getAttribute('data-section') || '';
+        const row = opt.getAttribute('data-row') || '';
+
+        let desc = '';
+        if (isSeated) {
+            desc = '🏟️ <strong>Reserved Seating:</strong> Auto-allocates next available seat' + (sec ? ` in Sec ${sec}` : '') + (row ? `, Row ${row}` : '') + '.';
+        } else if (kind === 'duo') {
+            desc = '👥 <strong>Duo Pass:</strong> Creates 2 admission tickets (Primary passholder + Plus-One partner).';
+        } else if (kind === 'group') {
+            desc = '🎪 <strong>Group Pass:</strong> Creates grouped admission tickets under the primary buyer.';
+        } else {
+            desc = '🎫 <strong>Standard Admission:</strong> General entry pass for single attendee.';
+        }
+        tierInfo.innerHTML = desc;
+    };
 
     if (btnOpen && modalBoxOffice) {
-        btnOpen.addEventListener('click', () => { modalBoxOffice.style.display = 'flex'; });
+        btnOpen.addEventListener('click', () => { 
+            modalBoxOffice.style.display = 'flex'; 
+            window.updateGateTierInfo();
+        });
         btnClose.addEventListener('click', () => { modalBoxOffice.style.display = 'none'; });
         btnCancel.addEventListener('click', () => { modalBoxOffice.style.display = 'none'; });
         modalBoxOffice.addEventListener('click', (e) => {
             if (e.target === modalBoxOffice) modalBoxOffice.style.display = 'none';
         });
     }
+
+    window.updateGateTierInfo();
 
     if (formSale) {
         formSale.addEventListener('submit', function(e) {

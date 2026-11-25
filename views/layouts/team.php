@@ -34,6 +34,17 @@ $isLoginPage = app()->request->is('teams/login') || app()->request->is('teams');
     <script src="{{ route('assets/js/html5qrcode.min.js') }}?v=<?= asset_version('assets/js/html5qrcode.min.js') ?>"></script>
 
     <style>
+        body.auth-body.vn-shell {
+            overflow-x: clip !important;
+            overflow-y: visible !important;
+            min-height: 100vh;
+        }
+        body.auth-body.vn-shell > .auth-container {
+            min-height: calc(100vh - 72px);
+            padding-top: 1.5rem;
+            padding-bottom: 2.5rem;
+        }
+
         .team-workstation-body {
             background: rgb(var(--bg));
             color: rgb(var(--text));

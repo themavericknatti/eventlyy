@@ -329,6 +329,41 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
     font-size: 0.9rem;
 }
 
+/* ─── Ticket Kind Distribution Grid ─── */
+.fin-kind-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.15rem;
+}
+
+.fin-kind-card {
+    background: rgb(var(--card));
+    border: 1px solid rgba(var(--muted), 0.14);
+    border-radius: 18px;
+    padding: 1.15rem 1.25rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.fin-kind-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.fin-kind--standard { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.fin-kind--duo { background: rgba(236, 72, 153, 0.12); color: #db2777; }
+.fin-kind--group { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.fin-kind--seated { background: rgba(16, 185, 129, 0.14); color: #059669; }
+
 /* ═════════════════════════════════════════════════════════════
    Responsive Breakpoints
    ═════════════════════════════════════════════════════════════ */
@@ -470,6 +505,35 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
         </div>
     </section>
 
+    <!-- ═══ Gate Revenue by Ticket Kind ═══ -->
+    <?php if (!empty($finance['kind_metrics'])): ?>
+        <div class="fin-kind-grid">
+            <?php 
+                $kindIcons = ['standard' => '🎫', 'duo' => '👥', 'group' => '🎪', 'seated' => '🏟️'];
+                $kindTitles = ['standard' => 'Standard Passes', 'duo' => 'Duo Passes', 'group' => 'Group Passes', 'seated' => 'Reserved Seating'];
+                foreach ($finance['kind_metrics'] as $km):
+                    $kSlug = $km['kind'] ?? 'standard';
+                    $kAdmitted = (int)($km['checked_in_count'] ?? 0);
+                    $kRev = (float)($km['realized_revenue'] ?? 0.00);
+            ?>
+                <div class="fin-kind-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="fin-kind-badge fin-kind--<?= e($kSlug) ?>">
+                            <?= $kindIcons[$kSlug] ?? '🎫' ?> <?= e($kindTitles[$kSlug] ?? ucfirst($kSlug)) ?>
+                        </span>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted)); font-weight:700;">
+                            <?= $kAdmitted ?> Admitted
+                        </span>
+                    </div>
+                    <div style="margin-top:0.35rem;">
+                        <strong style="font-size:1.25rem; color:#10b981;"><?= format_price($kRev) ?></strong>
+                        <span style="font-size:0.75rem; color:rgb(var(--muted)); display:block;">Gate Realized</span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
     <!-- ═══ Checked-In Ticket Tier Breakdown ═══ -->
     <section class="fin-card">
         <div class="fin-card-head">
@@ -484,6 +548,7 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
                 <thead>
                     <tr>
                         <th>Ticket Tier</th>
+                        <th>Tier Kind</th>
                         <th>Unit Price</th>
                         <th>Checked-In / Capacity</th>
                         <th>Arrival Progress</th>
@@ -493,7 +558,7 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
                 <tbody>
                     <?php if (empty($finance['tiers'])): ?>
                         <tr>
-                            <td colspan="5" class="fin-empty-state">No ticket tiers configured for this event.</td>
+                            <td colspan="6" class="fin-empty-state">No ticket tiers configured for this event.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($finance['tiers'] as $tier):
@@ -501,9 +566,23 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
                             $cap = (int)($tier['capacity'] ?? 0);
                             $pct = $cap > 0 ? min(100, round(($checkedIn / $cap) * 100, 1)) : 0;
                             $rev = (float)($tier['gate_tier_revenue'] ?? 0.00);
+                            $tKind = $tier['ticket_kind'] ?? 'standard';
+                            $isSeatedTier = (!empty($tier['has_seating']) && $tier['has_seating'] == 1) || $tKind === 'seated';
                         ?>
                         <tr>
-                            <td><strong><?= e($tier['type_name']) ?></strong></td>
+                            <td>
+                                <strong style="display:block;"><?= e($tier['type_name']) ?></strong>
+                                <?php if ($isSeatedTier && (!empty($tier['section_name']) || !empty($tier['row_name']))): ?>
+                                    <span style="font-size:0.75rem; color:rgb(var(--muted));">
+                                        📍 Sec <?= e($tier['section_name'] ?: 'Reserved') ?> <?= !empty($tier['row_name']) ? ('• Row ' . e($tier['row_name'])) : '' ?>
+                                    </span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="fin-kind-badge fin-kind--<?= e($tKind) ?>">
+                                    <?= e(strtoupper($tKind)) ?>
+                                </span>
+                            </td>
                             <td><span class="fin-price-badge"><?= format_price((float)$tier['price']) ?></span></td>
                             <td><strong><?= number_format($checkedIn) ?></strong> / <?= $cap > 0 ? number_format($cap) : '∞' ?></td>
                             <td>
@@ -539,6 +618,7 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
                         <th>Pass Code</th>
                         <th>Attendee Name</th>
                         <th>Ticket Tier</th>
+                        <th>Seat / Kind</th>
                         <th>Ticket Value</th>
                         <th>Gate Status</th>
                         <th style="text-align: right;">Admission Timestamp</th>
@@ -547,10 +627,12 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
                 <tbody>
                     <?php if (empty($finance['transactions'])): ?>
                         <tr>
-                            <td colspan="6" class="fin-empty-state">No checked-in attendees logged yet for this event.</td>
+                            <td colspan="7" class="fin-empty-state">No checked-in attendees logged yet for this event.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($finance['transactions'] as $tx): ?>
+                        <?php foreach ($finance['transactions'] as $tx): 
+                            $txKind = $tx['ticket_kind'] ?? 'standard';
+                        ?>
                         <tr>
                             <td><span class="fin-code-badge"><?= e($tx['ticket_code']) ?></span></td>
                             <td>
@@ -558,6 +640,16 @@ Finance Desk &amp; Gate Revenue — <?= e($event['name'] ?? 'Eventlyy') ?>
                                 <span style="font-size: 0.75rem; color: rgb(var(--muted));"><?= e($tx['attendee_email']) ?></span>
                             </td>
                             <td><strong><?= e($tx['ticket_type_name']) ?></strong></td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+                                    <span class="fin-kind-badge fin-kind--<?= e($txKind) ?>"><?= e(strtoupper($txKind)) ?></span>
+                                    <?php if (!empty($tx['assigned_seat'])): ?>
+                                        <span style="font-size:0.75rem; font-weight:800; color:#065f46; background:rgba(16,185,129,0.12); padding:0.15rem 0.45rem; border-radius:6px;">
+                                            📍 Seat <?= e($tx['assigned_seat']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                             <td><strong><?= format_price((float)$tx['price']) ?></strong></td>
                             <td>
                                 <span class="fin-status-pill">

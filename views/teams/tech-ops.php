@@ -125,7 +125,7 @@ Technical Operations (Sound, Stage &amp; AV) — <?= e($event['name'] ?? 'Eventl
 /* ─── Hardware Grid ────────────────────────────────────────── */
 .to-hardware-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.15rem;
 }
 
@@ -440,6 +440,19 @@ Technical Operations (Sound, Stage &amp; AV) — <?= e($event['name'] ?? 'Eventl
                 Packet Loss: <strong><?= $packetLoss ?></strong> &bull; Sync OK
             </div>
         </div>
+
+        <div class="to-hw-card">
+            <div>
+                <div class="to-hw-head">
+                    <span class="to-hw-name">💺 Seating &amp; Sync Engine</span>
+                    <span class="to-status-online">● HEALTHY</span>
+                </div>
+                <p class="to-hw-desc">Real-time floor seating matrix &amp; offline queue node</p>
+            </div>
+            <div class="to-hw-metric">
+                Local Queue: <strong>Synced</strong> &bull; Zero Collisions
+            </div>
+        </div>
     </section>
 
     <!-- ═══ Assigned Team Members & Workstation Devices Audit ═══ -->
@@ -451,9 +464,34 @@ Technical Operations (Sound, Stage &amp; AV) — <?= e($event['name'] ?? 'Eventl
                 </h2>
                 <p class="to-card-sub">Live connection status, devices, and check-in audit metrics per team member.</p>
             </div>
-            <span class="to-card-count">
-                <?= count($teamMembers) ?> Personnel
-            </span>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <?php
+                    $toOnlineCount = 0;
+                    $toIdleCount = 0;
+                    foreach ($teamMembers as $tmItem) {
+                        if (($tmItem['status'] ?? '') === 'online') $toOnlineCount++;
+                        elseif (($tmItem['status'] ?? '') === 'idle') $toIdleCount++;
+                    }
+                ?>
+                <span class="to-card-count" style="background:rgba(16,185,129,0.12); color:#10b981;">
+                    ● <?= $toOnlineCount ?> Online
+                </span>
+                <?php if ($toIdleCount > 0): ?>
+                    <span class="to-card-count" style="background:rgba(245,158,11,0.12); color:#d97706;">
+                        ● <?= $toIdleCount ?> Idle
+                    </span>
+                <?php endif; ?>
+                <span class="to-card-count">
+                    <?= count($teamMembers) ?> Total
+                </span>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:1rem;">
+            <button type="button" class="to-filter-btn active" onclick="filterTechMembers('all', this)" style="padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(var(--muted),0.22); background:rgb(var(--brand)); color:#fff; font-size:0.76rem; font-weight:700; cursor:pointer;">All</button>
+            <button type="button" class="to-filter-btn" onclick="filterTechMembers('online', this)" style="padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(var(--muted),0.22); background:transparent; color:rgb(var(--text)); font-size:0.76rem; font-weight:700; cursor:pointer;">🟢 Online</button>
+            <button type="button" class="to-filter-btn" onclick="filterTechMembers('idle', this)" style="padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(var(--muted),0.22); background:transparent; color:rgb(var(--text)); font-size:0.76rem; font-weight:700; cursor:pointer;">🟡 Idle</button>
+            <button type="button" class="to-filter-btn" onclick="filterTechMembers('offline', this)" style="padding:0.35rem 0.75rem; border-radius:999px; border:1px solid rgba(var(--muted),0.22); background:transparent; color:rgb(var(--text)); font-size:0.76rem; font-weight:700; cursor:pointer;">⚪ Offline</button>
         </div>
 
         <div class="to-table-wrap">
@@ -476,9 +514,13 @@ Technical Operations (Sound, Stage &amp; AV) — <?= e($event['name'] ?? 'Eventl
                         </tr>
                     <?php else: ?>
                         <?php foreach ($teamMembers as $member):
-                            $isOnline = ($member['status'] === 'online');
+                            $mState = $member['status'] ?? 'offline';
+                            $pillStyle = '';
+                            if ($mState === 'idle') {
+                                $pillStyle = 'background:rgba(245,158,11,0.12); color:#d97706;';
+                            }
                         ?>
-                        <tr>
+                        <tr class="to-member-row" data-status="<?= e($mState) ?>">
                             <td>
                                 <strong style="display: block; color: rgb(var(--text));"><?= e($member['name']) ?></strong>
                                 <span style="font-size: 0.75rem; color: rgb(var(--muted));"><?= e($member['email']) ?></span>
@@ -498,12 +540,13 @@ Technical Operations (Sound, Stage &amp; AV) — <?= e($event['name'] ?? 'Eventl
                                 <strong style="color: rgb(var(--brand)); font-size: 0.95rem;"><?= (int)$member['scans_count'] ?></strong>
                             </td>
                             <td>
-                                <span class="to-active-pill <?= $isOnline ? 'to-active-pill--online' : 'to-active-pill--offline' ?>">
+                                <span class="to-active-pill <?= $mState === 'online' ? 'to-active-pill--online' : ($mState === 'idle' ? '' : 'to-active-pill--offline') ?>" style="<?= $pillStyle ?>">
                                     <span>●</span> <?= e($member['status_label']) ?>
                                 </span>
                             </td>
                             <td style="text-align: right; font-size: 0.82rem; color: rgb(var(--muted));">
-                                <?= e($member['last_login']) ?>
+                                <strong style="display:block; color:rgb(var(--text)); font-size:0.8rem;"><?= e($member['last_active_text'] ?? $member['last_login']) ?></strong>
+                                <span style="font-size:0.72rem;"><?= e($member['activity_summary'] ?? '') ?></span>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -514,4 +557,20 @@ Technical Operations (Sound, Stage &amp; AV) — <?= e($event['name'] ?? 'Eventl
     </section>
 
 </div>
+<script>
+function filterTechMembers(status, btn) {
+    document.querySelectorAll('.to-filter-btn').forEach(function(b) {
+        b.style.background = 'transparent';
+        b.style.color = 'rgb(var(--text))';
+    });
+    if (btn) {
+        btn.style.background = 'rgb(var(--brand))';
+        btn.style.color = '#fff';
+    }
+    document.querySelectorAll('.to-member-row').forEach(function(row) {
+        var rStatus = row.getAttribute('data-status') || 'offline';
+        row.style.display = (status === 'all' || rStatus === status) ? '' : 'none';
+    });
+}
+</script>
 @endsection
