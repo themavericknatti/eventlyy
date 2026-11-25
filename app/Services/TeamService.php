@@ -310,7 +310,7 @@ class TeamService
     /**
      * Search attendees / tickets for guest support desk.
      */
-    public function searchAttendees(int $eventId, ?string $query = null): array
+    public function searchAttendees(int $eventId, ?string $query = null, int $limit = 100): array
     {
         $db = Application::$app->db->pdo;
         $params = ['event_id' => $eventId];
@@ -326,13 +326,15 @@ class TeamService
             $params['q5'] = '%' . $query . '%';
         }
 
+        $limitClause = $limit > 0 ? "LIMIT " . (int)$limit : "LIMIT 100";
+
         $stmt = $db->prepare("
             SELECT t.*, COALESCE(tt.name, 'General Admission') as ticket_type_name
             FROM tickets t
             LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
             {$where}
             ORDER BY t.purchase_date DESC
-            LIMIT 100
+            {$limitClause}
         ");
         $stmt->execute($params);
         return $stmt->fetchAll() ?: [];

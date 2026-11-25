@@ -414,13 +414,34 @@ class TeamController extends Controller
     public function supportDesk(Request $request)
     {
         $context = $this->ensureStaffContext();
-        if (!$context) return redirect('/teams/login');
+        $isAjax = $request->isAjax() 
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || !empty($_GET['ajax']) 
+            || !empty($_POST['ajax']);
+
+        if (!$context) {
+            if ($isAjax) {
+                return Application::$app->response->json(['success' => false, 'message' => 'Staff session expired. Please log in.'], 401);
+            }
+            return redirect('/teams/login');
+        }
 
         $queryParams = $request->getBody();
         $query = trim($queryParams['q'] ?? '');
+        $limit = !empty($queryParams['all']) ? 2500 : 100;
 
-        $tickets = $this->teamService->searchAttendees($context['event']['id'], $query);
+        $tickets = $this->teamService->searchAttendees($context['event']['id'], $query, $limit);
         $stats = $this->teamService->getCheckinStats($context['event']['id']);
+
+        if ($isAjax) {
+            return Application::$app->response->json([
+                'success' => true,
+                'tickets' => $tickets,
+                'stats' => $stats,
+                'query' => $query,
+                'count' => count($tickets),
+            ]);
+        }
 
         $otherEventMatch = null;
         if (empty($tickets) && !empty($query)) {
@@ -445,21 +466,76 @@ class TeamController extends Controller
     }
 
     /**
-     * Support Desk Action: Override check-in status.
+     * Support Desk Action: Override check-in status (Single & Batch Sync).
      */
     public function supportAction(Request $request)
     {
         $context = $this->ensureStaffContext();
-        if (!$context) return redirect('/teams/login');
+        $isAjax = $request->isAjax()
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || !empty($_POST['ajax'])
+            || (isset($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'application/json'));
+
+        if (!$context) {
+            if ($isAjax) {
+                return Application::$app->response->json(['success' => false, 'message' => 'Staff session expired. Please log in.'], 401);
+            }
+            return redirect('/teams/login');
+        }
 
         $data = $request->getBody();
-        $ticketId = $data['ticket_id'] ?? '';
         $action = $data['action'] ?? '';
 
         if ($action === 'override_checkin') {
-            $newState = ($data['check_in'] ?? '1') === '1';
+            $ticketId = $data['ticket_id'] ?? '';
+            $newState = ($data['check_in'] ?? '1') === '1' || $data['check_in'] === true || $data['check_in'] === 1;
             $res = $this->teamService->overrideCheckinStatus($ticketId, $newState, $context['staff']['id']);
+            $stats = $this->teamService->getCheckinStats($context['event']['id']);
+
+            if ($isAjax) {
+                return Application::$app->response->json([
+                    'success' => $res['success'],
+                    'message' => $res['message'],
+                    'ticket_id' => $ticketId,
+                    'checked_in' => $newState,
+                    'checked_in_at' => $newState ? date('M d, H:i') : null,
+                    'stats' => $stats,
+                ]);
+            }
+
             Application::$app->session->setFlash($res['success'] ? 'success' : 'error', $res['message']);
+        } elseif ($action === 'batch_override_sync') {
+            $items = $data['items'] ?? [];
+            if (is_string($items)) {
+                $items = json_decode($items, true) ?: [];
+            }
+            $synced = 0;
+            $failed = 0;
+            foreach ($items as $item) {
+                $tId = $item['ticket_id'] ?? '';
+                $cIn = !empty($item['check_in']) && $item['check_in'] !== '0' && $item['check_in'] !== false;
+                if (!empty($tId)) {
+                    $res = $this->teamService->overrideCheckinStatus($tId, $cIn, $context['staff']['id']);
+                    if (!empty($res['success'])) {
+                        $synced++;
+                    } else {
+                        $failed++;
+                    }
+                }
+            }
+            $stats = $this->teamService->getCheckinStats($context['event']['id']);
+
+            if ($isAjax) {
+                return Application::$app->response->json([
+                    'success' => true,
+                    'synced_count' => $synced,
+                    'failed_count' => $failed,
+                    'message' => "Successfully synced {$synced} offline update(s)" . ($failed > 0 ? " ({$failed} failed)" : "") . ".",
+                    'stats' => $stats,
+                ]);
+            }
+
+            Application::$app->session->setFlash('success', "Successfully synced {$synced} offline check-ins.");
         }
 
         return redirect('/teams/support-desk');
