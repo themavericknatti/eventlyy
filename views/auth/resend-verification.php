@@ -167,6 +167,9 @@ Resend Verification - <?= e($siteName) ?>
             <a href="{{ route('login') }}" class="auth-secondary-btn">
                 Back to Sign In
             </a>
+            <p style="margin: 0.85rem 0 0; text-align: center; font-size: 0.82rem; color: rgb(var(--muted));">
+                Already verified but forgot your password? <a href="{{ route('forgot-password') }}" class="auth-inline-link">Reset password</a>
+            </p>
         </div>
     </div>
 </div>

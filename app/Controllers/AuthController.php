@@ -59,6 +59,11 @@ class AuthController extends Controller
      */
     public function loginView(Request $request): string
     {
+        $redirect = trim($request->getString('redirect'));
+        if (!empty($redirect) && str_starts_with($redirect, '/') && !str_starts_with($redirect, '//')) {
+            Application::$app->session->set('auth_intended_url', $redirect);
+        }
+
         $user = new User();
         return $this->render('auth/login', [
             'user' => $user,
@@ -82,6 +87,12 @@ class AuthController extends Controller
         }
 
         Application::$app->session->setFlash('success', 'Login successful! Welcome back.');
+
+        $intended = Application::$app->session->get('auth_intended_url');
+        if (!empty($intended) && is_string($intended) && str_starts_with($intended, '/') && !str_starts_with($intended, '//')) {
+            Application::$app->session->remove('auth_intended_url');
+            return Application::$app->response->redirect($intended);
+        }
         
         $loggedInUser = Application::$app->user;
         if ($loggedInUser && (method_exists($loggedInUser, 'isAdmin') && $loggedInUser->isAdmin() || method_exists($loggedInUser, 'isSuperAdmin') && $loggedInUser->isSuperAdmin() || hasRole('admin') || hasRole('super-admin'))) {
@@ -194,6 +205,15 @@ class AuthController extends Controller
             return $this->render('auth/resend-verification');
         }
 
+        $rateLimiter = new \App\Services\RateLimiterService();
+        $ip = \App\Services\RateLimiterService::getClientIp();
+        $rateKey = 'resend:' . strtolower($email);
+        if ($rateLimiter->getRemainingLockoutSeconds($ip, $rateKey) > 0) {
+            Application::$app->session->setFlash('error', 'Too many verification requests. Please wait 15 minutes before trying again.');
+            return $this->render('auth/resend-verification');
+        }
+        $rateLimiter->hit($ip, $rateKey);
+
         $user = User::findOne(['email' => $email]);
         if (!$user) {
             // Flash success to avoid email enumeration
@@ -266,6 +286,15 @@ class AuthController extends Controller
             return $this->render('auth/forgot-password');
         }
 
+        $rateLimiter = new \App\Services\RateLimiterService();
+        $ip = \App\Services\RateLimiterService::getClientIp();
+        $rateKey = 'forgot:' . strtolower($email);
+        if ($rateLimiter->getRemainingLockoutSeconds($ip, $rateKey) > 0) {
+            Application::$app->session->setFlash('error', 'Too many password reset requests. Please wait 15 minutes before trying again.');
+            return $this->render('auth/forgot-password');
+        }
+        $rateLimiter->hit($ip, $rateKey);
+
         $this->authService->sendPasswordResetLink($email);
 
         Application::$app->session->setFlash('success', 'If your email is registered in our platform, a password reset link has been sent to your inbox.');
@@ -296,8 +325,8 @@ class AuthController extends Controller
         $password = $request->getString('password');
         $passwordConfirm = $request->getString('password_confirm');
 
-        if (empty($password) || strlen($password) < 6) {
-            Application::$app->session->setFlash('error', 'Password must be at least 6 characters long.');
+        if (empty($password) || strlen($password) < 8) {
+            Application::$app->session->setFlash('error', 'Password must be at least 8 characters long.');
             return $this->render('auth/reset-password', ['token' => $token, 'email' => $email]);
         }
 

@@ -942,7 +942,8 @@ textarea:focus,
   margin: 0;
   padding: 0;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   background-color: rgb(var(--bg));
   color: rgb(var(--text));
   font-family: var(--font-sans);
@@ -2153,12 +2154,20 @@ textarea:focus,
   }
 
   .auth-showcase {
-    padding: 1.75rem 1.35rem;
+    padding: 1.5rem 1.25rem;
     border-radius: 20px;
   }
 
+  .auth-ticket-preview {
+    display: none;
+  }
+
+  .auth-showcase-hero {
+    margin-bottom: 1.15rem;
+  }
+
   .auth-showcase-hero h2 {
-    font-size: 1.45rem !important;
+    font-size: 1.35rem !important;
   }
 
   .showcase-lede {

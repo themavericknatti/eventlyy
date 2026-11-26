@@ -227,8 +227,12 @@
                     return;
                 }
 
-                // If form is valid
+                // If form has invalid required fields (since forms use novalidate)
                 if (form.checkValidity && !form.checkValidity()) {
+                    e.preventDefault();
+                    const firstInvalid = form.querySelector(':invalid');
+                    showAuthMessage(form, 'Please fill in all required fields with valid information.', 'error');
+                    if (firstInvalid) firstInvalid.focus();
                     return;
                 }
 
@@ -273,6 +277,37 @@
         } catch (e) {}
     }
 
+    // 7. Caps Lock Warning on Password Inputs
+    function initCapsLockWarning() {
+        document.querySelectorAll('.auth-input[type="password"]').forEach(function (input) {
+            const group = input.closest('.auth-field-group');
+            if (!group) return;
+
+            let warn = group.querySelector('.auth-caps-warning');
+            if (!warn) {
+                warn = document.createElement('div');
+                warn.className = 'auth-caps-warning';
+                warn.style.cssText = 'display:none; font-size:0.75rem; font-weight:700; color:#d97706; margin-top:0.35rem; align-items:center; gap:0.3rem;';
+                warn.textContent = '⚠️ Caps Lock is ON';
+                const wrap = input.closest('.auth-input-wrapper');
+                if (wrap && wrap.nextSibling) {
+                    group.insertBefore(warn, wrap.nextSibling);
+                } else {
+                    group.appendChild(warn);
+                }
+            }
+
+            const checkCaps = function (e) {
+                if (typeof e.getModifierState === 'function') {
+                    warn.style.display = e.getModifierState('CapsLock') ? 'flex' : 'none';
+                }
+            };
+            input.addEventListener('keydown', checkCaps);
+            input.addEventListener('keyup', checkCaps);
+            input.addEventListener('blur', function () { warn.style.display = 'none'; });
+        });
+    }
+
     // Initialize all components
     function init() {
         initPasswordToggles();
@@ -280,6 +315,7 @@
         initPasswordStrengthMeter();
         initPasswordMatchChecks();
         initSubmitPrevention();
+        initCapsLockWarning();
     }
 
     if (document.readyState === 'loading') {

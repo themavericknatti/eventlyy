@@ -1134,6 +1134,67 @@ Your Account Hub — Eventlyy
     <!-- ═══ Tab Panel: Security & Account ═══ -->
     <div id="panel-security" class="pf-panel <?= $activeTab === 'security' ? 'pf-panel--active' : '' ?>" role="tabpanel">
         
+        <!-- Active Session & Verification Security Card -->
+        <?php
+            $secMeta = \Ace\Application::$app->session->get('auth_session_meta') ?? [];
+            $isEmailVerified = $user && method_exists($user, 'isVerified') && $user->isVerified();
+            $secDevice = $secMeta['device'] ?? 'Current Web Browser';
+            $secIp = $secMeta['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+            $secLoginAt = !empty($secMeta['login_at']) ? date('M d, Y • g:i A', strtotime($secMeta['login_at'])) : 'Active Session';
+        ?>
+        <div class="pf-card" style="margin-bottom: 1.25rem;">
+            <div class="pf-card-head">
+                <div class="pf-card-head__title-wrap">
+                    <div class="pf-card-head__icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2>Account Verification &amp; Active Session</h2>
+                        <p>Monitor your current sign-in session and email verification status.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.85rem; margin-bottom: 1rem;">
+                <div style="padding: 0.85rem 1rem; border-radius: 12px; background: rgba(var(--muted), 0.05); border: 1px solid rgba(var(--muted), 0.14);">
+                    <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: rgb(var(--muted)); letter-spacing: 0.04em;">Email Verification</div>
+                    <div style="margin-top: 0.35rem; font-weight: 800; font-size: 0.9rem; color: <?= $isEmailVerified ? '#10b981' : '#d97706' ?>;">
+                        <?= $isEmailVerified ? '✓ Verified Account' : '⚠️ Unverified Email' ?>
+                    </div>
+                    <div style="font-size: 0.76rem; color: rgb(var(--muted)); margin-top: 0.2rem;"><?= e($user->email ?? '') ?></div>
+                </div>
+
+                <div style="padding: 0.85rem 1rem; border-radius: 12px; background: rgba(var(--muted), 0.05); border: 1px solid rgba(var(--muted), 0.14);">
+                    <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: rgb(var(--muted)); letter-spacing: 0.04em;">Current Device &amp; IP</div>
+                    <div style="margin-top: 0.35rem; font-weight: 800; font-size: 0.9rem; color: rgb(var(--text));"><?= e($secDevice) ?></div>
+                    <div style="font-size: 0.76rem; color: rgb(var(--muted)); margin-top: 0.2rem;">IP: <?= e($secIp) ?> &bull; <?= e($secLoginAt) ?></div>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                <?php if (!$isEmailVerified): ?>
+                    <form method="POST" action="{{ route('resend-verification') }}" style="margin:0;">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="email" value="<?= e($user->email ?? '') ?>">
+                        <button type="submit" class="pf-btn pf-btn--primary" style="background: #d97706; border-color: #d97706;">
+                            ✉️ Resend Verification Email
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <span style="font-size: 0.82rem; color: rgb(var(--muted)); font-weight: 600;">🛡️ Your session is protected with CSRF &amp; session-fixation rotation.</span>
+                <?php endif; ?>
+
+                <form method="POST" action="{{ route('logout') }}" style="margin:0;">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="pf-btn" style="border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; background: rgba(239, 68, 68, 0.08);">
+                        Sign Out of Session
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Password Change Card -->
         <div class="pf-card">
             <div class="pf-card-head">

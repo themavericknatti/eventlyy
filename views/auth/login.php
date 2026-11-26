@@ -196,6 +196,9 @@ Sign In - <?= e($siteName) ?>
             <a href="{{ route('register') }}" class="auth-secondary-btn">
                 Create Free Account
             </a>
+            <p style="margin: 0.85rem 0 0; text-align: center; font-size: 0.82rem; color: rgb(var(--muted));">
+                Need to verify your email? <a href="{{ route('resend-verification') }}" class="auth-inline-link">Resend verification link</a>
+            </p>
         </div>
     </div>
 </div>

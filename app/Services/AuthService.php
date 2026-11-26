@@ -79,6 +79,20 @@ class AuthService
                 error_log("Failed to auto-link guest records on login: " . $e->getMessage());
             }
 
+            // Prevent session fixation on privilege elevation
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                @session_regenerate_id(true);
+            }
+
+            // Record active session security metadata for logged-in Security Center
+            $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? 'Web Browser', 0, 250);
+            Application::$app->session->set('auth_session_meta', [
+                'login_at' => date('Y-m-d H:i:s'),
+                'ip' => $ip,
+                'device' => $this->parseDeviceSummary($ua),
+                'remember' => !empty($credentials['remember']),
+            ]);
+
             $remember = !empty($credentials['remember']);
             Application::$app->login($dbUser, $remember);
             return true;
@@ -148,7 +162,7 @@ class AuthService
      */
     public function resetPassword(string $email, string $token, string $newPassword): bool
     {
-        if (empty($email) || empty($token) || strlen($newPassword) < 6) {
+        if (empty($email) || empty($token) || strlen($newPassword) < 8) {
             return false;
         }
 
@@ -189,6 +203,30 @@ class AuthService
      */
     public function logout(): void
     {
+        Application::$app->session->remove('auth_session_meta');
+        Application::$app->session->remove('auth_intended_url');
         Application::$app->logout();
+    }
+
+    /**
+     * Parse User-Agent into a concise human-readable device label.
+     */
+    protected function parseDeviceSummary(string $ua): string
+    {
+        $os = 'Desktop';
+        if (preg_match('/iPhone/i', $ua)) $os = 'iPhone';
+        elseif (preg_match('/iPad/i', $ua)) $os = 'iPad';
+        elseif (preg_match('/Android/i', $ua)) $os = 'Android';
+        elseif (preg_match('/Windows/i', $ua)) $os = 'Windows';
+        elseif (preg_match('/Macintosh/i', $ua)) $os = 'Mac';
+        elseif (preg_match('/Linux/i', $ua)) $os = 'Linux';
+
+        $browser = 'Browser';
+        if (preg_match('/Edg/i', $ua)) $browser = 'Edge';
+        elseif (preg_match('/Chrome/i', $ua)) $browser = 'Chrome';
+        elseif (preg_match('/Safari/i', $ua)) $browser = 'Safari';
+        elseif (preg_match('/Firefox/i', $ua)) $browser = 'Firefox';
+
+        return "{$browser} on {$os}";
     }
 }
